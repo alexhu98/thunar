@@ -19,14 +19,16 @@
  * Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "thunar/thunar-uca-provider.h"
+
+#include "thunar/thunar-action-manager.h"
+#include "thunar/thunar-uca-chooser.h"
+#include "thunar/thunar-uca-context.h"
+#include "thunar/thunar-uca-model.h"
+
 #include <gio/gio.h>
 #include <libxfce4ui/libxfce4ui.h>
 #include <libxfce4util/libxfce4util.h>
-#include <thunar/thunar-uca-chooser.h>
-#include <thunar/thunar-uca-context.h>
-#include <thunar/thunar-uca-model.h>
-#include <thunar/thunar-uca-provider.h>
-
 
 
 static void
@@ -46,6 +48,8 @@ static GList *
 thunar_uca_provider_get_folder_menu_items (ThunarxMenuProvider *menu_provider,
                                            GtkWidget           *window,
                                            ThunarxFileInfo     *folder);
+static GList *
+thunar_uca_provider_get_all_right_click_menu_items (ThunarxMenuProvider *menu_provider);
 static void
 thunar_uca_provider_activated (ThunarUcaProvider *uca_provider,
                                ThunarxMenuItem   *item);
@@ -117,6 +121,7 @@ thunar_uca_provider_menu_provider_init (ThunarxMenuProviderIface *iface)
 {
   iface->get_file_menu_items = thunar_uca_provider_get_file_menu_items;
   iface->get_folder_menu_items = thunar_uca_provider_get_folder_menu_items;
+  iface->get_all_right_click_menu_items = thunar_uca_provider_get_all_right_click_menu_items;
 }
 
 
@@ -157,15 +162,7 @@ thunar_uca_provider_finalize (GObject *object)
 static void
 manage_menu_items (GtkWindow *window)
 {
-  GtkWidget *dialog;
-  gboolean   use_header_bar = FALSE;
-
-  g_object_get (gtk_settings_get_for_screen (gtk_widget_get_screen (GTK_WIDGET (window))),
-                "gtk-dialogs-use-header", &use_header_bar, NULL);
-
-  dialog = g_object_new (THUNAR_UCA_TYPE_CHOOSER, "use-header-bar", use_header_bar, NULL);
-  gtk_window_set_transient_for (GTK_WINDOW (dialog), window);
-  gtk_widget_show (dialog);
+  thunar_uca_chooser_show (window);
 }
 
 
@@ -275,7 +272,7 @@ thunar_uca_provider_get_file_menu_items (ThunarxMenuProvider *menu_provider,
                               -1);
 
           /* generate a unique action name */
-          name = g_strdup_printf ("uca-action-%s", unique_id);
+          name = g_strdup_printf (THUNAR_UCA_ACTION_ID_PREFIX "%s", unique_id);
 
           if (gicon != NULL)
             icon_name = g_icon_to_string (gicon);
@@ -430,6 +427,51 @@ thunar_uca_provider_get_folder_menu_items (ThunarxMenuProvider *menu_provider,
 
   /* mark the menu items as folder menu items, so we can properly detect the working directory */
   set_folder_quarks_recursive (items);
+
+  return items;
+}
+
+
+
+static GList *
+thunar_uca_provider_get_all_right_click_menu_items (ThunarxMenuProvider *menu_provider)
+{
+  ThunarUcaProvider *uca_provider = THUNAR_UCA_PROVIDER (menu_provider);
+  GtkTreeIter        iter;
+  GList             *items = NULL;
+
+  if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (uca_provider->model), &iter))
+    {
+      do
+        {
+          ThunarxMenuItem *menu_item;
+          gchar           *unique_id;
+          gchar           *label;
+          gchar           *tooltip;
+          gchar           *icon;
+          gchar           *name;
+
+          gtk_tree_model_get (GTK_TREE_MODEL (uca_provider->model), &iter,
+                              THUNAR_UCA_MODEL_COLUMN_UNIQUE_ID, &unique_id,
+                              THUNAR_UCA_MODEL_COLUMN_NAME, &label,
+                              THUNAR_UCA_MODEL_COLUMN_DESCRIPTION, &tooltip,
+                              THUNAR_UCA_MODEL_COLUMN_ICON_NAME, &icon,
+                              -1);
+
+          /* generate a unique action name */
+          name = g_strdup_printf (THUNAR_UCA_ACTION_ID_PREFIX "%s", unique_id);
+
+          menu_item = thunarx_menu_item_new (name, label, tooltip, icon);
+          items = g_list_append (items, menu_item);
+
+          g_free (unique_id);
+          g_free (label);
+          g_free (tooltip);
+          g_free (icon);
+          g_free (name);
+        }
+      while (gtk_tree_model_iter_next (GTK_TREE_MODEL (uca_provider->model), &iter));
+    }
 
   return items;
 }

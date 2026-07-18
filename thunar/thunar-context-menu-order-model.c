@@ -24,6 +24,7 @@
 #include "thunar/thunar-preferences.h"
 #include "thunar/thunar-private.h"
 #include "thunar/thunar-standard-view.h"
+#include "thunar/thunar-uca-model.h"
 #include "thunar/thunar-util.h"
 #include "thunar/thunar-window.h"
 
@@ -48,6 +49,11 @@ struct _ThunarContextMenuOrderModel
   /* table(gchar* => ThunarContextMenuOrderModelItem*) for storing menu item prototypes, from which items are then
    * created in the thunar_context_menu_order_model_new_item_from_prototype() */
   GHashTable *prototypes_table;
+
+  ThunarUcaModel *uca_model;
+
+  /* index for inserting the list of unrecognized plugin actions */
+  gint plugin_actions_position;
 };
 
 enum
@@ -70,18 +76,22 @@ thunar_context_menu_order_model_finalize (GObject *object);
 static void
 thunar_context_menu_order_model_save (ThunarContextMenuOrderModel *order_model);
 
+static GList *
+thunar_context_menu_order_model_get_plugin_actions (void);
+
+static GList *
+thunar_context_menu_order_model_get_items_default_order (ThunarContextMenuOrderModel *order_model);
+
 static void
-thunar_context_menu_order_model_load (ThunarContextMenuOrderModel *order_model);
-
-static GList *
-thunar_context_menu_order_model_get_custom_actions (void);
-
-static GList *
-thunar_context_menu_order_model_get_default_items (ThunarContextMenuOrderModel *order_model);
+thunar_context_menu_order_model_remove_uca_item (ThunarContextMenuOrderModel     *order_model,
+                                                 ThunarContextMenuOrderModelItem *item);
 
 static ThunarContextMenuOrderModelItem *
 thunar_context_menu_order_model_new_item_from_prototype (ThunarContextMenuOrderModel *order_model,
                                                          const gchar                 *id);
+
+static void
+thunar_context_menu_order_model_set_plugin_actions_position (ThunarContextMenuOrderModel *order_model);
 
 static ThunarContextMenuOrderModelItem *
 thunar_context_menu_order_model_item_new (const gchar *id,
@@ -122,6 +132,9 @@ thunar_context_menu_order_model_init (ThunarContextMenuOrderModel *order_model)
   thunar_context_menu_order_model_init_prototypes_table (order_model);
 
   thunar_context_menu_order_model_load (order_model);
+
+  order_model->uca_model = thunar_uca_model_get_default ();
+  g_signal_connect_swapped (order_model->uca_model, "saved", G_CALLBACK (thunar_context_menu_order_model_load), order_model);
 }
 
 
@@ -136,12 +149,6 @@ thunar_context_menu_order_model_init_prototypes_table (ThunarContextMenuOrderMod
   item = thunar_context_menu_order_model_item_new ("separator", TRUE);
   item->name = g_strdup (_("--- Separator ---"));
   item->removable = TRUE;
-  items = g_list_append (items, item);
-
-  /* custom actions */
-  item = thunar_context_menu_order_model_item_new ("custom-actions", TRUE);
-  item->name = g_strdup (_("*** Custom actions ***"));
-  item->tooltip = g_strdup (_("Custom action menu items will appear in place of this item"));
   items = g_list_append (items, item);
 
   /* Thunar menu items */
@@ -183,6 +190,9 @@ thunar_context_menu_order_model_finalize (GObject *object)
   if (order_model->items != NULL)
     g_list_free_full (order_model->items, (GDestroyNotify) thunar_context_menu_order_model_item_free);
 
+  g_signal_handlers_disconnect_by_data (order_model->uca_model, order_model);
+  g_object_unref (order_model->uca_model);
+
   G_OBJECT_CLASS (thunar_context_menu_order_model_parent_class)->finalize (object);
 }
 
@@ -209,178 +219,12 @@ thunar_context_menu_order_model_save (ThunarContextMenuOrderModel *order_model)
 
 
 
-static void
-thunar_context_menu_order_model_load (ThunarContextMenuOrderModel *order_model)
-{
-  GList *default_items = thunar_context_menu_order_model_get_default_items (order_model);
-  gchar *content = NULL;
-
-  /* clearing previous data */
-  if (order_model->items != NULL)
-    {
-      g_list_free_full (order_model->items, (GDestroyNotify) thunar_context_menu_order_model_item_free);
-      order_model->items = NULL;
-    }
-
-  g_object_get (order_model->preferences, "last-context-menu-items", &content, NULL);
-  if (content != NULL)
-    {
-      gchar **items = g_strsplit (content, ",", -1);
-
-      /* if the config value is set, then read the list of items in a loop */
-      for (gint i = 0; items[i] != NULL; ++i)
-        {
-          /* "item_data" now stores the pair [item_id, visibility] */
-          gchar  **item_data = g_strsplit (items[i], ":", -1);
-          gboolean visibility = FALSE;
-
-          if (item_data[0] != NULL)
-            visibility = g_strcmp0 (item_data[1], "0") != 0;
-
-          if (g_strcmp0 ("separator", item_data[0]) == 0)
-            {
-              /* if a separator is encountered, then simply create it */
-              ThunarContextMenuOrderModelItem *item = thunar_context_menu_order_model_new_item_from_prototype (order_model, "separator");
-
-              item->visibility = visibility;
-              order_model->items = g_list_append (order_model->items, item);
-            }
-          else
-            {
-              gboolean added = FALSE;
-
-              /* if a menu item is encountered, it must be removed from default_items and placed in the specified position */
-              for (GList *l = default_items; l != NULL; l = l->next)
-                {
-                  ThunarContextMenuOrderModelItem *item = l->data;
-
-                  if (g_strcmp0 (item->id, item_data[0]) == 0)
-                    {
-                      item->visibility = visibility;
-                      order_model->items = g_list_append (order_model->items, l->data);
-                      default_items = g_list_remove (default_items, l->data);
-                      added = TRUE;
-                      break;
-                    }
-                }
-
-              if (!added)
-                g_warning ("Could not add menu item \"%s\" because the item is not in the list of default items", item_data[0]);
-            }
-
-          g_strfreev (item_data);
-        }
-
-      g_strfreev (items);
-      g_free (content);
-    }
-  else
-    {
-      /* if the configuration value is not specified, the standard order of items is used */
-      order_model->items = default_items;
-      default_items = NULL;
-    }
-
-  if (default_items != NULL)
-    {
-      /* need to process the remaining default items that were not removed when reading the config value */
-      GList *new_custom_actions = NULL;
-      GList *new_items = NULL;
-      gint   index = 0;
-
-      /* search for menu items of custom actions that were not specified in the config but have appeared now */
-      for (GList *l = default_items, *lnext; l != NULL; l = lnext)
-        {
-          ThunarContextMenuOrderModelItem *item = l->data;
-
-          lnext = l->next;
-          if (g_str_has_prefix (item->id, "custom-action-"))
-            {
-              new_custom_actions = g_list_append (new_custom_actions, item);
-              default_items = g_list_remove (default_items, item);
-            }
-        }
-
-      if (new_custom_actions != NULL)
-        {
-          /*if there are new custom actions, then put them at the end of the list of current custom actions */
-          for (GList *li = order_model->items; li != NULL; li = li->next, ++index)
-            {
-              ThunarContextMenuOrderModelItem *item = li->data;
-
-              if (g_strcmp0 (item->id, "custom-actions") == 0)
-                {
-                  /* new custom actions are added to the end after those that were already set in the config
-                   *
-                   * Visualization of the context menu:
-                   * - New File
-                   * - UCA action0
-                   * - New Directory
-                   * - *** Custom actions *** <- now the variable "item" refers to this item
-                   * - UCA action1
-                   * - UCA action2 <- the new_custom_actions list is inserted after this item
-                   * - Properties...
-                   * - UCA action3
-                   */
-
-                  for (li = li->next; li != NULL; li = li->next, ++index)
-                    {
-                      item = li->data;
-
-                      if (!g_str_has_prefix (item->id, "custom-action-"))
-                        break;
-                    }
-                  while (new_custom_actions != NULL)
-                    {
-                      item = new_custom_actions->data;
-                      order_model->items = g_list_insert (order_model->items, item, ++index);
-                      new_custom_actions = g_list_remove (new_custom_actions, item);
-                    }
-                  break;
-                }
-            }
-        }
-
-      g_list_free_full (new_custom_actions, (GDestroyNotify) thunar_context_menu_order_model_item_free);
-
-      /* if the default_items list contains items that are not in the config, it means that they appeared in the
-       * new version of thunar, and they can be added to the end and hidden */
-      for (GList *l = default_items; l != NULL; l = l->next)
-        {
-          ThunarContextMenuOrderModelItem *item = l->data;
-
-          /* since it is impossible to know whether a separator is a new or removed standard item,
-           * we simply will not add them */
-          if (g_strcmp0 (item->id, "separator") != 0)
-            {
-              item->visibility = FALSE;
-              new_items = g_list_append (new_items, item);
-            }
-        }
-      for (GList *l = new_items; l != NULL; l = l->next)
-        {
-          ThunarContextMenuOrderModelItem *item = l->data;
-
-          order_model->items = g_list_append (order_model->items, item);
-          default_items = g_list_remove (default_items, item);
-        }
-
-      /* only menu item separators could remain */
-      g_list_free_full (default_items, (GDestroyNotify) thunar_context_menu_order_model_item_free);
-    }
-
-  /* signal */
-  g_signal_emit (order_model, signals[CHANGED], 0);
-}
-
-
-
 static GList *
-thunar_context_menu_order_model_get_custom_actions (void)
+thunar_context_menu_order_model_get_plugin_actions (void)
 {
   ThunarxProviderFactory *provider_factory = thunarx_provider_factory_get_default ();
   GList                  *providers = thunarx_provider_factory_list_providers (provider_factory, THUNARX_TYPE_MENU_PROVIDER);
-  GList                  *custom_actions = NULL;
+  GList                  *plugin_actions = NULL;
 
   g_object_unref (provider_factory);
   for (GList *provider = providers; provider != NULL; provider = provider->next)
@@ -389,7 +233,7 @@ thunar_context_menu_order_model_get_custom_actions (void)
       for (GList *provider_item = provider_items; provider_item != NULL; provider_item = provider_item->next)
         {
           ThunarxMenuItem                 *provider_menu_item = provider_item->data;
-          gchar                           *custom_action_id = NULL;
+          gchar                           *plugin_action_id = NULL;
           gchar                           *name = NULL;
           gchar                           *icon = NULL;
           gchar                           *tooltip = NULL;
@@ -397,23 +241,28 @@ thunar_context_menu_order_model_get_custom_actions (void)
           ThunarContextMenuOrderModelItem *item = NULL;
 
           g_object_get (provider_menu_item,
-                        "name", &custom_action_id,
+                        "name", &plugin_action_id,
                         "label", &name,
                         "icon", &icon,
                         "tooltip", &tooltip,
                         NULL);
 
-          if (custom_action_id != NULL)
+          if (plugin_action_id != NULL)
             {
-              id = g_strdup_printf ("custom-action-%s", custom_action_id);
+              id = thunar_normalize_plugin_action_id (plugin_action_id);
+
               item = thunar_context_menu_order_model_item_new (id, TRUE);
               item->name = g_strdup (name);
               item->icon = g_strdup (icon);
               item->tooltip = g_strdup (tooltip);
-              custom_actions = g_list_append (custom_actions, item);
+
+              if (thunar_is_uca_action_id (id))
+                item->removable = TRUE;
+
+              plugin_actions = g_list_append (plugin_actions, item);
             }
 
-          g_free (custom_action_id);
+          g_free (plugin_action_id);
           g_free (name);
           g_free (icon);
           g_free (tooltip);
@@ -423,13 +272,13 @@ thunar_context_menu_order_model_get_custom_actions (void)
     }
   g_list_free_full (providers, g_object_unref);
 
-  return custom_actions;
+  return plugin_actions;
 }
 
 
 
 static GList *
-thunar_context_menu_order_model_get_default_items (ThunarContextMenuOrderModel *order_model)
+thunar_context_menu_order_model_get_items_default_order (ThunarContextMenuOrderModel *order_model)
 {
   GList *default_items = NULL;
 
@@ -494,8 +343,8 @@ thunar_context_menu_order_model_get_default_items (ThunarContextMenuOrderModel *
 
   SEPARATOR;
 
-  ITEM ("custom-actions");
-  default_items = g_list_concat (default_items, thunar_context_menu_order_model_get_custom_actions ());
+  /* plugin actions that are not received here will be considered unrecognized plugin actions */
+  default_items = g_list_concat (default_items, thunar_context_menu_order_model_get_plugin_actions ());
 
   SEPARATOR;
 
@@ -530,6 +379,37 @@ thunar_context_menu_order_model_get_default_items (ThunarContextMenuOrderModel *
 
 
 
+static void
+thunar_context_menu_order_model_remove_uca_item (ThunarContextMenuOrderModel     *order_model,
+                                                 ThunarContextMenuOrderModelItem *item)
+{
+  ThunarUcaModel *uca_model = thunar_uca_model_get_default ();
+  const gchar    *unique_id = thunar_get_unqiue_id_from_uca_action_id (item->id);
+  GtkTreeIter     iter;
+
+  g_signal_handlers_block_by_func (order_model->uca_model, thunar_context_menu_order_model_load, order_model);
+  if (thunar_uca_model_get_iter_by_unique_id (uca_model, &iter, unique_id))
+    {
+      gint index = xfce_item_list_model_get_index (XFCE_ITEM_LIST_MODEL (uca_model), &iter);
+
+      /* remove from uca_model */
+      xfce_item_list_model_remove (XFCE_ITEM_LIST_MODEL (uca_model), index);
+
+      /* remove from order_model */
+      order_model->items = g_list_remove (order_model->items, item);
+      thunar_context_menu_order_model_item_free (item);
+
+      /* save */
+      thunar_uca_model_save (uca_model, NULL);
+    }
+  g_signal_handlers_unblock_by_func (order_model->uca_model, thunar_context_menu_order_model_load, order_model);
+
+  /* cleanup */
+  g_object_unref (uca_model);
+}
+
+
+
 static ThunarContextMenuOrderModelItem *
 thunar_context_menu_order_model_new_item_from_prototype (ThunarContextMenuOrderModel *order_model,
                                                          const gchar                 *id)
@@ -551,6 +431,24 @@ thunar_context_menu_order_model_new_item_from_prototype (ThunarContextMenuOrderM
   item->tooltip = g_strdup (prototype->tooltip);
   item->removable = prototype->removable;
   return item;
+}
+
+
+
+static void
+thunar_context_menu_order_model_set_plugin_actions_position (ThunarContextMenuOrderModel *order_model)
+{
+  gint l_index = 0;
+
+  /* find the last plugin action and set order_model->plugin_actions_position */
+  order_model->plugin_actions_position = g_list_length (order_model->items); /* the default index points to the end */
+  for (GList *l = order_model->items; l != NULL; l = l->next, ++l_index)
+    {
+      ThunarContextMenuOrderModelItem *item = l->data;
+
+      if (thunar_is_plugin_action_id (item->id))
+        order_model->plugin_actions_position = l_index + 1;
+    }
 }
 
 
@@ -634,6 +532,7 @@ thunar_context_menu_order_model_move (ThunarContextMenuOrderModel *order_model,
   dest_sibling = g_list_nth (order_model->items, dest_index);
   order_model->items = g_list_insert_before_link (order_model->items, dest_sibling, link);
 
+  thunar_context_menu_order_model_set_plugin_actions_position (order_model);
   thunar_context_menu_order_model_save (order_model);
   g_signal_emit (order_model, signals[CHANGED], 0);
 }
@@ -668,18 +567,27 @@ thunar_context_menu_order_model_reset (ThunarContextMenuOrderModel *order_model)
       order_model->items = NULL;
     }
 
-  order_model->items = thunar_context_menu_order_model_get_default_items (order_model);
+  order_model->items = thunar_context_menu_order_model_get_items_default_order (order_model);
 
+  thunar_context_menu_order_model_set_plugin_actions_position (order_model);
   thunar_context_menu_order_model_save (order_model);
   g_signal_emit (order_model, signals[CHANGED], 0);
 }
 
 
 
+/**
+ * thunar_context_menu_order_model_remove_items:
+ * @order_model : a #ThunarContextMenuOrderModel
+ * @indexes     : array of item indices sorted in ascending order
+ * @n_indexes   : number of indices
+ *
+ * Removes multiple items in a single call and emits the "changed" signal once.
+ */
 void
-thunar_context_menu_order_model_remove (ThunarContextMenuOrderModel *order_model,
-                                        const gint                  *indexes,
-                                        gint                         n_indexes)
+thunar_context_menu_order_model_remove_items (ThunarContextMenuOrderModel *order_model,
+                                              const gint                  *indexes,
+                                              gint                         n_indexes)
 {
   _thunar_return_if_fail (THUNAR_IS_CONTEXT_MENU_ORDER_MODEL (order_model));
   _thunar_return_if_fail (n_indexes >= 0);
@@ -688,6 +596,8 @@ thunar_context_menu_order_model_remove (ThunarContextMenuOrderModel *order_model
   if (n_indexes == 0)
     return;
 
+  /* indexes are always in ascending order, so by deleting in reverse order, we don't have to worry about
+   * index invalidation */
   for (gint i = n_indexes - 1; i >= 0; --i)
     {
       gint                             index = indexes[i];
@@ -716,8 +626,13 @@ thunar_context_menu_order_model_remove (ThunarContextMenuOrderModel *order_model
           thunar_context_menu_order_model_item_free (item);
           order_model->items = g_list_delete_link (order_model->items, link);
         }
+      else if (thunar_is_uca_action_id (item->id))
+        {
+          thunar_context_menu_order_model_remove_uca_item (order_model, item);
+        }
     }
 
+  thunar_context_menu_order_model_set_plugin_actions_position (order_model);
   thunar_context_menu_order_model_save (order_model);
   g_signal_emit (order_model, signals[CHANGED], 0);
 }
@@ -736,13 +651,199 @@ thunar_context_menu_order_model_insert_separator (ThunarContextMenuOrderModel *o
     index = g_list_length (order_model->items);
 
   item = thunar_context_menu_order_model_new_item_from_prototype (order_model, "separator");
+  if (item == NULL)
+    return -1;
 
   order_model->items = g_list_insert (order_model->items, item, index);
 
+  thunar_context_menu_order_model_set_plugin_actions_position (order_model);
   thunar_context_menu_order_model_save (order_model);
   g_signal_emit (order_model, signals[CHANGED], 0);
 
   return index;
+}
+
+
+
+/**
+ * thunar_context_menu_order_model_load:
+ * @order_model : a #ThunarContextMenuOrderModel
+ *
+ * Loads the model from a file and also adds current menu items from plugins.
+ */
+void
+thunar_context_menu_order_model_load (ThunarContextMenuOrderModel *order_model)
+{
+  GList *items_default_order = thunar_context_menu_order_model_get_items_default_order (order_model);
+  gchar *content = NULL;
+
+  /* clearing previous data */
+  if (order_model->items != NULL)
+    {
+      g_list_free_full (order_model->items, (GDestroyNotify) thunar_context_menu_order_model_item_free);
+      order_model->items = NULL;
+    }
+
+  g_object_get (order_model->preferences, "last-context-menu-items", &content, NULL);
+  if (content != NULL)
+    {
+      gchar **items = g_strsplit (content, ",", -1);
+
+      /* if the config value is set, then read the list of items in a loop */
+      for (gint i = 0; items[i] != NULL; ++i)
+        {
+          /* "item_data" now stores the pair [item_id, visibility] */
+          gchar  **item_data = g_strsplit (items[i], ":", -1);
+          gboolean visibility = FALSE;
+
+          if (item_data[0] != NULL)
+            visibility = g_strcmp0 (item_data[1], "0") != 0;
+
+          if (g_strcmp0 ("separator", item_data[0]) == 0)
+            {
+              /* if a separator is encountered, then simply create it */
+              ThunarContextMenuOrderModelItem *item = thunar_context_menu_order_model_new_item_from_prototype (order_model, "separator");
+
+              if (item == NULL)
+                {
+                  g_warning ("Failed to create separator");
+                }
+              else
+                {
+                  item->visibility = visibility;
+                  order_model->items = g_list_append (order_model->items, item);
+                }
+            }
+          else
+            {
+              gboolean added = FALSE;
+
+              /* if a menu item is encountered, it must be removed from items_default_order and placed in the specified position */
+              for (GList *l = items_default_order; l != NULL; l = l->next)
+                {
+                  ThunarContextMenuOrderModelItem *item = l->data;
+
+                  if (g_strcmp0 (item->id, item_data[0]) == 0)
+                    {
+                      item->visibility = visibility;
+                      order_model->items = g_list_append (order_model->items, l->data);
+                      items_default_order = g_list_remove (items_default_order, l->data);
+                      added = TRUE;
+                      break;
+                    }
+                }
+
+              if (!added && item_data[0] != NULL && !thunar_is_plugin_action_id (item_data[0]))
+                g_warning ("Could not add menu item \"%s\" because the item is not in the list of default items", item_data[0]);
+            }
+
+          g_strfreev (item_data);
+        }
+
+      g_strfreev (items);
+      g_free (content);
+    }
+  else /* content == NULL */
+    {
+      /* if the configuration value is not specified, the standard order of items is used */
+      order_model->items = items_default_order;
+      items_default_order = NULL;
+    }
+
+  if (items_default_order != NULL)
+    {
+      /* need to process the remaining default items that were not removed when reading the config value */
+      GList *new_plugin_actions = NULL;
+      GList *new_items = NULL;
+
+      /* search for menu items of plugin actions that were not specified in the config but have appeared now */
+      for (GList *l = items_default_order, *lnext; l != NULL; l = lnext)
+        {
+          ThunarContextMenuOrderModelItem *item = l->data;
+
+          lnext = l->next;
+          if (thunar_is_plugin_action_id (item->id))
+            {
+              new_plugin_actions = g_list_append (new_plugin_actions, item);
+              items_default_order = g_list_remove (items_default_order, item);
+            }
+        }
+
+      if (new_plugin_actions != NULL)
+        {
+          gint last_plugin_action_index = -1;
+          gint li_index = 0;
+
+          /* if there are new user actions, place them at the end of the list of current user actions, or simply at
+           * the end of the items */
+          for (GList *li = order_model->items; li != NULL; li = li->next, ++li_index)
+            {
+              ThunarContextMenuOrderModelItem *item = li->data;
+
+              if (thunar_is_plugin_action_id (item->id))
+                last_plugin_action_index = li_index + 1;
+            }
+          if (last_plugin_action_index == -1)
+            last_plugin_action_index = g_list_length (order_model->items);
+
+          /* inserting all new actions at the found position */
+          while (new_plugin_actions != NULL)
+            {
+              order_model->items = g_list_insert (order_model->items, new_plugin_actions->data, last_plugin_action_index++);
+              new_plugin_actions = g_list_delete_link (new_plugin_actions, new_plugin_actions);
+            }
+        }
+
+      /* if the items_default_order list contains items that are not in the config, it means that they appeared in the
+       * new version of thunar, and they can be added to the end and hidden */
+      for (GList *l = items_default_order; l != NULL; l = l->next)
+        {
+          ThunarContextMenuOrderModelItem *item = l->data;
+
+          /* since it is impossible to know whether a separator is a new or removed standard item,
+           * we simply will not add them */
+          if (g_strcmp0 (item->id, "separator") != 0)
+            {
+              item->visibility = FALSE;
+              new_items = g_list_append (new_items, item);
+            }
+        }
+      for (GList *l = new_items; l != NULL; l = l->next)
+        {
+          ThunarContextMenuOrderModelItem *item = l->data;
+
+          order_model->items = g_list_append (order_model->items, item);
+          items_default_order = g_list_remove (items_default_order, item);
+        }
+
+      /* only menu item separators could remain */
+      g_list_free_full (items_default_order, (GDestroyNotify) thunar_context_menu_order_model_item_free);
+    }
+
+  thunar_context_menu_order_model_set_plugin_actions_position (order_model);
+
+  /* signal */
+  g_signal_emit (order_model, signals[CHANGED], 0);
+}
+
+
+
+/**
+ * thunar_context_menu_order_model_get_plugin_actions_position:
+ * @order_model : a #ThunarContextMenuOrderModel
+ *
+ * Returns the index in the list of items for inserting unrecognized plugin actions. Not all plugin actions can be known
+ * in advance, so it is necessary to specify the index where unrecognized plugin actions will be inserted when building
+ * the context menu.
+ *
+ * Returns: Index for inserting unrecognized plugin actions
+ */
+gint
+thunar_context_menu_order_model_get_plugin_actions_position (ThunarContextMenuOrderModel *order_model)
+{
+  g_return_val_if_fail (THUNAR_IS_CONTEXT_MENU_ORDER_MODEL (order_model), -1);
+
+  return order_model->plugin_actions_position;
 }
 
 
@@ -801,6 +902,14 @@ thunar_context_menu_order_model_item_new_list_from_entries (const XfceGtkActionE
 
 
 
+/**
+ * thunar_context_menu_item_set_id_by_entry:
+ * @menu_item : the #GtkWidget for which the identifier will be set
+ * @entry     : the #XfceGtkActionEntry from which the ID will be extracted
+ *
+ * Sets the menu item id based on the accel_path. For more information about id, see the
+ * description of #ThunarContextMenuOrderModel.
+ */
 void
 thunar_context_menu_item_set_id_by_entry (GtkWidget                *menu_item,
                                           const XfceGtkActionEntry *entry)

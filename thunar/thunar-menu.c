@@ -66,11 +66,13 @@ thunar_menu_remove_all_separators (ThunarMenu *menu);
 static void
 thunar_menu_insert_separators (ThunarMenu *menu,
                                GList      *new_order,
-                               GList      *unlisted_custom_actions);
+                               GList      *unlisted_plugin_actions,
+                               gint        plugin_actions_position);
 static void
 thunar_menu_reorder (ThunarMenu *menu,
                      GList      *new_order,
-                     GList     **unlisted_custom_actions);
+                     GList     **unlisted_plugin_actions,
+                     gint        plugin_actions_position);
 
 struct _ThunarMenuClass
 {
@@ -263,56 +265,58 @@ thunar_menu_remove_all_separators (ThunarMenu *menu)
 static void
 thunar_menu_insert_separators (ThunarMenu *menu,
                                GList      *new_order,
-                               GList      *unlisted_custom_actions)
+                               GList      *unlisted_plugin_actions,
+                               gint        plugin_actions_position)
 {
   GList   *children = gtk_container_get_children (GTK_CONTAINER (menu));
   gboolean allow_separator = FALSE;
-  gint     index = 0;
+  gint     li_index = 0;
+  gint     lj_index = 0;
 
   /* if we just go through the list and create separators, there will be too many of them, so this function only
    * inserts separators if an element matching the model was encountered */
-  for (GList *li = children, *lj = new_order; li != NULL && lj != NULL; lj = lj->next)
+  for (GList *li = children, *lj = new_order; li != NULL && lj != NULL; lj = lj->next, ++lj_index)
     {
       GtkWidget                       *child = GTK_WIDGET (li->data);
       ThunarContextMenuOrderModelItem *item = lj->data;
 
-      if (!item->visibility)
-        continue;
-
-      if (g_strcmp0 (item->id, "separator") == 0)
+      if (item->visibility)
         {
-          if (allow_separator)
+          if (g_strcmp0 (item->id, "separator") == 0)
             {
-              GtkWidget *separator = gtk_separator_menu_item_new ();
-
-              gtk_menu_shell_insert (GTK_MENU_SHELL (menu), separator, index++);
-              allow_separator = FALSE;
-            }
-        }
-      else
-        {
-          const gchar *child_id = g_object_get_data (G_OBJECT (child), "id");
-
-          if (g_strcmp0 (item->id, child_id) == 0)
-            {
-              /* if we encounter an element that matches the model, we simply move on to the next one and
-               * allow the separator to be inserted */
-              ++index;
-              li = li->next;
-              allow_separator = TRUE;
-            }
-          else if (g_strcmp0 (item->id, "custom-actions") == 0)
-            {
-              /* if a place for inserting custom actions is encountered, and we have actions that are
-               * missing from the model, then we will skip the custom actions and allow the insertion of a separator */
-              if (unlisted_custom_actions != NULL && li->data == unlisted_custom_actions->data)
+              if (allow_separator)
                 {
-                  guint n_unlisted_custom_actions = g_list_length (unlisted_custom_actions);
+                  GtkWidget *separator = gtk_separator_menu_item_new ();
 
-                  index += n_unlisted_custom_actions;
-                  li = g_list_nth (li, n_unlisted_custom_actions);
+                  gtk_menu_shell_insert (GTK_MENU_SHELL (menu), separator, li_index++);
+                  allow_separator = FALSE;
+                }
+            }
+          else
+            {
+              const gchar *child_id = g_object_get_data (G_OBJECT (child), "id");
+
+              if (g_strcmp0 (item->id, child_id) == 0)
+                {
+                  /* if we encounter an element that matches the model, we simply move on to the next one and
+                   * allow the separator to be inserted */
+                  ++li_index;
+                  li = li->next;
                   allow_separator = TRUE;
                 }
+            }
+        }
+
+      if (lj_index + 1 == plugin_actions_position)
+        {
+          /* if a place for inserting plugin actions is encountered, and we have actions that are
+           * missing from the model, then we will skip the plugin actions and allow the insertion of a separator */
+          if (unlisted_plugin_actions != NULL && li->data == unlisted_plugin_actions->data)
+            {
+              guint n_unlisted_plugin_actions = g_list_length (unlisted_plugin_actions);
+
+              li_index += n_unlisted_plugin_actions;
+              li = g_list_nth (li, n_unlisted_plugin_actions);
             }
         }
     }
@@ -325,10 +329,12 @@ thunar_menu_insert_separators (ThunarMenu *menu,
 static void
 thunar_menu_reorder (ThunarMenu *menu,
                      GList      *new_order,
-                     GList     **unlisted_custom_actions)
+                     GList     **unlisted_plugin_actions,
+                     gint        plugin_actions_position)
 {
   GList *children = gtk_container_get_children (GTK_CONTAINER (menu));
-  gint   index = 0;
+  gint   li_index = 0;
+  gint   lj_index = 0;
 
   if (new_order == NULL)
     {
@@ -337,13 +343,13 @@ thunar_menu_reorder (ThunarMenu *menu,
     }
   else
     {
-      /* collection of custom actions that are in GtkMenu but are missing from the model */
+      /* collection of plugin actions that are in GtkMenu but are missing from the model */
       for (GList *li = children; li != NULL; li = li->next)
         {
           GtkWidget   *child = li->data;
           const gchar *child_id = g_object_get_data (G_OBJECT (child), "id");
 
-          if (child_id != NULL && g_str_has_prefix (child_id, "custom-action-"))
+          if (child_id != NULL && thunar_is_plugin_action_id (child_id))
             {
               gboolean unlisted = TRUE;
 
@@ -360,32 +366,17 @@ thunar_menu_reorder (ThunarMenu *menu,
 
 
               if (unlisted)
-                *unlisted_custom_actions = g_list_append (*unlisted_custom_actions, child);
+                *unlisted_plugin_actions = g_list_append (*unlisted_plugin_actions, child);
             }
         }
     }
 
   /* a loop in which GtkMenu items are moved to the required positions */
-  for (GList *li = new_order; li != NULL; li = li->next)
+  for (GList *li = new_order; li != NULL; li = li->next, ++li_index)
     {
       ThunarContextMenuOrderModelItem *item = li->data;
 
-      if (!item->visibility)
-        continue;
-
-      if (g_strcmp0 (item->id, "custom-actions") == 0)
-        {
-          /* inserting custom actions that are not present in the model */
-          for (GList *lj = *unlisted_custom_actions; lj != NULL; lj = lj->next)
-            {
-              GtkWidget *child = lj->data;
-
-              gtk_menu_reorder_child (GTK_MENU (menu), child, index);
-              children = g_list_remove (children, child);
-              ++index;
-            }
-        }
-      else
+      if (item->visibility)
         {
           /* search for the corresponding GtkMenu item and move it to the desired position */
           for (GList *lj = children; lj != NULL; lj = lj->next)
@@ -395,11 +386,24 @@ thunar_menu_reorder (ThunarMenu *menu,
 
               if (g_strcmp0 (item->id, child_id) == 0)
                 {
-                  gtk_menu_reorder_child (GTK_MENU (menu), child, index);
+                  gtk_menu_reorder_child (GTK_MENU (menu), child, lj_index);
                   children = g_list_remove (children, child);
-                  ++index;
+                  ++lj_index;
                   break;
                 }
+            }
+        }
+
+      if (li_index + 1 == plugin_actions_position)
+        {
+          /* inserting plugin actions that are not present in the model */
+          for (GList *lj = *unlisted_plugin_actions; lj != NULL; lj = lj->next)
+            {
+              GtkWidget *child = lj->data;
+
+              gtk_menu_reorder_child (GTK_MENU (menu), child, lj_index);
+              children = g_list_remove (children, child);
+              ++lj_index;
             }
         }
     }
@@ -560,21 +564,22 @@ thunar_menu_add_sections (ThunarMenu        *menu,
     {
       ThunarContextMenuOrderModel *order_model = thunar_context_menu_order_model_get_default ();
       GList                       *new_order = thunar_context_menu_order_model_get_items (order_model);
+      gint                         plugin_actions_position = thunar_context_menu_order_model_get_plugin_actions_position (order_model);
 
-      /* a list of custom action menu items that are missing from the "new_order" list. This may happen because the
-       * plugin that provides custom actions does not support passing information about menu items to the model, or
+      /* a list of plugin action menu items that are missing from the "new_order" list. This may happen because the
+       * plugin that provides plugin actions does not support passing information about menu items to the model, or
        * because the model is not updated for some reason */
-      GList *unlisted_custom_actions = NULL;
+      GList *unlisted_plugin_actions = NULL;
 
       /* we will insert our own separators later, so let's remove all current separators */
       thunar_menu_remove_all_separators (menu);
 
-      thunar_menu_reorder (menu, new_order, &unlisted_custom_actions);
-      thunar_menu_insert_separators (menu, new_order, unlisted_custom_actions);
+      thunar_menu_reorder (menu, new_order, &unlisted_plugin_actions, plugin_actions_position);
+      thunar_menu_insert_separators (menu, new_order, unlisted_plugin_actions, plugin_actions_position);
 
       g_list_free (new_order);
       g_object_unref (order_model);
-      g_list_free (unlisted_custom_actions);
+      g_list_free (unlisted_plugin_actions);
     }
 
   return TRUE;

@@ -21,6 +21,7 @@
 #ifndef __THUNAR_UCA_MODEL_H__
 #define __THUNAR_UCA_MODEL_H__
 
+#include <libxfce4ui/libxfce4ui.h>
 #include <thunarx/thunarx.h>
 
 G_BEGIN_DECLS;
@@ -37,10 +38,10 @@ typedef struct _ThunarUcaModel      ThunarUcaModel;
 
 typedef enum
 {
-  THUNAR_UCA_MODEL_COLUMN_NAME,
-  THUNAR_UCA_MODEL_COLUMN_SUB_MENU,
+  THUNAR_UCA_MODEL_COLUMN_GICON = XFCE_ITEM_LIST_MODEL_COLUMN_ICON,
+  THUNAR_UCA_MODEL_COLUMN_STOCK_LABEL = XFCE_ITEM_LIST_MODEL_COLUMN_NAME,
+  THUNAR_UCA_MODEL_COLUMN_SUB_MENU = XFCE_ITEM_LIST_MODEL_COLUMN_USER,
   THUNAR_UCA_MODEL_COLUMN_DESCRIPTION,
-  THUNAR_UCA_MODEL_COLUMN_GICON,
   THUNAR_UCA_MODEL_COLUMN_ICON_NAME,
   THUNAR_UCA_MODEL_COLUMN_UNIQUE_ID,
   THUNAR_UCA_MODEL_COLUMN_COMMAND,
@@ -48,7 +49,7 @@ typedef enum
   THUNAR_UCA_MODEL_COLUMN_PATTERNS,
   THUNAR_UCA_MODEL_COLUMN_RANGE,
   THUNAR_UCA_MODEL_COLUMN_TYPES,
-  THUNAR_UCA_MODEL_COLUMN_STOCK_LABEL,
+  THUNAR_UCA_MODEL_COLUMN_NAME,
   THUNAR_UCA_MODEL_N_COLUMNS,
 } ThunarUcaModelColumn;
 
@@ -88,15 +89,6 @@ thunar_uca_model_append (ThunarUcaModel *uca_model,
                          GtkTreeIter    *iter);
 
 void
-thunar_uca_model_exchange (ThunarUcaModel *uca_model,
-                           GtkTreeIter    *iter_a,
-                           GtkTreeIter    *iter_b);
-
-void
-thunar_uca_model_remove (ThunarUcaModel *uca_model,
-                         GtkTreeIter    *iter);
-
-void
 thunar_uca_model_update (ThunarUcaModel *uca_model,
                          GtkTreeIter    *iter,
                          const gchar    *name,
@@ -123,6 +115,17 @@ thunar_uca_model_parse_argv (ThunarUcaModel *uca_model,
                              gint           *argcp,
                              gchar        ***argvp,
                              GError        **error);
+
+gboolean
+thunar_uca_model_get_iter_by_unique_id (ThunarUcaModel *uca_model,
+                                        GtkTreeIter    *iter,
+                                        const gchar    *unique_id);
+
+gboolean
+thunar_uca_model_lock (ThunarUcaModel *uca_model);
+
+void
+thunar_uca_model_unlock (ThunarUcaModel *uca_model);
 
 G_END_DECLS;
 

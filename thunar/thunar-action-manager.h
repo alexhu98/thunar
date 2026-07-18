@@ -26,6 +26,9 @@
 
 G_BEGIN_DECLS;
 
+#define THUNAR_UCA_ACTION_ID_PREFIX "uca-action-"
+#define THUNAR_PLUGIN_ACTION_ID_PREFIX "plugin-action-"
+
 /* avoid including libxfce4ui.h */
 typedef struct _XfceGtkActionEntry XfceGtkActionEntry;
 
@@ -151,6 +154,16 @@ XfceGtkActionEntry *
 thunar_action_manager_get_action_entries (void);
 GList *
 thunar_action_manager_get_right_click_context_menu_items (void);
+
+/* action id */
+gboolean
+thunar_is_uca_action_id (const gchar *id);
+gboolean
+thunar_is_plugin_action_id (const gchar *id);
+const gchar *
+thunar_get_unqiue_id_from_uca_action_id (const gchar *id);
+gchar *
+thunar_normalize_plugin_action_id (const gchar *plugin_action_id);
 
 G_END_DECLS;
 

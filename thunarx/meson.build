@@ -5,6 +5,7 @@ libthunarx_install_subdir = libthunarx_pkgname / libthunarx_libname
 libthunarx_install_dir = get_option('prefix') / get_option('includedir') / libthunarx_install_subdir
 
 libthunarx_headers = [
+  # order is important for functionality; do not use alphabetical sorting
   'thunarx-file-info.h',
   'thunarx-menu-item.h',
   'thunarx-menu-provider.h',

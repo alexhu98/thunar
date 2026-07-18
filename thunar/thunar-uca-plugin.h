@@ -21,7 +21,13 @@
 #ifndef __THUNAR_UCA_PLUGIN_H__
 #define __THUNAR_UCA_PLUGIN_H__
 
+#include <glib.h>
+
+G_BEGIN_DECLS;
+
 void
 thunar_uca_plugin_init (void);
+
+G_END_DECLS;
 
 #endif /* !__THUNAR_UCA_PLUGIN_H__ */

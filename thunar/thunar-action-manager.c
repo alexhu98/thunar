@@ -2456,10 +2456,7 @@ thunar_action_manager_append_custom_actions (ThunarActionManager *action_mgr,
 
           /* setting the id for reordering elements by ThunarContextMenuOrderModel */
           g_object_get (lp_item->data, "name", &name, NULL);
-          if (name != NULL)
-            g_object_set_data_full (G_OBJECT (gtk_menu_item), "id", g_strdup_printf ("custom-action-%s", name), (GDestroyNotify) g_free);
-          else
-            g_object_set_data (G_OBJECT (gtk_menu_item), "id", "custom-action-unnamed");
+          g_object_set_data_full (G_OBJECT (gtk_menu_item), "id", thunar_normalize_plugin_action_id (name), (GDestroyNotify) g_free);
           g_free (name);
 
           /* Each thunarx_menu_item will be destroyed together with its related gtk_menu_item*/
@@ -3655,4 +3652,50 @@ thunar_action_manager_get_right_click_context_menu_items (void)
                                                                      G_N_ELEMENTS (thunar_action_manager_action_entries),
                                                                      ids_of_entries,
                                                                      G_N_ELEMENTS (ids_of_entries));
+}
+
+
+
+gboolean
+thunar_is_uca_action_id (const gchar *id)
+{
+  if (id == NULL)
+    return FALSE;
+
+  return g_str_has_prefix (id, THUNAR_UCA_ACTION_ID_PREFIX);
+}
+
+
+
+gboolean
+thunar_is_plugin_action_id (const gchar *id)
+{
+  if (id == NULL)
+    return FALSE;
+
+  return g_str_has_prefix (id, THUNAR_PLUGIN_ACTION_ID_PREFIX) || thunar_is_uca_action_id (id);
+}
+
+
+
+const gchar *
+thunar_get_unqiue_id_from_uca_action_id (const gchar *id)
+{
+  _thunar_return_val_if_fail (id != NULL, NULL);
+  _thunar_return_val_if_fail (!thunar_is_uca_action_id (id), NULL);
+
+  return id + strlen (THUNAR_UCA_ACTION_ID_PREFIX);
+}
+
+
+gchar *
+thunar_normalize_plugin_action_id (const gchar *plugin_action_id)
+{
+  if (plugin_action_id == NULL)
+    return g_strdup (THUNAR_PLUGIN_ACTION_ID_PREFIX "unnamed");
+
+  if (thunar_is_uca_action_id (plugin_action_id))
+    return g_strdup (plugin_action_id);
+
+  return g_strdup_printf (THUNAR_PLUGIN_ACTION_ID_PREFIX "%s", plugin_action_id);
 }
