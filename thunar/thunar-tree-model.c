@@ -1916,8 +1916,11 @@ thunar_tree_model_refilter (ThunarTreeModel *model)
 {
   _thunar_return_if_fail (THUNAR_IS_TREE_MODEL (model));
 
-  /* traverse all nodes to update their visibility */
-  g_node_traverse (model->root, G_PRE_ORDER, G_TRAVERSE_ALL, -1,
+  /* traverse all nodes to update their visibility.
+   * G_POST_ORDER is required: thunar_tree_model_node_traverse_visible() can
+   * destroy and append nodes, and g_node_traverse_pre_order() keeps sibling
+   * pointers across the callback, which then dereferences freed nodes. */
+  g_node_traverse (model->root, G_POST_ORDER, G_TRAVERSE_ALL, -1,
                    thunar_tree_model_node_traverse_visible, model);
 }
 
