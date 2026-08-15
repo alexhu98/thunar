@@ -1081,10 +1081,13 @@ thunar_dialogs_show_insecure_program (gpointer     parent,
   GtkWindow *window;
   gint       response;
   GtkWidget *dialog;
-  GString   *secondary;
   GError    *err = NULL;
   gchar     *file_name;
   gchar     *executable;
+  gchar     *message;
+  GtkWidget *frame;
+  GtkWidget *content_area;
+  GtkWidget *label;
 
   _thunar_return_val_if_fail (THUNAR_IS_FILE (file), FALSE);
   _thunar_return_val_if_fail (g_utf8_validate (command, -1, NULL), FALSE);
@@ -1092,40 +1095,11 @@ thunar_dialogs_show_insecure_program (gpointer     parent,
   /* parse the parent window */
   window = thunar_util_find_associated_window (parent);
 
-  /* create the secondary text */
-  if (g_strcmp0 (thunar_file_get_display_name (file), thunar_file_get_basename (file)) != 0)
-    file_name = g_strdup_printf ("\"%s\" (%s)", thunar_file_get_display_name (file), thunar_file_get_basename (file));
-  else
-    file_name = g_strdup_printf ("\"%s\"", thunar_file_get_display_name (file));
-
-  if (g_file_info_get_attribute_boolean (thunar_file_get_info (file), G_FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE) == FALSE)
-    /* TRANSLATORS: This string will be inserted in the following sentence in the second appearance of %s:
-     * "The desktop file %s is in an insecure location and not marked as secure%s." */
-    executable = g_strdup (_("/executable"));
-  else
-    executable = g_strdup ("");
-
-  secondary = g_string_new (NULL);
-  g_string_printf (secondary,
-                   _("The desktop file %s is in an insecure location and not marked as secure%s. "
-                     "If you do not trust this program, click Cancel.\n\n"),
-                   file_name,
-                   executable);
-
-  g_free (file_name);
-  g_free (executable);
-
-  if (g_uri_is_valid (command, G_URI_FLAGS_NONE, NULL))
-    g_string_append_printf (secondary, G_KEY_FILE_DESKTOP_KEY_URL "=%s", command);
-  else
-    g_string_append_printf (secondary, G_KEY_FILE_DESKTOP_KEY_EXEC "=%s", command);
-
   /* allocate and display the error message dialog */
-  dialog = gtk_message_dialog_new (window,
-                                   GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-                                   GTK_MESSAGE_WARNING,
-                                   GTK_BUTTONS_NONE,
-                                   "%s", primary);
+  dialog = gtk_dialog_new ();
+  gtk_window_set_transient_for (GTK_WINDOW (dialog), window);
+  gtk_window_set_destroy_with_parent (GTK_WINDOW (dialog), TRUE);
+  gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
 
   /* If a specific screen is requested, we spawn the dialog on that screen */
   if (G_UNLIKELY (parent != NULL && GDK_IS_SCREEN (parent)))
@@ -1137,8 +1111,64 @@ thunar_dialogs_show_insecure_program (gpointer     parent,
     gtk_dialog_add_button (GTK_DIALOG (dialog), _("Mark As _Secure And Launch"), GTK_RESPONSE_APPLY);
   gtk_dialog_add_button (GTK_DIALOG (dialog), _("_Cancel"), GTK_RESPONSE_CANCEL);
   gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_CANCEL);
-  gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog), "%s", secondary->str);
-  g_string_free (secondary, TRUE);
+
+  content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+
+  /* Heading */
+  label = gtk_label_new (NULL);
+  message = g_strdup_printf ("<big><b>%s</b></big>", primary);
+  gtk_label_set_markup (GTK_LABEL (label), message);
+  g_free (message);
+  gtk_box_pack_start (GTK_BOX (content_area), label, TRUE, TRUE, 0);
+
+  /* First label */
+  if (g_strcmp0 (thunar_file_get_display_name (file), thunar_file_get_basename (file)) != 0)
+    file_name = g_strdup_printf ("\"%s\" (%s)", thunar_file_get_display_name (file), thunar_file_get_basename (file));
+  else
+    file_name = g_strdup_printf ("\"%s\"", thunar_file_get_display_name (file));
+
+  if (g_file_info_get_attribute_boolean (thunar_file_get_info (file), G_FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE) == FALSE)
+    /* TRANSLATORS: This string will be inserted in the following sentence in the second appearance of %s:
+     * "The desktop file %s is in an insecure location and not marked as secure%s." */
+    executable = g_strdup (_("/executable"));
+  else
+    executable = g_strdup ("");
+  message = g_strdup_printf (_("The desktop file %s is in an insecure location and not marked as secure %s"), file_name, executable);
+  label = gtk_label_new (message);
+  g_free (message);
+  g_free (file_name);
+  g_free (executable);
+  gtk_box_pack_start (GTK_BOX (content_area), label, TRUE, TRUE, 10);
+
+  /* EXEC Command or URL */
+  frame = gtk_frame_new ( _("launch command for the untrusted launcher"));
+  gtk_widget_set_margin_start (frame, 40);
+  gtk_widget_set_margin_end (frame, 40);
+
+  if (g_uri_is_valid (command, G_URI_FLAGS_NONE, NULL))
+    message = g_strdup_printf (G_KEY_FILE_DESKTOP_KEY_URL "=%s", command);
+  else
+    message = g_strdup_printf (G_KEY_FILE_DESKTOP_KEY_EXEC "=%s", command);
+  label = gtk_label_new (message);
+  g_free (message);
+  gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+  gtk_label_set_max_width_chars (GTK_LABEL (label), 40);
+  gtk_widget_set_margin_start (label, 10);
+  gtk_widget_set_margin_end (label, 10);
+  gtk_widget_set_margin_top (label, 10);
+  gtk_widget_set_margin_bottom (label, 10);
+  gtk_container_add (GTK_CONTAINER (frame), label);
+  gtk_box_pack_start (GTK_BOX (content_area), frame, TRUE, TRUE, 10);
+
+  /* Last label */
+  label = gtk_label_new (NULL);
+  message = g_strdup_printf ("<b>%s</b>", _("If you do not trust this program, click Cancel"));
+  gtk_label_set_markup (GTK_LABEL (label), message);
+  g_free (message);
+  gtk_box_pack_start (GTK_BOX (content_area), label, TRUE, TRUE, 10);
+
+  gtk_widget_show_all (dialog);
+
   response = gtk_dialog_run (GTK_DIALOG (dialog));
   gtk_widget_destroy (dialog);
 
