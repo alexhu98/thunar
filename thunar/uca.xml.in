@@ -41,7 +41,7 @@
     <range></range>
     <name>Open Terminal Here</name>
     <command>xfce-open --working-directory %f --launch TerminalEmulator</command>
-    <description>Example for a custom action</description>
+    <description>Open a terminal in this folder (example Thunar custom action)</description>
     <startup-notify/>
     <directories/>
   </action>
