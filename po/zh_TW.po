@@ -16,7 +16,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Thunar\n"
 "Report-Msgid-Bugs-To: https://gitlab.xfce.org/\n"
-"POT-Creation-Date: 2026-07-25 00:50+0200\n"
+"POT-Creation-Date: 2026-08-16 00:49+0200\n"
 "PO-Revision-Date: 2013-07-02 20:11+0000\n"
 "Last-Translator: 黃柏諺 <s8321414@gmail.com>, 2019-2026\n"
 "Language-Team: Chinese (Taiwan) (http://app.transifex.com/xfce/thunar/language/zh_TW/)\n"
@@ -33,13 +33,13 @@ msgstr "Thunar 檔案管理員"
 
 #. change the accept button label text
 #: thunar/thunar-action-manager.c:325 thunar/thunar-chooser-dialog.c:903
-#: thunar/thunar-chooser-dialog.c:1314 thunar/thunar-dialogs.c:1325
+#: thunar/thunar-chooser-dialog.c:1314 thunar/thunar-dialogs.c:1355
 #: thunar/thunar-renamer-dialog.c:1109
 #: plugins/thunar-uca/thunar-uca-editor.c:198
 msgid "_Open"
 msgstr "開啟(_O)"
 
-#: thunar/thunar-action-manager.c:326 thunar/thunar-dialogs.c:1319
+#: thunar/thunar-action-manager.c:326 thunar/thunar-dialogs.c:1349
 msgid "_Execute"
 msgstr "執行(_E)"
 
@@ -287,7 +287,7 @@ msgstr[0] "開啟 %d 個新視窗"
 #: thunar/thunar-chooser-dialog.c:902 thunar/thunar-dialogs.c:104
 #: thunar/thunar-dialogs.c:256 thunar/thunar-dialogs.c:714
 #: thunar/thunar-dialogs.c:825 thunar/thunar-dialogs.c:836
-#: thunar/thunar-dialogs.c:1138 thunar/thunar-dialogs.c:1230
+#: thunar/thunar-dialogs.c:1112 thunar/thunar-dialogs.c:1260
 #: thunar/thunar-dnd.c:168 thunar/thunar-permissions-chooser.c:568
 #: thunar/thunar-permissions-chooser.c:1183
 #: thunar/thunar-properties-dialog.c:1244 thunar/thunar-renamer-dialog.c:1108
@@ -692,7 +692,7 @@ msgid_plural ""
 msgstr[0] "您確定要移動 %u 個\n選定的檔案到回收桶嗎？"
 
 #: thunar/thunar-application.c:2753 thunar/thunar-dialogs.c:621
-#: thunar/thunar-dialogs.c:1134
+#: thunar/thunar-dialogs.c:1108
 msgid "Attention"
 msgstr "注意"
 
@@ -810,7 +810,7 @@ msgstr "設為此類檔案的預設動作(_D)"
 
 #. add the "Ok"/"Open" button
 #: thunar/thunar-chooser-dialog.c:314 thunar/thunar-chooser-dialog.c:1314
-#: thunar/thunar-properties-dialog.c:1245 thunar/thunar-window.c:5002
+#: thunar/thunar-properties-dialog.c:1245 thunar/thunar-window.c:5004
 #: plugins/thunar-uca/thunar-uca-editor.c:153
 #: plugins/thunar-uca/thunar-uca-editor.c:451
 msgid "_OK"
@@ -1312,70 +1312,78 @@ msgstr "套用動作至所有資料夾(_A)"
 msgid "_Apply the action to all files"
 msgstr "套用動作至所有檔案(_A)"
 
+#: thunar/thunar-dialogs.c:1109
+msgid "_Launch Anyway"
+msgstr "無論如何都要啟動(_L)"
+
+#: thunar/thunar-dialogs.c:1111
+msgid "Mark As _Secure And Launch"
+msgstr "標記為安全並啟動(_S)"
+
 #. TRANSLATORS: This string will be inserted in the following sentence in the
 #. second appearance of %s:
 #. * "The desktop file %s is in an insecure location and not marked as
 #. secure%s."
-#: thunar/thunar-dialogs.c:1104
+#: thunar/thunar-dialogs.c:1133
 msgid "/executable"
 msgstr "/可執行檔"
 
-#: thunar/thunar-dialogs.c:1110
+#: thunar/thunar-dialogs.c:1136
 #, c-format
 msgid ""
-"The desktop file %s is in an insecure location and not marked as secure%s. If you do not trust this program, click Cancel.\n"
-"\n"
-msgstr "桌面檔 %s 位於不安全的位置上，且未標記為安全的 %s。若您不信任此程式，請點擊取消。\n\n"
+"The desktop file %s is in an insecure location and not marked as secure %s"
+msgstr "桌面檔案 %s 位於不安全的位置，且未標記為安全 %s"
 
-#: thunar/thunar-dialogs.c:1135
-msgid "_Launch Anyway"
-msgstr "無論如何都要啟動(_L)"
+#. EXEC Command or URL
+#: thunar/thunar-dialogs.c:1144
+msgid "launch command for the untrusted launcher"
+msgstr "未受信任啟動器的啟動指令"
 
-#: thunar/thunar-dialogs.c:1137
-msgid "Mark As _Secure And Launch"
-msgstr "標記為安全並啟動(_S)"
+#: thunar/thunar-dialogs.c:1165
+msgid "If you do not trust this program, click Cancel"
+msgstr "如果您不信任此程式，請按一下「取消」"
 
-#: thunar/thunar-dialogs.c:1219
+#: thunar/thunar-dialogs.c:1249
 msgid "Close split pane with multiple tabs?"
 msgstr "關閉有多個分頁的分離面板？"
 
-#: thunar/thunar-dialogs.c:1220
+#: thunar/thunar-dialogs.c:1250
 msgid ""
 "The other split pane has multiple open tabs. Closing it will close all these"
 " tabs."
 msgstr "其他分離面板有多個開啟的分頁。關閉它將會關閉這些分頁。"
 
-#: thunar/thunar-dialogs.c:1226
+#: thunar/thunar-dialogs.c:1256
 msgid "Warning"
 msgstr "警告"
 
-#: thunar/thunar-dialogs.c:1231
+#: thunar/thunar-dialogs.c:1261
 msgid "Close Pane"
 msgstr "關閉面板"
 
-#: thunar/thunar-dialogs.c:1234 thunar/thunar-permissions-chooser.c:600
+#: thunar/thunar-dialogs.c:1264 thunar/thunar-permissions-chooser.c:600
 msgid "Do _not ask me again"
 msgstr "不用再問我(_N)"
 
-#: thunar/thunar-dialogs.c:1293
+#: thunar/thunar-dialogs.c:1323
 #, c-format
 msgid "The file \"%s\" seems to be executable. What do you want to do with it?"
 msgstr "檔案「%s」似乎是可執行檔。您想要用它做什麼？"
 
-#: thunar/thunar-dialogs.c:1298
+#: thunar/thunar-dialogs.c:1328
 msgid ""
 "The selected files seem to be executable. What do you want to do with them?"
 msgstr "選定的檔案似乎是可執行檔。您想要用它做什麼？"
 
-#: thunar/thunar-dialogs.c:1311
+#: thunar/thunar-dialogs.c:1341
 msgid "Open Shell Script"
 msgstr "開啟 Shell 指令稿"
 
-#: thunar/thunar-dialogs.c:1315
+#: thunar/thunar-dialogs.c:1345
 msgid "Run In _Terminal"
 msgstr "在終端機中執行(_T)"
 
-#: thunar/thunar-dialogs.c:1373
+#: thunar/thunar-dialogs.c:1403
 #, c-format
 msgid "Failed to edit launcher via command \"%s\""
 msgstr "透過命令「%s」編輯啟動器失敗"
@@ -3395,7 +3403,7 @@ msgid "Loading selection information..."
 msgstr "正在載入選取區域的資訊……"
 
 #. display an error to the user
-#: thunar/thunar-standard-view.c:2949 thunar/thunar-window.c:4815
+#: thunar/thunar-standard-view.c:2949 thunar/thunar-window.c:4817
 msgid "Failed to open the home folder"
 msgstr "未能開啟家目錄"
 
@@ -3480,7 +3488,7 @@ msgstr "無法為 URL「%s」建立連結"
 msgid "Untitled document"
 msgstr "未命名的文件"
 
-#: thunar/thunar-standard-view.c:4266 thunar/thunar-window.c:4912
+#: thunar/thunar-standard-view.c:4266 thunar/thunar-window.c:4914
 #, c-format
 msgid "Failed to open directory \"%s\""
 msgstr "無法開啟目錄「%s」"
@@ -4180,100 +4188,100 @@ msgstr "使用 Catfish 搜尋……"
 msgid "Restore Selected Items"
 msgstr "還原選定的項目"
 
-#: thunar/thunar-window.c:3108
+#: thunar/thunar-window.c:3110
 msgid "Close tab"
 msgstr "關閉分頁"
 
-#: thunar/thunar-window.c:3633
+#: thunar/thunar-window.c:3635
 #, c-format
 msgid "Open the location \"%s\""
 msgstr "開啟位置「%s」"
 
-#: thunar/thunar-window.c:4743
+#: thunar/thunar-window.c:4745
 msgid "Failed to open parent folder"
 msgstr "無法開啟上層目錄"
 
-#: thunar/thunar-window.c:4886
+#: thunar/thunar-window.c:4888
 #, c-format
 msgid "The directory \"%s\" does not exist. Do you want to create it?"
 msgstr "沒有「%s」目錄。要建立該目錄嗎？"
 
-#: thunar/thunar-window.c:4888
+#: thunar/thunar-window.c:4890
 msgid "Create directory"
 msgstr "建立目錄"
 
 #. display an error to the user
-#: thunar/thunar-window.c:4957
+#: thunar/thunar-window.c:4959
 msgid "Failed to browse the computer"
 msgstr "瀏覽電腦失敗"
 
 #. display the "About Templates" dialog
-#: thunar/thunar-window.c:5000
+#: thunar/thunar-window.c:5002
 msgid "About Templates"
 msgstr "關於模板"
 
-#: thunar/thunar-window.c:5022
+#: thunar/thunar-window.c:5024
 msgid "All files in this folder will appear in the \"Create Document\" menu."
 msgstr "位於此資料夾的文件都會出現在「建立文件」的選單中。"
 
-#: thunar/thunar-window.c:5029
+#: thunar/thunar-window.c:5031
 msgid ""
 "If you frequently create certain kinds  of documents, make a copy of one and put it in this folder. Thunar will add an entry for this document in the \"Create Document\" menu.\n"
 "\n"
 "You can then select the entry from the \"Create Document\" menu and a copy of the document will be created in the directory you are viewing."
 msgstr "如果您常需要建立某些類型的文件，先做出一份並放到這個資料夾裡。Thunar 會將它加入「建立文件」的右鍵選單中。\n\n接下來您只要利用「建立文件」的右鍵選單就可以在目前檢視的資料夾中輕鬆建立好一份新的文件了。"
 
-#: thunar/thunar-window.c:5041
+#: thunar/thunar-window.c:5043
 msgid "Do _not display this message again"
 msgstr "不要再次顯示這個訊息(_N)"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5075
+#: thunar/thunar-window.c:5077
 msgid "Failed to open the file system root folder"
 msgstr "無法開啟檔案系統根資料夾"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5111
+#: thunar/thunar-window.c:5113
 msgid "Failed to display `Recent`"
 msgstr "無法顯示「最近」"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5147
+#: thunar/thunar-window.c:5149
 msgid "Failed to display the contents of the trash can"
 msgstr "無法顯示垃圾桶內容"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5183
+#: thunar/thunar-window.c:5185
 msgid "Failed to browse the network"
 msgstr "無法瀏覽網路"
 
-#: thunar/thunar-window.c:5342
+#: thunar/thunar-window.c:5344
 msgid ""
 "Thunar is a fast and easy to use file manager\n"
 "for the Xfce Desktop Environment."
 msgstr "Thunar 是快速且易於使用的檔案管理員\n是附屬於 Xfce 桌面環境計畫的工具程式。"
 
-#: thunar/thunar-window.c:6504
+#: thunar/thunar-window.c:6506
 msgid "Select an image to preview"
 msgstr "選取要預覽的影像"
 
-#: thunar/thunar-window.c:6648
+#: thunar/thunar-window.c:6650
 msgid "Failed to launch search with Catfish"
 msgstr "無法啟動 Catfish 進行搜尋"
 
-#: thunar/thunar-window.c:6979
+#: thunar/thunar-window.c:6981
 msgid "Change the active view type"
 msgstr "變更活動檢視類型"
 
 #. add a proxy menu item for the view switcher to be represent in the overflow
 #. menu
-#: thunar/thunar-window.c:6982 thunar/thunar-window.c:7007
+#: thunar/thunar-window.c:6984 thunar/thunar-window.c:7009
 msgid "View Switcher"
 msgstr "檢視切換器"
 
 #. add a proxy menu item for the location bar to represent the bar in the
 #. overflow menu
-#: thunar/thunar-window.c:7176 thunar/thunar-window.c:7181
+#: thunar/thunar-window.c:7178 thunar/thunar-window.c:7183
 msgid "Location Bar"
 msgstr "位置列"
 
