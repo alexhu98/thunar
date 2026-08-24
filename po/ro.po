@@ -17,9 +17,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Thunar\n"
 "Report-Msgid-Bugs-To: https://gitlab.xfce.org/\n"
-"POT-Creation-Date: 2026-07-25 00:50+0200\n"
+"POT-Creation-Date: 2026-08-16 00:49+0200\n"
 "PO-Revision-Date: 2013-07-02 20:11+0000\n"
-"Last-Translator: Remus-Gabriel Chelu <remusgabriel.chelu@disroot.org>, 2024-2026\n"
+"Last-Translator: Yupy <yupy_17y@yahoo.com>, 2017\n"
 "Language-Team: Romanian (http://app.transifex.com/xfce/thunar/language/ro/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -34,13 +34,13 @@ msgstr "Thunar"
 
 #. change the accept button label text
 #: thunar/thunar-action-manager.c:325 thunar/thunar-chooser-dialog.c:903
-#: thunar/thunar-chooser-dialog.c:1314 thunar/thunar-dialogs.c:1325
+#: thunar/thunar-chooser-dialog.c:1314 thunar/thunar-dialogs.c:1355
 #: thunar/thunar-renamer-dialog.c:1109
 #: plugins/thunar-uca/thunar-uca-editor.c:198
 msgid "_Open"
 msgstr "_Deschide"
 
-#: thunar/thunar-action-manager.c:326 thunar/thunar-dialogs.c:1319
+#: thunar/thunar-action-manager.c:326 thunar/thunar-dialogs.c:1349
 msgid "_Execute"
 msgstr "_Execută"
 
@@ -296,7 +296,7 @@ msgstr[2] "Deschide %d de ferestre noi"
 #: thunar/thunar-chooser-dialog.c:902 thunar/thunar-dialogs.c:104
 #: thunar/thunar-dialogs.c:256 thunar/thunar-dialogs.c:714
 #: thunar/thunar-dialogs.c:825 thunar/thunar-dialogs.c:836
-#: thunar/thunar-dialogs.c:1138 thunar/thunar-dialogs.c:1230
+#: thunar/thunar-dialogs.c:1112 thunar/thunar-dialogs.c:1260
 #: thunar/thunar-dnd.c:168 thunar/thunar-permissions-chooser.c:568
 #: thunar/thunar-permissions-chooser.c:1183
 #: thunar/thunar-properties-dialog.c:1244 thunar/thunar-renamer-dialog.c:1108
@@ -745,7 +745,7 @@ msgstr[1] "Sunteți sigur că doriți să mutați\ncele %u fișiere selectate î
 msgstr[2] "Sunteți sigur că doriți să mutați\ncele %u de fișiere selectate în coșul de gunoi?"
 
 #: thunar/thunar-application.c:2753 thunar/thunar-dialogs.c:621
-#: thunar/thunar-dialogs.c:1134
+#: thunar/thunar-dialogs.c:1108
 msgid "Attention"
 msgstr "Atenție!"
 
@@ -863,7 +863,7 @@ msgstr "Utilizează ca _implicit pentru acest tip de fișier"
 
 #. add the "Ok"/"Open" button
 #: thunar/thunar-chooser-dialog.c:314 thunar/thunar-chooser-dialog.c:1314
-#: thunar/thunar-properties-dialog.c:1245 thunar/thunar-window.c:5002
+#: thunar/thunar-properties-dialog.c:1245 thunar/thunar-window.c:5004
 #: plugins/thunar-uca/thunar-uca-editor.c:153
 #: plugins/thunar-uca/thunar-uca-editor.c:451
 msgid "_OK"
@@ -1365,70 +1365,78 @@ msgstr "_Aplicați acțiunea la toate dosarele"
 msgid "_Apply the action to all files"
 msgstr "_Aplicați acțiunea la toate fișierele"
 
+#: thunar/thunar-dialogs.c:1109
+msgid "_Launch Anyway"
+msgstr "Lansează _oricum"
+
+#: thunar/thunar-dialogs.c:1111
+msgid "Mark As _Secure And Launch"
+msgstr "Marcați-l ca fiind _sigur și lansați"
+
 #. TRANSLATORS: This string will be inserted in the following sentence in the
 #. second appearance of %s:
 #. * "The desktop file %s is in an insecure location and not marked as
 #. secure%s."
-#: thunar/thunar-dialogs.c:1104
+#: thunar/thunar-dialogs.c:1133
 msgid "/executable"
 msgstr "/executabil"
 
-#: thunar/thunar-dialogs.c:1110
+#: thunar/thunar-dialogs.c:1136
 #, c-format
 msgid ""
-"The desktop file %s is in an insecure location and not marked as secure%s. If you do not trust this program, click Cancel.\n"
-"\n"
-msgstr "Fișierul .desktop %s se află într-o locație nesigură și nu este marcat ca fiind securizat%s. Dacă nu aveți încredere în acest program, faceți clic pe «Anulare».\n"
+"The desktop file %s is in an insecure location and not marked as secure %s"
+msgstr "Fișierul .desktop %s se află într-o locație nesigură și nu este marcat ca fiind de încredere %s."
 
-#: thunar/thunar-dialogs.c:1135
-msgid "_Launch Anyway"
-msgstr "Lansează _oricum"
+#. EXEC Command or URL
+#: thunar/thunar-dialogs.c:1144
+msgid "launch command for the untrusted launcher"
+msgstr "comanda de lansare pentru lansatorul care nu este de încredere"
 
-#: thunar/thunar-dialogs.c:1137
-msgid "Mark As _Secure And Launch"
-msgstr "Marcați-l ca fiind _sigur și lansați"
+#: thunar/thunar-dialogs.c:1165
+msgid "If you do not trust this program, click Cancel"
+msgstr "Dacă nu aveți încredere în acest program, faceți clic pe «Renunță»"
 
-#: thunar/thunar-dialogs.c:1219
+#: thunar/thunar-dialogs.c:1249
 msgid "Close split pane with multiple tabs?"
 msgstr "Închideți panoul divizat cu mai multe file?"
 
-#: thunar/thunar-dialogs.c:1220
+#: thunar/thunar-dialogs.c:1250
 msgid ""
 "The other split pane has multiple open tabs. Closing it will close all these"
 " tabs."
 msgstr "Celălalt panou divizat are mai multe file deschise. Închiderea acestuia va închide toate aceste file."
 
-#: thunar/thunar-dialogs.c:1226
+#: thunar/thunar-dialogs.c:1256
 msgid "Warning"
 msgstr "Atenționare"
 
-#: thunar/thunar-dialogs.c:1231
+#: thunar/thunar-dialogs.c:1261
 msgid "Close Pane"
 msgstr "Închide panoul"
 
-#: thunar/thunar-dialogs.c:1234 thunar/thunar-permissions-chooser.c:600
+#: thunar/thunar-dialogs.c:1264 thunar/thunar-permissions-chooser.c:600
 msgid "Do _not ask me again"
 msgstr "_Nu mai repeta această întrebare"
 
-#: thunar/thunar-dialogs.c:1293
+#: thunar/thunar-dialogs.c:1323
 #, c-format
 msgid "The file \"%s\" seems to be executable. What do you want to do with it?"
 msgstr "Fișierul „%s” pare să fie executabil. Ce doriți să faceți cu el?"
 
-#: thunar/thunar-dialogs.c:1298
+#: thunar/thunar-dialogs.c:1328
 msgid ""
 "The selected files seem to be executable. What do you want to do with them?"
 msgstr "Fișierele selectate par să fie executabile. Ce doriți să faceți cu ele?"
 
-#: thunar/thunar-dialogs.c:1311
+#: thunar/thunar-dialogs.c:1341
 msgid "Open Shell Script"
 msgstr "Deschide scriptul Shell"
 
-#: thunar/thunar-dialogs.c:1315
+#: thunar/thunar-dialogs.c:1345
 msgid "Run In _Terminal"
 msgstr "Rulează în _terminal"
 
-#: thunar/thunar-dialogs.c:1373
+#: thunar/thunar-dialogs.c:1403
 #, c-format
 msgid "Failed to edit launcher via command \"%s\""
 msgstr "Editarea lansatorului prin comanda „%s” a eșuat"
@@ -3462,7 +3470,7 @@ msgid "Loading selection information..."
 msgstr "Se încarcă informațiile despre selecție..."
 
 #. display an error to the user
-#: thunar/thunar-standard-view.c:2949 thunar/thunar-window.c:4815
+#: thunar/thunar-standard-view.c:2949 thunar/thunar-window.c:4817
 msgid "Failed to open the home folder"
 msgstr "Nu s-a putut deschide dosarul Acasă"
 
@@ -3547,7 +3555,7 @@ msgstr "Nu s-a putut crea o legătură pentru adresa URL „%s”"
 msgid "Untitled document"
 msgstr "Document fără titlu"
 
-#: thunar/thunar-standard-view.c:4266 thunar/thunar-window.c:4912
+#: thunar/thunar-standard-view.c:4266 thunar/thunar-window.c:4914
 #, c-format
 msgid "Failed to open directory \"%s\""
 msgstr "Nu s-a putut deschide directorul „%s”"
@@ -4257,100 +4265,100 @@ msgstr "Căutare cu Catfish..."
 msgid "Restore Selected Items"
 msgstr "Restaurează elementele selectate"
 
-#: thunar/thunar-window.c:3108
+#: thunar/thunar-window.c:3110
 msgid "Close tab"
 msgstr "Închide fila"
 
-#: thunar/thunar-window.c:3633
+#: thunar/thunar-window.c:3635
 #, c-format
 msgid "Open the location \"%s\""
 msgstr "Deschide locația „%s”"
 
-#: thunar/thunar-window.c:4743
+#: thunar/thunar-window.c:4745
 msgid "Failed to open parent folder"
 msgstr "Nu s-a putut deschide dosarul părinte"
 
-#: thunar/thunar-window.c:4886
+#: thunar/thunar-window.c:4888
 #, c-format
 msgid "The directory \"%s\" does not exist. Do you want to create it?"
 msgstr "Directorul „%s” nu există. Doriți să-l creați?"
 
-#: thunar/thunar-window.c:4888
+#: thunar/thunar-window.c:4890
 msgid "Create directory"
 msgstr "Creează director"
 
 #. display an error to the user
-#: thunar/thunar-window.c:4957
+#: thunar/thunar-window.c:4959
 msgid "Failed to browse the computer"
 msgstr "Explorarea calculatorului a eșuat"
 
 #. display the "About Templates" dialog
-#: thunar/thunar-window.c:5000
+#: thunar/thunar-window.c:5002
 msgid "About Templates"
 msgstr "Despre șabloane"
 
-#: thunar/thunar-window.c:5022
+#: thunar/thunar-window.c:5024
 msgid "All files in this folder will appear in the \"Create Document\" menu."
 msgstr "Toate fișierele din acest dosar vor apărea în meniul «Creează un document»."
 
-#: thunar/thunar-window.c:5029
+#: thunar/thunar-window.c:5031
 msgid ""
 "If you frequently create certain kinds  of documents, make a copy of one and put it in this folder. Thunar will add an entry for this document in the \"Create Document\" menu.\n"
 "\n"
 "You can then select the entry from the \"Create Document\" menu and a copy of the document will be created in the directory you are viewing."
 msgstr "În cazul în care creați frecvent un anumit tip de document, copiați acel tip de document în acest dosar. Thunar va adăuga o intrare pentru acest document în meniul «Creează un document».\n\nApoi, prin selectarea noii intrări din meniul «Creează un document», o copie a documentului va fi creată în directorul curent."
 
-#: thunar/thunar-window.c:5041
+#: thunar/thunar-window.c:5043
 msgid "Do _not display this message again"
 msgstr "_Nu arăta din nou acest mesaj"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5075
+#: thunar/thunar-window.c:5077
 msgid "Failed to open the file system root folder"
 msgstr "Nu s-a putut deschide dosarul rădăcină al sistemului"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5111
+#: thunar/thunar-window.c:5113
 msgid "Failed to display `Recent`"
 msgstr "Afișarea elementelor «Recente» a eșuat"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5147
+#: thunar/thunar-window.c:5149
 msgid "Failed to display the contents of the trash can"
 msgstr "Afișarea conținutului coșului de gunoi a eșuat"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5183
+#: thunar/thunar-window.c:5185
 msgid "Failed to browse the network"
 msgstr "Explorarea rețelei a eșuat"
 
-#: thunar/thunar-window.c:5342
+#: thunar/thunar-window.c:5344
 msgid ""
 "Thunar is a fast and easy to use file manager\n"
 "for the Xfce Desktop Environment."
 msgstr "Acesta este un gestionar de fișiere rapid și\nușor de utilizat pentru mediul grafic de birou Xfce."
 
-#: thunar/thunar-window.c:6504
+#: thunar/thunar-window.c:6506
 msgid "Select an image to preview"
 msgstr "Selectați o imagine pentru previzualizare"
 
-#: thunar/thunar-window.c:6648
+#: thunar/thunar-window.c:6650
 msgid "Failed to launch search with Catfish"
 msgstr "Lansarea căutării cu Catfish a eșuat"
 
-#: thunar/thunar-window.c:6979
+#: thunar/thunar-window.c:6981
 msgid "Change the active view type"
 msgstr "Schimbă tipul de vizualizare activă"
 
 #. add a proxy menu item for the view switcher to be represent in the overflow
 #. menu
-#: thunar/thunar-window.c:6982 thunar/thunar-window.c:7007
+#: thunar/thunar-window.c:6984 thunar/thunar-window.c:7009
 msgid "View Switcher"
 msgstr "Comutator vizualizare"
 
 #. add a proxy menu item for the location bar to represent the bar in the
 #. overflow menu
-#: thunar/thunar-window.c:7176 thunar/thunar-window.c:7181
+#: thunar/thunar-window.c:7178 thunar/thunar-window.c:7183
 msgid "Location Bar"
 msgstr "Bara de locație"
 
