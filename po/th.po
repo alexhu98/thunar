@@ -14,7 +14,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Thunar\n"
 "Report-Msgid-Bugs-To: https://gitlab.xfce.org/\n"
-"POT-Creation-Date: 2026-07-25 00:50+0200\n"
+"POT-Creation-Date: 2026-08-16 00:49+0200\n"
 "PO-Revision-Date: 2013-07-02 20:11+0000\n"
 "Last-Translator: Warut Bunprasert <warut.b@disroot.org>, 2025-2026\n"
 "Language-Team: Thai (http://app.transifex.com/xfce/thunar/language/th/)\n"
@@ -31,13 +31,13 @@ msgstr "Thunar"
 
 #. change the accept button label text
 #: thunar/thunar-action-manager.c:325 thunar/thunar-chooser-dialog.c:903
-#: thunar/thunar-chooser-dialog.c:1314 thunar/thunar-dialogs.c:1325
+#: thunar/thunar-chooser-dialog.c:1314 thunar/thunar-dialogs.c:1355
 #: thunar/thunar-renamer-dialog.c:1109
 #: plugins/thunar-uca/thunar-uca-editor.c:198
 msgid "_Open"
 msgstr "_เปิด"
 
-#: thunar/thunar-action-manager.c:326 thunar/thunar-dialogs.c:1319
+#: thunar/thunar-action-manager.c:326 thunar/thunar-dialogs.c:1349
 msgid "_Execute"
 msgstr "เรียก_ทำงาน"
 
@@ -285,7 +285,7 @@ msgstr[0] "เปิดหน้าต่างใหม่ %d บาน"
 #: thunar/thunar-chooser-dialog.c:902 thunar/thunar-dialogs.c:104
 #: thunar/thunar-dialogs.c:256 thunar/thunar-dialogs.c:714
 #: thunar/thunar-dialogs.c:825 thunar/thunar-dialogs.c:836
-#: thunar/thunar-dialogs.c:1138 thunar/thunar-dialogs.c:1230
+#: thunar/thunar-dialogs.c:1112 thunar/thunar-dialogs.c:1260
 #: thunar/thunar-dnd.c:168 thunar/thunar-permissions-chooser.c:568
 #: thunar/thunar-permissions-chooser.c:1183
 #: thunar/thunar-properties-dialog.c:1244 thunar/thunar-renamer-dialog.c:1108
@@ -690,7 +690,7 @@ msgid_plural ""
 msgstr[0] "คุณแน่ใจหรือว่าต้องการย้ายแฟ้ม %u ที่เลือกไปยังถังขยะ?"
 
 #: thunar/thunar-application.c:2753 thunar/thunar-dialogs.c:621
-#: thunar/thunar-dialogs.c:1134
+#: thunar/thunar-dialogs.c:1108
 msgid "Attention"
 msgstr "คำเตือน"
 
@@ -808,7 +808,7 @@ msgstr "ใช้เป็นค่า_ปริยายสำหรับแ�
 
 #. add the "Ok"/"Open" button
 #: thunar/thunar-chooser-dialog.c:314 thunar/thunar-chooser-dialog.c:1314
-#: thunar/thunar-properties-dialog.c:1245 thunar/thunar-window.c:5002
+#: thunar/thunar-properties-dialog.c:1245 thunar/thunar-window.c:5004
 #: plugins/thunar-uca/thunar-uca-editor.c:153
 #: plugins/thunar-uca/thunar-uca-editor.c:451
 msgid "_OK"
@@ -1310,70 +1310,78 @@ msgstr "เ_ริ่มใช้การการะทำสำหรับ�
 msgid "_Apply the action to all files"
 msgstr "เ_ริ่มใช้การการะทำสำหรับแฟ้มทั้งหมด"
 
+#: thunar/thunar-dialogs.c:1109
+msgid "_Launch Anyway"
+msgstr "ยืนยันเ_รียกทำงาน"
+
+#: thunar/thunar-dialogs.c:1111
+msgid "Mark As _Secure And Launch"
+msgstr "ทำเครื่องหมายว่า_ปลอดภัยและเรียกใช้งาน"
+
 #. TRANSLATORS: This string will be inserted in the following sentence in the
 #. second appearance of %s:
 #. * "The desktop file %s is in an insecure location and not marked as
 #. secure%s."
-#: thunar/thunar-dialogs.c:1104
+#: thunar/thunar-dialogs.c:1133
 msgid "/executable"
 msgstr "/executable"
 
-#: thunar/thunar-dialogs.c:1110
+#: thunar/thunar-dialogs.c:1136
 #, c-format
 msgid ""
-"The desktop file %s is in an insecure location and not marked as secure%s. If you do not trust this program, click Cancel.\n"
-"\n"
-msgstr "แฟ้มพื้นโต๊ะ %s อยู่ในตำแหน่งที่ไม่ปลอดภัยและไม่ได้ทำเครื่องหมายว่าปลอดภัย %s  หากคุณไม่เชื่อถือโปรแกรมนี้ โปรดคลิกยกเลิก\n\n"
+"The desktop file %s is in an insecure location and not marked as secure %s"
+msgstr "แฟ้มพื้นโต๊ะ %s อยู่ในตำแหน่งที่ไม่ปลอดภัยและไม่ได้ทำเครื่องหมายว่าปลอดภัย %s "
 
-#: thunar/thunar-dialogs.c:1135
-msgid "_Launch Anyway"
-msgstr "ยืนยันเ_รียกทำงาน"
+#. EXEC Command or URL
+#: thunar/thunar-dialogs.c:1144
+msgid "launch command for the untrusted launcher"
+msgstr "คำสั่งเรียกใช้สำหรับตัวเรียกโปรแกรมที่ไม่น่าเชื่อถือ"
 
-#: thunar/thunar-dialogs.c:1137
-msgid "Mark As _Secure And Launch"
-msgstr "ทำเครื่องหมายว่า_ปลอดภัยและเรียกใช้งาน"
+#: thunar/thunar-dialogs.c:1165
+msgid "If you do not trust this program, click Cancel"
+msgstr "หากคุณไม่เชื่อถือโปรแกรมนี้ กรุณาคลิกยกเลิก"
 
-#: thunar/thunar-dialogs.c:1219
+#: thunar/thunar-dialogs.c:1249
 msgid "Close split pane with multiple tabs?"
 msgstr "ปิดช่องแยกที่มีหลายแท็บใช่ไหม"
 
-#: thunar/thunar-dialogs.c:1220
+#: thunar/thunar-dialogs.c:1250
 msgid ""
 "The other split pane has multiple open tabs. Closing it will close all these"
 " tabs."
 msgstr "ช่องแยกอีกบานหนึ่งมีหลายแท็บที่เปิดอยู่ การปิดจะเป็นการปิดแท็บเหล่านี้ทั้งหมด"
 
-#: thunar/thunar-dialogs.c:1226
+#: thunar/thunar-dialogs.c:1256
 msgid "Warning"
 msgstr "คำเตือน"
 
-#: thunar/thunar-dialogs.c:1231
+#: thunar/thunar-dialogs.c:1261
 msgid "Close Pane"
 msgstr "ปิดช่อง"
 
-#: thunar/thunar-dialogs.c:1234 thunar/thunar-permissions-chooser.c:600
+#: thunar/thunar-dialogs.c:1264 thunar/thunar-permissions-chooser.c:600
 msgid "Do _not ask me again"
 msgstr "ไ_ม่ต้องถามอีก"
 
-#: thunar/thunar-dialogs.c:1293
+#: thunar/thunar-dialogs.c:1323
 #, c-format
 msgid "The file \"%s\" seems to be executable. What do you want to do with it?"
 msgstr "ไม่มีแฟ้ม \"%s\" นี้ที่สามารถเปิดทำงานได้ คุณต้องการทำอย่างไรกับแฟ้มนี้"
 
-#: thunar/thunar-dialogs.c:1298
+#: thunar/thunar-dialogs.c:1328
 msgid ""
 "The selected files seem to be executable. What do you want to do with them?"
 msgstr "แฟ้มที่เลือกนี้ที่สามารถเปิดทำงานได้ คุณต้องการทำอย่างไรกับแฟ้มนี้"
 
-#: thunar/thunar-dialogs.c:1311
+#: thunar/thunar-dialogs.c:1341
 msgid "Open Shell Script"
 msgstr "เปิดเชลล์สคริปต์"
 
-#: thunar/thunar-dialogs.c:1315
+#: thunar/thunar-dialogs.c:1345
 msgid "Run In _Terminal"
 msgstr "ทำงานในเ_ทอร์มินัล"
 
-#: thunar/thunar-dialogs.c:1373
+#: thunar/thunar-dialogs.c:1403
 #, c-format
 msgid "Failed to edit launcher via command \"%s\""
 msgstr "แก้ไขตัวเรียกโปรแกรมผ่านการเรียกทำงานคำสั่ง \"%s\" ไม่สำเร็จ"
@@ -3393,7 +3401,7 @@ msgid "Loading selection information..."
 msgstr "กำลังโหลดข้อมูลของการเลือก..."
 
 #. display an error to the user
-#: thunar/thunar-standard-view.c:2949 thunar/thunar-window.c:4815
+#: thunar/thunar-standard-view.c:2949 thunar/thunar-window.c:4817
 msgid "Failed to open the home folder"
 msgstr "เปิดโฟลเดอร์บ้านไม่สำเร็จ"
 
@@ -3478,7 +3486,7 @@ msgstr "สร้างลิงก์สำหรับ URL \"%s\" ไม่ส
 msgid "Untitled document"
 msgstr "เอกสารไม่มีชื่อ"
 
-#: thunar/thunar-standard-view.c:4266 thunar/thunar-window.c:4912
+#: thunar/thunar-standard-view.c:4266 thunar/thunar-window.c:4914
 #, c-format
 msgid "Failed to open directory \"%s\""
 msgstr "เปิดไดเรกทอรี \"%s\" ไม่สำเร็จ"
@@ -4178,100 +4186,100 @@ msgstr "ค้นหาด้วย Catfish..."
 msgid "Restore Selected Items"
 msgstr "กู้คืนรายการที่เลือก"
 
-#: thunar/thunar-window.c:3108
+#: thunar/thunar-window.c:3110
 msgid "Close tab"
 msgstr "ปิดแท็บ"
 
-#: thunar/thunar-window.c:3633
+#: thunar/thunar-window.c:3635
 #, c-format
 msgid "Open the location \"%s\""
 msgstr "เปิดตำแหน่ง \"%s\""
 
-#: thunar/thunar-window.c:4743
+#: thunar/thunar-window.c:4745
 msgid "Failed to open parent folder"
 msgstr "เปิดโฟลเดอร์แม่ไม่สำเร็จ"
 
-#: thunar/thunar-window.c:4886
+#: thunar/thunar-window.c:4888
 #, c-format
 msgid "The directory \"%s\" does not exist. Do you want to create it?"
 msgstr "ไดเรกทอรี \"%s\" ไม่มีอยู่ คุณต้องการสร้างไดเรกทอรีนี้หรือไม่?"
 
-#: thunar/thunar-window.c:4888
+#: thunar/thunar-window.c:4890
 msgid "Create directory"
 msgstr "สร้างไดเรกทอรี"
 
 #. display an error to the user
-#: thunar/thunar-window.c:4957
+#: thunar/thunar-window.c:4959
 msgid "Failed to browse the computer"
 msgstr "ท่องดูคอมพิวเตอร์ไม่สำเร็จ"
 
 #. display the "About Templates" dialog
-#: thunar/thunar-window.c:5000
+#: thunar/thunar-window.c:5002
 msgid "About Templates"
 msgstr "เกี่ยวกับเทมเพลต"
 
-#: thunar/thunar-window.c:5022
+#: thunar/thunar-window.c:5024
 msgid "All files in this folder will appear in the \"Create Document\" menu."
 msgstr "แฟ้มทั้งหมดในโฟลเดอร์นี้จะปรากฏในเมนู \"สร้างเอกสาร\""
 
-#: thunar/thunar-window.c:5029
+#: thunar/thunar-window.c:5031
 msgid ""
 "If you frequently create certain kinds  of documents, make a copy of one and put it in this folder. Thunar will add an entry for this document in the \"Create Document\" menu.\n"
 "\n"
 "You can then select the entry from the \"Create Document\" menu and a copy of the document will be created in the directory you are viewing."
 msgstr "ถ้าคุณสร้างเอกสารบางชนิดบ่อยๆ คุณสามารถเก็บเอกสารตัวอย่างไว้ในโฟลเดอร์นี้ได้ Thunar จะเพิ่มรายการสำหรับเอกสารดังกล่าวเข้าในเมนู \"สร้างเอกสาร\"\n\nจากนั้น คุณจะสามารถเลือกรายการดังกล่าวจากเมนู \"สร้างเอกสาร\" และ Thunar จะสร้างสำเนาของเอกสารดังกล่าวลงในไดเรกทอรีที่คุณกำลังดูอยู่"
 
-#: thunar/thunar-window.c:5041
+#: thunar/thunar-window.c:5043
 msgid "Do _not display this message again"
 msgstr "ไ_ม่ต้องแสดงข้อความนี้อีก"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5075
+#: thunar/thunar-window.c:5077
 msgid "Failed to open the file system root folder"
 msgstr "เปิดโฟลเดอร์รากของระบบแฟ้มไม่สำเร็จ"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5111
+#: thunar/thunar-window.c:5113
 msgid "Failed to display `Recent`"
 msgstr "ไม่สามารถแสดง 'ล่าสุด'"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5147
+#: thunar/thunar-window.c:5149
 msgid "Failed to display the contents of the trash can"
 msgstr "แสดงเนื้อหาในถังขยะไม่สำเร็จ"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5183
+#: thunar/thunar-window.c:5185
 msgid "Failed to browse the network"
 msgstr "ท่องแสดงเครือข่ายไม่สำเร็จ"
 
-#: thunar/thunar-window.c:5342
+#: thunar/thunar-window.c:5344
 msgid ""
 "Thunar is a fast and easy to use file manager\n"
 "for the Xfce Desktop Environment."
 msgstr "Thunar คือโปรแกรมจัดการแฟ้มที่ทำงานรวดเร็วและใช้ง่าย\nสำหรับเดสก์ท็อป Xfce"
 
-#: thunar/thunar-window.c:6504
+#: thunar/thunar-window.c:6506
 msgid "Select an image to preview"
 msgstr "เลือกรูปภาพเพื่อดูตัวอย่าง"
 
-#: thunar/thunar-window.c:6648
+#: thunar/thunar-window.c:6650
 msgid "Failed to launch search with Catfish"
 msgstr "ไม่สามารถเปิดการค้นหาด้วย Catfish"
 
-#: thunar/thunar-window.c:6979
+#: thunar/thunar-window.c:6981
 msgid "Change the active view type"
 msgstr "เปลี่ยนประเภทมุมมองที่ใช้งานอยู่"
 
 #. add a proxy menu item for the view switcher to be represent in the overflow
 #. menu
-#: thunar/thunar-window.c:6982 thunar/thunar-window.c:7007
+#: thunar/thunar-window.c:6984 thunar/thunar-window.c:7009
 msgid "View Switcher"
 msgstr "แสดงเครื่องมือสลับ"
 
 #. add a proxy menu item for the location bar to represent the bar in the
 #. overflow menu
-#: thunar/thunar-window.c:7176 thunar/thunar-window.c:7181
+#: thunar/thunar-window.c:7178 thunar/thunar-window.c:7183
 msgid "Location Bar"
 msgstr "แถบตำแหน่ง"
 
