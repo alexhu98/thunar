@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Thunar\n"
 "Report-Msgid-Bugs-To: https://gitlab.xfce.org/\n"
-"POT-Creation-Date: 2026-07-25 00:50+0200\n"
+"POT-Creation-Date: 2026-08-16 00:49+0200\n"
 "PO-Revision-Date: 2013-07-02 20:11+0000\n"
 "Last-Translator: Quentin PAGÈS, 2021-2022,2024-2026\n"
 "Language-Team: Occitan (post 1500) (http://app.transifex.com/xfce/thunar/language/oc/)\n"
@@ -28,13 +28,13 @@ msgstr "Thunar"
 
 #. change the accept button label text
 #: thunar/thunar-action-manager.c:325 thunar/thunar-chooser-dialog.c:903
-#: thunar/thunar-chooser-dialog.c:1314 thunar/thunar-dialogs.c:1325
+#: thunar/thunar-chooser-dialog.c:1314 thunar/thunar-dialogs.c:1355
 #: thunar/thunar-renamer-dialog.c:1109
 #: plugins/thunar-uca/thunar-uca-editor.c:198
 msgid "_Open"
 msgstr "_Dobrir"
 
-#: thunar/thunar-action-manager.c:326 thunar/thunar-dialogs.c:1319
+#: thunar/thunar-action-manager.c:326 thunar/thunar-dialogs.c:1349
 msgid "_Execute"
 msgstr "_Executar"
 
@@ -286,7 +286,7 @@ msgstr[1] "Dobrir %d fenèstras novèlas"
 #: thunar/thunar-chooser-dialog.c:902 thunar/thunar-dialogs.c:104
 #: thunar/thunar-dialogs.c:256 thunar/thunar-dialogs.c:714
 #: thunar/thunar-dialogs.c:825 thunar/thunar-dialogs.c:836
-#: thunar/thunar-dialogs.c:1138 thunar/thunar-dialogs.c:1230
+#: thunar/thunar-dialogs.c:1112 thunar/thunar-dialogs.c:1260
 #: thunar/thunar-dnd.c:168 thunar/thunar-permissions-chooser.c:568
 #: thunar/thunar-permissions-chooser.c:1183
 #: thunar/thunar-properties-dialog.c:1244 thunar/thunar-renamer-dialog.c:1108
@@ -713,7 +713,7 @@ msgstr[0] "Volètz vertadièrament\ndesplaçar lo fichièr seleccionat a l’esc
 msgstr[1] "Volètz vertadièrament\ndesplaçar los %u fichièrs seleccionats a l’escobilhièr ?"
 
 #: thunar/thunar-application.c:2753 thunar/thunar-dialogs.c:621
-#: thunar/thunar-dialogs.c:1134
+#: thunar/thunar-dialogs.c:1108
 msgid "Attention"
 msgstr "Atencion"
 
@@ -831,7 +831,7 @@ msgstr "Utilizar aquesta accion per _defaut per aqueste tipe de fichièr"
 
 #. add the "Ok"/"Open" button
 #: thunar/thunar-chooser-dialog.c:314 thunar/thunar-chooser-dialog.c:1314
-#: thunar/thunar-properties-dialog.c:1245 thunar/thunar-window.c:5002
+#: thunar/thunar-properties-dialog.c:1245 thunar/thunar-window.c:5004
 #: plugins/thunar-uca/thunar-uca-editor.c:153
 #: plugins/thunar-uca/thunar-uca-editor.c:451
 msgid "_OK"
@@ -1333,70 +1333,78 @@ msgstr "_Aplicar l’accion a totes los dorsièrs"
 msgid "_Apply the action to all files"
 msgstr "_Aplicar l’accion a totes los fichièrs"
 
+#: thunar/thunar-dialogs.c:1109
+msgid "_Launch Anyway"
+msgstr "_Aviar malgrat tot"
+
+#: thunar/thunar-dialogs.c:1111
+msgid "Mark As _Secure And Launch"
+msgstr "Marcar coma _segur e lançar"
+
 #. TRANSLATORS: This string will be inserted in the following sentence in the
 #. second appearance of %s:
 #. * "The desktop file %s is in an insecure location and not marked as
 #. secure%s."
-#: thunar/thunar-dialogs.c:1104
+#: thunar/thunar-dialogs.c:1133
 msgid "/executable"
 msgstr "/executable"
 
-#: thunar/thunar-dialogs.c:1110
+#: thunar/thunar-dialogs.c:1136
 #, c-format
 msgid ""
-"The desktop file %s is in an insecure location and not marked as secure%s. If you do not trust this program, click Cancel.\n"
-"\n"
-msgstr "Lo fichièr de burèu « %s » es dins un emplaçament pas securizat e pas marcat coma %s segurament. Se vos fisatz pas d'aqueste programa, clicatz sus Anullar.\n"
+"The desktop file %s is in an insecure location and not marked as secure %s"
+msgstr "Lo fichièr desktop %s es dins un emplaçament non segur e es pas marcat coma segur %s "
 
-#: thunar/thunar-dialogs.c:1135
-msgid "_Launch Anyway"
-msgstr "_Aviar malgrat tot"
+#. EXEC Command or URL
+#: thunar/thunar-dialogs.c:1144
+msgid "launch command for the untrusted launcher"
+msgstr "aviar una comanda per l’aviador non fisable"
 
-#: thunar/thunar-dialogs.c:1137
-msgid "Mark As _Secure And Launch"
-msgstr "Marcar coma _segur e lançar"
+#: thunar/thunar-dialogs.c:1165
+msgid "If you do not trust this program, click Cancel"
+msgstr "Se vos fisatz pas d’aqueste programa, clicatz Anullar"
 
-#: thunar/thunar-dialogs.c:1219
+#: thunar/thunar-dialogs.c:1249
 msgid "Close split pane with multiple tabs?"
 msgstr "Tampar lo panèl amb mantun onglet ?"
 
-#: thunar/thunar-dialogs.c:1220
+#: thunar/thunar-dialogs.c:1250
 msgid ""
 "The other split pane has multiple open tabs. Closing it will close all these"
 " tabs."
 msgstr "L’autre panèl a mantun onglet dobèrt. Lo tampar causarà la tampadura de totes los autres onglets."
 
-#: thunar/thunar-dialogs.c:1226
+#: thunar/thunar-dialogs.c:1256
 msgid "Warning"
 msgstr "Avertiment"
 
-#: thunar/thunar-dialogs.c:1231
+#: thunar/thunar-dialogs.c:1261
 msgid "Close Pane"
 msgstr "Tampar l’onglet"
 
-#: thunar/thunar-dialogs.c:1234 thunar/thunar-permissions-chooser.c:600
+#: thunar/thunar-dialogs.c:1264 thunar/thunar-permissions-chooser.c:600
 msgid "Do _not ask me again"
 msgstr "_Me pausar pas mai aquesta question"
 
-#: thunar/thunar-dialogs.c:1293
+#: thunar/thunar-dialogs.c:1323
 #, c-format
 msgid "The file \"%s\" seems to be executable. What do you want to do with it?"
 msgstr "Lo fichièr « %s » sembla un executable. De qué ne volètz far ?"
 
-#: thunar/thunar-dialogs.c:1298
+#: thunar/thunar-dialogs.c:1328
 msgid ""
 "The selected files seem to be executable. What do you want to do with them?"
 msgstr "Los fichièrs seleccionats semblan executables. De qué ne volètz far ?"
 
-#: thunar/thunar-dialogs.c:1311
+#: thunar/thunar-dialogs.c:1341
 msgid "Open Shell Script"
 msgstr "Dobrir Shell Script"
 
-#: thunar/thunar-dialogs.c:1315
+#: thunar/thunar-dialogs.c:1345
 msgid "Run In _Terminal"
 msgstr "Executar dins un _terminal"
 
-#: thunar/thunar-dialogs.c:1373
+#: thunar/thunar-dialogs.c:1403
 #, c-format
 msgid "Failed to edit launcher via command \"%s\""
 msgstr "Modificacion impossibla de l’aviador via la comanda « %s »"
@@ -3423,7 +3431,7 @@ msgid "Loading selection information..."
 msgstr "Cargament de las informacions de la seleccion..."
 
 #. display an error to the user
-#: thunar/thunar-standard-view.c:2949 thunar/thunar-window.c:4815
+#: thunar/thunar-standard-view.c:2949 thunar/thunar-window.c:4817
 msgid "Failed to open the home folder"
 msgstr "Impossible de dobrir lo dorsièr personal"
 
@@ -3508,7 +3516,7 @@ msgstr "Impossible de crear un ligam per l'URL « %s »"
 msgid "Untitled document"
 msgstr "Document sens nom"
 
-#: thunar/thunar-standard-view.c:4266 thunar/thunar-window.c:4912
+#: thunar/thunar-standard-view.c:4266 thunar/thunar-window.c:4914
 #, c-format
 msgid "Failed to open directory \"%s\""
 msgstr "Impossible de dobrir lo repertòri « %s »"
@@ -4213,100 +4221,100 @@ msgstr "Recercar amb Catfish..."
 msgid "Restore Selected Items"
 msgstr "Restaurar los elements seleccionats"
 
-#: thunar/thunar-window.c:3108
+#: thunar/thunar-window.c:3110
 msgid "Close tab"
 msgstr "Tampar l'onglet"
 
-#: thunar/thunar-window.c:3633
+#: thunar/thunar-window.c:3635
 #, c-format
 msgid "Open the location \"%s\""
 msgstr "Dobrissètz l'emplaçament « %s »"
 
-#: thunar/thunar-window.c:4743
+#: thunar/thunar-window.c:4745
 msgid "Failed to open parent folder"
 msgstr "Impossible de dobrir lo dorsièr parent"
 
-#: thunar/thunar-window.c:4886
+#: thunar/thunar-window.c:4888
 #, c-format
 msgid "The directory \"%s\" does not exist. Do you want to create it?"
 msgstr "Lo repertòri « %s » existís pas. Lo volètz crear ?"
 
-#: thunar/thunar-window.c:4888
+#: thunar/thunar-window.c:4890
 msgid "Create directory"
 msgstr "Crear un repertòri"
 
 #. display an error to the user
-#: thunar/thunar-window.c:4957
+#: thunar/thunar-window.c:4959
 msgid "Failed to browse the computer"
 msgstr "Impossible de percórrer l’ordenador"
 
 #. display the "About Templates" dialog
-#: thunar/thunar-window.c:5000
+#: thunar/thunar-window.c:5002
 msgid "About Templates"
 msgstr "A prepaus dels modèls"
 
-#: thunar/thunar-window.c:5022
+#: thunar/thunar-window.c:5024
 msgid "All files in this folder will appear in the \"Create Document\" menu."
 msgstr "Totes los fichièrs dins aqueste dorsièr apareisseràn dins lo menú « Crear un document »."
 
-#: thunar/thunar-window.c:5029
+#: thunar/thunar-window.c:5031
 msgid ""
 "If you frequently create certain kinds  of documents, make a copy of one and put it in this folder. Thunar will add an entry for this document in the \"Create Document\" menu.\n"
 "\n"
 "You can then select the entry from the \"Create Document\" menu and a copy of the document will be created in the directory you are viewing."
 msgstr "Se creatz frequentament un certan tipe\nde document, fasètz-ne una còpia dins aqueste dorsièr. Thunar apondrà una entrada per aqueste document dins lo menú « Crear un document ».\n\nPodètz seleccionar aquesta entrada dins lo menú « Crear un document » e una còpia d'aqueste document serà creada dins lo dorsièr en cors."
 
-#: thunar/thunar-window.c:5041
+#: thunar/thunar-window.c:5043
 msgid "Do _not display this message again"
 msgstr "A_fichar pas mai aqueste message"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5075
+#: thunar/thunar-window.c:5077
 msgid "Failed to open the file system root folder"
 msgstr "Impossible de dobrir lo dorsièr raiç del sistèma de fichièrs"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5111
+#: thunar/thunar-window.c:5113
 msgid "Failed to display `Recent`"
 msgstr "Afichatge impossible dels « Recents »"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5147
+#: thunar/thunar-window.c:5149
 msgid "Failed to display the contents of the trash can"
 msgstr "Impossible d'afichar lo contengut de l'escobilhièr"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5183
+#: thunar/thunar-window.c:5185
 msgid "Failed to browse the network"
 msgstr "Impossible de percórrer la ret"
 
-#: thunar/thunar-window.c:5342
+#: thunar/thunar-window.c:5344
 msgid ""
 "Thunar is a fast and easy to use file manager\n"
 "for the Xfce Desktop Environment."
 msgstr "Thunar es un gestionari de fichièrs rapid e aisit\nd'utilizacion per l'environament de burèu Xfce."
 
-#: thunar/thunar-window.c:6504
+#: thunar/thunar-window.c:6506
 msgid "Select an image to preview"
 msgstr "Seleccionar un imatge de previsualizar"
 
-#: thunar/thunar-window.c:6648
+#: thunar/thunar-window.c:6650
 msgid "Failed to launch search with Catfish"
 msgstr "Fracàs de l’aviada de la recèrca de fichièrs Catfish"
 
-#: thunar/thunar-window.c:6979
+#: thunar/thunar-window.c:6981
 msgid "Change the active view type"
 msgstr "Cambiar lo tipe de la vista activa"
 
 #. add a proxy menu item for the view switcher to be represent in the overflow
 #. menu
-#: thunar/thunar-window.c:6982 thunar/thunar-window.c:7007
+#: thunar/thunar-window.c:6984 thunar/thunar-window.c:7009
 msgid "View Switcher"
 msgstr "Bascula de vista"
 
 #. add a proxy menu item for the location bar to represent the bar in the
 #. overflow menu
-#: thunar/thunar-window.c:7176 thunar/thunar-window.c:7181
+#: thunar/thunar-window.c:7178 thunar/thunar-window.c:7183
 msgid "Location Bar"
 msgstr "Barra d’adreça"
 
