@@ -88,7 +88,6 @@ thunar/thunar-uca-plugin.c
 thunar/thunar-uca-provider.c
 thunar/uca.xml.in
 thunar/thunar-uca-editor.ui
-thunar/thunar-uca-chooser.ui
 thunar/thunar-user.c
 thunar/thunar-util.c
 thunar/thunar-view.c
