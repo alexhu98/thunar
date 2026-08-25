@@ -20,7 +20,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Thunar\n"
 "Report-Msgid-Bugs-To: https://gitlab.xfce.org/\n"
-"POT-Creation-Date: 2026-08-16 00:49+0200\n"
+"POT-Creation-Date: 2026-08-25 00:49+0200\n"
 "PO-Revision-Date: 2013-07-02 20:11+0000\n"
 "Last-Translator: Ioannis LM, 2021-2026\n"
 "Language-Team: Greek (http://app.transifex.com/xfce/thunar/language/el/)\n"
@@ -38,8 +38,7 @@ msgstr "Thunar"
 #. change the accept button label text
 #: thunar/thunar-action-manager.c:325 thunar/thunar-chooser-dialog.c:903
 #: thunar/thunar-chooser-dialog.c:1314 thunar/thunar-dialogs.c:1355
-#: thunar/thunar-renamer-dialog.c:1109
-#: plugins/thunar-uca/thunar-uca-editor.c:198
+#: thunar/thunar-renamer-dialog.c:1109 thunar/thunar-uca-editor.c:200
 msgid "_Open"
 msgstr "Άνοι_γμα"
 
@@ -75,7 +74,7 @@ msgstr "Μετάβαση στο φάκελο στον οποίο βρίσκετ�
 msgid "Ope_n With Other Application..."
 msgstr "Άνοιγμα με άλλη εφ_αρμογή..."
 
-#: thunar/thunar-action-manager.c:331 thunar/thunar-action-manager.c:3503
+#: thunar/thunar-action-manager.c:331 thunar/thunar-action-manager.c:3500
 msgid "Choose another application with which to open the selected file"
 msgstr "Επιλογή άλλης εφαρμογής με την οποία θα ανοίξετε το επιλεγμένο αρχείο"
 
@@ -134,7 +133,7 @@ msgid "_Rename..."
 msgstr "_Μετονομασία..."
 
 #. prepare the menu item
-#: thunar/thunar-action-manager.c:343 thunar/thunar-application.c:3011
+#: thunar/thunar-action-manager.c:343 thunar/thunar-application.c:3015
 #: plugins/thunar-tpa/thunar-tpa.c:187
 msgid "_Empty Trash"
 msgstr "Ά_δειασμα απορριμμάτων"
@@ -179,8 +178,8 @@ msgstr "_Επαναφορά και εμφάνιση"
 msgid "Mo_ve to Trash"
 msgstr "Μετακίνηση στα απο_ρρίμματα"
 
-#: thunar/thunar-action-manager.c:353 thunar/thunar-application.c:2756
-#: plugins/thunar-uca/thunar-uca-chooser.c:379
+#: thunar/thunar-action-manager.c:353 thunar/thunar-application.c:2760
+#: thunar/thunar-uca-editor.c:882
 msgid "_Delete"
 msgstr "_Διαγραφή"
 
@@ -289,8 +288,8 @@ msgstr[1] "Άνοιγμα %d νέων παραθύρων"
 
 #. add the "Cancel" button
 #. configure the dialog properties
-#: thunar/thunar-action-manager.c:1071 thunar/thunar-application.c:2755
-#: thunar/thunar-application.c:3010 thunar/thunar-chooser-dialog.c:311
+#: thunar/thunar-action-manager.c:1071 thunar/thunar-application.c:2759
+#: thunar/thunar-application.c:3014 thunar/thunar-chooser-dialog.c:311
 #: thunar/thunar-chooser-dialog.c:777 thunar/thunar-chooser-dialog.c:852
 #: thunar/thunar-chooser-dialog.c:902 thunar/thunar-dialogs.c:104
 #: thunar/thunar-dialogs.c:256 thunar/thunar-dialogs.c:714
@@ -300,13 +299,11 @@ msgstr[1] "Άνοιγμα %d νέων παραθύρων"
 #: thunar/thunar-permissions-chooser.c:1183
 #: thunar/thunar-properties-dialog.c:1244 thunar/thunar-renamer-dialog.c:1108
 #: thunar/thunar-renamer-progress.c:186 thunar/thunar-renamer-progress.c:196
+#: thunar/thunar-uca-editor.c:154 thunar/thunar-uca-editor.c:199
+#: thunar/thunar-uca-editor.c:452 thunar/thunar-uca-editor.c:882
 #: plugins/thunar-sendto-email/main.c:216
 #: plugins/thunar-sendto-email/main.c:236
 #: plugins/thunar-sendto-email/main.c:300
-#: plugins/thunar-uca/thunar-uca-chooser.c:379
-#: plugins/thunar-uca/thunar-uca-editor.c:152
-#: plugins/thunar-uca/thunar-uca-editor.c:197
-#: plugins/thunar-uca/thunar-uca-editor.c:450
 msgid "_Cancel"
 msgstr "Άκ_υρο"
 
@@ -316,8 +313,8 @@ msgid "Failed to mount \"%s\""
 msgstr "Απέτυχε η προσάρτηση του \"%s\""
 
 #. tell the user that we were unable to launch the file specified
-#: thunar/thunar-action-manager.c:1212 thunar/thunar-application.c:1912
-#: thunar/thunar-application.c:2075 thunar/thunar-location-entry.c:371
+#: thunar/thunar-action-manager.c:1212 thunar/thunar-application.c:1916
+#: thunar/thunar-application.c:2079 thunar/thunar-location-entry.c:371
 #: thunar/thunar-location-entry.c:404
 #, c-format
 msgid "Failed to open \"%s\""
@@ -473,233 +470,233 @@ msgstr[0] "Αποστολή επιλεγμένου αρχείου στο \"%s\""
 msgstr[1] "Αποστολή επιλεγμένων αρχείων στο \"%s\""
 
 #. ask the user to enter a name for the new folder
-#: thunar/thunar-action-manager.c:2770 thunar/thunar-application.c:2263
+#: thunar/thunar-action-manager.c:2767 thunar/thunar-application.c:2267
 msgid "New Folder"
 msgstr "Νέος φάκελος"
 
-#: thunar/thunar-action-manager.c:2775 thunar/thunar-application.c:2264
+#: thunar/thunar-action-manager.c:2772 thunar/thunar-application.c:2268
 msgid "Create New Folder"
 msgstr "Δημιουργία νέου φακέλου"
 
 #. generate a title for the create dialog
-#: thunar/thunar-action-manager.c:2828 thunar/thunar-application.c:2325
+#: thunar/thunar-action-manager.c:2825 thunar/thunar-application.c:2329
 #, c-format
 msgid "Create Document from template \"%s\""
 msgstr "Δημιουργία εγγράφου από πρότυπο \"%s\""
 
 #. ask the user to enter a name for the new empty file
-#: thunar/thunar-action-manager.c:2846
+#: thunar/thunar-action-manager.c:2843
 msgid "New Empty File"
 msgstr "Νέο κενό αρχείο"
 
-#: thunar/thunar-action-manager.c:2851
+#: thunar/thunar-action-manager.c:2848
 msgid "New Empty File..."
 msgstr "Νέο κενό αρχείο..."
 
-#: thunar/thunar-action-manager.c:3073
+#: thunar/thunar-action-manager.c:3070
 #, c-format
 msgid ""
 "No templates installed in\n"
 "\"%s\""
 msgstr "Δεν υπάρχουν εγκατεστημένα πρότυπα στο\n\"%s\""
 
-#: thunar/thunar-action-manager.c:3086
+#: thunar/thunar-action-manager.c:3083
 msgid "_Empty File"
 msgstr "_Κενό αρχείο"
 
-#: thunar/thunar-action-manager.c:3251
+#: thunar/thunar-action-manager.c:3248
 #, c-format
 msgid "Failed to eject \"%s\""
 msgstr "Απέτυχε η εξαγωγή του \"%s\""
 
-#: thunar/thunar-action-manager.c:3313
+#: thunar/thunar-action-manager.c:3310
 #, c-format
 msgid "Failed to unmount \"%s\""
 msgstr "Αποτυχία αποπροσάρτησης του \"%s\""
 
-#: thunar/thunar-action-manager.c:3376 thunar/thunar-action-manager.c:3458
+#: thunar/thunar-action-manager.c:3373 thunar/thunar-action-manager.c:3455
 #, c-format
 msgid "Use \"%s\" to open the selected file"
 msgid_plural "Use \"%s\" to open the selected files"
 msgstr[0] "Χρήση του \"%s\" για το άνοιγμα του επιλεγμένου αρχείου"
 msgstr[1] "Χρήση του \"%s\" για το άνοιγμα των επιλεγμένων αρχείων"
 
-#: thunar/thunar-action-manager.c:3457
+#: thunar/thunar-action-manager.c:3454
 #, c-format
 msgid "_Open With \"%s\""
 msgstr "Άνοι_γμα με \"%s\""
 
 #. we can only show a generic "Open" action
-#: thunar/thunar-action-manager.c:3481
+#: thunar/thunar-action-manager.c:3478
 msgid "_Open With Default Applications"
 msgstr "Άνοι_γμα με προκαθορισμένες εφαρμογές"
 
-#: thunar/thunar-action-manager.c:3482
+#: thunar/thunar-action-manager.c:3479
 msgid "Open the selected files with the default applications"
 msgstr "Άνοιγμα των επιλεγμένων αρχείων με τις προκαθορισμένες εφαρμογές"
 
-#: thunar/thunar-action-manager.c:3502
+#: thunar/thunar-action-manager.c:3499
 msgid "Ope_n With"
 msgstr "Άνοι_γμα με:"
 
-#: thunar/thunar-application.c:91
+#: thunar/thunar-application.c:92
 msgid "Open the bulk rename dialog"
 msgstr "Άνοιγμα μαζικής μετονομασίας"
 
-#: thunar/thunar-application.c:92
+#: thunar/thunar-application.c:93
 msgid "Force open in a new window"
 msgstr "Άνοιγμα σε νέο παράθυρο"
 
-#: thunar/thunar-application.c:93
+#: thunar/thunar-application.c:94
 msgid "Run in daemon mode"
 msgstr "Εκτέλεση σε λειτουργία υπηρεσίας παρασκηνίου"
 
-#: thunar/thunar-application.c:95
+#: thunar/thunar-application.c:96
 msgid "Quit a running Thunar instance"
 msgstr "Τερματισμός της εκτελούμενης διεργασίας Thunar"
 
-#: thunar/thunar-application.c:96
+#: thunar/thunar-application.c:97
 msgid "Print version information and exit"
 msgstr "Πληροφορίες έκδοσης και έξοδος"
 
 #. Dont have a better idea for indendation formatting the 'Arguments:' section
-#: thunar/thunar-application.c:360
+#: thunar/thunar-application.c:361
 msgid "Arguments:\n"
 msgstr ""
 
-#: thunar/thunar-application.c:361
+#: thunar/thunar-application.c:362
 msgid "URL"
 msgstr "Διεύθυνση"
 
-#: thunar/thunar-application.c:374
+#: thunar/thunar-application.c:375
 #, c-format
 msgid "Acquired the session message bus '%s'\n"
 msgstr "Ανακτήθηκε το bus μηνυμάτων συνεδρίας '%s'\n"
 
-#: thunar/thunar-application.c:384
+#: thunar/thunar-application.c:385
 #, c-format
 msgid "Acquired the name '%s' on the session message bus\n"
 msgstr "Ανακτήθηκε το όνομα '%s' στο bus μηνυμάτων συνεδρίας\n"
 
-#: thunar/thunar-application.c:394
+#: thunar/thunar-application.c:395
 #, c-format
 msgid "Name '%s' lost on the message dbus."
 msgstr "Το όνομα '%s' χάθηκε στο dbus μηνυμάτων."
 
-#: thunar/thunar-application.c:562
+#: thunar/thunar-application.c:566
 msgid "The Thunar development team. All rights reserved."
 msgstr "Η ομάδα ανάπτυξης του Thunar. All rights reserved."
 
-#: thunar/thunar-application.c:563
+#: thunar/thunar-application.c:567
 msgid "Written by Benedikt Meurer <benny@xfce.org>."
 msgstr "Γραμμένο από τον Benedikt Meuer <benny@xfce.org>."
 
-#: thunar/thunar-application.c:564
+#: thunar/thunar-application.c:568
 #, c-format
 msgid "Please report bugs to <%s>."
 msgstr "Παρακαλώ αναφέρατε σφάλματα στο <%s>."
 
 #. display an error message to the user
-#: thunar/thunar-application.c:1023
+#: thunar/thunar-application.c:1027
 msgid "Failed to launch operation"
 msgstr "Απέτυχε η εκκίνηση της ενέργειας"
 
-#: thunar/thunar-application.c:1908
+#: thunar/thunar-application.c:1912
 #, c-format
 msgid "Failed to open \"%s\" (%s)"
 msgstr "Απέτυχε το άνοιγμα του \"%s\" (%s)"
 
-#: thunar/thunar-application.c:2079
+#: thunar/thunar-application.c:2083
 #, c-format
 msgid "Failed to open \"%s\": %s"
 msgstr "Απέτυχε το άνοιγμα του \"%s\": %s"
 
-#: thunar/thunar-application.c:2138 thunar/thunar-properties-dialog.c:1144
+#: thunar/thunar-application.c:2142 thunar/thunar-properties-dialog.c:1144
 #, c-format
 msgid "Failed to rename \"%s\" (%s)"
 msgstr "Απέτυχε η μετονομασία του \"%s\" (%s)"
 
-#: thunar/thunar-application.c:2142 thunar/thunar-properties-dialog.c:1148
+#: thunar/thunar-application.c:2146 thunar/thunar-properties-dialog.c:1148
 #, c-format
 msgid "Failed to rename \"%s\""
 msgstr "Απέτυχε η μετονομασία του \"%s\""
 
-#: thunar/thunar-application.c:2188
+#: thunar/thunar-application.c:2192
 msgid "Rename Launcher Options"
 msgstr "Επιλογές μετονομασίας εκκινητή"
 
-#: thunar/thunar-application.c:2191
+#: thunar/thunar-application.c:2195
 msgid "Do you want to rename the launcher, or the file itself?"
 msgstr "Θέλετε να μετονομάσετε τον εκκινητή ή το ίδιο το αρχείο;"
 
-#: thunar/thunar-application.c:2192
+#: thunar/thunar-application.c:2196
 msgid "Rename _Launcher"
 msgstr "Μετονομασία ε_κκινητή"
 
-#: thunar/thunar-application.c:2193
+#: thunar/thunar-application.c:2197
 msgid "Rename _File"
 msgstr "Μετονομασία αρ_χείου"
 
-#: thunar/thunar-application.c:2268
+#: thunar/thunar-application.c:2272
 msgid "New File"
 msgstr "Νέο αρχείο"
 
-#: thunar/thunar-application.c:2269
+#: thunar/thunar-application.c:2273
 msgid "Create New File"
 msgstr "Δημιουργία νέου αρχείου"
 
-#: thunar/thunar-application.c:2391
+#: thunar/thunar-application.c:2395
 msgid "Copying files..."
 msgstr "Αντιγραφή αρχείων..."
 
-#: thunar/thunar-application.c:2451
+#: thunar/thunar-application.c:2455
 #, c-format
 msgid "Copying files to \"%s\"..."
 msgstr "Αντιγραφή αρχείων σε \"%s\"..."
 
-#: thunar/thunar-application.c:2510
+#: thunar/thunar-application.c:2514
 #, c-format
 msgid "Creating symbolic links in \"%s\"..."
 msgstr "Δημιουργία συμβολικών δεσμών σε \"%s\"..."
 
-#: thunar/thunar-application.c:2600
+#: thunar/thunar-application.c:2604
 #, c-format
 msgid "Moving files into \"%s\"..."
 msgstr "Μετακίνηση αρχείων στο \"%s\"..."
 
-#: thunar/thunar-application.c:2647
+#: thunar/thunar-application.c:2651
 msgid "Moving files ..."
 msgstr "Μετακίνηση αρχείων ..."
 
-#: thunar/thunar-application.c:2709
+#: thunar/thunar-application.c:2713
 #, c-format
 msgid ""
 "Are you sure that you want to\n"
 "permanently delete \"%s\"?"
 msgstr "Θέλετε σίγουρα να διαγράψετε οριστικά το\n \"%s\";"
 
-#: thunar/thunar-application.c:2712
+#: thunar/thunar-application.c:2716
 #, c-format
 msgid ""
 "Are you sure that you want to\n"
 "permanently delete \"%s\" (%s)?"
 msgstr "Θέλετε σίγουρα να διαγράψετε οριστικά το\n \"%s\" (%s);"
 
-#: thunar/thunar-application.c:2716
+#: thunar/thunar-application.c:2720
 #, c-format
 msgid ""
 "Are you sure that you want to\n"
 "move \"%s\" to trash ?"
 msgstr "Θέλετε σίγουρα να μετακινήσετε το\n\"%s\" στα απορρίμματα;"
 
-#: thunar/thunar-application.c:2719
+#: thunar/thunar-application.c:2723
 #, c-format
 msgid ""
 "Are you sure that you want to\n"
 "move \"%s\" (%s) to trash ?"
 msgstr "Θέλετε σίγουρα να μετακινήσετε το\n\"%s\" (%s) στα απορρίμματα;"
 
-#: thunar/thunar-application.c:2728
+#: thunar/thunar-application.c:2732
 #, c-format
 msgid ""
 "Are you sure that you want to permanently\n"
@@ -710,7 +707,7 @@ msgid_plural ""
 msgstr[0] "Θέλετε σίγουρα να διαγράψετε οριστικά\nτο επιλεγμένο αρχείο;"
 msgstr[1] "Θέλετε σίγουρα να διαγράψετε οριστικά\n %u επιλεγμένα αρχεία;"
 
-#: thunar/thunar-application.c:2735
+#: thunar/thunar-application.c:2739
 #, c-format
 msgid ""
 "Are you sure that you want to\n"
@@ -721,70 +718,70 @@ msgid_plural ""
 msgstr[0] "Θέλετε σίγουρα να μετακινήσετε το\nεπιλεγμένο αρχείο στα απορρίμματα;"
 msgstr[1] "Θέλετε σίγουρα να μετακινήσετε τα\n%u επιλεγμένα αρχεία στα απορρίμματα;"
 
-#: thunar/thunar-application.c:2753 thunar/thunar-dialogs.c:621
+#: thunar/thunar-application.c:2757 thunar/thunar-dialogs.c:621
 #: thunar/thunar-dialogs.c:1108
 msgid "Attention"
 msgstr "Προσοχή"
 
-#: thunar/thunar-application.c:2761
+#: thunar/thunar-application.c:2765
 msgid "If you delete a file, it is permanently lost."
 msgstr "Εάν διαγράψετε ένα αρχείο, χάνεται για πάντα."
 
-#: thunar/thunar-application.c:2814
+#: thunar/thunar-application.c:2818
 msgid "Deleting files..."
 msgstr "Διαγραφή αρχείων..."
 
-#: thunar/thunar-application.c:2872
+#: thunar/thunar-application.c:2876
 msgid "Moving files into the trash..."
 msgstr "Μεταφορά αρχείων στα απορρίμματα..."
 
-#: thunar/thunar-application.c:2922
+#: thunar/thunar-application.c:2926
 msgid "Creating files..."
 msgstr "Δημιουργία αρχείων..."
 
-#: thunar/thunar-application.c:2963
+#: thunar/thunar-application.c:2967
 msgid "Creating directories..."
 msgstr "Δημιουργία καταλόγων..."
 
-#: thunar/thunar-application.c:3001
+#: thunar/thunar-application.c:3005
 msgid "Remove all files and folders from the Trash?"
 msgstr "Να αφαιρεθούν όλα τα αρχεία και οι φάκελοι από τα απορρίμματα;"
 
-#: thunar/thunar-application.c:3008 thunar/thunar-window.c:1292
+#: thunar/thunar-application.c:3012 thunar/thunar-window.c:1287
 msgid "Empty Trash"
 msgstr "Άδειασμα απορριμμάτων"
 
-#: thunar/thunar-application.c:3015
+#: thunar/thunar-application.c:3019
 msgid ""
 "If you choose to empty the Trash, all items in it will be permanently lost. "
 "Please note that you can also delete them separately."
 msgstr "Αν αδειάσετε τα απορρίμματα, τα αντικείμενα θα διαγραφούν οριστικά. Σημειώστε επίσης ότι, μπορείτε να τα διαγράψετε και ξεχωριστά."
 
-#: thunar/thunar-application.c:3032
+#: thunar/thunar-application.c:3036
 msgid "Emptying the Trash..."
 msgstr "Άδειασμα απορριμάτων..."
 
-#: thunar/thunar-application.c:3080
+#: thunar/thunar-application.c:3084
 #, c-format
 msgid "Failed to determine the original path for \"%s\" (%s)"
 msgstr "Δεν βρέθηκε η αρχική διαδρομή του \"%s\" (%s)"
 
-#: thunar/thunar-application.c:3085
+#: thunar/thunar-application.c:3089
 #, c-format
 msgid "Failed to determine the original path for \"%s\""
 msgstr "Δεν βρέθηκε η αρχική διαδρομή του \"%s\""
 
-#: thunar/thunar-application.c:3103
+#: thunar/thunar-application.c:3107
 #, c-format
 msgid "Could not restore \"%s\" (%s)"
 msgstr "Απέτυχε η επαναφορά του \"%s\" (%s)"
 
-#: thunar/thunar-application.c:3107
+#: thunar/thunar-application.c:3111
 #, c-format
 msgid "Could not restore \"%s\""
 msgstr "Αδυναμία επαναφοράς του \"%s\""
 
-#: thunar/thunar-application.c:3115
+#: thunar/thunar-application.c:3119
 msgid "Restoring files..."
 msgstr "Επαναφορά αρχείων..."
 
@@ -840,9 +837,8 @@ msgstr "Ορισμός πρ_οεπιλογής για αυτό αυτό το ε�
 
 #. add the "Ok"/"Open" button
 #: thunar/thunar-chooser-dialog.c:314 thunar/thunar-chooser-dialog.c:1314
-#: thunar/thunar-properties-dialog.c:1245 thunar/thunar-window.c:5004
-#: plugins/thunar-uca/thunar-uca-editor.c:153
-#: plugins/thunar-uca/thunar-uca-editor.c:451
+#: thunar/thunar-properties-dialog.c:1245 thunar/thunar-uca-editor.c:155
+#: thunar/thunar-uca-editor.c:453 thunar/thunar-window.c:4997
 msgid "_OK"
 msgstr "_Εντάξει"
 
@@ -942,38 +938,32 @@ msgstr "Αυτό θα αποσυσχετίσει τον εκκινητή για 
 msgid "Failed to forget \"%s\""
 msgstr "Απέτυχε η αποσυσχέτιση για το \"%s\""
 
-#: thunar/thunar-chooser-dialog.c:899
-#: plugins/thunar-uca/thunar-uca-editor.c:194
+#: thunar/thunar-chooser-dialog.c:899 thunar/thunar-uca-editor.c:196
 msgid "Select an Application"
 msgstr "Επιλογή εφαρμογής"
 
 #: thunar/thunar-chooser-dialog.c:909 thunar/thunar-renamer-dialog.c:1116
-#: plugins/thunar-uca/thunar-uca-editor.c:205
+#: thunar/thunar-uca-editor.c:207
 msgid "All Files"
 msgstr "Όλα τα αρχεία"
 
-#: thunar/thunar-chooser-dialog.c:914
-#: plugins/thunar-uca/thunar-uca-editor.c:210
+#: thunar/thunar-chooser-dialog.c:914 thunar/thunar-uca-editor.c:212
 msgid "Executable Files"
 msgstr "Εκτελέσιμα αρχεία"
 
-#: thunar/thunar-chooser-dialog.c:929
-#: plugins/thunar-uca/thunar-uca-editor.c:225
+#: thunar/thunar-chooser-dialog.c:929 thunar/thunar-uca-editor.c:227
 msgid "Perl Scripts"
 msgstr "Δέσμες ενεργειών Perl"
 
-#: thunar/thunar-chooser-dialog.c:935
-#: plugins/thunar-uca/thunar-uca-editor.c:231
+#: thunar/thunar-chooser-dialog.c:935 thunar/thunar-uca-editor.c:233
 msgid "Python Scripts"
 msgstr "Δέσμες ενεργειών Python"
 
-#: thunar/thunar-chooser-dialog.c:941
-#: plugins/thunar-uca/thunar-uca-editor.c:237
+#: thunar/thunar-chooser-dialog.c:941 thunar/thunar-uca-editor.c:239
 msgid "Ruby Scripts"
 msgstr "Δέσμες ενεργειών Ruby"
 
-#: thunar/thunar-chooser-dialog.c:947
-#: plugins/thunar-uca/thunar-uca-editor.c:243
+#: thunar/thunar-chooser-dialog.c:947 thunar/thunar-uca-editor.c:245
 msgid "Shell Scripts"
 msgstr "Δέσμες ενεργειών κελύφους"
 
@@ -1014,27 +1004,27 @@ msgstr ""
 #. reset page title
 #. tell the user that we're unable to determine the file info
 #: thunar/thunar-column-model.c:573 thunar/thunar-permissions-chooser.c:241
-#: thunar/thunar-properties-dialog.c:1572 thunar/thunar-util.c:430
-#: thunar/thunar-util.c:433 plugins/thunar-apr/thunar-apr-desktop-page.c:725
+#: thunar/thunar-properties-dialog.c:1572 thunar/thunar-uca-editor.c:447
+#: thunar/thunar-util.c:430 thunar/thunar-util.c:433
+#: plugins/thunar-apr/thunar-apr-desktop-page.c:725
 #: plugins/thunar-apr/thunar-apr-image-page.c:287
 #: plugins/thunar-apr/thunar-apr-image-page.c:288
-#: plugins/thunar-uca/thunar-uca-editor.c:445
 msgid "Unknown"
 msgstr "Άγνωστο"
 
 #. description area
-#: thunar/thunar-column-order-editor.c:109
+#: thunar/thunar-column-order-editor.c:111
 msgid ""
 "Choose the order of information to appear in the\n"
 "detailed list view."
 msgstr "Επιλογή σειράς με την οποία θα εμφανίζονται οι\nπληροφορίες στην προβολή λίστας."
 
-#: thunar/thunar-column-order-editor.c:124
+#: thunar/thunar-column-order-editor.c:126
 msgid "Column Sizing"
 msgstr "Μέγεθος στήλης"
 
 #. create the label that explains the column sizing option
-#: thunar/thunar-column-order-editor.c:140
+#: thunar/thunar-column-order-editor.c:142
 msgid ""
 "By default columns will be automatically expanded if\n"
 "needed to ensure the text is fully visible. If you dis-\n"
@@ -1043,24 +1033,24 @@ msgid ""
 msgstr "Εξ ορισμού οι στήλες θα επεκτείνονται αυτόματα, εάν \nείναι απαραίτητο, ώστε το κείμενο να είναι πλήρως \nορατό. Εάν το απενεργοποιήσετε πιο κάτω, \nο διαχειριστής αρχείων θα χρησιμοποιεί πάντα το \nπλάτος που ο χρήστης καθορίζει σε κάθε στήλη."
 
 #. create the "Automatically expand columns as needed" button
-#: thunar/thunar-column-order-editor.c:152
+#: thunar/thunar-column-order-editor.c:154
 msgid "Automatically _expand columns as needed"
 msgstr "Αυτόματη _επέκταση"
 
-#: thunar/thunar-column-order-editor.c:166
+#: thunar/thunar-column-order-editor.c:168
 msgid "Size Column of Folders"
 msgstr "Μέγεθος στήλης φακέλων"
 
 #. explain what it does
-#: thunar/thunar-column-order-editor.c:179
+#: thunar/thunar-column-order-editor.c:181
 msgid "Show number of contained items:"
 msgstr "Εμφάνιση του αριθμού των αντικειμένων:"
 
-#: thunar/thunar-column-order-editor.c:208
+#: thunar/thunar-column-order-editor.c:210
 msgid "Configure Columns in the Detailed List View"
 msgstr "Ρύθμιση στηλών στην προβολή λίστας"
 
-#: thunar/thunar-column-order-editor.c:282
+#: thunar/thunar-column-order-editor.c:284
 msgid "This column is reserved for special locations"
 msgstr "Αυτή η στήλη είναι κρατημένη για ειδικές τοποθεσίες"
 
@@ -1072,7 +1062,8 @@ msgstr "Προβολή καταλόγου ως λίστα εικονιδίων"
 msgid "Compact view"
 msgstr "Συμπαγής λίστα"
 
-#: thunar/thunar-context-menu-order-editor.c:74
+#. thunar order editor
+#: thunar/thunar-context-menu-order-editor.c:119
 msgid ""
 "Setting the order and visibility of context menu elements. Menu items are "
 "grouped into sections. Note that most context menu items only will be shown "
@@ -1080,24 +1071,32 @@ msgid ""
 "other criteria."
 msgstr ""
 
-#: thunar/thunar-context-menu-order-editor.c:82 thunar/thunar-window.c:700
+#: thunar/thunar-context-menu-order-editor.c:127 thunar/thunar-window.c:700
 msgid "Configure the context menu"
 msgstr ""
 
-#: thunar/thunar-context-menu-order-editor.c:266
+#: thunar/thunar-context-menu-order-editor.c:155
+#: thunar/thunar-context-menu-order-editor.c:156
 msgid "Add separator"
 msgstr ""
 
-#: thunar/thunar-context-menu-order-model.c:137
+#: thunar/thunar-context-menu-order-editor.c:163
+#: thunar/thunar-toolbar-order-editor.c:200 thunar/thunar-uca-chooser.c:203
+msgid "Add custom action"
+msgstr ""
+
+#: thunar/thunar-context-menu-order-editor.c:164
+#: thunar/thunar-toolbar-order-editor.c:201 thunar/thunar-uca-chooser.c:204
+msgid "Add user custom action"
+msgstr ""
+
+#: thunar/thunar-context-menu-order-editor.c:221
+#: thunar/thunar-toolbar-order-editor.c:294
+msgid "Custom user action"
+msgstr ""
+
+#: thunar/thunar-context-menu-order-model.c:150
 msgid "--- Separator ---"
-msgstr ""
-
-#: thunar/thunar-context-menu-order-model.c:143
-msgid "*** Custom actions ***"
-msgstr ""
-
-#: thunar/thunar-context-menu-order-model.c:144
-msgid "Custom action menu items will appear in place of this item"
 msgstr ""
 
 #: thunar/thunar-dbus-service.c:555
@@ -1201,10 +1200,9 @@ msgid "translator-credits"
 msgstr "Σταύρος Γιαννούρης <stavrosg@hellug.gr>\nΣτάθης Καμπέρης <ekamperi@auth.gr>\nΣπύρος Γεωργαράς <sng@hellug.gr>\nΙωάννης"
 
 #: thunar/thunar-dialogs.c:513 thunar/thunar-renamer-progress.c:173
+#: thunar/thunar-uca-editor.c:817 thunar/thunar-uca-provider.c:606
 #: plugins/thunar-apr/thunar-apr-desktop-page.c:840
 #: plugins/thunar-sendto-email/main.c:137
-#: plugins/thunar-uca/thunar-uca-chooser.c:325
-#: plugins/thunar-uca/thunar-uca-provider.c:568
 msgid "Error"
 msgstr "Σφάλμα"
 
@@ -2044,16 +2042,14 @@ msgstr "Γίνεται εξαγωγή της συσκευής \"%s\". Αυτό �
 
 #. create dialog buttons
 #. add the "Close" button
-#. add a regular close button, the header bar already provides one
-#: thunar/thunar-order-editor.c:128 thunar/thunar-preferences-dialog.c:271
+#: thunar/thunar-order-editor.c:134 thunar/thunar-preferences-dialog.c:271
 #: thunar/thunar-properties-dialog.c:345 thunar/thunar-renamer-dialog.c:411
 #: thunar/thunar-renamer-progress.c:203
-#: plugins/thunar-uca/thunar-uca-chooser.c:137
 msgid "_Close"
 msgstr "_Κλείσιμο"
 
 #. add the "Help" button
-#: thunar/thunar-order-editor.c:133 thunar/thunar-preferences-dialog.c:279
+#: thunar/thunar-order-editor.c:139 thunar/thunar-preferences-dialog.c:279
 #: thunar/thunar-properties-dialog.c:344 thunar/thunar-window.c:730
 msgid "_Help"
 msgstr "_Βοήθεια"
@@ -2167,9 +2163,8 @@ msgstr "Πολλοί ιδιοκτήτες αρχείων"
 msgid "Unknown file owner"
 msgstr "Άγνωστος ιδιοκτήτης αρχείου"
 
-#: thunar/thunar-permissions-chooser.c:1049
-#: plugins/thunar-uca/thunar-uca-editor.c:427
-#: plugins/thunar-uca/thunar-uca-editor.c:639
+#: thunar/thunar-permissions-chooser.c:1049 thunar/thunar-uca-editor.c:429
+#: thunar/thunar-uca-editor.c:641
 msgid "None"
 msgstr "Καμία"
 
@@ -2860,8 +2855,7 @@ msgstr "Συνέχιση εργασίας..."
 msgid "General"
 msgstr "Γενικά"
 
-#: thunar/thunar-properties-dialog.c:380
-#: plugins/thunar-uca/thunar-uca-editor.ui:46
+#: thunar/thunar-properties-dialog.c:380 thunar/thunar-uca-editor.ui:46
 msgid "_Name:"
 msgstr "_Όνομα:"
 
@@ -2986,8 +2980,7 @@ msgid "Select an Icon for \"%s\" (%s)"
 msgstr "Επιλογή εικονιδίου για το \"%s\" (%s)"
 
 #. allocate the chooser dialog
-#: thunar/thunar-properties-dialog.c:1242
-#: plugins/thunar-uca/thunar-uca-editor.c:448
+#: thunar/thunar-properties-dialog.c:1242 thunar/thunar-uca-editor.c:450
 #, c-format
 msgid "Select an Icon for \"%s\""
 msgstr "Επιλογή εικονιδίου για το \"%s\""
@@ -3440,7 +3433,7 @@ msgid "Loading selection information..."
 msgstr ""
 
 #. display an error to the user
-#: thunar/thunar-standard-view.c:2949 thunar/thunar-window.c:4817
+#: thunar/thunar-standard-view.c:2949 thunar/thunar-window.c:4810
 msgid "Failed to open the home folder"
 msgstr "Απέτυχε το άνοιγμα του αρχικού φακέλου"
 
@@ -3525,7 +3518,7 @@ msgstr "Απέτυχε η δημιουργία δεσμού για τη διεύ
 msgid "Untitled document"
 msgstr "Έγγραφο χωρίς όνομα"
 
-#: thunar/thunar-standard-view.c:4266 thunar/thunar-window.c:4914
+#: thunar/thunar-standard-view.c:4266 thunar/thunar-window.c:4907
 #, c-format
 msgid "Failed to open directory \"%s\""
 msgstr "Απέτυχε το άνοιγμα του καταλόγου \"%s\""
@@ -3574,25 +3567,25 @@ msgstr "Καταμέτρηση κρυφών αρχείων"
 msgid "Show hidden files count"
 msgstr "Εμφάνιση καταμέτρησης κρυφών αρχείων"
 
-#: thunar/thunar-toolbar-order-editor.c:122
+#: thunar/thunar-toolbar-order-editor.c:151
 msgid ""
 "Configure the order and visibility of toolbar items.\n"
 "Note that toolbar items are always executed for the current directory."
 msgstr "Ρύθμιση τη σειράς και της προβολής των στοιχείων της εργαλειοθήκης.\nΤα στοιχεία της εργαλειοθήκης εκτελούνται πάντα για τον τρέχοντα κατάλογο."
 
-#: thunar/thunar-toolbar-order-editor.c:131
+#: thunar/thunar-toolbar-order-editor.c:160
 msgid "_Symbolic Icons"
 msgstr "Συμ_βολικά εικονίδια"
 
-#: thunar/thunar-toolbar-order-editor.c:137
+#: thunar/thunar-toolbar-order-editor.c:166
 msgid "Use symbolic icons instead of regular ones (if available)."
 msgstr "Χρήση συμβολικών εικονιδίων αντί των κανονικών (αν είναι διαθέσιμα)."
 
-#: thunar/thunar-toolbar-order-editor.c:143
+#: thunar/thunar-toolbar-order-editor.c:172
 msgid "Configure the Toolbar"
 msgstr "Ρύθμιση εργαλειοθήκης"
 
-#: thunar/thunar-toolbar-order-editor.c:231
+#: thunar/thunar-toolbar-order-editor.c:286
 msgid "Only visible when the menubar is hidden"
 msgstr "Εμφάνιση μόνο όταν η μπάρα του μενού είναι κρυμμένη"
 
@@ -3690,6 +3683,277 @@ msgid "%u item"
 msgid_plural "%u items"
 msgstr[0] "%u αντικείμενο"
 msgstr[1] "%u αντικείμενα "
+
+#: thunar/thunar-uca-chooser.c:176
+msgid ""
+"Configure custom actions that will appear in the file manager's context menus and/or toolbar.\n"
+"These actions are applicable to folders or certain kinds of files.\n"
+"\n"
+"Use the context menu configuration dialog or the toolbar configuration dialog to change the order of the actions."
+msgstr ""
+
+#: thunar/thunar-uca-chooser.c:191
+msgid "Custom Actions"
+msgstr "Προσαρμοσμένες ενέργειες"
+
+#. skip leading slash
+#: thunar/thunar-uca-editor.c:371
+#, c-format
+msgid "This keyboard shortcut is currently used by: '%s'"
+msgstr "Αυτή η συντόμευση πληκτρολογίου χρησιμοποιείται από το: '%s'"
+
+#: thunar/thunar-uca-editor.c:374
+msgid "Keyboard shortcut already in use"
+msgstr "Η συντόμευση πληκτρολογίου χρησιμοποιείται"
+
+#. setup a label to tell that no icon was selected
+#: thunar/thunar-uca-editor.c:525 thunar/thunar-uca-editor.ui:279
+msgid "No icon"
+msgstr "Χωρίς εικονίδιο"
+
+#: thunar/thunar-uca-editor.c:751 thunar/thunar-uca-editor.ui:11
+msgid "Edit Action"
+msgstr "Επεξεργασία ενέργειας"
+
+#: thunar/thunar-uca-editor.c:751
+msgid "Create Action"
+msgstr "Δημιουργία ενέργειας"
+
+#: thunar/thunar-uca-editor.c:816
+msgid "Failed to save actions to disk."
+msgstr "Απέτυχε η αποθήκευση ενεργειών στο δίσκο."
+
+#: thunar/thunar-uca-editor.c:848
+msgid "Editing is not possible"
+msgstr ""
+
+#: thunar/thunar-uca-editor.c:848
+msgid "Unable to apply changes, close other settings dialogs before editing."
+msgstr ""
+
+#: thunar/thunar-uca-editor.c:878
+msgid "Are you sure you want to delete the selected items?"
+msgstr ""
+
+#: thunar/thunar-uca-editor.c:880
+msgid "Delete selected items"
+msgstr ""
+
+#: thunar/thunar-uca-editor.c:881
+msgid "Deleted items will be permanently lost."
+msgstr ""
+
+#: thunar/thunar-uca-model.c:758
+msgid "End element handler called while in root context"
+msgstr "End element handler called while in root context"
+
+#: thunar/thunar-uca-model.c:879
+#, c-format
+msgid "Unknown closing element <%s>"
+msgstr "Άγνωστο στοιχείο κλεισίματος <%s>"
+
+#: thunar/thunar-uca-model.c:1310
+msgid "Failed to determine save location for uca.xml"
+msgstr "Απέτυχε ο καθορισμός της τοποθεσίας αποθήκευσης για το uca.xml"
+
+#: thunar/thunar-uca-model.c:1443
+msgid "Command not configured"
+msgstr "Η εντολή δεν έχει διαμορφωθεί"
+
+#: thunar/thunar-uca-provider.c:177
+msgid "Confi_gure custom actions..."
+msgstr "Ρύθμιση προσαρμο_σμένων ενεργειών..."
+
+#: thunar/thunar-uca-provider.c:177
+msgid ""
+"Setup custom actions that will appear in the file managers context menus"
+msgstr "Ρυθμίσεις των προσαρμοσμένων ενεργειών που θα εμφανίζονται στο μενού επιλογών του διαχειριστή αρχείων"
+
+#: thunar/thunar-uca-provider.c:605
+#, c-format
+msgid "Failed to launch action \"%s\"."
+msgstr "Απέτυχε η εκκίνηση της ενέργειας \"%s\"."
+
+#: thunar/thunar-uca-editor.ui:63
+msgid "The name of the action that will be displayed in the context menu."
+msgstr "Το όνομα της ενέργειας που θα εμφανίζεται στο μενού επιλογών."
+
+#: thunar/thunar-uca-editor.ui:76
+msgid "_Description:"
+msgstr "_Περιγραφή:"
+
+#: thunar/thunar-uca-editor.ui:93
+msgid ""
+"The description of the action that will be displayed as tooltip in the "
+"statusbar when selecting the item from the context menu."
+msgstr "Η περιγραφή της ενέργειας που θα εμφανίζεται σαν κείμενο στη μπάρα κατάστασης, κατά την επιλογή του αντικειμένου από το μενού επιλογών."
+
+#: thunar/thunar-uca-editor.ui:106
+msgid "_Submenu:"
+msgstr "_Υπομενού:"
+
+#: thunar/thunar-uca-editor.ui:123
+msgid ""
+"The submenu in which the action will be displayed. Leave empty for no menu. "
+"Use '/' for nested menus."
+msgstr "Το υπομενού στο οποίο θα εμφανίζεται η ενέργεια. Αφήστε το κενό για να μη δημιουργηθεί. Χρησιμοποιείστε '/' για τα εσωτερικά μενού"
+
+#: thunar/thunar-uca-editor.ui:136
+msgid "_Command:"
+msgstr "_Εντολή:"
+
+#: thunar/thunar-uca-editor.ui:157
+msgid ""
+"The command (including the necessary parameters) to perform the action. See "
+"the command parameter legend below for a list of supported parameter "
+"variables, which will be substituted when launching the command. When upper-"
+"case letters (e.g. %F, %D, %N) are used, the action will be applicable even "
+"if more than one item is selected. Else the action will only be applicable "
+"if exactly one item is selected."
+msgstr "Η εντολή που θα εκτελεί η ενέργεια (μαζί με τις απαραίτητες παραμέτρους). Δείτε παρακάτω τη λίστα των υποστηριζόμενων παραμέτρων, οι οποίες θα αντικατασταθούν κατά την εκκίνηση της εντολής. Όταν χρησιμοποιούνται κεφαλαία γράμματα (π.χ. %F, %D, %N), η ενέργεια θα εφαρμόζεται ακόμη και αν έχουν επιλεγεί περισσότερα από ένα αντικείμενα. Διαφορετικά, η ενέργεια θα εφαρμόζεται μόνο εάν έχει επιλεγεί ακριβώς ένα αντικείμενο."
+
+#: thunar/thunar-uca-editor.ui:172
+msgid ""
+"Browse the file system to select an application to use for this action."
+msgstr "Περιήγηση στο σύστημα αρχείων για να επιλέξετε την εφαρμογή που θα χρησιμοποιηθεί για αυτή την ενέργεια."
+
+#: thunar/thunar-uca-editor.ui:201
+msgid "Keyboard _Shortcut:"
+msgstr "Συντόμευση _πληκτρολογίου:"
+
+#: thunar/thunar-uca-editor.ui:219
+msgid "The keyboard shortcut for the action."
+msgstr "Η συντόμευση πληκτρολογίου για αυτή την ενέργεια."
+
+#: thunar/thunar-uca-editor.ui:234
+msgid "Clear the keyboard shortcut for this action."
+msgstr "Εκκαθάριση της συντόμευσης πληκτρολογίου για αυτή την ενέργεια."
+
+#: thunar/thunar-uca-editor.ui:263
+msgid "_Icon:"
+msgstr "Εικονί_διο:"
+
+#: thunar/thunar-uca-editor.ui:283
+msgid ""
+"Click this button to select an icon file that will be displayed in the "
+"context menu in addition to the action name chosen above."
+msgstr "Πατήστε αυτό το κουμπί για να επιλέξετε το εικονίδιο που θα εμφανίζεται στο μενού επιλογών, δίπλα από το όνομα της ενέργειας."
+
+#: thunar/thunar-uca-editor.ui:294
+msgid "Use Startup Notification"
+msgstr "Ειδοποίηση στην εκκίνηση"
+
+#: thunar/thunar-uca-editor.ui:298
+msgid ""
+"Enable this option if you want a waiting cursor to be shown while the action"
+" is launched. This is also highly recommended if you have focus stealing "
+"prevention enabled in your window manager."
+msgstr "Επιλέξτε το εάν θέλετε να εμφανίζεται ένας δείκτης αναμονής όταν εκκινηθεί η ενέργεια. Συνιστάται ιδιαιτέρως εάν έχετε ενεργοποιήσει τη προστασία απώλειας της εστίασης από τον διαχειριστή παραθύρων σας."
+
+#: thunar/thunar-uca-editor.ui:351
+msgid ""
+"The following command parameters will be substituted when launching the "
+"action:"
+msgstr "Οι παρακάτω παράμετροι της εντολής θα χρησιμοποιηθούν για την εκτέλεση της ενέργειας:"
+
+#: thunar/thunar-uca-editor.ui:461
+msgid ""
+"If no file is selected, the current directory will be treated as selected "
+"file."
+msgstr "Εάν δεν επιλεγεί αρχείο, ο τρέχων κατάλογος θα θεωρηθεί ως επιλεγμένο αρχείο."
+
+#: thunar/thunar-uca-editor.ui:478
+msgid "file name of the selected file"
+msgstr "όνομα του επιλεγμένου αρχείου"
+
+#: thunar/thunar-uca-editor.ui:494
+msgid "file names of all selected files"
+msgstr "ονόματα όλων των επιλεγμένων αρχείων"
+
+#: thunar/thunar-uca-editor.ui:509
+msgid "path of the selected file's directory"
+msgstr "διαδρομή καταλόγου του επιλεγμένου αρχείου"
+
+#: thunar/thunar-uca-editor.ui:524
+msgid "paths of all selected files' directories"
+msgstr "διαδρομές καταλόγων όλων των επιλεγμένων αρχείων"
+
+#: thunar/thunar-uca-editor.ui:539
+msgid "path of the selected file including the file name"
+msgstr "διαδρομή και όνομα του επιλεγμένου αρχείου"
+
+#: thunar/thunar-uca-editor.ui:554
+msgid "paths of all selected files including the file names"
+msgstr "διαδρομές και ονόματα των επιλεγμένων αρχείων"
+
+#: thunar/thunar-uca-editor.ui:626
+msgid "Basic"
+msgstr "Βασικά"
+
+#: thunar/thunar-uca-editor.ui:644
+msgid "_File Pattern:"
+msgstr "_Μοτίβο:"
+
+#: thunar/thunar-uca-editor.ui:661
+msgid ""
+"Enter a list of patterns that will be used to determine whether this action "
+"should be displayed for a selected file. If you specify more than one "
+"pattern here, the list items must be separated with semicolons (e.g. "
+"*.txt;*.doc)."
+msgstr "Eισάγετε λίστα με τις επεκτάσεις των αρχείων, που θα χρησιμοποιηθούν για να καθοριστεί εάν αυτή η ενέργεια θα πρέπει να εμφανίζεται για ένα επιλεγμένο αρχείο. Εάν ορίσετε παραπάνω από μία, θα πρέπει να διαχωρίζονται με ερωτηματικό (π.χ. *.txt;*.doc)."
+
+#: thunar/thunar-uca-editor.ui:664 thunar/thunar-uca-editor.ui:695
+msgid "*"
+msgstr "*"
+
+#: thunar/thunar-uca-editor.ui:675
+msgid "_Range (min-max):"
+msgstr "Εύ_ρος (min-max):"
+
+#: thunar/thunar-uca-editor.ui:692
+msgid ""
+"If the command should operate on say two or three files, enter the numerical"
+" range 2-3. If there are no limits, this string should be empty."
+msgstr "Εάν η εντολή θα πρέπει να λειτουργήσει σε δύο ή τρία αρχεία, εισάγετε τα νούμερα 2-3. Εάν δεν υπάρχουν όρια θα πρέπει να μείνει κενό. "
+
+#: thunar/thunar-uca-editor.ui:706
+msgid "Appears if selection contains:"
+msgstr "Εμφανίζεται εάν η επιλογή περιλαμβάνει:"
+
+#: thunar/thunar-uca-editor.ui:726
+msgid "_Directories **"
+msgstr "_Κατάλογοι **"
+
+#: thunar/thunar-uca-editor.ui:741
+msgid "_Audio Files"
+msgstr "Αρχεία ή_χου"
+
+#: thunar/thunar-uca-editor.ui:755
+msgid "_Image Files"
+msgstr "Αρχεία ε_ικόνας"
+
+#: thunar/thunar-uca-editor.ui:770
+msgid "_Text Files"
+msgstr "Αρχεία κει_μένου"
+
+#: thunar/thunar-uca-editor.ui:784
+msgid "_Video Files"
+msgstr "Αρχεία _βίντεο"
+
+#: thunar/thunar-uca-editor.ui:798
+msgid "_Other Files"
+msgstr "Ά_λλα αρχεία"
+
+#: thunar/thunar-uca-editor.ui:851
+msgid ""
+"This page lists the conditions under which the action will appear in the file managers context menus. The file patterns are specified as a list of simple file patterns separated by semicolons (e.g. *.txt;*.doc). For an action to appear in the context menu of a file or folder, at least one of these patterns must match the name of the file or folder. Additionally, you can specify that the action should only appear for certain kinds of files.\n"
+"\n"
+"** The custom action will be eligible to appear in the toolbar."
+msgstr "Αυτή η σελίδα περιέχει τις συνθήκες με τις οποίες θα εμφανιστεί η ενέργεια στο μενού επιλογών. Το μοτίβο καθορίζει τις επεκτάσεις των αρχείων διαχωρισμένες σε σειρά με ερωτηματικά (π.χ. *.txt;*.doc). Για να εμφανιστεί η ενέργεια στο μενού, θα πρέπει να ταιριάζει τουλάχιστον μια από αυτές με το όνομα του αρχείου ή του φακέλου. Επίσης μπορείτε να καθορίσετε την εμφάνιση της ενέργειας μόνο για ορισμένα είδη αρχείων.\n\n** Η ενέργεια θα είναι διαθέσιμη στην εργαλειοθήκη."
+
+#: thunar/thunar-uca-editor.ui:916
+msgid "Appearance Conditions"
+msgstr "Συνθήκες εμφάνισης"
 
 #: thunar/thunar-util.c:304
 msgid "Invalid path"
@@ -4213,117 +4477,117 @@ msgid "Show the menu"
 msgstr "Εμφάνιση του μενού"
 
 #. add the label with the root warning
-#: thunar/thunar-window.c:1098
+#: thunar/thunar-window.c:1097
 msgid "Warning: you are using the root account. You may harm your system."
 msgstr "Προσοχή: Χρησιμοποιείτε το λογαριασμό διαχειριστή. Μπορεί να προκαλέσετε βλάβη στο σύστημα σας."
 
-#: thunar/thunar-window.c:1169
+#: thunar/thunar-window.c:1168
 msgid "Size: "
 msgstr "Μέγεθος: "
 
 #. TRANSLATORS: `Catfish' is a software package, please don't translate it.
-#: thunar/thunar-window.c:1278
+#: thunar/thunar-window.c:1273
 msgid "Search with Catfish..."
 msgstr "Αναζήτηση με το Catfish..."
 
-#: thunar/thunar-window.c:1290
+#: thunar/thunar-window.c:1285
 msgid "Restore Selected Items"
 msgstr "Επαναφορά των επιλεγμένων αντικειμένων"
 
-#: thunar/thunar-window.c:3110
+#: thunar/thunar-window.c:3101
 msgid "Close tab"
 msgstr "Κλείσιμο καρτέλας"
 
-#: thunar/thunar-window.c:3635
+#: thunar/thunar-window.c:3626
 #, c-format
 msgid "Open the location \"%s\""
 msgstr "Άνοιγμα τοποθεσίας \"%s\""
 
-#: thunar/thunar-window.c:4745
+#: thunar/thunar-window.c:4738
 msgid "Failed to open parent folder"
 msgstr "Απέτυχε το άνοιγμα του γονικού φακέλου"
 
-#: thunar/thunar-window.c:4888
+#: thunar/thunar-window.c:4881
 #, c-format
 msgid "The directory \"%s\" does not exist. Do you want to create it?"
 msgstr "Ο κατάλογος \"%s\" δεν υπάρχει. Θέλετε να το δημιουργήσετε;"
 
-#: thunar/thunar-window.c:4890
+#: thunar/thunar-window.c:4883
 msgid "Create directory"
 msgstr "Δημιουργία καταλόγου"
 
 #. display an error to the user
-#: thunar/thunar-window.c:4959
+#: thunar/thunar-window.c:4952
 msgid "Failed to browse the computer"
 msgstr "Απέτυχε η περιήγηση στον υπολογιστή"
 
 #. display the "About Templates" dialog
-#: thunar/thunar-window.c:5002
+#: thunar/thunar-window.c:4995
 msgid "About Templates"
 msgstr "Περί προτύπων"
 
-#: thunar/thunar-window.c:5024
+#: thunar/thunar-window.c:5017
 msgid "All files in this folder will appear in the \"Create Document\" menu."
 msgstr "Όλα τα αρχεία σε αυτόν το φάκελο θα εμφανιστούν στο μενού \"Δημιουργία εγγράφου\"."
 
-#: thunar/thunar-window.c:5031
+#: thunar/thunar-window.c:5024
 msgid ""
 "If you frequently create certain kinds  of documents, make a copy of one and put it in this folder. Thunar will add an entry for this document in the \"Create Document\" menu.\n"
 "\n"
 "You can then select the entry from the \"Create Document\" menu and a copy of the document will be created in the directory you are viewing."
 msgstr "Εάν δημιουργείτε συχνά συγκεκριμένους τύπους εγγράφων, αντιγράψτε ένα μέσα σε αυτό το φάκελο. \nΟ Thunar θα προσθέσει μια επιλογή για αυτό το έγγραφο στο μενού \"Δημιουργία εγγράφου\".\n\nΌταν το επιλέξετε, από το μενού \"Δημιουργία εγγράφου\", θα δημιουργηθεί ένα αντίγραφο του στον κατάλογο που βλέπετε."
 
-#: thunar/thunar-window.c:5043
+#: thunar/thunar-window.c:5036
 msgid "Do _not display this message again"
 msgstr "_Να μην εμφανιστεί ξανά αυτό το μήνυμα"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5077
+#: thunar/thunar-window.c:5070
 msgid "Failed to open the file system root folder"
 msgstr "Απέτυχε το άνοιγμα του ριζικού φακέλου του συστήματος αρχείων"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5113
+#: thunar/thunar-window.c:5106
 msgid "Failed to display `Recent`"
 msgstr "Απέτυχε η εμφάνιση `Πρόσφατα`"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5149
+#: thunar/thunar-window.c:5142
 msgid "Failed to display the contents of the trash can"
 msgstr "Απέτυχε η εμφάνιση περιεχομένου του κάδου απορριμμάτων"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5185
+#: thunar/thunar-window.c:5178
 msgid "Failed to browse the network"
 msgstr "Απέτυχε η περιήγηση στο δίκτυο"
 
-#: thunar/thunar-window.c:5344
+#: thunar/thunar-window.c:5337
 msgid ""
 "Thunar is a fast and easy to use file manager\n"
 "for the Xfce Desktop Environment."
 msgstr "Ο Thunar είναι γρήγορος και εύκολος διαχειριστής αρχείων\nγια το περιβάλλον εργασίας Xfce."
 
-#: thunar/thunar-window.c:6506
+#: thunar/thunar-window.c:6499
 msgid "Select an image to preview"
 msgstr "Επιλογή εικόνας για προεπισκόπηση"
 
-#: thunar/thunar-window.c:6650
+#: thunar/thunar-window.c:6643
 msgid "Failed to launch search with Catfish"
 msgstr "Απέτυχε η εκκίνηση αναζήτησης με το Catfish"
 
-#: thunar/thunar-window.c:6981
+#: thunar/thunar-window.c:6974
 msgid "Change the active view type"
 msgstr "Αλλαγή εμφάνισης"
 
 #. add a proxy menu item for the view switcher to be represent in the overflow
 #. menu
-#: thunar/thunar-window.c:6984 thunar/thunar-window.c:7009
+#: thunar/thunar-window.c:6977 thunar/thunar-window.c:7002
 msgid "View Switcher"
 msgstr "Εναλλαγή προβολής"
 
 #. add a proxy menu item for the location bar to represent the bar in the
 #. overflow menu
-#: thunar/thunar-window.c:7178 thunar/thunar-window.c:7183
+#: thunar/thunar-window.c:7171 thunar/thunar-window.c:7176
 msgid "Location Bar"
 msgstr "Μπάρα διαδρομής"
 
@@ -4827,295 +5091,6 @@ msgstr "Εφαρμογίδιο κάδου απορριμμάτων"
 #: plugins/thunar-tpa/thunar-tpa.desktop.in:5
 msgid "Display the trash can"
 msgstr "Εμφάνιση του κάδου απορριμάτων"
-
-#: plugins/thunar-uca/thunar-uca-chooser.c:275
-#: plugins/thunar-uca/thunar-uca-editor.ui:11
-msgid "Edit Action"
-msgstr "Επεξεργασία ενέργειας"
-
-#: plugins/thunar-uca/thunar-uca-chooser.c:275
-msgid "Create Action"
-msgstr "Δημιουργία ενέργειας"
-
-#: plugins/thunar-uca/thunar-uca-chooser.c:324
-msgid "Failed to save actions to disk."
-msgstr "Απέτυχε η αποθήκευση ενεργειών στο δίσκο."
-
-#: plugins/thunar-uca/thunar-uca-chooser.c:376
-#, c-format
-msgid ""
-"Are you sure that you want to delete\n"
-"action \"%s\"?"
-msgstr "Θέλετε σίγουρα να διαγράψετε\n την ενέργεια \"%s\";"
-
-#: plugins/thunar-uca/thunar-uca-chooser.c:377
-msgid "Delete action"
-msgstr "Διαγραφή ενέργειας"
-
-#: plugins/thunar-uca/thunar-uca-chooser.c:378
-msgid "If you delete a custom action, it is permanently lost."
-msgstr "Εάν διαγράψετε μια προσαρμοσμένη ενέργεια, χάνεται για πάντα."
-
-#. skip leading slash
-#: plugins/thunar-uca/thunar-uca-editor.c:369
-#, c-format
-msgid "This keyboard shortcut is currently used by: '%s'"
-msgstr "Αυτή η συντόμευση πληκτρολογίου χρησιμοποιείται από το: '%s'"
-
-#: plugins/thunar-uca/thunar-uca-editor.c:372
-msgid "Keyboard shortcut already in use"
-msgstr "Η συντόμευση πληκτρολογίου χρησιμοποιείται"
-
-#. setup a label to tell that no icon was selected
-#: plugins/thunar-uca/thunar-uca-editor.c:523
-#: plugins/thunar-uca/thunar-uca-editor.ui:279
-msgid "No icon"
-msgstr "Χωρίς εικονίδιο"
-
-#: plugins/thunar-uca/thunar-uca-model.c:863
-msgid "End element handler called while in root context"
-msgstr "End element handler called while in root context"
-
-#: plugins/thunar-uca/thunar-uca-model.c:984
-#, c-format
-msgid "Unknown closing element <%s>"
-msgstr "Άγνωστο στοιχείο κλεισίματος <%s>"
-
-#: plugins/thunar-uca/thunar-uca-model.c:1514
-msgid "Failed to determine save location for uca.xml"
-msgstr "Απέτυχε ο καθορισμός της τοποθεσίας αποθήκευσης για το uca.xml"
-
-#: plugins/thunar-uca/thunar-uca-model.c:1643
-msgid "Command not configured"
-msgstr "Η εντολή δεν έχει διαμορφωθεί"
-
-#: plugins/thunar-uca/thunar-uca-provider.c:184
-msgid "Confi_gure custom actions..."
-msgstr "Ρύθμιση προσαρμο_σμένων ενεργειών..."
-
-#: plugins/thunar-uca/thunar-uca-provider.c:184
-msgid ""
-"Setup custom actions that will appear in the file managers context menus"
-msgstr "Ρυθμίσεις των προσαρμοσμένων ενεργειών που θα εμφανίζονται στο μενού επιλογών του διαχειριστή αρχείων"
-
-#: plugins/thunar-uca/thunar-uca-provider.c:567
-#, c-format
-msgid "Failed to launch action \"%s\"."
-msgstr "Απέτυχε η εκκίνηση της ενέργειας \"%s\"."
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:63
-msgid "The name of the action that will be displayed in the context menu."
-msgstr "Το όνομα της ενέργειας που θα εμφανίζεται στο μενού επιλογών."
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:76
-msgid "_Description:"
-msgstr "_Περιγραφή:"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:93
-msgid ""
-"The description of the action that will be displayed as tooltip in the "
-"statusbar when selecting the item from the context menu."
-msgstr "Η περιγραφή της ενέργειας που θα εμφανίζεται σαν κείμενο στη μπάρα κατάστασης, κατά την επιλογή του αντικειμένου από το μενού επιλογών."
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:106
-msgid "_Submenu:"
-msgstr "_Υπομενού:"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:123
-msgid ""
-"The submenu in which the action will be displayed. Leave empty for no menu. "
-"Use '/' for nested menus."
-msgstr "Το υπομενού στο οποίο θα εμφανίζεται η ενέργεια. Αφήστε το κενό για να μη δημιουργηθεί. Χρησιμοποιείστε '/' για τα εσωτερικά μενού"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:136
-msgid "_Command:"
-msgstr "_Εντολή:"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:157
-msgid ""
-"The command (including the necessary parameters) to perform the action. See "
-"the command parameter legend below for a list of supported parameter "
-"variables, which will be substituted when launching the command. When upper-"
-"case letters (e.g. %F, %D, %N) are used, the action will be applicable even "
-"if more than one item is selected. Else the action will only be applicable "
-"if exactly one item is selected."
-msgstr "Η εντολή που θα εκτελεί η ενέργεια (μαζί με τις απαραίτητες παραμέτρους). Δείτε παρακάτω τη λίστα των υποστηριζόμενων παραμέτρων, οι οποίες θα αντικατασταθούν κατά την εκκίνηση της εντολής. Όταν χρησιμοποιούνται κεφαλαία γράμματα (π.χ. %F, %D, %N), η ενέργεια θα εφαρμόζεται ακόμη και αν έχουν επιλεγεί περισσότερα από ένα αντικείμενα. Διαφορετικά, η ενέργεια θα εφαρμόζεται μόνο εάν έχει επιλεγεί ακριβώς ένα αντικείμενο."
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:172
-msgid ""
-"Browse the file system to select an application to use for this action."
-msgstr "Περιήγηση στο σύστημα αρχείων για να επιλέξετε την εφαρμογή που θα χρησιμοποιηθεί για αυτή την ενέργεια."
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:201
-msgid "Keyboard _Shortcut:"
-msgstr "Συντόμευση _πληκτρολογίου:"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:219
-msgid "The keyboard shortcut for the action."
-msgstr "Η συντόμευση πληκτρολογίου για αυτή την ενέργεια."
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:234
-msgid "Clear the keyboard shortcut for this action."
-msgstr "Εκκαθάριση της συντόμευσης πληκτρολογίου για αυτή την ενέργεια."
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:263
-msgid "_Icon:"
-msgstr "Εικονί_διο:"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:283
-msgid ""
-"Click this button to select an icon file that will be displayed in the "
-"context menu in addition to the action name chosen above."
-msgstr "Πατήστε αυτό το κουμπί για να επιλέξετε το εικονίδιο που θα εμφανίζεται στο μενού επιλογών, δίπλα από το όνομα της ενέργειας."
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:294
-msgid "Use Startup Notification"
-msgstr "Ειδοποίηση στην εκκίνηση"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:298
-msgid ""
-"Enable this option if you want a waiting cursor to be shown while the action"
-" is launched. This is also highly recommended if you have focus stealing "
-"prevention enabled in your window manager."
-msgstr "Επιλέξτε το εάν θέλετε να εμφανίζεται ένας δείκτης αναμονής όταν εκκινηθεί η ενέργεια. Συνιστάται ιδιαιτέρως εάν έχετε ενεργοποιήσει τη προστασία απώλειας της εστίασης από τον διαχειριστή παραθύρων σας."
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:351
-msgid ""
-"The following command parameters will be substituted when launching the "
-"action:"
-msgstr "Οι παρακάτω παράμετροι της εντολής θα χρησιμοποιηθούν για την εκτέλεση της ενέργειας:"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:461
-msgid ""
-"If no file is selected, the current directory will be treated as selected "
-"file."
-msgstr "Εάν δεν επιλεγεί αρχείο, ο τρέχων κατάλογος θα θεωρηθεί ως επιλεγμένο αρχείο."
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:478
-msgid "file name of the selected file"
-msgstr "όνομα του επιλεγμένου αρχείου"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:494
-msgid "file names of all selected files"
-msgstr "ονόματα όλων των επιλεγμένων αρχείων"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:509
-msgid "path of the selected file's directory"
-msgstr "διαδρομή καταλόγου του επιλεγμένου αρχείου"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:524
-msgid "paths of all selected files' directories"
-msgstr "διαδρομές καταλόγων όλων των επιλεγμένων αρχείων"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:539
-msgid "path of the selected file including the file name"
-msgstr "διαδρομή και όνομα του επιλεγμένου αρχείου"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:554
-msgid "paths of all selected files including the file names"
-msgstr "διαδρομές και ονόματα των επιλεγμένων αρχείων"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:626
-msgid "Basic"
-msgstr "Βασικά"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:644
-msgid "_File Pattern:"
-msgstr "_Μοτίβο:"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:661
-msgid ""
-"Enter a list of patterns that will be used to determine whether this action "
-"should be displayed for a selected file. If you specify more than one "
-"pattern here, the list items must be separated with semicolons (e.g. "
-"*.txt;*.doc)."
-msgstr "Eισάγετε λίστα με τις επεκτάσεις των αρχείων, που θα χρησιμοποιηθούν για να καθοριστεί εάν αυτή η ενέργεια θα πρέπει να εμφανίζεται για ένα επιλεγμένο αρχείο. Εάν ορίσετε παραπάνω από μία, θα πρέπει να διαχωρίζονται με ερωτηματικό (π.χ. *.txt;*.doc)."
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:664
-#: plugins/thunar-uca/thunar-uca-editor.ui:695
-msgid "*"
-msgstr "*"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:675
-msgid "_Range (min-max):"
-msgstr "Εύ_ρος (min-max):"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:692
-msgid ""
-"If the command should operate on say two or three files, enter the numerical"
-" range 2-3. If there are no limits, this string should be empty."
-msgstr "Εάν η εντολή θα πρέπει να λειτουργήσει σε δύο ή τρία αρχεία, εισάγετε τα νούμερα 2-3. Εάν δεν υπάρχουν όρια θα πρέπει να μείνει κενό. "
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:706
-msgid "Appears if selection contains:"
-msgstr "Εμφανίζεται εάν η επιλογή περιλαμβάνει:"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:726
-msgid "_Directories **"
-msgstr "_Κατάλογοι **"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:741
-msgid "_Audio Files"
-msgstr "Αρχεία ή_χου"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:755
-msgid "_Image Files"
-msgstr "Αρχεία ε_ικόνας"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:770
-msgid "_Text Files"
-msgstr "Αρχεία κει_μένου"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:784
-msgid "_Video Files"
-msgstr "Αρχεία _βίντεο"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:798
-msgid "_Other Files"
-msgstr "Ά_λλα αρχεία"
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:851
-msgid ""
-"This page lists the conditions under which the action will appear in the file managers context menus. The file patterns are specified as a list of simple file patterns separated by semicolons (e.g. *.txt;*.doc). For an action to appear in the context menu of a file or folder, at least one of these patterns must match the name of the file or folder. Additionally, you can specify that the action should only appear for certain kinds of files.\n"
-"\n"
-"** The custom action will be eligible to appear in the toolbar."
-msgstr "Αυτή η σελίδα περιέχει τις συνθήκες με τις οποίες θα εμφανιστεί η ενέργεια στο μενού επιλογών. Το μοτίβο καθορίζει τις επεκτάσεις των αρχείων διαχωρισμένες σε σειρά με ερωτηματικά (π.χ. *.txt;*.doc). Για να εμφανιστεί η ενέργεια στο μενού, θα πρέπει να ταιριάζει τουλάχιστον μια από αυτές με το όνομα του αρχείου ή του φακέλου. Επίσης μπορείτε να καθορίσετε την εμφάνιση της ενέργειας μόνο για ορισμένα είδη αρχείων.\n\n** Η ενέργεια θα είναι διαθέσιμη στην εργαλειοθήκη."
-
-#: plugins/thunar-uca/thunar-uca-editor.ui:916
-msgid "Appearance Conditions"
-msgstr "Συνθήκες εμφάνισης"
-
-#: plugins/thunar-uca/thunar-uca-chooser.ui:12
-msgid "Custom Actions"
-msgstr "Προσαρμοσμένες ενέργειες"
-
-#: plugins/thunar-uca/thunar-uca-chooser.ui:32
-msgid ""
-"Configure custom actions that will appear in the file manager's context menus and/or toolbar.\n"
-"These actions are applicable to folders or certain kinds of files.\n"
-"\n"
-"Check the <a href=\"https://docs.xfce.org/xfce/thunar/custom-actions\">documentation</a> for a collection of custom action examples."
-msgstr "Διαμόρφωση προσαρμοσμένων ενεργειών που θα εμφανίζονται στο μενού και/ή στην εργαλειοθήκη του διαχειριστή αρχείων.\nΑυτές οι ενέργειες εφαρμόζονται σε φακέλους ή σε ορισμένα είδη αρχείων.\nΑνατρέξτε στη <a href=\"https://docs.xfce.org/xfce/thunar/custom-actions\">τεκμηρίωση</a> για μια συλλογή προσαρμοσμένων ενεργειών. "
-
-#: plugins/thunar-uca/thunar-uca-chooser.ui:88
-msgid "Add a new custom action."
-msgstr "Προσθέτει νέα ενέργεια."
-
-#: plugins/thunar-uca/thunar-uca-chooser.ui:97
-msgid "Edit the currently selected action."
-msgstr "Επεξεργασία της επιλεγμένης ενέργειας."
-
-#: plugins/thunar-uca/thunar-uca-chooser.ui:106
-msgid "Delete the currently selected action."
-msgstr "Διαγραφή της επιλεγμένης ενέργειας."
-
-#: plugins/thunar-uca/thunar-uca-chooser.ui:115
-msgid "Move the currently selected action up by one row."
-msgstr "Μετακίνηση της επιλεγμένης ενέργειας μια γραμμή επάνω."
-
-#: plugins/thunar-uca/thunar-uca-chooser.ui:124
-msgid "Move the currently selected action down by one row."
-msgstr "Μετακίνηση της επιλεγμένης ενέργειας μια γραμμή κάτω."
 
 #: plugins/thunar-wallpaper/twp-provider.c:159
 #: plugins/thunar-wallpaper/twp-provider.c:176
