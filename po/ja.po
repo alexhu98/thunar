@@ -1047,17 +1047,17 @@ msgstr "セパレーターを追加"
 #: thunar/thunar-context-menu-order-editor.c:163
 #: thunar/thunar-toolbar-order-editor.c:200 thunar/thunar-uca-chooser.c:203
 msgid "Add custom action"
-msgstr ""
+msgstr "カスタムアクションを追加"
 
 #: thunar/thunar-context-menu-order-editor.c:164
 #: thunar/thunar-toolbar-order-editor.c:201 thunar/thunar-uca-chooser.c:204
 msgid "Add user custom action"
-msgstr ""
+msgstr "ユーザーカスタムアクションを追加"
 
 #: thunar/thunar-context-menu-order-editor.c:221
 #: thunar/thunar-toolbar-order-editor.c:294
 msgid "Custom user action"
-msgstr ""
+msgstr "カスタムユーザーアクション"
 
 #: thunar/thunar-context-menu-order-model.c:150
 msgid "--- Separator ---"
@@ -3643,7 +3643,7 @@ msgid ""
 "These actions are applicable to folders or certain kinds of files.\n"
 "\n"
 "Use the context menu configuration dialog or the toolbar configuration dialog to change the order of the actions."
-msgstr ""
+msgstr "ファイルマネージャーのコンテキストメニューやツールバーに表示されるカスタムアクションを設定します。\nこれらのアクションはフォルダーまたは特定の種類のファイルに適用されます。\n\nアクションの順序を変更するには、コンテキストメニューの設定ダイアログまたはツールバーの設定ダイアログを使用してください。"
 
 #: thunar/thunar-uca-chooser.c:191
 msgid "Custom Actions"
@@ -3678,23 +3678,23 @@ msgstr "アクションの保存に失敗しました。"
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Editing is not possible"
-msgstr ""
+msgstr "編集できません"
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Unable to apply changes, close other settings dialogs before editing."
-msgstr ""
+msgstr "変更を適用できません。編集する前に他の設定ダイアログを閉じてください。"
 
 #: thunar/thunar-uca-editor.c:878
 msgid "Are you sure you want to delete the selected items?"
-msgstr ""
+msgstr "選択した項目を削除してもよろしいですか？"
 
 #: thunar/thunar-uca-editor.c:880
 msgid "Delete selected items"
-msgstr ""
+msgstr "選択した項目を削除"
 
 #: thunar/thunar-uca-editor.c:881
 msgid "Deleted items will be permanently lost."
-msgstr ""
+msgstr "削除されたアイテムは永久に失われます。"
 
 #: thunar/thunar-uca-model.c:758
 msgid "End element handler called while in root context"
