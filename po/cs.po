@@ -1136,17 +1136,17 @@ msgstr "Přidat oddělovač"
 #: thunar/thunar-context-menu-order-editor.c:163
 #: thunar/thunar-toolbar-order-editor.c:200 thunar/thunar-uca-chooser.c:203
 msgid "Add custom action"
-msgstr ""
+msgstr "Přidat vlastní akci"
 
 #: thunar/thunar-context-menu-order-editor.c:164
 #: thunar/thunar-toolbar-order-editor.c:201 thunar/thunar-uca-chooser.c:204
 msgid "Add user custom action"
-msgstr ""
+msgstr "Přidat vlastní akci"
 
 #: thunar/thunar-context-menu-order-editor.c:221
 #: thunar/thunar-toolbar-order-editor.c:294
 msgid "Custom user action"
-msgstr ""
+msgstr "Vlastní akce"
 
 #: thunar/thunar-context-menu-order-model.c:150
 msgid "--- Separator ---"
@@ -3765,7 +3765,7 @@ msgid ""
 "These actions are applicable to folders or certain kinds of files.\n"
 "\n"
 "Use the context menu configuration dialog or the toolbar configuration dialog to change the order of the actions."
-msgstr ""
+msgstr "Nastavte vlastní akce, které se budou zobrazovat v kontextových nabídkách nebo na panelu nástrojů správce souborů, případně na obou místech.\nTyto akce lze použít u složek nebo určitých druhů souborů.\n\nPořadí akcí změníte v dialogu nastavení kontextové nabídky nebo panelu nástrojů."
 
 #: thunar/thunar-uca-chooser.c:191
 msgid "Custom Actions"
@@ -3800,23 +3800,23 @@ msgstr "Nepodařilo se uložit akci na disk."
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Editing is not possible"
-msgstr ""
+msgstr "Úpravy nejsou možné"
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Unable to apply changes, close other settings dialogs before editing."
-msgstr ""
+msgstr "Změny nelze použít. Před zahájením úprav zavřete ostatní dialogy nastavení."
 
 #: thunar/thunar-uca-editor.c:878
 msgid "Are you sure you want to delete the selected items?"
-msgstr ""
+msgstr "Opravdu chcete smazat vybrané položky?"
 
 #: thunar/thunar-uca-editor.c:880
 msgid "Delete selected items"
-msgstr ""
+msgstr "Smazat vybrané položky"
 
 #: thunar/thunar-uca-editor.c:881
 msgid "Deleted items will be permanently lost."
-msgstr ""
+msgstr "Smazané položky budou nenávratně ztraceny."
 
 #: thunar/thunar-uca-model.c:758
 msgid "End element handler called while in root context"
