@@ -3681,7 +3681,7 @@ msgid ""
 "These actions are applicable to folders or certain kinds of files.\n"
 "\n"
 "Use the context menu configuration dialog or the toolbar configuration dialog to change the order of the actions."
-msgstr ""
+msgstr "Seadista kohandatud toiminguid, mis kuvatakse failihalduri kontekstimenüüs ja/või tööriistaribal.\nNeid toiminguid saad rakendada kaustadele või teatud tüüpi failidele.\n\nToimingute järjekorda saad muuta kontekstimenüü või tööriistariba seadistuste vaates."
 
 #: thunar/thunar-uca-chooser.c:191
 msgid "Custom Actions"
@@ -3720,19 +3720,19 @@ msgstr "Muutmine pole võimalik"
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Unable to apply changes, close other settings dialogs before editing."
-msgstr ""
+msgstr "Muudatuste salvestamine ei õnnestu, enne muutmise alustamist sulge muud seadistuste vaated."
 
 #: thunar/thunar-uca-editor.c:878
 msgid "Are you sure you want to delete the selected items?"
-msgstr ""
+msgstr "Kas oled kindel, et soovid valitud objektid kustutada?"
 
 #: thunar/thunar-uca-editor.c:880
 msgid "Delete selected items"
-msgstr ""
+msgstr "Kustuta valitud objektid"
 
 #: thunar/thunar-uca-editor.c:881
 msgid "Deleted items will be permanently lost."
-msgstr ""
+msgstr "Kustutatud objektid lähevad jäädavat kaotsi"
 
 #: thunar/thunar-uca-model.c:758
 msgid "End element handler called while in root context"
