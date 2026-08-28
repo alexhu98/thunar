@@ -1079,17 +1079,17 @@ msgstr "Добавяне на разделител"
 #: thunar/thunar-context-menu-order-editor.c:163
 #: thunar/thunar-toolbar-order-editor.c:200 thunar/thunar-uca-chooser.c:203
 msgid "Add custom action"
-msgstr ""
+msgstr "Добавяне на потребителско действие"
 
 #: thunar/thunar-context-menu-order-editor.c:164
 #: thunar/thunar-toolbar-order-editor.c:201 thunar/thunar-uca-chooser.c:204
 msgid "Add user custom action"
-msgstr ""
+msgstr "Добавяне на персонализирано действие на потребителя"
 
 #: thunar/thunar-context-menu-order-editor.c:221
 #: thunar/thunar-toolbar-order-editor.c:294
 msgid "Custom user action"
-msgstr ""
+msgstr "Персонализирано действие на потребителя"
 
 #: thunar/thunar-context-menu-order-model.c:150
 msgid "--- Separator ---"
@@ -3686,7 +3686,7 @@ msgid ""
 "These actions are applicable to folders or certain kinds of files.\n"
 "\n"
 "Use the context menu configuration dialog or the toolbar configuration dialog to change the order of the actions."
-msgstr ""
+msgstr "Конфигурирайте персонализирани действия, които ще се показват в контекстните менюта и/или лентата с инструменти на файловия мениджър.\nТези действия са приложими за папки или определени видове файлове.\n\nИзползвайте диалоговия прозорец за конфигуриране на контекстното меню или диалоговия прозорец за конфигуриране на лентата с инструменти, за да промените реда на действията."
 
 #: thunar/thunar-uca-chooser.c:191
 msgid "Custom Actions"
@@ -3721,23 +3721,23 @@ msgstr "Неуспех при запазване на действието на 
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Editing is not possible"
-msgstr ""
+msgstr "Редактирането не е възможно"
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Unable to apply changes, close other settings dialogs before editing."
-msgstr ""
+msgstr "Не е възможно да се приложат промените. Затворете другите диалогови прозорци за настройки, преди да редактирате."
 
 #: thunar/thunar-uca-editor.c:878
 msgid "Are you sure you want to delete the selected items?"
-msgstr ""
+msgstr "Наистина ли искате да изтриете избраните елементи?"
 
 #: thunar/thunar-uca-editor.c:880
 msgid "Delete selected items"
-msgstr ""
+msgstr "Изтриване на избраните елементи"
 
 #: thunar/thunar-uca-editor.c:881
 msgid "Deleted items will be permanently lost."
-msgstr ""
+msgstr "Изтритите елементи ще бъдат изгубени завинаги."
 
 #: thunar/thunar-uca-model.c:758
 msgid "End element handler called while in root context"
