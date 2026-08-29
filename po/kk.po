@@ -1071,17 +1071,17 @@ msgstr "Ажыратқышты қосу"
 #: thunar/thunar-context-menu-order-editor.c:163
 #: thunar/thunar-toolbar-order-editor.c:200 thunar/thunar-uca-chooser.c:203
 msgid "Add custom action"
-msgstr "Таңдауыңызша әрекетті қосу"
+msgstr "Реттелетін әрекетті қосу"
 
 #: thunar/thunar-context-menu-order-editor.c:164
 #: thunar/thunar-toolbar-order-editor.c:201 thunar/thunar-uca-chooser.c:204
 msgid "Add user custom action"
-msgstr ""
+msgstr "Пайдаланушылық реттелетін әрекетті қосу"
 
 #: thunar/thunar-context-menu-order-editor.c:221
 #: thunar/thunar-toolbar-order-editor.c:294
 msgid "Custom user action"
-msgstr ""
+msgstr "Пайдаланушылық реттелетін әрекет"
 
 #: thunar/thunar-context-menu-order-model.c:150
 msgid "--- Separator ---"
@@ -3678,7 +3678,7 @@ msgid ""
 "These actions are applicable to folders or certain kinds of files.\n"
 "\n"
 "Use the context menu configuration dialog or the toolbar configuration dialog to change the order of the actions."
-msgstr ""
+msgstr "Файлдардың белгілі бір түрлері үшін файл басқарушысының контекст мәзірі және/немесе құралдар панелінде пайда болатын реттелетін әрекеттерді баптауға болады.\nБұл әрекеттер бумалар мен файлдардың кейбір түрлері үшін іске асырылады.\n\nӘрекеттер ретін өзгерту үшін, контекст мәзірін баптау сұхбат терезесін немесе құралдар панелін баптау сұхбат терезесін қолданыңыз."
 
 #: thunar/thunar-uca-chooser.c:191
 msgid "Custom Actions"
@@ -3713,23 +3713,23 @@ msgstr "Әрекеттерді дискіге сақтау сәтсіз."
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Editing is not possible"
-msgstr ""
+msgstr "Түзету мүмкін емес"
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Unable to apply changes, close other settings dialogs before editing."
-msgstr ""
+msgstr "Өзгерістерді іске асыру мүмкін емес, түзету алдында басқа баптаулар сұхбат терезелерін жабу керек."
 
 #: thunar/thunar-uca-editor.c:878
 msgid "Are you sure you want to delete the selected items?"
-msgstr ""
+msgstr "Таңдалған нәрсені өшіруді шынымен қалайсыз ба?"
 
 #: thunar/thunar-uca-editor.c:880
 msgid "Delete selected items"
-msgstr ""
+msgstr "Таңдалған нәрселерді өшіру"
 
 #: thunar/thunar-uca-editor.c:881
 msgid "Deleted items will be permanently lost."
-msgstr ""
+msgstr "Өшірілген нәрселер толығымен жоғалатын болады."
 
 #: thunar/thunar-uca-model.c:758
 msgid "End element handler called while in root context"
