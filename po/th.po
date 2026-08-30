@@ -1051,17 +1051,17 @@ msgstr "เพิ่มขีดคั่น"
 #: thunar/thunar-context-menu-order-editor.c:163
 #: thunar/thunar-toolbar-order-editor.c:200 thunar/thunar-uca-chooser.c:203
 msgid "Add custom action"
-msgstr ""
+msgstr "เพิ่มการกระทำที่กำหนดเอง"
 
 #: thunar/thunar-context-menu-order-editor.c:164
 #: thunar/thunar-toolbar-order-editor.c:201 thunar/thunar-uca-chooser.c:204
 msgid "Add user custom action"
-msgstr ""
+msgstr "เพิ่มการกระทำผู้ใช้ที่กำหนดเอง"
 
 #: thunar/thunar-context-menu-order-editor.c:221
 #: thunar/thunar-toolbar-order-editor.c:294
 msgid "Custom user action"
-msgstr ""
+msgstr "การกระทำที่กำหนดเอง"
 
 #: thunar/thunar-context-menu-order-model.c:150
 msgid "--- Separator ---"
@@ -3647,7 +3647,7 @@ msgid ""
 "These actions are applicable to folders or certain kinds of files.\n"
 "\n"
 "Use the context menu configuration dialog or the toolbar configuration dialog to change the order of the actions."
-msgstr ""
+msgstr "กำหนดค่าการกระทำแบบกำหนดเองที่จะปรากฏในเมนูบริบทของตัวจัดการแฟ้มและ/หรือแถบเครื่องมือ\n\nการดำเนินการเหล่านี้ใช้ได้กับโฟลเดอร์หรือแฟ้มบางประเภท\nใช้กล่องโต้ตอบการกำหนดค่าเมนูบริบทหรือกล่องโต้ตอบการกำหนดค่าแถบเครื่องมือเพื่อเปลี่ยนลำดับของการดำเนินการ"
 
 #: thunar/thunar-uca-chooser.c:191
 msgid "Custom Actions"
@@ -3682,23 +3682,23 @@ msgstr "บันทึกการกระทำลงในดิสก์ไ
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Editing is not possible"
-msgstr ""
+msgstr "ไม่สามารถแก้ไขได้"
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Unable to apply changes, close other settings dialogs before editing."
-msgstr ""
+msgstr "ไม่สามารถใช้การเปลี่ยนแปลงได้ ให้ปิดกล่องโต้ตอบการตั้งค่าอื่น ๆ ก่อนทำการแก้ไข"
 
 #: thunar/thunar-uca-editor.c:878
 msgid "Are you sure you want to delete the selected items?"
-msgstr ""
+msgstr "คุณแน่ใจหรือไม่ว่าต้องการลบรายการที่เลือก"
 
 #: thunar/thunar-uca-editor.c:880
 msgid "Delete selected items"
-msgstr ""
+msgstr "ลบรายการที่เลือก"
 
 #: thunar/thunar-uca-editor.c:881
 msgid "Deleted items will be permanently lost."
-msgstr ""
+msgstr "รายการที่ถูกลบจะหายไปอย่างถาวร"
 
 #: thunar/thunar-uca-model.c:758
 msgid "End element handler called while in root context"
