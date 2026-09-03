@@ -2154,6 +2154,15 @@ thunar_file_accepts_drop (ThunarFile     *file,
               /* determine the cached version of the source file */
               ofile = thunar_file_cache_lookup (lp->data);
 
+              /* Do not load remote files here: thunar_file_get()/thunar_file_get_parent()
+               * can cause synchronous network I/O inside the drag-motion handler, freezing the UI.
+               */
+              if (ofile == NULL && G_UNLIKELY (!g_file_is_native (lp->data)))
+                {
+                  suggested_action = GDK_ACTION_COPY;
+                  break;
+                }
+
               /* fallback to non-cached version */
               if (ofile == NULL)
                 ofile = thunar_file_get (lp->data, NULL);
