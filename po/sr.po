@@ -1106,17 +1106,17 @@ msgstr "Додај раздвајач"
 #: thunar/thunar-context-menu-order-editor.c:163
 #: thunar/thunar-toolbar-order-editor.c:200 thunar/thunar-uca-chooser.c:203
 msgid "Add custom action"
-msgstr ""
+msgstr "Додај произвољно дејство"
 
 #: thunar/thunar-context-menu-order-editor.c:164
 #: thunar/thunar-toolbar-order-editor.c:201 thunar/thunar-uca-chooser.c:204
 msgid "Add user custom action"
-msgstr ""
+msgstr "Додај корисничко произвољно дејство"
 
 #: thunar/thunar-context-menu-order-editor.c:221
 #: thunar/thunar-toolbar-order-editor.c:294
 msgid "Custom user action"
-msgstr ""
+msgstr "Корисничко произвољно дејство"
 
 #: thunar/thunar-context-menu-order-model.c:150
 msgid "--- Separator ---"
@@ -1383,16 +1383,16 @@ msgstr "/извршна"
 #, c-format
 msgid ""
 "The desktop file %s is in an insecure location and not marked as secure %s"
-msgstr ""
+msgstr "Датотека радне површи %s је на небезбедном положају и није означена као безбедна %s"
 
 #. EXEC Command or URL
 #: thunar/thunar-dialogs.c:1144
 msgid "launch command for the untrusted launcher"
-msgstr ""
+msgstr "Покрени наредбу за небезбедни покретач"
 
 #: thunar/thunar-dialogs.c:1165
 msgid "If you do not trust this program, click Cancel"
-msgstr ""
+msgstr "Уколико не верујете програму, кликните на Откажи"
 
 #: thunar/thunar-dialogs.c:1249
 msgid "Close split pane with multiple tabs?"
@@ -3724,7 +3724,7 @@ msgid ""
 "These actions are applicable to folders or certain kinds of files.\n"
 "\n"
 "Use the context menu configuration dialog or the toolbar configuration dialog to change the order of the actions."
-msgstr ""
+msgstr "Подесите произвољна дејства која ће се појављивати у приручном изборнику управника датотека и/или траци прибора.\nОва дејства су применљива на омоте и неке врсте датотека.\n\nКористите прозорче поставки приручног изборника или прозорче поставки траке прибора за измену редоследа дејстава."
 
 #: thunar/thunar-uca-chooser.c:191
 msgid "Custom Actions"
@@ -3759,23 +3759,23 @@ msgstr "Нисам успео да сачувам дејство на диск."
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Editing is not possible"
-msgstr ""
+msgstr "Уређивање није могуће"
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Unable to apply changes, close other settings dialogs before editing."
-msgstr ""
+msgstr "Нисам успео да применим измене, затворите остале прозоре поставки пре уређивања."
 
 #: thunar/thunar-uca-editor.c:878
 msgid "Are you sure you want to delete the selected items?"
-msgstr ""
+msgstr "Да ли заиста желите избрисати означене датотеке?"
 
 #: thunar/thunar-uca-editor.c:880
 msgid "Delete selected items"
-msgstr ""
+msgstr "Избриши означене датотеке"
 
 #: thunar/thunar-uca-editor.c:881
 msgid "Deleted items will be permanently lost."
-msgstr ""
+msgstr "Избрисане датотеке ће бити трајно изгубљене."
 
 #: thunar/thunar-uca-model.c:758
 msgid "End element handler called while in root context"
