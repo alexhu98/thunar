@@ -1083,17 +1083,17 @@ msgstr "Lägg till en avgränsare"
 #: thunar/thunar-context-menu-order-editor.c:163
 #: thunar/thunar-toolbar-order-editor.c:200 thunar/thunar-uca-chooser.c:203
 msgid "Add custom action"
-msgstr ""
+msgstr "Lägg till en anpassad åtgärd."
 
 #: thunar/thunar-context-menu-order-editor.c:164
 #: thunar/thunar-toolbar-order-editor.c:201 thunar/thunar-uca-chooser.c:204
 msgid "Add user custom action"
-msgstr ""
+msgstr "Lägg till anpassad användaråtgärd"
 
 #: thunar/thunar-context-menu-order-editor.c:221
 #: thunar/thunar-toolbar-order-editor.c:294
 msgid "Custom user action"
-msgstr ""
+msgstr "Anpassad användaråtgärd"
 
 #: thunar/thunar-context-menu-order-model.c:150
 msgid "--- Separator ---"
@@ -3690,7 +3690,7 @@ msgid ""
 "These actions are applicable to folders or certain kinds of files.\n"
 "\n"
 "Use the context menu configuration dialog or the toolbar configuration dialog to change the order of the actions."
-msgstr ""
+msgstr "Konfigurera anpassade åtgärder som visas i filhanterarens snabbmenyer och/eller verktygsfält.\nDessa åtgärder gäller för mappar eller vissa typer av filer.\n\nAnvänd snabbmenyns konfigurationsdialogruta eller verktygsfältets konfigurationsdialogruta för att ändra ordningen på åtgärderna."
 
 #: thunar/thunar-uca-chooser.c:191
 msgid "Custom Actions"
@@ -3725,23 +3725,23 @@ msgstr "Misslyckades med att spara åtgärder till disk."
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Editing is not possible"
-msgstr ""
+msgstr "Redigering är inte möjlig"
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Unable to apply changes, close other settings dialogs before editing."
-msgstr ""
+msgstr "Det går inte att tillämpa ändringarna, stäng andra inställningsdialogrutor innan du redigerar."
 
 #: thunar/thunar-uca-editor.c:878
 msgid "Are you sure you want to delete the selected items?"
-msgstr ""
+msgstr "Är du säker på att du vill ta bort de markerade objekten?"
 
 #: thunar/thunar-uca-editor.c:880
 msgid "Delete selected items"
-msgstr ""
+msgstr " Ta bort de markerade objekten"
 
 #: thunar/thunar-uca-editor.c:881
 msgid "Deleted items will be permanently lost."
-msgstr ""
+msgstr "Borttagna objekt kommer att gå förlorade permanent."
 
 #: thunar/thunar-uca-model.c:758
 msgid "End element handler called while in root context"
