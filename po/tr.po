@@ -1083,11 +1083,11 @@ msgid ""
 "grouped into sections. Note that most context menu items only will be shown "
 "conditionally, based on the file type, the number of selected items and "
 "other criteria."
-msgstr ""
+msgstr "Bağlam menüsü unsurlarının sırasını ve görünebilirliğini ayarla. Menü ögeleri bölümlere gruplandırılmıştır. Çoğu bağlam menüsü ögelerinin yalnızca dosya türü, seçilen öge sayısı gibi kriterler bazında gösterileceğini not edin."
 
 #: thunar/thunar-context-menu-order-editor.c:127 thunar/thunar-window.c:700
 msgid "Configure the context menu"
-msgstr ""
+msgstr "Bağlam menüsünü yapılandır"
 
 #: thunar/thunar-context-menu-order-editor.c:155
 #: thunar/thunar-context-menu-order-editor.c:156
@@ -1374,7 +1374,7 @@ msgstr "/çalıştırılabilir"
 #, c-format
 msgid ""
 "The desktop file %s is in an insecure location and not marked as secure %s"
-msgstr ""
+msgstr "Masaüstü dosyası %s güvensiz bir konumda ve güvenli olarak işaretlenmemiş %s"
 
 #. EXEC Command or URL
 #: thunar/thunar-dialogs.c:1144
@@ -3704,7 +3704,7 @@ msgid ""
 "These actions are applicable to folders or certain kinds of files.\n"
 "\n"
 "Use the context menu configuration dialog or the toolbar configuration dialog to change the order of the actions."
-msgstr ""
+msgstr "Dosya yöneticisinin içerik menüsü ve/veya araç çubuğunda bulunan özel eylemleri ayarla.\n Bu eylemler klasörler veya bazı dosyalara uygulanabilir. \n\nEylemlerin sırasını değiştirmek için içerik menüsü yapılandırma kutusu veya araç çubuğu yapılandırma kutusunu kullanın."
 
 #: thunar/thunar-uca-chooser.c:191
 msgid "Custom Actions"
@@ -3743,7 +3743,7 @@ msgstr "Düzenleme mümkün değil"
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Unable to apply changes, close other settings dialogs before editing."
-msgstr ""
+msgstr "Değişiklikleri uygulamak mümkün değil, düzenleme yapmadan önce diğer ayarlar pencerelerini kapatın."
 
 #: thunar/thunar-uca-editor.c:878
 msgid "Are you sure you want to delete the selected items?"
@@ -4269,7 +4269,7 @@ msgstr "Araç çubuğunu yapılandır"
 
 #: thunar/thunar-window.c:700
 msgid "Configure context _menu..."
-msgstr ""
+msgstr "Bağlam _menüsünü yapılandır..."
 
 #: thunar/thunar-window.c:701
 msgid "Cl_ear Saved Folder View Settings"
