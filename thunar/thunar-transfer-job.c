@@ -79,7 +79,9 @@ thunar_transfer_job_create_new_node (ThunarTransferJob *job,
                                      GFile             *source_file,
                                      GFileInfo         *source_file_info,
                                      GFile             *target_file);
-
+static void
+thunar_transfer_job_update_progress_display (ThunarTransferJob *job,
+                                             gboolean           force);
 
 struct _ThunarTransferJobClass
 {
@@ -123,6 +125,10 @@ struct _ThunarTransferNode
 
   /* List of type <ThunarTransferNode> */
   GList *child_nodes;
+
+  /* Number of fles and directories and total size for the node + children */
+  guint   recursive_file_count;
+  guint64 recursive_size;
 
   /*
    * Previous response for this transfer node for thunar_job_ask_for_action (or 0, if no nothing was asked yet)
@@ -340,10 +346,6 @@ thunar_transfer_job_progress (goffset  current_num_bytes,
                               gpointer user_data)
 {
   ThunarTransferJob *job = user_data;
-  guint64            new_percentage;
-  gint64             current_time;
-  gint64             expired_time;
-  guint64            transfer_rate;
 
   _thunar_return_if_fail (THUNAR_IS_TRANSFER_JOB (job));
 
@@ -357,36 +359,49 @@ thunar_transfer_job_progress (goffset  current_num_bytes,
       /* update file progress */
       job->file_progress = current_num_bytes;
 
-      /* compute the new percentage after the progress we've made */
-      new_percentage = (job->total_progress * 100.0) / job->total_size;
-
-      /* get current time */
-      current_time = g_get_real_time ();
-      expired_time = current_time - job->last_update_time;
-
-      /* notify callers not more then every 500ms */
-      /* force update after transfer when it took more than (approx.) 500ms */
       /* the actual code checks if (file size [byte]) > (transfer rate [byte/s]) * (0.5 [s]) */
       /* which means that the file is bigger than what is transferred in 500ms on average */
-      if (expired_time > (500 * 1000)
-          || (current_num_bytes == total_num_bytes && total_num_bytes > (goffset) (job->transfer_rate / 2)))
-        {
-          /* calculate the transfer rate in the last expired time */
-          transfer_rate = (job->total_progress - job->last_total_progress) / ((gfloat) expired_time / G_USEC_PER_SEC);
+      gboolean force = current_num_bytes == total_num_bytes && total_num_bytes > (goffset) (job->transfer_rate / 2);
+      thunar_transfer_job_update_progress_display (job, force);
+    }
+}
 
-          /* take the average of the last 10 rates (5 sec), so the output is less jumpy */
-          if (job->transfer_rate > 0)
-            job->transfer_rate = ((job->transfer_rate * 10) + transfer_rate) / 11;
-          else
-            job->transfer_rate = transfer_rate;
 
-          /* emit the percent signal */
-          thunar_job_percent (THUNAR_JOB (job), new_percentage);
 
-          /* update internals */
-          job->last_update_time = current_time;
-          job->last_total_progress = job->total_progress;
-        }
+static void
+thunar_transfer_job_update_progress_display (ThunarTransferJob *job,
+                                             gboolean           force)
+{
+  guint64 new_percentage;
+  gint64  current_time;
+  gint64  expired_time;
+  guint64 transfer_rate;
+
+  /* compute the new percentage after the progress we've made */
+  new_percentage = (job->total_progress * 100.0) / job->total_size;
+
+  /* get current time */
+  current_time = g_get_real_time ();
+  expired_time = current_time - job->last_update_time;
+
+  /* update not more then every 500ms if `force` not set */
+  if (expired_time > (500 * 1000) || force)
+    {
+      /* calculate the transfer rate in the last expired time */
+      transfer_rate = (job->total_progress - job->last_total_progress) / ((gfloat) expired_time / G_USEC_PER_SEC);
+
+      /* take the average of the last 10 rates (5 sec), so the output is less jumpy */
+      if (job->transfer_rate > 0)
+        job->transfer_rate = ((job->transfer_rate * 10) + transfer_rate) / 11;
+      else
+        job->transfer_rate = transfer_rate;
+
+      /* emit the percent signal */
+      thunar_job_percent (THUNAR_JOB (job), new_percentage);
+
+      /* update internals */
+      job->last_update_time = current_time;
+      job->last_total_progress = job->total_progress;
     }
 }
 
@@ -421,9 +436,8 @@ thunar_transfer_job_create_new_node (ThunarTransferJob *job,
   new_node->target_file = NULL;
   new_node->child_nodes = NULL;
   new_node->ask_for_action_response = 0;
-
-  /* Update the total size of the file operation */
-  job->total_size += g_file_info_get_attribute_uint64 (source_file_info, G_FILE_ATTRIBUTE_STANDARD_SIZE);
+  new_node->recursive_file_count = 1;
+  new_node->recursive_size = g_file_info_get_attribute_uint64 (source_file_info, G_FILE_ATTRIBUTE_STANDARD_SIZE);
 
   /* rename the target file, in case the used fs does not support the desired name */
   if (thunar_g_file_fs_uses_fat_name_scheme (target_file))
@@ -448,7 +462,6 @@ thunar_transfer_job_collect_subfiles_recursively (ThunarTransferJob  *job,
                                                   ThunarTransferNode *node,
                                                   GError            **error)
 {
-  guint               n_total_files;
   GError             *err = NULL;
   GList              *file_list;
   GList              *lp;
@@ -464,6 +477,10 @@ thunar_transfer_job_collect_subfiles_recursively (ThunarTransferJob  *job,
   if (node->child_nodes != NULL)
     return FALSE;
 
+  /* update job total file count and size */
+  thunar_job_set_n_total_files (THUNAR_JOB (job), thunar_job_get_n_total_files (THUNAR_JOB (job)) + 1);
+  job->total_size += node->recursive_size;
+
   /* check if we have a directory here */
   if (g_file_info_get_file_type (node->source_file_info) == G_FILE_TYPE_DIRECTORY)
     {
@@ -473,11 +490,6 @@ thunar_transfer_job_collect_subfiles_recursively (ThunarTransferJob  *job,
       file_list = thunar_io_scan_directory (THUNAR_JOB (job), node->source_file,
                                             G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
                                             FALSE, FALSE, FALSE, NULL, &err);
-
-      /* append Children to number of total files */
-      n_total_files = thunar_job_get_n_total_files (THUNAR_JOB (job)) + g_list_length (file_list);
-
-      thunar_job_set_n_total_files (THUNAR_JOB (job), n_total_files);
 
       should_use_copy_name = G_UNLIKELY (!g_file_is_native (node->source_file));
 
@@ -537,6 +549,10 @@ thunar_transfer_job_collect_subfiles_recursively (ThunarTransferJob  *job,
 
           /* collect the child node */
           thunar_transfer_job_collect_subfiles_recursively (job, child_node, &err);
+
+          /* accumulate child's total size and file count into parent */
+          node->recursive_size += child_node->recursive_size;
+          node->recursive_file_count += child_node->recursive_file_count;
         }
 
       /* release the child files */
@@ -773,6 +789,18 @@ ttj_copy_file (ThunarTransferJob  *job,
 
 
 
+static void
+thunar_transfer_job_skip_node (ThunarTransferJob  *job,
+                               ThunarTransferNode *node)
+{
+  job->total_size -= node->recursive_size;
+  thunar_job_set_n_total_files (THUNAR_JOB (job),
+                                thunar_job_get_n_total_files (THUNAR_JOB (job)) - node->recursive_file_count);
+  thunar_transfer_job_update_progress_display (job, FALSE);
+}
+
+
+
 /**
  * thunar_transfer_job_copy_file:
  * @job                : a #ThunarTransferJob.
@@ -878,8 +906,11 @@ thunar_transfer_job_copy_file (ThunarTransferJob  *job,
             }
 
           /* tell the caller we skipped the file if the user doesn't want to retry/overwrite */
-          if (node->ask_for_action_response == THUNAR_JOB_RESPONSE_SKIP)
-            return;
+          else if (node->ask_for_action_response == THUNAR_JOB_RESPONSE_SKIP)
+            {
+              thunar_transfer_job_skip_node (job, node);
+              return;
+            }
         }
     }
 
@@ -1056,6 +1087,9 @@ retry_copy:
           /* drop the target file, so that it will not be listed as 'new file' */
           g_object_unref (node->target_file);
           node->target_file = NULL;
+
+          /* adjust total size to account for the skipped node */
+          thunar_transfer_job_skip_node (job, node);
         }
     }
 
@@ -1347,10 +1381,11 @@ thunar_transfer_job_move_file (ThunarJob            *job,
           node->target_file = NULL;
           return FALSE;
         }
-      /* if the user chose not to replace nor rename the file, so that response == THUNAR_JOB_RESPONSE_SKIP,
-       * then *error will be NULL but move_successful will be FALSE, so that the source and target
-       * files will be released and the matching list items will be dropped below
-       */
+      else if (node->ask_for_action_response == THUNAR_JOB_RESPONSE_SKIP)
+        {
+          /* adjust total size to account for the skipped node */
+          thunar_transfer_job_skip_node (transfer_job, node);
+        }
     }
   else
     {
