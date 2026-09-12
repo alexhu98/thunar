@@ -1193,7 +1193,7 @@ thunar_transfer_job_prepare_untrash_file (ThunarJob          *job,
   gchar            *parent_display_name;
 
   /* update progress information */
-  thunar_job_info_message (job, _("Trying to restore \"%s\""),
+  thunar_job_info_message (job, _("Restoring \"%s\""),
                            g_file_info_get_display_name (node->source_file_info));
 
   /* determine the parent file */
@@ -1324,7 +1324,7 @@ thunar_transfer_job_move_file (ThunarJob            *job,
   gboolean           move_successful;
 
   /* update progress information */
-  thunar_job_info_message (job, _("Trying to move \"%s\""), g_file_info_get_display_name (node->source_file_info));
+  thunar_job_info_message (job, _("Moving \"%s\""), g_file_info_get_display_name (node->source_file_info));
 
   move_successful = g_file_move (node->source_file,
                                  node->target_file,
