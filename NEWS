@@ -1,3 +1,10 @@
+4.20.10 (2026-09-12)
+=======
+- Use G_POST_ORDER when refiltering the tree model (#1460)
+- Fix SIGSEGV in Tree View when renaming directories
+- Translation Updates:
+  Arabic, Czech
+
 4.20.9 (2026-07-17)
 ======
 - Prevent use-after-free in list-view (#1861)
