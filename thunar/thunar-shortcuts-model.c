@@ -609,6 +609,7 @@ thunar_shortcuts_model_get_value (GtkTreeModel *tree_model,
   GFile          *file;
   gboolean        can_eject;
   gboolean        file_size_binary;
+  gboolean        disk_space_usage_bar;
   gchar          *disk_usage;
   gchar          *device_name;
   gchar          *device_id;
@@ -829,6 +830,11 @@ thunar_shortcuts_model_get_value (GtkTreeModel *tree_model,
       /* This property can take values (-1, 0..100), where -1 indicates no value. */
       g_value_init (value, G_TYPE_INT);
       g_value_set_int (value, -1);
+      g_object_get (THUNAR_SHORTCUTS_MODEL (tree_model)->preferences,
+                    "shortcuts-disk-space-usage-bar", &disk_space_usage_bar, NULL);
+      if (!disk_space_usage_bar)
+        break;
+
       if ((shortcut->group & THUNAR_SHORTCUT_GROUP_DEVICES) != 0)
         {
           file = thunar_shortcut_get_file (shortcut);
