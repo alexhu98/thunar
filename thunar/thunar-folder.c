@@ -423,6 +423,7 @@ thunar_folder_finalize (GObject *object)
   /* cancel the pending job (if any) */
   if (G_UNLIKELY (folder->job != NULL))
     {
+      thunar_job_cancel (folder->job);
       g_signal_handlers_disconnect_by_data (folder->job, folder);
       g_object_unref (folder->job);
       folder->job = NULL;
@@ -1286,6 +1287,7 @@ thunar_folder_reload (ThunarFolder *folder,
   if (G_UNLIKELY (folder->job != NULL))
     {
       /* disconnect from the job */
+      thunar_job_cancel (folder->job);
       g_signal_handlers_disconnect_by_data (folder->job, folder);
       g_object_unref (folder->job);
       folder->job = NULL;
