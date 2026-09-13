@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Thunar\n"
 "Report-Msgid-Bugs-To: https://gitlab.xfce.org/\n"
-"POT-Creation-Date: 2026-08-25 00:49+0200\n"
+"POT-Creation-Date: 2026-09-13 00:50+0200\n"
 "PO-Revision-Date: 2013-07-02 20:11+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Lao (http://app.transifex.com/xfce/thunar/language/lo/)\n"
@@ -3543,23 +3543,23 @@ msgstr "ຕັ້ງຄ່າແຖບເຄື່ອງມື"
 msgid "Only visible when the menubar is hidden"
 msgstr "ສະແດງສະເພາະເມື່ອແຖບເມນູຖືກຊ່ອນຢູ່ເທົ່ານັ້ນ"
 
-#: thunar/thunar-transfer-job.c:647
+#: thunar/thunar-transfer-job.c:663
 msgid "Verifying file contents..."
 msgstr "ກຳລັງກວດສອບເນື້ອໃນໄຟລ໌..."
 
 #. ask the user to retry
-#: thunar/thunar-transfer-job.c:943
+#: thunar/thunar-transfer-job.c:974
 #, c-format
 msgid "Failed to move file \"%s\": %s"
 msgstr "ຍ້າຍໄຟລ໌ \"%s\" ບໍ່ສຳເລັດ: %s"
 
 #. ask the user to skip this node and all subnodes
-#: thunar/thunar-transfer-job.c:1041
+#: thunar/thunar-transfer-job.c:1072
 #, c-format
 msgid "Failed to copy file \"%s\": %s"
 msgstr "ສຳເນົາໄຟລ໌ \"%s\" ບໍ່ສຳເລັດ: %s"
 
-#: thunar/thunar-transfer-job.c:1129
+#: thunar/thunar-transfer-job.c:1163
 #, c-format
 msgid ""
 "Error while copying to \"%s\": %s more space is required to copy to the "
@@ -3567,57 +3567,57 @@ msgid ""
 msgstr "ເກີດຂໍ້ຜິດພາດຂະນະສຳເນົາໄປທີ່ \"%s\": ຕ້ອງການພື້ນທີ່ເພີ່ມອີກ %s ເພື່ອສຳເນົາໄປຍັງປາຍທາງ"
 
 #. update progress information
-#: thunar/thunar-transfer-job.c:1162
+#: thunar/thunar-transfer-job.c:1196
 #, c-format
-msgid "Trying to restore \"%s\""
-msgstr "ກຳລັງພະຍາຍາມກູ້ຄືນ \"%s\""
+msgid "Restoring \"%s\""
+msgstr ""
 
-#: thunar/thunar-transfer-job.c:1190
+#: thunar/thunar-transfer-job.c:1224
 #, c-format
 msgid ""
 "The folder \"%s\" does not exist anymore but is required to restore the file"
 " \"%s\" from the trash"
 msgstr "ບໍ່ມີໂຟນເດີ \"%s\" ແລ້ວ ແຕ່ຈຳເປັນຕ້ອງໃຊ້ເພື່ອໜ້າກູ້ຄືນໄຟລ໌ \"%s\" ຈາກຖັງຂີ້ເຫຍື້ອ"
 
-#: thunar/thunar-transfer-job.c:1216
+#: thunar/thunar-transfer-job.c:1250
 #, c-format
 msgid "Failed to restore the folder \"%s\""
 msgstr "ກູ້ຄືນໂຟນເດີ \"%s\" ບໍ່ສຳເລັດ"
 
 #. update progress information
-#: thunar/thunar-transfer-job.c:1293
+#: thunar/thunar-transfer-job.c:1327
 #, c-format
-msgid "Trying to move \"%s\""
-msgstr "ກຳລັງພະຍາຍາມຍ້າຍ \"%s\""
+msgid "Moving \"%s\""
+msgstr ""
 
 #. update progress information
-#: thunar/thunar-transfer-job.c:1377
+#: thunar/thunar-transfer-job.c:1412
 #, c-format
 msgid "Could not move \"%s\" directly. Collecting files for copying..."
 msgstr "ບໍ່ສາມາດຍ້າຍ \"%s\" ໄດ້ໂດຍກົງ. ກຳລັງຮວບຮວມໄຟລ໌ເພື່ອສຳເນົາ..."
 
-#: thunar/thunar-transfer-job.c:1643
+#: thunar/thunar-transfer-job.c:1678
 msgid "Collecting files..."
 msgstr "ກຳລັງຮວບຮວມໄຟລ໌..."
 
-#: thunar/thunar-transfer-job.c:1818
+#: thunar/thunar-transfer-job.c:1853
 #, c-format
 msgid "%s of %s"
 msgstr "%s ຈາກທັງໝົດ %s"
 
-#: thunar/thunar-transfer-job.c:1838
+#: thunar/thunar-transfer-job.c:1873
 #, c-format
 msgid "%lu hour remaining (%s/sec)"
 msgid_plural "%lu hours remaining (%s/sec)"
 msgstr[0] "ເຫຼືອເວລາ %lu ຊົ່ວໂມງ (%s/ວິນາທີ)"
 
-#: thunar/thunar-transfer-job.c:1844
+#: thunar/thunar-transfer-job.c:1879
 #, c-format
 msgid "%lu minute remaining (%s/sec)"
 msgid_plural "%lu minutes remaining (%s/sec)"
 msgstr[0] "ເຫຼືອເວລາ %lu ນາທີ (%s/ວິນາທີ)"
 
-#: thunar/thunar-transfer-job.c:1849
+#: thunar/thunar-transfer-job.c:1884
 #, c-format
 msgid "%lu second remaining (%s/sec)"
 msgid_plural "%lu seconds remaining (%s/sec)"
