@@ -3573,7 +3573,7 @@ msgstr "\"%s\" へのコピー中にエラーが発生しました: コピー先
 #: thunar/thunar-transfer-job.c:1196
 #, c-format
 msgid "Restoring \"%s\""
-msgstr ""
+msgstr "\"%s\" を復元中"
 
 #: thunar/thunar-transfer-job.c:1224
 #, c-format
@@ -3591,7 +3591,7 @@ msgstr "フォルダー \"%s\" の復元に失敗しました。"
 #: thunar/thunar-transfer-job.c:1327
 #, c-format
 msgid "Moving \"%s\""
-msgstr ""
+msgstr "\"%s\" を移動中"
 
 #. update progress information
 #: thunar/thunar-transfer-job.c:1412
