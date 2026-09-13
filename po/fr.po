@@ -3666,7 +3666,7 @@ msgstr "Erreur lors de la copie vers « %s » : %s d’espace supplémentaire
 #: thunar/thunar-transfer-job.c:1196
 #, c-format
 msgid "Restoring \"%s\""
-msgstr ""
+msgstr "Restauration de « %s »"
 
 #: thunar/thunar-transfer-job.c:1224
 #, c-format
@@ -3684,7 +3684,7 @@ msgstr "Impossible de restaurer le dossier « %s »"
 #: thunar/thunar-transfer-job.c:1327
 #, c-format
 msgid "Moving \"%s\""
-msgstr ""
+msgstr "Déplacement de « %s »"
 
 #. update progress information
 #: thunar/thunar-transfer-job.c:1412
