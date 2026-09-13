@@ -141,6 +141,9 @@ struct _ThunarFolder
   ThunarJob *job;
   ThunarJob *content_type_job;
 
+  /* Load newly added files after the current content type batch finishes. */
+  gboolean loading_content_types_pending;
+
   ThunarFile *corresponding_file;
 
   /* Files which were loaded a list directory jobs. The key is a ThunarFile; value is NULL (unimportant)*/
@@ -351,6 +354,7 @@ thunar_folder_init (ThunarFolder *folder)
 
   folder->loaded = FALSE;
   folder->reload_info = FALSE;
+  folder->loading_content_types_pending = FALSE;
   folder->files_update_timeout_source_id = 0;
   folder->thumbnail_updated_files = NULL;
   folder->thumbnail_updated_timeout_source_id = 0;
@@ -726,10 +730,15 @@ thunar_folder_files_ready (ThunarJob    *job,
 static void
 _thunar_folder_load_content_types_finished (ThunarFolder *folder, ThunarJob *job)
 {
-  if (folder->content_type_job != NULL)
+  if (folder->content_type_job == job)
     {
-      g_object_unref (folder->content_type_job);
-      folder->content_type_job = NULL;
+      g_clear_object (&folder->content_type_job);
+
+      if (folder->loading_content_types_pending)
+        {
+          folder->loading_content_types_pending = FALSE;
+          thunar_folder_load_content_types (folder, folder->files_map);
+        }
     }
 }
 
@@ -738,7 +747,7 @@ _thunar_folder_load_content_types_finished (ThunarFolder *folder, ThunarJob *job
 /**
  * thunar_folder_load_content_types:
  * @folder : a #ThunarFolder instance.
- * @files : a #GList of #ThunarFile's for which the content type needs to be loaded.
+ * @files : a #GHashTable of #ThunarFile's for which the content type needs to be loaded.
  *
  * Starts a job to load the content type of all files inside the folder
  **/
@@ -748,9 +757,15 @@ thunar_folder_load_content_types (ThunarFolder *folder,
 {
   _thunar_return_if_fail (THUNAR_IS_FOLDER (folder));
 
-  /* check if we are currently connect to a job */
+  if (g_hash_table_size (files) == 0)
+    return;
+
+  /* Let the current batch publish its results before loading newly added files. */
   if (G_UNLIKELY (folder->content_type_job != NULL))
-    thunar_job_cancel (THUNAR_JOB (folder->content_type_job));
+    {
+      folder->loading_content_types_pending = TRUE;
+      return;
+    }
 
   /* start a new content_type_job */
   folder->content_type_job = thunar_io_jobs_load_content_types (files);
@@ -828,6 +843,9 @@ thunar_folder_finished (ThunarJob    *job,
       g_object_unref (folder->job);
       folder->job = NULL;
     }
+
+  /* Resume uncached content types after reload cancelled the previous batch. */
+  thunar_folder_load_content_types (folder, folder->files_map);
 
   /* notify finished loading already here, if the filelist is already correct */
   if (file_list_changed == FALSE)
@@ -1281,7 +1299,12 @@ thunar_folder_reload (ThunarFolder *folder,
 
   /* stop content type loading */
   if (G_UNLIKELY (folder->content_type_job != NULL))
-    thunar_job_cancel (THUNAR_JOB (folder->content_type_job));
+    {
+      thunar_job_cancel (folder->content_type_job);
+      g_signal_handlers_disconnect_by_data (folder->content_type_job, folder);
+      g_clear_object (&folder->content_type_job);
+    }
+  folder->loading_content_types_pending = FALSE;
 
   /* check if we are currently connect to a job */
   if (G_UNLIKELY (folder->job != NULL))

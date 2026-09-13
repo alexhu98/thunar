@@ -849,7 +849,7 @@ thunar_thumbnailer_file_is_supported (ThunarThumbnailer *thumbnailer,
       if (link_target == NULL)
         return FALSE;
 
-      content_type = thunar_g_file_get_content_type (link_target);
+      content_type = thunar_g_file_get_content_type (link_target, NULL);
       g_object_unref (link_target);
     }
   else

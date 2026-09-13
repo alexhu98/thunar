@@ -1998,46 +1998,53 @@ _thunar_job_load_content_types (ThunarJob *job,
     {
       gchar *content_type;
 
-      content_type = thunar_g_file_get_content_type (G_FILE (g_file));
-      g_object_set_data_full (G_OBJECT (g_file), "content-type", content_type, g_free);
+      if (thunar_job_set_error_if_cancelled (job, error))
+        return FALSE;
+
+      content_type = thunar_g_file_get_content_type (G_FILE (g_file), thunar_job_get_cancellable (job));
+      g_hash_table_iter_replace (&iter, content_type);
     }
 
-  return TRUE;
+  return !thunar_job_set_error_if_cancelled (job, error);
 }
 
 
 
 static void
-thunar_io_jobs_load_content_types_finished (ThunarJob  *job,
-                                            GHashTable *g_files)
+thunar_io_jobs_load_content_types_finished (ThunarJob *job)
 {
+  GArray        *param_values;
+  GHashTable    *g_files;
   GHashTableIter iter;
   gpointer       g_file;
+  gpointer       content_type;
+
+  if (thunar_job_is_cancelled (job))
+    return;
+
+  param_values = thunar_simple_job_get_param_values (THUNAR_SIMPLE_JOB (job));
+  g_files = g_value_get_boxed (&g_array_index (param_values, GValue, 0));
 
   g_hash_table_iter_init (&iter, g_files);
-  while (g_hash_table_iter_next (&iter, &g_file, NULL))
+  while (g_hash_table_iter_next (&iter, &g_file, &content_type))
     {
       ThunarFile *thunar_file;
-      gchar      *content_type;
 
-      thunar_file = thunar_file_get (G_FILE (g_file), NULL);
+      thunar_file = thunar_file_cache_lookup (G_FILE (g_file));
       if (thunar_file != NULL)
         {
-          content_type = g_object_get_data (G_OBJECT (g_file), "content-type");
           if (content_type != NULL)
             thunar_file_set_content_type (thunar_file, content_type);
           g_object_unref (thunar_file);
         }
     }
-
-  g_hash_table_destroy (g_files);
 }
 
 
 
 /**
  * thunar_io_jobs_load_content_types:
- * @files: a #GList of #ThunarFiles
+ * @files: a #GHashTable of #ThunarFiles
  *
  * Loads the content types of the passed #ThunarFiles in a separate thread.
  * After loaded, 'thunar_file_set_content_type' is called for each #ThunarFile.
@@ -2047,18 +2054,33 @@ thunar_io_jobs_load_content_types_finished (ThunarJob  *job,
 ThunarJob *
 thunar_io_jobs_load_content_types (GHashTable *files)
 {
-  GHashTable    *g_files = g_hash_table_new_full (g_direct_hash, NULL, g_object_unref, NULL);
+  /* Map of GFile* keys to owned content-type strings (gchar*), initially NULL. */
+  GHashTable    *g_files = g_hash_table_new_full (g_direct_hash, NULL, g_object_unref, g_free);
   GHashTableIter iter;
   gpointer       key;
 
   g_hash_table_iter_init (&iter, files);
   while (g_hash_table_iter_next (&iter, &key, NULL))
-    g_hash_table_add (g_files, g_object_ref (thunar_file_get_file (THUNAR_FILE (key))));
+    {
+      ThunarFile *file = THUNAR_FILE (key);
+
+      if (thunar_file_peek_content_type (file) != NULL)
+        continue;
+
+      if (thunar_file_is_directory (file))
+        {
+          thunar_file_set_content_type (file, "inode/directory");
+          continue;
+        }
+
+      g_hash_table_insert (g_files, g_object_ref (thunar_file_get_file (file)), NULL);
+    }
 
   ThunarJob *job = thunar_simple_job_new (_thunar_job_load_content_types, 1,
-                                          THUNAR_TYPE_G_FILE_HASH_TABLE, g_files);
+                                          G_TYPE_HASH_TABLE, g_files);
+  g_hash_table_unref (g_files);
 
-  g_signal_connect (job, "finished", G_CALLBACK (thunar_io_jobs_load_content_types_finished), g_files);
+  g_signal_connect (job, "finished", G_CALLBACK (thunar_io_jobs_load_content_types_finished), NULL);
 
   return job;
 }

@@ -2555,6 +2555,24 @@ thunar_file_get_content_type (ThunarFile *file)
 
 
 /**
+ * thunar_file_peek_content_type:
+ * @file : a #ThunarFile.
+ *
+ * Returns the cached content type without loading it.
+ *
+ * Return value: (nullable): the cached content type of @file.
+ **/
+const gchar *
+thunar_file_peek_content_type (ThunarFile *file)
+{
+  _thunar_return_val_if_fail (THUNAR_IS_FILE (file), NULL);
+
+  return file->content_type;
+}
+
+
+
+/**
  * thunar_file_set_content_type:
  * @file : a #ThunarFile.
  * @content_type : The content type
@@ -2644,7 +2662,7 @@ thunar_file_load_content_type (ThunarFile *file)
       return;
     }
 
-  content_type = thunar_g_file_get_content_type (file->gfile);
+  content_type = thunar_g_file_get_content_type (file->gfile, NULL);
   thunar_file_set_content_type (file, content_type);
   g_free (content_type);
 }

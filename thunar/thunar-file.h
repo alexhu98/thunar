@@ -229,6 +229,8 @@ thunar_file_get_user (const ThunarFile *file);
 
 const gchar *
 thunar_file_get_content_type (ThunarFile *file);
+const gchar *
+thunar_file_peek_content_type (ThunarFile *file);
 void
 thunar_file_set_content_type (ThunarFile  *file,
                               const gchar *content_type);

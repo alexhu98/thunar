@@ -111,8 +111,9 @@ device_icon_name [] =
 static const gchar *
 guess_device_type_from_icon_name (const gchar *icon_name);
 static GFileInfo *
-thunar_g_file_get_content_type_query_info (GFile   *gfile,
-                                           GError **err);
+thunar_g_file_get_content_type_query_info (GFile        *gfile,
+                                           GCancellable *cancellable,
+                                           GError      **err);
 static void
 thunar_g_file_info_set_attribute (GFileInfo   *info,
                                   ThunarGType  type,
@@ -192,12 +193,17 @@ thunar_g_file_new_for_bookmarks (void)
 
 /* internal version, for recursive execution. Uses a lookup table to detect loops */
 static GFile *
-_thunar_g_file_resolve_symlink_internal (GFile *file, GHashTable *lookup_table)
+_thunar_g_file_resolve_symlink_internal (GFile        *file,
+                                         GHashTable   *lookup_table,
+                                         GCancellable *cancellable)
 {
   g_autoptr (GHashTable) lookup_history = NULL;
   g_autoptr (GFileInfo) info = NULL;
 
   _thunar_return_val_if_fail (G_IS_FILE (file), NULL);
+
+  if (g_cancellable_is_cancelled (cancellable))
+    return NULL;
 
   if (lookup_table == NULL)
     lookup_history = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
@@ -221,8 +227,8 @@ _thunar_g_file_resolve_symlink_internal (GFile *file, GHashTable *lookup_table)
 
   info = g_file_query_info (file,
                             G_FILE_ATTRIBUTE_STANDARD_SYMLINK_TARGET "," G_FILE_ATTRIBUTE_STANDARD_IS_SYMLINK,
-                            G_FILE_QUERY_INFO_NONE, NULL, NULL);
-  if (info == NULL)
+                            G_FILE_QUERY_INFO_NONE, cancellable, NULL);
+  if (info == NULL || g_cancellable_is_cancelled (cancellable))
     return NULL;
 
   /* Not a symlink: return that file */
@@ -241,7 +247,7 @@ _thunar_g_file_resolve_symlink_internal (GFile *file, GHashTable *lookup_table)
   if (g_path_is_absolute (target_path))
     {
       g_autoptr (GFile) target = g_file_new_for_path (target_path);
-      return _thunar_g_file_resolve_symlink_internal (target, lookup_history);
+      return _thunar_g_file_resolve_symlink_internal (target, lookup_history, cancellable);
     }
   else
     {
@@ -255,7 +261,7 @@ _thunar_g_file_resolve_symlink_internal (GFile *file, GHashTable *lookup_table)
         return NULL;
 
       /* Resolve parent, if required */
-      parent_resolved = _thunar_g_file_resolve_symlink_internal (parent, lookup_history);
+      parent_resolved = _thunar_g_file_resolve_symlink_internal (parent, lookup_history, cancellable);
 
       if (parent_resolved == NULL)
         {
@@ -266,7 +272,7 @@ _thunar_g_file_resolve_symlink_internal (GFile *file, GHashTable *lookup_table)
       target = g_file_resolve_relative_path (parent_resolved, target_path);
 
       /* Sicne as well that file might be a symlink, we need to use recursion */
-      return _thunar_g_file_resolve_symlink_internal (target, lookup_history);
+      return _thunar_g_file_resolve_symlink_internal (target, lookup_history, cancellable);
     }
 }
 
@@ -284,7 +290,7 @@ _thunar_g_file_resolve_symlink_internal (GFile *file, GHashTable *lookup_table)
 GFile *
 thunar_g_file_resolve_symlink (GFile *file)
 {
-  return _thunar_g_file_resolve_symlink_internal (file, NULL);
+  return _thunar_g_file_resolve_symlink_internal (file, NULL, NULL);
 }
 
 
@@ -1858,15 +1864,16 @@ thunar_g_file_get_link_path_for_symlink (GFile *file_to_link,
 
 
 static GFileInfo *
-thunar_g_file_get_content_type_query_info (GFile   *gfile,
-                                           GError **err)
+thunar_g_file_get_content_type_query_info (GFile        *gfile,
+                                           GCancellable *cancellable,
+                                           GError      **err)
 {
   GFileInfo *info = NULL;
 
   info = g_file_query_info (gfile,
                             G_FILE_ATTRIBUTE_STANDARD_TYPE "," G_FILE_ATTRIBUTE_STANDARD_IS_SYMLINK "," G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE "," G_FILE_ATTRIBUTE_STANDARD_FAST_CONTENT_TYPE,
                             G_FILE_QUERY_INFO_NONE,
-                            NULL, err);
+                            cancellable, err);
   return info;
 }
 
@@ -1875,37 +1882,46 @@ thunar_g_file_get_content_type_query_info (GFile   *gfile,
 /**
  * thunar_g_file_get_content_type:
  * @file : #GFile for which the content type will be returned
+ * @cancellable : (nullable): a #GCancellable, or %NULL.
  *
- * Gets the content type of the passed #GFile. Will always return a valid string.
+ * Gets the content type of the passed #GFile. Returns %NULL on cancellation.
  *
  * Return value: (transfer full): The content type as #gchar
  * The returned string should be freed with g_free() when no longer needed.
  **/
 char *
-thunar_g_file_get_content_type (GFile *gfile)
+thunar_g_file_get_content_type (GFile        *gfile,
+                                GCancellable *cancellable)
 {
   gboolean   is_symlink = FALSE;
   GFileInfo *info = NULL;
   GError    *err = NULL;
   gchar     *content_type = NULL;
 
-  info = thunar_g_file_get_content_type_query_info (gfile, &err);
+  info = thunar_g_file_get_content_type_query_info (gfile, cancellable, &err);
 
   /* follow symlink, if found */
   if (G_LIKELY (info != NULL))
     {
       is_symlink = g_file_info_get_attribute_boolean (info, G_FILE_ATTRIBUTE_STANDARD_IS_SYMLINK);
-      if (is_symlink)
+      if (is_symlink && !g_cancellable_is_cancelled (cancellable))
         {
-          GFile *link_target = thunar_g_file_resolve_symlink (gfile);
+          GFile *link_target = _thunar_g_file_resolve_symlink_internal (gfile, NULL, cancellable);
           g_object_unref (info);
           info = NULL;
           if (link_target != NULL)
             {
-              info = thunar_g_file_get_content_type_query_info (link_target, &err);
+              info = thunar_g_file_get_content_type_query_info (link_target, cancellable, &err);
               g_object_unref (link_target);
             }
         }
+    }
+
+  if (g_cancellable_is_cancelled (cancellable))
+    {
+      g_clear_object (&info);
+      g_clear_error (&err);
+      return NULL;
     }
 
   if (G_LIKELY (info != NULL))

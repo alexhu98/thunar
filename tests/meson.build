@@ -1,4 +1,5 @@
 test_bins = [
+  'test-metadata-cancellation',
   'test-resolve-symlink',
 ]
 
