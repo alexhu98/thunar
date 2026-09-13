@@ -3651,7 +3651,7 @@ msgstr "Errore durante la copia in \"%s\": è richiesto %s spazio aggiuntivo nel
 #: thunar/thunar-transfer-job.c:1196
 #, c-format
 msgid "Restoring \"%s\""
-msgstr ""
+msgstr "Ripristino in corso di \"%s\""
 
 #: thunar/thunar-transfer-job.c:1224
 #, c-format
@@ -3669,7 +3669,7 @@ msgstr "Impossibile ripristinare la cartella \"%s\""
 #: thunar/thunar-transfer-job.c:1327
 #, c-format
 msgid "Moving \"%s\""
-msgstr ""
+msgstr "Spostamento in corso di \"%s\""
 
 #. update progress information
 #: thunar/thunar-transfer-job.c:1412
