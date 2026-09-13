@@ -3621,7 +3621,7 @@ msgstr "Fehler beim Kopieren nach »%s«: %s mehr Platz wird benötigt, um an de
 #: thunar/thunar-transfer-job.c:1196
 #, c-format
 msgid "Restoring \"%s\""
-msgstr ""
+msgstr "\"%s\" wiederherstellen"
 
 #: thunar/thunar-transfer-job.c:1224
 #, c-format
@@ -3639,7 +3639,7 @@ msgstr "Ordner »%s« konnte nicht wiederhergestellt werden"
 #: thunar/thunar-transfer-job.c:1327
 #, c-format
 msgid "Moving \"%s\""
-msgstr ""
+msgstr "\"%s\" verschieben"
 
 #. update progress information
 #: thunar/thunar-transfer-job.c:1412
