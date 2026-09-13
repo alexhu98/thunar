@@ -3607,7 +3607,7 @@ msgstr "Error al moment de la còpia cap a « %s » : %s mai d'espaci es necessa
 #: thunar/thunar-transfer-job.c:1196
 #, c-format
 msgid "Restoring \"%s\""
-msgstr ""
+msgstr "Restabliment de « %s »"
 
 #: thunar/thunar-transfer-job.c:1224
 #, c-format
@@ -3625,7 +3625,7 @@ msgstr "Impossible de restablir lo dorsièr « %s »"
 #: thunar/thunar-transfer-job.c:1327
 #, c-format
 msgid "Moving \"%s\""
-msgstr ""
+msgstr "Desplaçament de « %s »"
 
 #. update progress information
 #: thunar/thunar-transfer-job.c:1412
