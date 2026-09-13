@@ -3605,7 +3605,7 @@ msgstr "Fout bij het kopiëren naar '%s': er is %s meer ruimte nodig om naar de 
 #: thunar/thunar-transfer-job.c:1196
 #, c-format
 msgid "Restoring \"%s\""
-msgstr ""
+msgstr "Bezig met terugzetten van '%s'"
 
 #: thunar/thunar-transfer-job.c:1224
 #, c-format
@@ -3623,7 +3623,7 @@ msgstr "Kon map '%s' niet terugzetten"
 #: thunar/thunar-transfer-job.c:1327
 #, c-format
 msgid "Moving \"%s\""
-msgstr ""
+msgstr "Bezig met verplaatsen van '%s'"
 
 #. update progress information
 #: thunar/thunar-transfer-job.c:1412
