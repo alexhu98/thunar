@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Thunar\n"
 "Report-Msgid-Bugs-To: https://gitlab.xfce.org/\n"
-"POT-Creation-Date: 2026-08-25 00:49+0200\n"
+"POT-Creation-Date: 2026-09-13 00:50+0200\n"
 "PO-Revision-Date: 2013-07-02 20:11+0000\n"
 "Last-Translator: Sod Emin, 2026\n"
 "Language-Team: Arabic (http://app.transifex.com/xfce/thunar/language/ar/)\n"
@@ -3725,23 +3725,23 @@ msgstr "تكوين شريط الادوات"
 msgid "Only visible when the menubar is hidden"
 msgstr "مرئي عند اختفاء شريط القوائم فقط"
 
-#: thunar/thunar-transfer-job.c:647
+#: thunar/thunar-transfer-job.c:663
 msgid "Verifying file contents..."
 msgstr "جاري التحقق من محتويات الملف..."
 
 #. ask the user to retry
-#: thunar/thunar-transfer-job.c:943
+#: thunar/thunar-transfer-job.c:974
 #, c-format
 msgid "Failed to move file \"%s\": %s"
 msgstr ""
 
 #. ask the user to skip this node and all subnodes
-#: thunar/thunar-transfer-job.c:1041
+#: thunar/thunar-transfer-job.c:1072
 #, c-format
 msgid "Failed to copy file \"%s\": %s"
 msgstr ""
 
-#: thunar/thunar-transfer-job.c:1129
+#: thunar/thunar-transfer-job.c:1163
 #, c-format
 msgid ""
 "Error while copying to \"%s\": %s more space is required to copy to the "
@@ -3749,45 +3749,45 @@ msgid ""
 msgstr "حدث خطأ أثناء النسخ إلى \"%s\": %s من المساحة مطلوب للنسخ إلى الوجهة"
 
 #. update progress information
-#: thunar/thunar-transfer-job.c:1162
+#: thunar/thunar-transfer-job.c:1196
 #, c-format
-msgid "Trying to restore \"%s\""
-msgstr "محاولة الإستعادة \"%s\""
+msgid "Restoring \"%s\""
+msgstr ""
 
-#: thunar/thunar-transfer-job.c:1190
+#: thunar/thunar-transfer-job.c:1224
 #, c-format
 msgid ""
 "The folder \"%s\" does not exist anymore but is required to restore the file"
 " \"%s\" from the trash"
 msgstr "المجلد \"%s\" لم يعد موجود بعد الآن، لكن هناك حاجة إلى استعادة الملف \"%s\" من المهملات"
 
-#: thunar/thunar-transfer-job.c:1216
+#: thunar/thunar-transfer-job.c:1250
 #, c-format
 msgid "Failed to restore the folder \"%s\""
 msgstr "فشل إستعادة المجلد \"%s\"`"
 
 #. update progress information
-#: thunar/thunar-transfer-job.c:1293
+#: thunar/thunar-transfer-job.c:1327
 #, c-format
-msgid "Trying to move \"%s\""
-msgstr "محاولة نقل \"%s\""
+msgid "Moving \"%s\""
+msgstr ""
 
 #. update progress information
-#: thunar/thunar-transfer-job.c:1377
+#: thunar/thunar-transfer-job.c:1412
 #, c-format
 msgid "Could not move \"%s\" directly. Collecting files for copying..."
 msgstr "تعذر نقل \"%s\" مباشرة. تجميع الملفات للنسخ..."
 
-#: thunar/thunar-transfer-job.c:1643
+#: thunar/thunar-transfer-job.c:1678
 msgid "Collecting files..."
 msgstr "تجميع الملفات..."
 
-#: thunar/thunar-transfer-job.c:1818
+#: thunar/thunar-transfer-job.c:1853
 #, c-format
 msgid "%s of %s"
 msgstr "%s من %s"
 
-#: thunar/thunar-transfer-job.c:1838
+#: thunar/thunar-transfer-job.c:1873
 #, c-format
 msgid "%lu hour remaining (%s/sec)"
 msgid_plural "%lu hours remaining (%s/sec)"
@@ -3798,7 +3798,7 @@ msgstr[3] "%lu ساعات متبقية (%s/sec)"
 msgstr[4] "%lu ساعات متبقية (%s/sec)"
 msgstr[5] "%lu ساعات متبقية (%s/sec)"
 
-#: thunar/thunar-transfer-job.c:1844
+#: thunar/thunar-transfer-job.c:1879
 #, c-format
 msgid "%lu minute remaining (%s/sec)"
 msgid_plural "%lu minutes remaining (%s/sec)"
@@ -3809,7 +3809,7 @@ msgstr[3] "%lu دقائق متبقية (%s/sec)"
 msgstr[4] "%lu دقائق متبقية (%s/sec)"
 msgstr[5] "%lu دقائق متبقية (%s/sec)"
 
-#: thunar/thunar-transfer-job.c:1849
+#: thunar/thunar-transfer-job.c:1884
 #, c-format
 msgid "%lu second remaining (%s/sec)"
 msgid_plural "%lu seconds remaining (%s/sec)"
