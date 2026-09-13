@@ -115,7 +115,8 @@ thunar_g_file_get_fs_max_name_length (GFile *file);
 
 void
 thunar_g_file_get_fs_space (GFile                     *file,
-                            ThunarFilesystemSpaceInfo *fs_space_info_return);
+                            ThunarFilesystemSpaceInfo *fs_space_info_return,
+                            GCancellable              *cancellable);
 
 gchar *
 thunar_g_file_get_free_space_string (const ThunarFilesystemSpaceInfo *fs_space_info,

@@ -1563,7 +1563,7 @@ thunar_properties_dialog_update_single (ThunarPropertiesDialog *dialog)
       g_autofree gchar         *fs_type = NULL;
 
 
-      thunar_g_file_get_fs_space (thunar_file_get_file (file), &fs_size_info);
+      thunar_g_file_get_fs_space (thunar_file_get_file (file), &fs_size_info, NULL);
 
       fs_type = thunar_g_file_get_fs_type (thunar_file_get_file (file));
       if (fs_type != NULL)

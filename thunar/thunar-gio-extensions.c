@@ -754,6 +754,7 @@ thunar_g_file_get_fs_max_name_length (GFile *file)
  * thunar_g_file_get_fs_space:
  * @file                 : a #GFile instance.
  * @fs_space_info_return : Container values are filled as much as possible
+ * @cancellable          : (nullable): a #GCancellable, or %NULL.
  *
  * Determines the amount of free/used space and the total size of the volume on
  * which @file resides. It fills the container values of the passed struct accordingly.
@@ -761,7 +762,8 @@ thunar_g_file_get_fs_max_name_length (GFile *file)
  **/
 void
 thunar_g_file_get_fs_space (GFile                     *file,
-                            ThunarFilesystemSpaceInfo *fs_space_info_return)
+                            ThunarFilesystemSpaceInfo *fs_space_info_return,
+                            GCancellable              *cancellable)
 {
   g_autoptr (GFileInfo) filesystem_info = NULL;
 
@@ -770,7 +772,7 @@ thunar_g_file_get_fs_space (GFile                     *file,
 
   filesystem_info = g_file_query_filesystem_info (file,
                                                   THUNARX_FILESYSTEM_INFO_NAMESPACE,
-                                                  NULL, NULL);
+                                                  cancellable, NULL);
 
   fs_space_info_return->fs_size_total_read_ok = FALSE;
   fs_space_info_return->fs_size_free_read_ok = FALSE;

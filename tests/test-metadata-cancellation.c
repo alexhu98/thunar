@@ -1,6 +1,7 @@
 #include "thunar/thunar-gio-extensions.h"
 #include "thunar/thunar-io-jobs.h"
 #include "thunar/thunar-simple-job.h"
+#include "thunar/thunar-util.h"
 
 typedef struct
 {
@@ -89,6 +90,35 @@ test_file_init (TestFile *file)
 }
 
 static void
+test_statusbar_cancellation (void)
+{
+  g_autoptr (GCancellable) cancellable = g_cancellable_new ();
+  g_autoptr (GHashTable) files = g_hash_table_new_full (g_direct_hash, NULL, g_object_unref, NULL);
+  gchar *text;
+
+  for (guint i = 0; i < 3; i++)
+    g_hash_table_add (files, g_object_new (test_file_get_type (), NULL));
+
+  query_count = 0;
+  cancel_at_query = 0;
+  text = thunar_util_get_statusbar_text_for_files (files, FALSE, FALSE,
+                                                   THUNAR_DATE_STYLE_SIMPLE, NULL, 0, cancellable);
+  g_assert_nonnull (text);
+  g_free (text);
+
+  query_count = 0;
+  cancel_at_query = 1;
+  text = thunar_util_get_statusbar_text_for_files (files, FALSE, FALSE,
+                                                   THUNAR_DATE_STYLE_SIMPLE, NULL, 0, cancellable);
+  g_assert_null (text);
+
+  query_count = 0;
+  text = thunar_util_get_statusbar_text_for_files (files, FALSE, FALSE,
+                                                   THUNAR_DATE_STYLE_SIMPLE, NULL, 0, cancellable);
+  g_assert_null (text);
+}
+
+static void
 test_content_type_cancellation (void)
 {
   g_autoptr (GHashTable) files = g_hash_table_new (g_direct_hash, NULL);
@@ -149,6 +179,7 @@ int
 main (int argc, char **argv)
 {
   g_test_init (&argc, &argv, NULL);
+  g_test_add_func ("/metadata/statusbar-cancellation", test_statusbar_cancellation);
   g_test_add_func ("/metadata/content-type-cancellation", test_content_type_cancellation);
   g_test_add_func ("/metadata/content-type-query", test_content_type_query);
   g_test_add_data_func ("/metadata/content-type-symlink-query", GUINT_TO_POINTER (0), test_content_type_symlink);

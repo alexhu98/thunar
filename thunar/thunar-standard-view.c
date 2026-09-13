@@ -397,9 +397,8 @@ struct _ThunarStandardViewPrivate
   /* scroll_to_file support */
   GHashTable *scroll_to_files;
 
-  /* statusbar text is mutex protected, since filled by a dedicated ThunarJob */
+  /* statusbar text is updated on the main thread */
   gchar     *statusbar_text;
-  GMutex     statusbar_text_mutex;
   guint      statusbar_text_idle_id;
   ThunarJob *statusbar_job;
 
@@ -1100,8 +1099,6 @@ thunar_standard_view_init (ThunarStandardView *standard_view)
   standard_view->priv->type = 0;
 
   standard_view->priv->css_provider = NULL;
-
-  g_mutex_init (&standard_view->priv->statusbar_text_mutex);
 }
 
 static void
@@ -1377,7 +1374,6 @@ thunar_standard_view_finalize (GObject *object)
 
   /* free the statusbar text */
   g_free (standard_view->priv->statusbar_text);
-  g_mutex_clear (&standard_view->priv->statusbar_text_mutex);
 
   g_free (standard_view->priv->search_query);
 
@@ -2036,6 +2032,9 @@ thunar_standard_view_set_loading (ThunarStandardView *standard_view,
   /* apply the new state */
   standard_view->loading = loading;
 
+  /* Cancel obsolete statusbar work and refresh the text once loading finishes. */
+  thunar_standard_view_update_statusbar_text (standard_view);
+
   /* check if we have a path list from new_files pending */
   if (G_UNLIKELY (!loading && standard_view->priv->new_files_path_list != NULL))
     {
@@ -2069,9 +2068,6 @@ thunar_standard_view_set_loading (ThunarStandardView *standard_view,
           /* If loading already is done, */
           g_clear_pointer (&statusbar_text, g_free);
           statusbar_text = g_strdup (_("Loading statusbar information..."));
-
-          /* update the statusbar text after loading is finished */
-          thunar_standard_view_update_statusbar_text (standard_view);
 
           if (standard_view->priv->scroll_to_file != NULL)
             {
@@ -2154,10 +2150,8 @@ thunar_standard_view_set_statusbar_text (ThunarStandardView *standard_view,
 {
   _thunar_return_if_fail (THUNAR_IS_STANDARD_VIEW (standard_view));
 
-  g_mutex_lock (&standard_view->priv->statusbar_text_mutex);
   g_free (standard_view->priv->statusbar_text);
   standard_view->priv->statusbar_text = g_strdup (text);
-  g_mutex_unlock (&standard_view->priv->statusbar_text_mutex);
 }
 
 
@@ -2169,12 +2163,10 @@ thunar_standard_view_get_statusbar_text (ThunarView *view)
 
   _thunar_return_val_if_fail (THUNAR_IS_STANDARD_VIEW (standard_view), NULL);
 
-  g_mutex_lock (&standard_view->priv->statusbar_text_mutex);
   if (standard_view->priv->statusbar_text == 0)
     text = g_strdup ("  ");
   else
     text = g_strdup (standard_view->priv->statusbar_text);
-  g_mutex_unlock (&standard_view->priv->statusbar_text_mutex);
 
   return text;
 }
@@ -2759,15 +2751,6 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
 
   standard_view->priv->statusbar_text_idle_id = 0;
 
-  /* cancel pending statusbar job, if any */
-  if (standard_view->priv->statusbar_job != NULL)
-    {
-      g_signal_handlers_disconnect_by_data (standard_view->priv->statusbar_job, standard_view);
-      thunar_job_cancel (THUNAR_JOB (standard_view->priv->statusbar_job));
-      g_object_unref (standard_view->priv->statusbar_job);
-      standard_view->priv->statusbar_job = NULL;
-    }
-
   /* query the selected items */
   selected_items_tree_path_list = THUNAR_STANDARD_VIEW_GET_CLASS (standard_view)->get_selected_items (standard_view);
 
@@ -2791,6 +2774,10 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
 
           return FALSE;
         }
+
+      /* Wait for a complete file list before starting the statusbar job. */
+      if (standard_view->loading)
+        return FALSE;
 
       standard_view->priv->statusbar_job = thunar_io_jobs_load_statusbar_text_for_folder (standard_view, thunar_tree_view_model_get_folder (standard_view->model));
 
@@ -2819,7 +2806,7 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
       g_object_unref (file);
       g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_TEXT]);
     }
-  else /* more than one item selected */
+  else if (!standard_view->loading) /* more than one item selected */
     {
       GHashTable *selected_g_files = g_hash_table_new (g_direct_hash, NULL);
       GList      *lp;
@@ -2860,6 +2847,15 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
 void
 thunar_standard_view_update_statusbar_text (ThunarStandardView *standard_view)
 {
+  /* Cancel immediately so an obsolete result cannot be published during the delay. */
+  if (standard_view->priv->statusbar_job != NULL)
+    {
+      g_signal_handlers_disconnect_by_data (standard_view->priv->statusbar_job, standard_view);
+      thunar_job_cancel (THUNAR_JOB (standard_view->priv->statusbar_job));
+      g_object_unref (standard_view->priv->statusbar_job);
+      standard_view->priv->statusbar_job = NULL;
+    }
+
   /* stop pending timeout */
   if (standard_view->priv->statusbar_text_idle_id != 0)
     g_source_remove (standard_view->priv->statusbar_text_idle_id);

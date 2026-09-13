@@ -1457,7 +1457,7 @@ thunar_tree_view_model_get_value (GtkTreeModel *model,
           if (g_file == NULL)
             break;
 
-          thunar_g_file_get_fs_space (g_file, &fs_size_info);
+          thunar_g_file_get_fs_space (g_file, &fs_size_info, NULL);
           disk_usage = thunar_g_file_get_free_space_string (&fs_size_info, THUNAR_TREE_VIEW_MODEL (model)->file_size_binary);
           g_value_take_string (value, disk_usage);
           g_object_unref (g_file);

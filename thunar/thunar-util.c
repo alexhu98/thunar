@@ -1251,13 +1251,14 @@ thunar_util_get_file_time (GFileInfo         *file_info,
  * @show_file_size_binary_format : whether the file size should be displayed in binary format
  * @date_style        : the #ThunarDateFormat used to humanize the @file_time.
  * @date_custom_style : custom style to apply, if @date_style is set to custom
+ * @cancellable       : (nullable): a #GCancellable, or %NULL.
  *
  * Generates the statusbar text for the given @files.
  *
  * The caller is reponsible to free the returned text using
  * g_free() when it's no longer needed.
  *
- * Return value: the statusbar text with the given @files.
+ * Return value: the statusbar text with the given @files, or %NULL on cancellation.
  **/
 gchar *
 thunar_util_get_statusbar_text_for_files (GHashTable     *files,
@@ -1265,7 +1266,8 @@ thunar_util_get_statusbar_text_for_files (GHashTable     *files,
                                           gboolean        show_file_size_binary_format,
                                           ThunarDateStyle date_style,
                                           const gchar    *date_custom_style,
-                                          guint           status_bar_actve_info)
+                                          guint           status_bar_actve_info,
+                                          GCancellable   *cancellable)
 {
   guint64        size_summary = 0;
   gint           folder_count = 0, hidden_folder_count = 0;
@@ -1291,10 +1293,16 @@ thunar_util_get_statusbar_text_for_files (GHashTable     *files,
   g_hash_table_iter_init (&iter, files);
   while (g_hash_table_iter_next (&iter, &key, NULL))
     {
+      if (g_cancellable_is_cancelled (cancellable))
+        {
+          g_clear_object (&last_modified_file);
+          return NULL;
+        }
+
       GFileInfo *file_info = g_file_query_info (G_FILE (key),
                                                 G_FILE_ATTRIBUTE_STANDARD_TYPE "," G_FILE_ATTRIBUTE_STANDARD_SIZE "," G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP "," G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN "," G_FILE_ATTRIBUTE_TIME_MODIFIED,
                                                 G_FILE_QUERY_INFO_NONE,
-                                                NULL,
+                                                cancellable,
                                                 NULL);
       if (file_info == NULL)
         continue;
@@ -1327,6 +1335,12 @@ thunar_util_get_statusbar_text_for_files (GHashTable     *files,
         }
 
       g_object_unref (file_info);
+    }
+
+  if (g_cancellable_is_cancelled (cancellable))
+    {
+      g_clear_object (&last_modified_file);
+      return NULL;
     }
 
   if (file_count > 0)

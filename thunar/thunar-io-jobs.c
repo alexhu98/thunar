@@ -2192,22 +2192,20 @@ _thunar_job_load_statusbar_text (ThunarJob *job,
                                  GArray    *param_values,
                                  GError   **error)
 {
-  ThunarStandardView *standard_view;
-  ThunarFile         *thunar_folder;
-  GHashTable         *g_files;
-  gboolean            show_hidden;
-  gboolean            show_file_size_binary_format;
-  ThunarDateStyle     date_style;
-  const gchar        *date_custom_style;
-  gchar              *text_for_files;
-  gchar              *temp_string;
-  GList              *text_list = NULL;
-  guint               status_bar_active_info;
+  ThunarFile     *thunar_folder;
+  GHashTable     *g_files;
+  gboolean        show_hidden;
+  gboolean        show_file_size_binary_format;
+  ThunarDateStyle date_style;
+  const gchar    *date_custom_style;
+  gchar          *text_for_files;
+  gchar          *temp_string;
+  GList          *text_list = NULL;
+  guint           status_bar_active_info;
 
   if (thunar_job_set_error_if_cancelled (THUNAR_JOB (job), error))
     return FALSE;
 
-  standard_view = g_value_get_object (&g_array_index (param_values, GValue, 0));
   thunar_folder = g_value_get_object (&g_array_index (param_values, GValue, 1));
   g_files = g_value_get_boxed (&g_array_index (param_values, GValue, 2));
   show_hidden = g_value_get_boolean (&g_array_index (param_values, GValue, 3));
@@ -2216,16 +2214,19 @@ _thunar_job_load_statusbar_text (ThunarJob *job,
   date_custom_style = g_value_get_string (&g_array_index (param_values, GValue, 6));
   status_bar_active_info = g_value_get_uint (&g_array_index (param_values, GValue, 7));
 
-  /* If the view is still loading, dont set the statusbar text */
-  if (thunar_standard_view_get_loading (THUNAR_VIEW (standard_view)))
-    return TRUE;
-
   text_for_files = thunar_util_get_statusbar_text_for_files (g_files,
                                                              show_hidden,
                                                              show_file_size_binary_format,
                                                              date_style,
                                                              date_custom_style,
-                                                             status_bar_active_info);
+                                                             status_bar_active_info,
+                                                             thunar_job_get_cancellable (job));
+
+  if (thunar_job_set_error_if_cancelled (job, error))
+    {
+      g_free (text_for_files);
+      return FALSE;
+    }
 
   /* the text is about a selection of files or about a folder */
   if (thunar_folder == 0)
@@ -2241,7 +2242,7 @@ _thunar_job_load_statusbar_text (ThunarJob *job,
       text_list = g_list_append (text_list, text_for_files);
 
       /* check if we can determine the amount of free space for the volume */
-      thunar_g_file_get_fs_space (thunar_file_get_file (thunar_folder), &fs_size_info);
+      thunar_g_file_get_fs_space (thunar_file_get_file (thunar_folder), &fs_size_info, thunar_job_get_cancellable (job));
       if (fs_size_info.fs_size_free_read_ok == TRUE)
         {
           /* humanize the free space */
@@ -2255,10 +2256,35 @@ _thunar_job_load_statusbar_text (ThunarJob *job,
   temp_string = thunar_util_strjoin_list (text_list, "  |  ");
   g_list_free_full (text_list, g_free);
 
-  thunar_standard_view_set_statusbar_text (standard_view, temp_string);
-  g_free (temp_string);
+  if (thunar_job_set_error_if_cancelled (job, error))
+    {
+      g_free (temp_string);
+      return FALSE;
+    }
+
+  g_object_set_data_full (G_OBJECT (job), "statusbar-text", temp_string, g_free);
 
   return TRUE;
+}
+
+
+
+static void
+thunar_io_jobs_load_statusbar_text_finished (ThunarJob *job)
+{
+  GArray             *param_values;
+  ThunarStandardView *standard_view;
+  const gchar        *text;
+
+  if (thunar_job_is_cancelled (job))
+    return;
+
+  param_values = thunar_simple_job_get_param_values (THUNAR_SIMPLE_JOB (job));
+  standard_view = g_value_get_object (&g_array_index (param_values, GValue, 0));
+  text = g_object_get_data (G_OBJECT (job), "statusbar-text");
+
+  /* The finished signal runs on the main thread, so updating the view is safe. */
+  thunar_standard_view_set_statusbar_text (standard_view, text);
 }
 
 
@@ -2312,6 +2338,7 @@ thunar_io_jobs_load_statusbar_text_for_folder (ThunarStandardView *standard_view
   g_free (date_custom_style);
   g_hash_table_destroy (g_files);
 
+  g_signal_connect (job, "finished", G_CALLBACK (thunar_io_jobs_load_statusbar_text_finished), NULL);
   g_signal_connect_swapped (job, "finished", G_CALLBACK (g_object_unref), file);
   g_signal_connect_swapped (job, "finished", G_CALLBACK (g_object_unref), standard_view);
   return job;
@@ -2347,6 +2374,7 @@ thunar_io_jobs_load_statusbar_text_for_selection (ThunarStandardView *standard_v
                                           G_TYPE_UINT, status_bar_active_info);
   g_free (date_custom_style);
 
+  g_signal_connect (job, "finished", G_CALLBACK (thunar_io_jobs_load_statusbar_text_finished), NULL);
   g_signal_connect_swapped (job, "finished", G_CALLBACK (g_object_unref), standard_view);
   return job;
 }

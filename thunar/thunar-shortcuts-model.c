@@ -689,7 +689,7 @@ thunar_shortcuts_model_get_value (GtkTreeModel *tree_model,
                 }
 
               file_size_binary = THUNAR_SHORTCUTS_MODEL (tree_model)->file_size_binary;
-              thunar_g_file_get_fs_space (file, &fs_size_info);
+              thunar_g_file_get_fs_space (file, &fs_size_info, NULL);
               disk_usage = thunar_g_file_get_free_space_string (&fs_size_info, file_size_binary);
 
               if (disk_usage != NULL)
@@ -837,7 +837,7 @@ thunar_shortcuts_model_get_value (GtkTreeModel *tree_model,
               ThunarFilesystemSpaceInfo fs_size_info;
 
               /* If the file system size is 0, assume that it could not be retrieved. */
-              thunar_g_file_get_fs_space (file, &fs_size_info);
+              thunar_g_file_get_fs_space (file, &fs_size_info, NULL);
               if (fs_size_info.fs_size_usable_read_ok && fs_size_info.fs_usable_space > 0)
                 g_value_set_int (value, (gint) ((gdouble) (fs_size_info.fs_used_space) / ((gdouble) fs_size_info.fs_usable_space / 100.0)));
 
