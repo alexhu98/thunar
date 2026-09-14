@@ -735,19 +735,11 @@ thunar_tree_view_model_finalize (GObject *object)
 {
   ThunarTreeViewModel *model = THUNAR_TREE_VIEW_MODEL (object);
 
-  /* this will cancel the search job if any*/
+  /* this will cancel the search and check-empty jobs if any */
   thunar_tree_view_model_set_folder (THUNAR_TREE_VIEW_MODEL (object),
                                      NULL, NULL);
 
   g_mutex_clear (&model->mutex_add_search_files);
-
-  /* stop check empty job and clear job data */
-  if (G_UNLIKELY (model->check_empty_job != NULL))
-    {
-      thunar_job_cancel (THUNAR_JOB (model->check_empty_job));
-      g_object_unref (model->check_empty_job);
-      model->check_empty_job = NULL;
-    }
 
   g_hash_table_destroy (model->files_for_empty_check);
 
@@ -1866,6 +1858,17 @@ thunar_tree_view_model_set_folder (ThunarTreeViewModel *model,
 
   _thunar_tree_view_model_cancel_search_job (_model);
 
+  /* stop check possible empty job and clear job data */
+  if (G_UNLIKELY (model->check_empty_job != NULL))
+    {
+      thunar_job_cancel (THUNAR_JOB (model->check_empty_job));
+
+      g_signal_handlers_disconnect_by_data (model->check_empty_job, model);
+      g_object_unref (model->check_empty_job);
+      model->check_empty_job = NULL;
+    }
+  g_hash_table_remove_all (model->files_for_empty_check);
+
   if (_model->update_search_results_timeout_id != 0)
     {
       g_source_remove (_model->update_search_results_timeout_id);
@@ -2313,9 +2316,6 @@ _thunar_tree_view_model_node_check_empty_job_finished (ThunarTreeViewModel *mode
 
   /* cleanup hashtable */
   g_hash_table_remove_all (model->files_for_empty_check);
-
-  /* drop the job reference we kept for the time the job runs */
-  g_object_unref (model);
 }
 
 
@@ -2374,7 +2374,7 @@ thunar_tree_view_model_update_expand_arrows (ThunarTreeViewModel *model,
 
   /* start a new job */
   model->check_empty_job = thunar_io_jobs_check_empty (model->files_for_empty_check);
-  g_signal_connect_swapped (model->check_empty_job, "finished", G_CALLBACK (_thunar_tree_view_model_node_check_empty_job_finished), g_object_ref (model));
+  g_signal_connect_swapped (model->check_empty_job, "finished", G_CALLBACK (_thunar_tree_view_model_node_check_empty_job_finished), model);
 
   thunar_job_launch (THUNAR_JOB (model->check_empty_job));
 
