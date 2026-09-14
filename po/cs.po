@@ -3683,7 +3683,7 @@ msgstr "Při kopírování do složky %s došlo k chybě: Pro zkopírování sou
 #: thunar/thunar-transfer-job.c:1196
 #, c-format
 msgid "Restoring \"%s\""
-msgstr ""
+msgstr "Obnovování „%s“"
 
 #: thunar/thunar-transfer-job.c:1224
 #, c-format
@@ -3701,7 +3701,7 @@ msgstr "Nepodařilo se obnovit složku %s"
 #: thunar/thunar-transfer-job.c:1327
 #, c-format
 msgid "Moving \"%s\""
-msgstr ""
+msgstr "Přesouvání „%s“"
 
 #. update progress information
 #: thunar/thunar-transfer-job.c:1412
