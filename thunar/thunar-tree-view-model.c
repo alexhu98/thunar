@@ -3024,6 +3024,19 @@ thunar_tree_view_model_cleanup_model (ThunarTreeViewModel *model)
     /* we have nothing to cleanup */
     return;
 
+  if (model->root->children != NULL)
+    {
+      /* While searching, we add all nodes directly below the root node and
+         do signal_connect to all search files. Disconnect these before lazy cleanup */
+      for (GSequenceIter *iter = g_sequence_get_begin_iter (model->root->children);
+           !g_sequence_iter_is_end (iter);
+           iter = g_sequence_iter_next (iter))
+        {
+          _node = g_sequence_get (iter);
+          g_signal_handlers_disconnect_by_data (G_OBJECT (_node->file), _node);
+        }
+    }
+
   /* since we are doing a lazy cleanup we should make sure
    to disconnect from the signal handlers of the folders */
   values = g_hash_table_get_values (model->subdirs);
