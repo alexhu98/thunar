@@ -3577,7 +3577,7 @@ msgstr "เกิดข้อผิดพลาดขณะคัดลอกไ
 #: thunar/thunar-transfer-job.c:1196
 #, c-format
 msgid "Restoring \"%s\""
-msgstr ""
+msgstr "กำลังกู้คืน \"%s\""
 
 #: thunar/thunar-transfer-job.c:1224
 #, c-format
@@ -3595,7 +3595,7 @@ msgstr "กู้คืนโฟลเดอร์ \"%s\" ไม่สำเร�
 #: thunar/thunar-transfer-job.c:1327
 #, c-format
 msgid "Moving \"%s\""
-msgstr ""
+msgstr "กำลังย้าย \"%s\""
 
 #. update progress information
 #: thunar/thunar-transfer-job.c:1412
