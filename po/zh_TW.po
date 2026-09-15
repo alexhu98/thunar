@@ -3579,7 +3579,7 @@ msgstr "當複製至「%s」時發生錯誤：還需要 %s 的空間才能複製
 #: thunar/thunar-transfer-job.c:1196
 #, c-format
 msgid "Restoring \"%s\""
-msgstr ""
+msgstr "正在還原「%s」"
 
 #: thunar/thunar-transfer-job.c:1224
 #, c-format
@@ -3597,7 +3597,7 @@ msgstr "無法還原資料夾「%s」"
 #: thunar/thunar-transfer-job.c:1327
 #, c-format
 msgid "Moving \"%s\""
-msgstr ""
+msgstr "正在移動「%s」"
 
 #. update progress information
 #: thunar/thunar-transfer-job.c:1412
