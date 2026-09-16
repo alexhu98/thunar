@@ -2835,7 +2835,7 @@ thunar_tree_view_model_dir_files_changed (Node       *node_parent,
 
   /* SANITY CHECK: Protect against Use-After-Free race conditions where the parent
    * directory was renamed/detached before the child file's monitor event finished. */
-  if (node_parent == NULL || (node_parent->ptr == NULL && node_parent->parent == NULL))
+  if (node_parent == NULL)
     {
       g_message ("ThunarTreeViewModel: Caught and ignored files_changed on a detached node.");
       return; /* Abort the entire update for this ghost directory */
