@@ -3612,7 +3612,7 @@ msgstr "Грешка при копиране в „%s“: %s необходим�
 #: thunar/thunar-transfer-job.c:1196
 #, c-format
 msgid "Restoring \"%s\""
-msgstr ""
+msgstr "Възстановяване на \"%s\""
 
 #: thunar/thunar-transfer-job.c:1224
 #, c-format
@@ -3630,7 +3630,7 @@ msgstr "Неуспех при възстановяването на папка �
 #: thunar/thunar-transfer-job.c:1327
 #, c-format
 msgid "Moving \"%s\""
-msgstr ""
+msgstr "Преместване на \"%s\""
 
 #. update progress information
 #: thunar/thunar-transfer-job.c:1412
