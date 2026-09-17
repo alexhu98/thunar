@@ -18,9 +18,10 @@
  * Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <thunar-uca/thunar-uca-base-provider.h>
+#include <thunar-uca/thunar-uca-model.h>
 #include <thunar/thunar-uca-chooser.h>
 #include <thunar/thunar-uca-editor.h>
-#include <thunar/thunar-uca-model.h>
 #include <thunar/thunar-uca-plugin.h>
 #include <thunar/thunar-uca-provider.h>
 
@@ -70,6 +71,7 @@ thunar_extension_initialize (ThunarxProviderModule *module)
   thunar_uca_chooser_register_type (plugin);
   thunar_uca_editor_register_type (plugin);
   thunar_uca_model_register_type (plugin);
+  thunar_uca_base_provider_register_type (plugin);
   thunar_uca_provider_register_type (plugin);
 
   /* setup the plugin provider type list */

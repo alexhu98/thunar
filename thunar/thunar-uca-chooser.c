@@ -20,10 +20,10 @@
 
 #include "thunar/thunar-uca-chooser.h"
 
+#include "thunar-uca/thunar-uca-model.h"
 #include "thunar/thunar-order-editor.h"
 #include "thunar/thunar-private.h"
 #include "thunar/thunar-uca-editor.h"
-#include "thunar/thunar-uca-model.h"
 
 #include <libxfce4ui/libxfce4ui.h>
 

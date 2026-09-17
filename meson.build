@@ -353,6 +353,10 @@ subdir('thunarx')
 if get_option('gtk-doc')
   subdir('docs' / 'reference' / 'thunarx')
 endif
+
+subdir('thunar-uca')
+subdir('plugins' / 'thunar-uca')
+
 subdir('examples' / 'tex-open-terminal')
 subdir('icons')
 if not get_option('thunar-apr').disabled()

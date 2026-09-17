@@ -38,8 +38,8 @@
 #include <unistd.h>
 #endif
 
+#include "thunar-uca/thunar-uca-model.h"
 #include "thunar/thunar-action-manager.h"
-#include "thunar/thunar-uca-model.h"
 
 #include <gio/gio.h>
 #include <glib/gi18n-lib.h>
@@ -213,7 +213,7 @@ THUNARX_DEFINE_TYPE (ThunarUcaModel, thunar_uca_model, XFCE_TYPE_ITEM_LIST_MODEL
 static void
 thunar_uca_model_class_init (ThunarUcaModelClass *klass)
 {
-  GObjectClass *gobject_class;
+  GObjectClass           *gobject_class;
   XfceItemListModelClass *model_class;
 
   gobject_class = G_OBJECT_CLASS (klass);

@@ -21,7 +21,7 @@
 #ifndef __THUNAR_UCA_EDITOR_H__
 #define __THUNAR_UCA_EDITOR_H__
 
-#include <thunar/thunar-uca-model.h>
+#include <thunar-uca/thunar-uca-model.h>
 
 G_BEGIN_DECLS;
 

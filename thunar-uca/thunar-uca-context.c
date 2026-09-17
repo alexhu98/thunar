@@ -18,7 +18,7 @@
  * Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <thunar/thunar-uca-context.h>
+#include <thunar-uca/thunar-uca-context.h>
 #include <thunarx/thunarx.h>
 
 

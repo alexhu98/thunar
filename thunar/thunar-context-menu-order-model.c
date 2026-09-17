@@ -19,12 +19,12 @@
 
 #include "thunar/thunar-context-menu-order-model.h"
 
+#include "thunar-uca/thunar-uca-model.h"
 #include "thunar/thunar-action-manager.h"
 #include "thunar/thunar-details-view.h"
 #include "thunar/thunar-preferences.h"
 #include "thunar/thunar-private.h"
 #include "thunar/thunar-standard-view.h"
-#include "thunar/thunar-uca-model.h"
 #include "thunar/thunar-util.h"
 #include "thunar/thunar-window.h"
 

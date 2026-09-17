@@ -26,6 +26,7 @@
 #include <locale.h>
 #endif
 
+#include "thunar-uca/thunar-uca-model.h"
 #include "thunar/thunar-action-manager.h"
 #include "thunar/thunar-application.h"
 #include "thunar/thunar-browser.h"
@@ -58,7 +59,6 @@
 #include "thunar/thunar-thumbnailer.h"
 #include "thunar/thunar-toolbar-order-editor.h"
 #include "thunar/thunar-tree-pane.h"
-#include "thunar/thunar-uca-model.h"
 #include "thunar/thunar-util.h"
 #include "thunar/thunar-window.h"
 
