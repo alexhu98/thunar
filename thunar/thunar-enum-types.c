@@ -28,6 +28,9 @@ static void
 thunar_icon_size_from_zoom_level (const GValue *src_value,
                                   GValue       *dst_value);
 static void
+thunar_font_scale_from_zoom_level (const GValue *src_value,
+                                   GValue       *dst_value);
+static void
 thunar_thumbnail_size_from_icon_size (const GValue *src_value,
                                       GValue       *dst_value);
 static ThunarIconSize
@@ -355,6 +358,9 @@ thunar_zoom_level_get_type (void)
 
       /* register transformation function for ThunarZoomLevel->ThunarIconSize */
       g_value_register_transform_func (type, THUNAR_TYPE_ICON_SIZE, thunar_icon_size_from_zoom_level);
+
+      /* register transformation function for ThunarZoomLevel->gdouble (font "scale" for GtkCellRendererText) */
+      g_value_register_transform_func (type, G_TYPE_DOUBLE, thunar_font_scale_from_zoom_level);
     }
 
   return type;
@@ -541,6 +547,55 @@ thunar_zoom_level_to_icon_size (ThunarZoomLevel zoom_level)
 
 
 
+/**
+ * thunar_zoom_level_to_font_scale:
+ * @zoom_level : a #ThunarZoomLevel.
+ *
+ * Returns the Pango font scale factor corresponding to the @zoom_level,
+ * so file name labels grow and shrink together with the icons.
+ *
+ * For small scales, we don't want to shrink the text too much so that it
+ * remains legible. For large scales, scale the text directly according to the
+ * zoom level.
+ *
+ * Return value: the font scale factor for @zoom_level.
+ **/
+static gdouble
+thunar_zoom_level_to_font_scale (ThunarZoomLevel zoom_level)
+{
+  switch (zoom_level)
+    {
+    case THUNAR_ZOOM_LEVEL_25_PERCENT:
+      return 0.70;
+    case THUNAR_ZOOM_LEVEL_38_PERCENT:
+      return 0.78;
+    case THUNAR_ZOOM_LEVEL_50_PERCENT:
+      return 0.85;
+    case THUNAR_ZOOM_LEVEL_75_PERCENT:
+      return 0.92;
+    case THUNAR_ZOOM_LEVEL_100_PERCENT:
+      return 1.00;
+    case THUNAR_ZOOM_LEVEL_150_PERCENT:
+      return 1.50;
+    case THUNAR_ZOOM_LEVEL_200_PERCENT:
+      return 2.00;
+    case THUNAR_ZOOM_LEVEL_250_PERCENT:
+      return 2.50;
+    case THUNAR_ZOOM_LEVEL_300_PERCENT:
+      return 3.00;
+    case THUNAR_ZOOM_LEVEL_400_PERCENT:
+      return 4.00;
+    case THUNAR_ZOOM_LEVEL_800_PERCENT:
+      return 8.00;
+    case THUNAR_ZOOM_LEVEL_1600_PERCENT:
+      return 16.00;
+    default:
+      return 1.00; // default = 100 %zoom
+    }
+}
+
+
+
 gint
 thunar_zoom_level_to_view_margin (ThunarZoomLevel zoom_level)
 {
@@ -599,6 +654,15 @@ thunar_icon_size_from_zoom_level (const GValue *src_value,
                                   GValue       *dst_value)
 {
   g_value_set_enum (dst_value, thunar_zoom_level_to_icon_size (g_value_get_enum (src_value)));
+}
+
+
+
+static void
+thunar_font_scale_from_zoom_level (const GValue *src_value,
+                                   GValue       *dst_value)
+{
+  g_value_set_double (dst_value, thunar_zoom_level_to_font_scale (g_value_get_enum (src_value)));
 }
 
 
