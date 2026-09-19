@@ -93,7 +93,6 @@ thunar/thunar-window.c
 thunar-uca/thunar-uca-base-provider.c
 thunar-uca/thunar-uca-context.c
 thunar-uca/thunar-uca-model.c
-thunar-uca/thunar-uca-plugin.c
 thunar-uca/uca.xml.in
 
 thunarx/thunarx-property-page.c
