@@ -554,9 +554,8 @@ thunar_zoom_level_to_icon_size (ThunarZoomLevel zoom_level)
  * Returns the Pango font scale factor corresponding to the @zoom_level,
  * so file name labels grow and shrink together with the icons.
  *
- * For small scales, we don't want to shrink the text too much so that it
- * remains legible. For large scales, scale the text directly according to the
- * zoom level.
+ * For small scales, we don't go below 1x scale, to keep things readable.
+ * For large scales, scale the text directly according to the zoom level.
  *
  * Return value: the font scale factor for @zoom_level.
  **/
@@ -566,13 +565,13 @@ thunar_zoom_level_to_font_scale (ThunarZoomLevel zoom_level)
   switch (zoom_level)
     {
     case THUNAR_ZOOM_LEVEL_25_PERCENT:
-      return 0.70;
+      return 1.00;
     case THUNAR_ZOOM_LEVEL_38_PERCENT:
-      return 0.78;
+      return 1.00;
     case THUNAR_ZOOM_LEVEL_50_PERCENT:
-      return 0.85;
+      return 1.00;
     case THUNAR_ZOOM_LEVEL_75_PERCENT:
-      return 0.92;
+      return 1.00;
     case THUNAR_ZOOM_LEVEL_100_PERCENT:
       return 1.00;
     case THUNAR_ZOOM_LEVEL_150_PERCENT:
