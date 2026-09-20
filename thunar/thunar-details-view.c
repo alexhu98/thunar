@@ -382,6 +382,7 @@ thunar_details_view_init (ThunarDetailsView *details_view)
   g_object_bind_property (G_OBJECT (THUNAR_STANDARD_VIEW (details_view)->preferences), "misc-highlighting-enabled",
                           G_OBJECT (right_aligned_renderer), "highlighting-enabled",
                           G_BINDING_SYNC_CREATE);
+  g_object_bind_property (G_OBJECT (details_view), "zoom-level", G_OBJECT (right_aligned_renderer), "scale", G_BINDING_SYNC_CREATE);
   g_object_ref_sink (G_OBJECT (right_aligned_renderer));
 
   /* allocate the shared left-aligned text renderer */
@@ -394,6 +395,7 @@ thunar_details_view_init (ThunarDetailsView *details_view)
   g_object_bind_property (G_OBJECT (THUNAR_STANDARD_VIEW (details_view)->preferences), "misc-highlighting-enabled",
                           G_OBJECT (left_aligned_renderer), "highlighting-enabled",
                           G_BINDING_SYNC_CREATE);
+  g_object_bind_property (G_OBJECT (details_view), "zoom-level", G_OBJECT (left_aligned_renderer), "scale", G_BINDING_SYNC_CREATE);
   g_object_ref_sink (G_OBJECT (left_aligned_renderer));
 
   /* allocate the tree view columns */
