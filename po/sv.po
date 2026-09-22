@@ -3616,7 +3616,7 @@ msgstr "Fel vid kopiering till \"%s\": %s mer utrymme krävs för att kopiera ti
 #: thunar/thunar-transfer-job.c:1196
 #, c-format
 msgid "Restoring \"%s\""
-msgstr ""
+msgstr "Återskapar \"%s\""
 
 #: thunar/thunar-transfer-job.c:1224
 #, c-format
@@ -3634,7 +3634,7 @@ msgstr "Misslyckades med att återställa mappen \"%s\""
 #: thunar/thunar-transfer-job.c:1327
 #, c-format
 msgid "Moving \"%s\""
-msgstr ""
+msgstr "Flyttar \"%s\""
 
 #. update progress information
 #: thunar/thunar-transfer-job.c:1412
