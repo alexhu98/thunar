@@ -1250,11 +1250,11 @@ msgstr "Összes átne_vezése"
 
 #: thunar/thunar-dialogs.c:671 thunar/thunar-dialogs.c:828
 msgid "_Merge"
-msgstr ""
+msgstr "_Egyesítés"
 
 #: thunar/thunar-dialogs.c:675
 msgid "_Merge All"
-msgstr ""
+msgstr "Összes _egyesítése"
 
 #: thunar/thunar-dialogs.c:679 thunar/thunar-permissions-chooser.c:569
 msgid "_No"
@@ -1306,7 +1306,7 @@ msgstr "Link lecserélése itt: „%s”"
 #: thunar/thunar-dialogs.c:922
 #, c-format
 msgid "Merge the existing folder in \"%s\""
-msgstr ""
+msgstr "Jelenlegi mappa egyesítése ide: „%s”"
 
 #. TRANSLATORS: First part of replace dialog sentence
 #: thunar/thunar-dialogs.c:925
