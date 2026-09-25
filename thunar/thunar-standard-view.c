@@ -2091,10 +2091,17 @@ thunar_standard_view_set_loading (ThunarStandardView *standard_view,
             }
           else
             {
-              /* look for a first visible file in the hash table */
+              /* Only restore the previous scroll position if we are navigating to the
+               * parent of the directory we just came from. */
+              ThunarFile *previous_directory = thunar_history_peek_forward (standard_view->priv->history);
+              if (previous_directory == NULL)
+                previous_directory = thunar_history_peek_back (standard_view->priv->history);
+
               current_directory = thunar_navigator_get_current_directory (THUNAR_NAVIGATOR (standard_view));
-              if (G_LIKELY (current_directory != NULL))
+              if (G_LIKELY (current_directory != NULL && previous_directory != NULL
+                            && thunar_file_is_parent (current_directory, previous_directory)))
                 {
+                  /* look for a first visible file in the hash table */
                   first_file = g_hash_table_lookup (standard_view->priv->scroll_to_files, thunar_file_get_file (current_directory));
                   if (G_LIKELY (first_file != NULL))
                     {
@@ -2106,6 +2113,9 @@ thunar_standard_view_set_loading (ThunarStandardView *standard_view,
                         }
                     }
                 }
+
+              if (previous_directory != NULL)
+                g_object_unref (previous_directory);
             }
         }
 
