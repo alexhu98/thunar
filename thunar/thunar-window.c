@@ -3252,7 +3252,10 @@ thunar_window_focus_view (ThunarWindow *window,
   _thunar_return_if_fail (THUNAR_IS_WINDOW (window));
 
   if (!thunar_window_split_view_is_active (window))
-    return;
+    {
+      gtk_widget_grab_focus (window->view);
+      return;
+    }
 
   selected_notebook = gtk_widget_get_ancestor (view, GTK_TYPE_NOTEBOOK);
   if (selected_notebook == window->notebook_selected)

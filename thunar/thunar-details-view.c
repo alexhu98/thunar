@@ -995,9 +995,6 @@ thunar_details_view_button_press_event (GtkTreeView       *tree_view,
             on_expander = (rect.width - event->x <= edge_to_expander_region_width);
         }
 
-      /* grab the tree view */
-      gtk_widget_grab_focus (GTK_WIDGET (tree_view));
-
       thunar_standard_view_preload_neighboring_preview_images (THUNAR_STANDARD_VIEW (details_view), model, path);
 
       gtk_tree_view_get_cursor (tree_view, &cursor_path, NULL);
