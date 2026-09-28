@@ -3604,7 +3604,7 @@ msgstr "\"%s\" ішіне көшіру қатесі: Мақсат орналас
 #: thunar/thunar-transfer-job.c:1196
 #, c-format
 msgid "Restoring \"%s\""
-msgstr ""
+msgstr "\"%s\" қалпына келтіру"
 
 #: thunar/thunar-transfer-job.c:1224
 #, c-format
@@ -3622,7 +3622,7 @@ msgstr "\"%s\" бумасын қалпына келтіру сәтсіз аяқ�
 #: thunar/thunar-transfer-job.c:1327
 #, c-format
 msgid "Moving \"%s\""
-msgstr ""
+msgstr "\"%s\" жылжыту"
 
 #. update progress information
 #: thunar/thunar-transfer-job.c:1412
