@@ -3,13 +3,14 @@
 # This file is distributed under the same license as the thunar.master package.
 # 
 # Translators:
+# BoneNI, 2026
 msgid ""
 msgstr ""
 "Project-Id-Version: Thunar\n"
 "Report-Msgid-Bugs-To: https://gitlab.xfce.org/\n"
 "POT-Creation-Date: 2026-09-13 00:50+0200\n"
 "PO-Revision-Date: 2013-07-02 20:11+0000\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Last-Translator: BoneNI, 2026\n"
 "Language-Team: Lao (http://app.transifex.com/xfce/thunar/language/lo/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -960,7 +961,7 @@ msgstr "ບໍ່ມີຫຍັງໃນຄລິບບອດທີ່ຈະວ
 
 #: thunar/thunar-clipboard-manager.c:417
 msgid "Selection."
-msgstr ""
+msgstr "ການເລືອກ."
 
 #. reset page title
 #. tell the user that we're unable to determine the file info
@@ -1030,35 +1031,35 @@ msgid ""
 "grouped into sections. Note that most context menu items only will be shown "
 "conditionally, based on the file type, the number of selected items and "
 "other criteria."
-msgstr ""
+msgstr "ການກຳນົດລຳດັບ ແລະ ການສະແດງຜົນຂອງອົງປະກອບເມນູບໍລິບົດ. ລາຍການເມນູແມ່ນຖືກຈັດເປັນໝວດໝູ່. ໃຫ້ໝາຍເຫດໄວ້ວ່າ ລາຍການເມນູບໍລິບົດສ່ວນໃຫຍ່ຈະສະແດງຂຶ້ນຕາມເງື່ອນໄຂ, ໂດຍອີງຕາມປະເພດໄຟລ໌, ຈຳນວນລາຍການທີ່ເລືອກ ແລະ ເງື່ອນໄຂອື່ນໆ."
 
 #: thunar/thunar-context-menu-order-editor.c:127 thunar/thunar-window.c:700
 msgid "Configure the context menu"
-msgstr ""
+msgstr "ກຳນົດຄ່າເມນູບໍລິບົດ"
 
 #: thunar/thunar-context-menu-order-editor.c:155
 #: thunar/thunar-context-menu-order-editor.c:156
 msgid "Add separator"
-msgstr ""
+msgstr "ເພີ່ມເສັ້ນຂັ້ນ"
 
 #: thunar/thunar-context-menu-order-editor.c:163
 #: thunar/thunar-toolbar-order-editor.c:200 thunar/thunar-uca-chooser.c:203
 msgid "Add custom action"
-msgstr ""
+msgstr "ເພີ່ມການກະທຳກຳນົດເອງ"
 
 #: thunar/thunar-context-menu-order-editor.c:164
 #: thunar/thunar-toolbar-order-editor.c:201 thunar/thunar-uca-chooser.c:204
 msgid "Add user custom action"
-msgstr ""
+msgstr "ເພີ່ມການກະທຳກຳນົດເອງຂອງຜູ້ໃຊ້"
 
 #: thunar/thunar-context-menu-order-editor.c:221
 #: thunar/thunar-toolbar-order-editor.c:294
 msgid "Custom user action"
-msgstr ""
+msgstr "ການກະທຳກຳນົດເອງຂອງຜູ້ໃຊ້"
 
 #: thunar/thunar-context-menu-order-model.c:150
 msgid "--- Separator ---"
-msgstr ""
+msgstr "--- ເສັ້ນຂັ້ນ ---"
 
 #: thunar/thunar-dbus-service.c:555
 #, c-format
@@ -1321,16 +1322,16 @@ msgstr "/ທີ່ສັ່ງລັນໄດ້"
 #, c-format
 msgid ""
 "The desktop file %s is in an insecure location and not marked as secure %s"
-msgstr ""
+msgstr "ໄຟລ໌ເດັສທັອບ %s ແມ່ນຢູ່ໃນຕຳແໜ່ງທີ່ບໍ່ປອດໄພ ແລະ ບໍ່ໄດ້ໝາຍວ່າປອດໄພ %s"
 
 #. EXEC Command or URL
 #: thunar/thunar-dialogs.c:1144
 msgid "launch command for the untrusted launcher"
-msgstr ""
+msgstr "ຄຳສັ່ງເປີດໃຊ້ງານສຳລັບຕົວເປີດທີ່ບໍ່ໜ້າເຊື່ອຖື"
 
 #: thunar/thunar-dialogs.c:1165
 msgid "If you do not trust this program, click Cancel"
-msgstr ""
+msgstr "ຖ້າຫາກທ່ານບໍ່ເຊື່ອຖືໂປຣແກຣມນີ້, ໃຫ້ກົດ ຍົກເລີກ"
 
 #: thunar/thunar-dialogs.c:1249
 msgid "Close split pane with multiple tabs?"
@@ -3350,11 +3351,11 @@ msgstr "ຈັດລຽງໂຟນເດີໄວ້ກ່ອນໄຟລ໌"
 
 #: thunar/thunar-standard-view.c:515
 msgid "_Hidden Files Last"
-msgstr ""
+msgstr "_ໄຟລ໌ເຊື່ອງໄວ້ຢູ່ທ້າຍສຸດ"
 
 #: thunar/thunar-standard-view.c:515
 msgid "Sort hidden files after other files"
-msgstr ""
+msgstr "ຈັດຮຽງໄຟລ໌ເຊື່ອງໄວ້ຕາມຫຼັງໄຟລ໌ອື່ນໆ"
 
 #. TRANSLATORS: You can swap the order of the arguments if required.
 #: thunar/thunar-standard-view.c:1426
@@ -3570,7 +3571,7 @@ msgstr "ເກີດຂໍ້ຜິດພາດຂະນະສຳເນົາໄ
 #: thunar/thunar-transfer-job.c:1196
 #, c-format
 msgid "Restoring \"%s\""
-msgstr ""
+msgstr "ກຳລັງກູ້ຄືນ \"%s\""
 
 #: thunar/thunar-transfer-job.c:1224
 #, c-format
@@ -3588,7 +3589,7 @@ msgstr "ກູ້ຄືນໂຟນເດີ \"%s\" ບໍ່ສຳເລັດ"
 #: thunar/thunar-transfer-job.c:1327
 #, c-format
 msgid "Moving \"%s\""
-msgstr ""
+msgstr "ກຳລັງຍ້າຍ \"%s\""
 
 #. update progress information
 #: thunar/thunar-transfer-job.c:1412
@@ -3640,7 +3641,7 @@ msgid ""
 "These actions are applicable to folders or certain kinds of files.\n"
 "\n"
 "Use the context menu configuration dialog or the toolbar configuration dialog to change the order of the actions."
-msgstr ""
+msgstr "ກຳນົດຄ່າການກະທຳກຳນົດເອງທີ່ຈະປະກົດຂຶ້ນໃນເມນູບໍລິບົດ ແລະ/ຫຼື ແຖບເຄື່ອງມືຂອງຕົວຈັດການໄຟລ໌.\nການກະທຳເຫຼົ່ານີ້ສາມາດນຳໃຊ້ໄດ້ກັບໂຟນເດີ ຫຼື ໄຟລ໌ບາງປະເພດ."
 
 #: thunar/thunar-uca-chooser.c:191
 msgid "Custom Actions"
@@ -3675,23 +3676,23 @@ msgstr "ບັນທຶກການກະທຳລົງດິສກ໌ບໍ່
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Editing is not possible"
-msgstr ""
+msgstr "ບໍ່ສາມາດແກ້ໄຂໄດ້"
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Unable to apply changes, close other settings dialogs before editing."
-msgstr ""
+msgstr "ບໍ່ສາມາດນຳໃຊ້ການປ່ຽນແປງໄດ້, ກະລຸນາປິດກ່ອງຂໍ້ຄວາມການຕັ້ງຄ່າອື່ນໆກ່ອນທີ່ຈະແກ້ໄຂ."
 
 #: thunar/thunar-uca-editor.c:878
 msgid "Are you sure you want to delete the selected items?"
-msgstr ""
+msgstr "ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການລຶບລາຍການທີ່ເລືອກໄວ້?"
 
 #: thunar/thunar-uca-editor.c:880
 msgid "Delete selected items"
-msgstr ""
+msgstr "ລຶບລາຍການທີ່ເລືອກ"
 
 #: thunar/thunar-uca-editor.c:881
 msgid "Deleted items will be permanently lost."
-msgstr ""
+msgstr "ລາຍການທີ່ຖືກລຶບຈະສູນຫາຍໄປຢ່າງຖາວອນ."
 
 #: thunar/thunar-uca-model.c:758
 msgid "End element handler called while in root context"
@@ -3978,7 +3979,7 @@ msgstr "ຄົ້ນຫາ:"
 #, c-format
 msgid "%s (%d hidden)"
 msgid_plural "%s (%d hidden)"
-msgstr[0] ""
+msgstr[0] "%s (ເຊື່ອງໄວ້ %d)"
 
 #: thunar/thunar-util.c:1352
 #, c-format
@@ -4204,7 +4205,7 @@ msgstr "ຕັ້ງຄ່າແຖບເຄື່ອງມື"
 
 #: thunar/thunar-window.c:700
 msgid "Configure context _menu..."
-msgstr ""
+msgstr "ກຳນົດຄ່າ_ເມນູບໍລິບົດ..."
 
 #: thunar/thunar-window.c:701
 msgid "Cl_ear Saved Folder View Settings"
