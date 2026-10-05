@@ -50,8 +50,9 @@ main (int argc, char **argv)
   /* setup translation domain */
   xfce_textdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR, "UTF-8");
 
-  /* setup application name */
+  /* setup application name and prgname */
   g_set_application_name (_("Thunar"));
+  g_set_prgname ("Thunar");
 
   /* initialize xfconf */
   xfconf_initialized = xfconf_init (&error);

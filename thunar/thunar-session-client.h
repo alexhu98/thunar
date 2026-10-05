@@ -21,6 +21,7 @@
 #define __THUNAR_SESSION_CLIENT_H__
 
 #include <glib-object.h>
+#include <gtk/gtk.h>
 
 G_BEGIN_DECLS;
 
@@ -38,6 +39,10 @@ GType
 thunar_session_client_get_type (void);
 ThunarSessionClient *
 thunar_session_client_new (const gchar *session_id) G_GNUC_MALLOC;
+
+void
+thunar_session_client_add_window (ThunarSessionClient *session_client,
+                                  GtkWindow           *window);
 
 G_END_DECLS;
 

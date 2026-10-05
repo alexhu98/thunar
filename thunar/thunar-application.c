@@ -1717,6 +1717,9 @@ thunar_application_open_window (ThunarApplication *application,
                          "screen", screen,
                          NULL);
 
+  /* add the window to the session */
+  thunar_session_client_add_window (application->session_client, GTK_WINDOW (window));
+
   /* The accel map will be loaded after the first window is created */
   /* For some reason it is important to do so only AFTER creation of the window! */
   /* When loaded, the accelerators of the first window need to be reconnected */

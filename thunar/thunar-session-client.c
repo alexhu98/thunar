@@ -28,14 +28,12 @@
 #include <string.h>
 #endif
 
-#ifdef ENABLE_LIBSM
-#include <X11/SM/SMlib.h>
-#include <gdk/gdkx.h>
+#ifdef ENABLE_SESSION_MANAGEMENT
+#include <libxfce4session-client/libxfce4session-client.h>
 #endif
 
 #include "thunar/thunar-application.h"
 #include "thunar/thunar-file.h"
-#include "thunar/thunar-ice.h"
 #include "thunar/thunar-private.h"
 #include "thunar/thunar-session-client.h"
 
@@ -45,29 +43,19 @@
 
 static void
 thunar_session_client_finalize (GObject *object);
-#ifdef ENABLE_LIBSM
+#ifdef ENABLE_SESSION_MANAGEMENT
 static gboolean
 thunar_session_client_connect (ThunarSessionClient *session_client,
                                const gchar         *previous_id);
 static void
 thunar_session_client_restore (ThunarSessionClient *session_client);
 static void
-thunar_session_client_die (SmcConn              connection,
-                           ThunarSessionClient *session_client);
+thunar_session_client_quit (XfceSessionClient   *client,
+                            ThunarSessionClient *session_client);
 static void
-thunar_session_client_save_complete (SmcConn              connection,
-                                     ThunarSessionClient *session_client);
-static void
-thunar_session_client_save_yourself (SmcConn              connection,
-                                     ThunarSessionClient *session_client,
-                                     gint                 save_type,
-                                     Bool                 shutdown,
-                                     gint                 interact_style,
-                                     Bool                 fast);
-static void
-thunar_session_client_shutdown_cancelled (SmcConn              connection,
-                                          ThunarSessionClient *session_client);
-#endif /* !ENABLE_LIBSM */
+thunar_session_client_save_state (XfceSessionClient   *client,
+                                  ThunarSessionClient *session_client);
+#endif /* !ENABLE_SESSION_MANAGEMENT */
 
 
 
@@ -83,8 +71,9 @@ struct _ThunarSessionClient
   gchar *path;
   gchar *id;
 
-#ifdef ENABLE_LIBSM
-  SmcConn connection;
+#ifdef ENABLE_SESSION_MANAGEMENT
+  XfceSessionClient *client;
+  gboolean           discard_on_finalize;
 #endif
 };
 
@@ -108,8 +97,11 @@ thunar_session_client_class_init (ThunarSessionClientClass *klass)
 static void
 thunar_session_client_init (ThunarSessionClient *session_client)
 {
-  /* initialize the ICE layer */
-  thunar_ice_init ();
+#ifdef ENABLE_SESSION_MANAGEMENT
+  /* if thunar quits due to a user request, we need to ask the */
+  /* compositor/SM to forget the session data. */
+  session_client->discard_on_finalize = TRUE;
+#endif
 }
 
 
@@ -119,11 +111,15 @@ thunar_session_client_finalize (GObject *object)
 {
   ThunarSessionClient *session_client = THUNAR_SESSION_CLIENT (object);
 
-#ifdef ENABLE_LIBSM
+#ifdef ENABLE_SESSION_MANAGEMENT
   /* disconnect from the session manager */
-  if (G_LIKELY (session_client->connection != NULL))
-    SmcCloseConnection (session_client->connection, 0, NULL);
-#endif /* !ENABLE_LIBSM */
+  if (G_LIKELY (session_client->client != NULL))
+    {
+      if (session_client->discard_on_finalize)
+        xfce_session_client_discard (session_client->client);
+      g_object_unref (session_client->client);
+    }
+#endif /* !ENABLE_SESSION_MANAGEMENT */
 
   /* release internal state */
   g_free (session_client->path);
@@ -134,129 +130,89 @@ thunar_session_client_finalize (GObject *object)
 
 
 
-#ifdef ENABLE_LIBSM
+#ifdef ENABLE_SESSION_MANAGEMENT
 static gboolean
 thunar_session_client_connect (ThunarSessionClient *session_client,
                                const gchar         *previous_id)
 {
-  SmcCallbacks session_callbacks;
-  SmPropValue  value_discard[3];
-  SmPropValue  value_restart[4];
-  SmPropValue  value_userid[1];
-  SmPropValue  value_priority[1];
-  SmProp      *properties[6];
-  SmProp       prop_clone;
-  SmProp       prop_discard;
-  SmProp       prop_program;
-  SmProp       prop_restart;
-  SmProp       prop_userid;
-  SmProp       prop_priority;
-  gchar        error_string[1];
-  gchar       *spec;
-  gchar       *id = NULL;
+  session_client->client = xfce_session_client_new_full (XFCE_SESSION_CLIENT_RESTART_NORMAL,
+                                                         XFCE_SESSION_CLIENT_PRIORITY_DEFAULT,
+                                                         previous_id,
+                                                         NULL,
+                                                         NULL,
+                                                         DATADIR "/applications/" PACKAGE_NAME ".desktop");
+  g_signal_connect (session_client->client, "save-state", G_CALLBACK (thunar_session_client_save_state), session_client);
+  g_signal_connect (session_client->client, "quit", G_CALLBACK (thunar_session_client_quit), session_client);
 
-  /* setup the session client callbacks */
-  session_callbacks.die.callback = (SmcDieProc) thunar_session_client_die;
-  session_callbacks.die.client_data = session_client;
-  session_callbacks.save_complete.callback = (SmcSaveCompleteProc) thunar_session_client_save_complete;
-  session_callbacks.save_complete.client_data = session_client;
-  session_callbacks.save_yourself.callback = (SmcSaveYourselfProc) thunar_session_client_save_yourself;
-  session_callbacks.save_yourself.client_data = session_client;
-  session_callbacks.shutdown_cancelled.callback = (SmcShutdownCancelledProc) thunar_session_client_shutdown_cancelled;
-  session_callbacks.shutdown_cancelled.client_data = session_client;
-
-  /* try to establish a connection to the session manager */
-  session_client->connection = SmcOpenConnection (NULL, NULL, SmProtoMajor, SmProtoMinor, SmcDieProcMask | SmcSaveCompleteProcMask | SmcSaveYourselfProcMask | SmcShutdownCancelledProcMask, &session_callbacks,
-                                                  (gchar *) previous_id, &id, sizeof (error_string), error_string);
-  if (G_UNLIKELY (session_client->connection == NULL))
-    return FALSE;
-
-  /* tell GDK about our new session id */
-  gdk_x11_set_sm_client_id (id);
+  if (!xfce_session_client_connect (session_client->client, NULL))
+    {
+      g_clear_object (&session_client->client);
+      return FALSE;
+    }
 
   /* remember the returned client id */
-  session_client->id = id;
+  session_client->id = g_strdup (xfce_session_client_get_client_id (session_client->client));
+  const gchar *restart_command[] = {
+    "Thunar",
+    "--sm-client-id",
+    session_client->id,
+    "--daemon",
+    NULL,
+  };
+  xfce_session_client_set_restart_command (session_client->client, restart_command);
 
-  /* determine the session file path */
-  spec = g_strconcat ("sessions/Thunar-", session_client->id, NULL);
-  session_client->path = xfce_resource_save_location (XFCE_RESOURCE_CACHE, spec, TRUE);
-  g_free (spec);
-
+  session_client->path = g_strdup (xfce_session_client_get_state_file (session_client->client));
   /* verify that we were able to create the path to the file */
   if (G_UNLIKELY (session_client->path == NULL))
     {
       /* disconnect from the session manager */
-      SmcCloseConnection (session_client->connection, 0, NULL);
-      session_client->connection = NULL;
+      g_clear_object (&session_client->client);
       return FALSE;
     }
 
-  /* SmCloneCommand (see SmRestartCommand) */
-  prop_clone.name = SmCloneCommand;
-  prop_clone.type = SmLISTofARRAY8;
-  prop_clone.num_vals = 1;
-  prop_clone.vals = &value_restart[0];
+  /* try to migrate from the old location, if it exists */
+  if (!g_file_test (session_client->path, G_FILE_TEST_EXISTS))
+    {
+      gchar *spec;
+      gchar *old_path;
 
-  /* SmDiscardCommand */
-  prop_discard.name = SmDiscardCommand;
-  prop_discard.type = SmLISTofARRAY8;
-  prop_discard.num_vals = G_N_ELEMENTS (value_discard);
-  prop_discard.vals = &value_discard[0];
-  value_discard[0].value = "rm";
-  value_discard[0].length = sizeof ("rm") - 1;
-  value_discard[1].value = "-f";
-  value_discard[1].length = sizeof ("-f") - 1;
-  value_discard[2].value = session_client->path;
-  value_discard[2].length = strlen (session_client->path);
+      spec = g_strconcat ("sessions/Thunar-", session_client->id, NULL);
+      old_path = xfce_resource_save_location (XFCE_RESOURCE_CACHE, spec, FALSE);
+      if (g_file_test (old_path, G_FILE_TEST_IS_REGULAR | G_FILE_TEST_IS_SYMLINK))
+        {
+          if (rename (old_path, session_client->path) < 0)
+            {
+              gchar *contents = NULL;
+              gsize  length = 0;
+              if (g_file_get_contents (old_path, &contents, &length, NULL)
+                  && g_file_set_contents (session_client->path, contents, length, NULL))
+                {
+                  unlink (old_path);
+                }
+              g_free (contents);
+            }
+        }
 
-  /* SmProgram (see SmRestartCommand) */
-  prop_program.name = SmProgram;
-  prop_program.type = SmARRAY8;
-  prop_program.num_vals = 1;
-  prop_program.vals = &value_restart[0];
-
-  /* SmRestartCommand */
-  prop_restart.name = SmRestartCommand;
-  prop_restart.type = SmLISTofARRAY8;
-  prop_restart.num_vals = G_N_ELEMENTS (value_restart);
-  prop_restart.vals = &value_restart[0];
-  value_restart[0].value = "Thunar";
-  value_restart[0].length = sizeof ("Thunar") - 1;
-  value_restart[1].value = "--sm-client-id";
-  value_restart[1].length = sizeof ("--sm-client-id") - 1;
-  value_restart[2].value = session_client->id;
-  value_restart[2].length = strlen (session_client->id);
-  value_restart[3].value = "--daemon";
-  value_restart[3].length = sizeof ("--daemon") - 1;
-
-  /* SmUserID */
-  prop_userid.name = SmUserID;
-  prop_userid.type = SmARRAY8;
-  prop_userid.num_vals = G_N_ELEMENTS (value_userid);
-  prop_userid.vals = &value_userid[0];
-  value_userid[0].value = (gchar *) g_get_user_name ();
-  value_userid[0].length = strlen (value_userid[0].value);
-
-  /* _GSM_Priority */
-  prop_priority.name = "_GSM_Priority";
-  prop_priority.type = SmCARD8;
-  prop_priority.num_vals = G_N_ELEMENTS (value_priority);
-  prop_priority.vals = &value_priority[0];
-  value_priority[0].value = "\36"; /* this is octal, 30 in decimal */
-  value_priority[0].length = 1;
-
-  /* setup the properties list */
-  properties[0] = &prop_clone;
-  properties[1] = &prop_discard;
-  properties[2] = &prop_program;
-  properties[3] = &prop_restart;
-  properties[4] = &prop_userid;
-  properties[5] = &prop_priority;
-
-  /* send the properties to the session manager */
-  SmcSetProperties (session_client->connection, G_N_ELEMENTS (properties), properties);
+      g_free (spec);
+      g_free (old_path);
+      ;
+    }
 
   return TRUE;
+}
+
+
+
+static void
+thunar_session_client_window_destroyed (ThunarSessionClient *session_client,
+                                        GtkWidget           *window)
+
+{
+  _thunar_return_if_fail (THUNAR_IS_SESSION_CLIENT (session_client));
+
+  const gchar *role = gtk_window_get_role (GTK_WINDOW (window));
+  if (session_client->client != NULL && role != NULL)
+    xfce_session_client_remove_window (session_client->client, role);
 }
 
 
@@ -301,6 +257,11 @@ thunar_session_client_restore (ThunarSessionClient *session_client)
 
       /* open the new window */
       window = g_object_new (THUNAR_TYPE_WINDOW, "role", roles[n], NULL);
+      if (session_client->client != NULL)
+        {
+          xfce_session_client_restore_window (session_client->client, GTK_WINDOW (window), roles[n]);
+          g_signal_connect_swapped (window, "destroy", G_CALLBACK (thunar_session_client_window_destroyed), session_client);
+        }
       thunar_application_take_window (application, GTK_WINDOW (window));
       gtk_widget_show (window);
 
@@ -332,37 +293,40 @@ thunar_session_client_restore (ThunarSessionClient *session_client)
 
 
 static void
-thunar_session_client_die (SmcConn              connection,
-                           ThunarSessionClient *session_client)
+thunar_session_client_quit (XfceSessionClient   *client,
+                            ThunarSessionClient *session_client)
 {
   ThunarApplication *application;
 
   _thunar_return_if_fail (THUNAR_IS_SESSION_CLIENT (session_client));
-  _thunar_return_if_fail (session_client->connection == connection);
+  _thunar_return_if_fail (session_client->client == client);
+
+  /* we are only quitting because the session manager is telling us to, */
+  /* not because the user is intentionally quitting. */
+  session_client->discard_on_finalize = FALSE;
 
   application = thunar_application_get ();
+
+  GList *windows = thunar_application_get_windows (application);
+  if (windows != NULL)
+    {
+      for (GList *lp = windows; lp != NULL; lp = lp->next)
+        {
+          /* ensure xfce_session_client_remove_window() isn't called during shutdown */
+          g_signal_handlers_disconnect_by_data (GTK_WINDOW (lp->data), client);
+        }
+
+      g_list_free (windows);
+    }
+
   thunar_application_quit (application);
 }
 
 
 
 static void
-thunar_session_client_save_complete (SmcConn              connection,
-                                     ThunarSessionClient *session_client)
-{
-  _thunar_return_if_fail (THUNAR_IS_SESSION_CLIENT (session_client));
-  _thunar_return_if_fail (session_client->connection == connection);
-}
-
-
-
-static void
-thunar_session_client_save_yourself (SmcConn              connection,
-                                     ThunarSessionClient *session_client,
-                                     gint                 save_type,
-                                     Bool                 shutdown,
-                                     gint                 interact_style,
-                                     Bool                 fast)
+thunar_session_client_save_state (XfceSessionClient   *client,
+                                  ThunarSessionClient *session_client)
 {
   ThunarApplication *application;
   const gchar       *role;
@@ -373,79 +337,62 @@ thunar_session_client_save_yourself (SmcConn              connection,
   gint               active_page;
 
   _thunar_return_if_fail (THUNAR_IS_SESSION_CLIENT (session_client));
-  _thunar_return_if_fail (session_client->connection == connection);
+  _thunar_return_if_fail (session_client->client == client);
 
-  /* check if we should save our current state */
-  if (save_type == SmSaveLocal || save_type == SmSaveBoth)
+  /* save the active windows */
+  application = thunar_application_get ();
+  windows = thunar_application_get_windows (application);
+
+  if (windows != NULL)
     {
-      /* save the active windows */
-      application = thunar_application_get ();
-      windows = thunar_application_get_windows (application);
-
-      if (windows != NULL)
+      /* try to open the session file for writing */
+      fp = fopen (session_client->path, "w");
+      if (G_LIKELY (fp != NULL))
         {
-          /* try to open the session file for writing */
-          fp = fopen (session_client->path, "w");
-          if (G_LIKELY (fp != NULL))
+          for (lp = windows; lp != NULL; lp = lp->next)
             {
-              for (lp = windows; lp != NULL; lp = lp->next)
+              /* determine the role for the window */
+              role = gtk_window_get_role (lp->data);
+              if (G_UNLIKELY (role == NULL))
+                continue;
+
+              /* determine the directories for the window */
+              uris = thunar_window_get_directories (lp->data, &active_page);
+              if (G_UNLIKELY (uris == NULL))
+                continue;
+
+              /* save the window */
+              fprintf (fp, "[%s]\n", role);
+              fprintf (fp, "PAGE=%d\n", active_page);
+              fprintf (fp, "URI=");
+              for (uri = uris; uri != NULL; uri = uri->next)
                 {
-                  /* determine the role for the window */
-                  role = gtk_window_get_role (lp->data);
-                  if (G_UNLIKELY (role == NULL))
-                    continue;
-
-                  /* determine the directories for the window */
-                  uris = thunar_window_get_directories (lp->data, &active_page);
-                  if (G_UNLIKELY (uris == NULL))
-                    continue;
-
-                  /* save the window */
-                  fprintf (fp, "[%s]\n", role);
-                  fprintf (fp, "PAGE=%d\n", active_page);
-                  fprintf (fp, "URI=");
-                  for (uri = uris; uri != NULL; uri = uri->next)
-                    {
-                      gchar *uri_string = uri->data;
-                      fprintf (fp, "%s", uri_string);
-                      if (G_LIKELY (uri->next != NULL))
-                        fprintf (fp, ";");
-                    }
-                  fprintf (fp, "\n\n");
-
-                  /* cleanup */
-                  g_list_free_full (uris, g_free);
+                  gchar *uri_string = uri->data;
+                  fprintf (fp, "%s", uri_string);
+                  if (G_LIKELY (uri->next != NULL))
+                    fprintf (fp, ";");
                 }
+              fprintf (fp, "\n\n");
 
               /* cleanup */
-              fclose (fp);
+              g_list_free_full (uris, g_free);
             }
 
-          g_list_free (windows);
-        }
-      else
-        {
-          /* no windows, remove the file */
-          g_unlink (session_client->path);
+          /* cleanup */
+          fclose (fp);
         }
 
-      g_object_unref (G_OBJECT (application));
+      g_list_free (windows);
+    }
+  else
+    {
+      /* no windows, remove the file */
+      g_unlink (session_client->path);
     }
 
-  /* tell the session manager that we're done */
-  SmcSaveYourselfDone (connection, True);
+  g_object_unref (G_OBJECT (application));
 }
-
-
-
-static void
-thunar_session_client_shutdown_cancelled (SmcConn              connection,
-                                          ThunarSessionClient *session_client)
-{
-  _thunar_return_if_fail (THUNAR_IS_SESSION_CLIENT (session_client));
-  _thunar_return_if_fail (session_client->connection == connection);
-}
-#endif /* !ENABLE_LIBSM */
+#endif /* !ENABLE_SESSION_MANAGEMENT */
 
 
 
@@ -468,11 +415,39 @@ thunar_session_client_new (const gchar *session_id)
   /* allocate a new session client */
   session_client = g_object_new (THUNAR_TYPE_SESSION_CLIENT, NULL);
 
-#ifdef ENABLE_LIBSM
+#ifdef ENABLE_SESSION_MANAGEMENT
   /* try to connect to the session manager and restore the previous session */
   if (thunar_session_client_connect (session_client, session_id) && session_id != NULL)
     thunar_session_client_restore (session_client);
-#endif /* !ENABLE_LIBSM */
+#endif /* !ENABLE_SESSION_MANAGEMENT */
 
   return session_client;
+}
+
+
+
+/**
+ * thunar_session_client_add_window:
+ * @session_client : The #ThunarSessionClient
+ * @window : A file manager window
+ *
+ * Adds @window to the session so the compositor can save and restore its WM
+ * state.
+ *
+ * Only call this on a brand-new window with a brand-new role set.
+ **/
+void
+thunar_session_client_add_window (ThunarSessionClient *session_client,
+                                  GtkWindow           *window)
+{
+  _thunar_return_if_fail (THUNAR_IS_SESSION_CLIENT (session_client));
+
+#ifdef ENABLE_SESSION_MANAGEMENT
+  const gchar *role = gtk_window_get_role (window);
+  if (session_client->client != NULL && role != NULL)
+    {
+      xfce_session_client_add_window (session_client->client, window, role);
+      g_signal_connect_swapped (window, "destroy", G_CALLBACK (thunar_session_client_window_destroyed), session_client);
+    }
+#endif /* !ENABLE_SESSION_MANAGEMENT */
 }

@@ -24,12 +24,11 @@ dependency_versions = {
   'gdk-pixbuf': '>= 2.42.8',
   'libxfce4ui': '>= 4.21.8',
   'libxfce4util': '>= 4.17.2',
+  'libxfce4session-client': '>= 4.21.2',
   'xfconf': '>= 4.12.0',
   'pango': '>= 1.38.0',
 
   'libx11': '>= 1.6.7',
-  'libsm': '>= 1.2.3',
-  'libice': '>= 1.0.10',
 
   'gir': '>= 1.72.0',
   'gudev': '>= 145',
@@ -70,15 +69,11 @@ foreach dep : x11_deps
 endforeach
 if enable_x11
   feature_cflags += '-DENABLE_X11=1'
+endif
 
-  libsm = dependency('sm', version: dependency_versions['libsm'], required: get_option('session-management'))
-  if libsm.found()
-    libice = dependency('ice', version: dependency_versions['libice'], required: get_option('session-management'))
-    if libice.found()
-      feature_cflags += '-DENABLE_LIBSM=1'
-      x11_deps += [libsm, libice]
-    endif
-  endif
+libxfce4session_client = dependency('libxfce4session-client-1', version: dependency_versions['libxfce4session-client'], required: get_option('session-management'))
+if libxfce4session_client.found()
+  feature_cflags += '-DENABLE_SESSION_MANAGEMENT'
 endif
 
 gio_unix = dependency('gio-unix-2.0', version: dependency_versions['glib'], required: get_option('gio-unix'))
