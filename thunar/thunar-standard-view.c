@@ -5164,6 +5164,7 @@ thunar_standard_view_highlight_option_changed (ThunarStandardView *standard_view
   GtkCellLayout        *layout = NULL;
   GtkCellLayoutDataFunc function = NULL;
   gboolean              show_highlight;
+  gint                  border_radius = -1;
   GtkStyleContext      *context = gtk_widget_get_style_context (view);
 
   if (GTK_IS_TREE_VIEW (view))
@@ -5179,6 +5180,17 @@ thunar_standard_view_highlight_option_changed (ThunarStandardView *standard_view
   if (standard_view->priv->css_provider == NULL)
     {
       standard_view->priv->css_provider = gtk_css_provider_new ();
+
+      /* Keep the existing size-dependent radius when CSS supplies no value. */
+      if (thunar_gtk_style_context_is_css_attribute_defined (standard_view->priv->css_provider,
+                                                             context, GTK_STATE_FLAG_NORMAL,
+                                                             GTK_STYLE_PROPERTY_BORDER_RADIUS))
+        gtk_style_context_get (context, GTK_STATE_FLAG_NORMAL,
+                               GTK_STYLE_PROPERTY_BORDER_RADIUS, &border_radius, NULL);
+
+      g_object_set (G_OBJECT (standard_view->icon_renderer), "border-radius", border_radius, NULL);
+      g_object_set (G_OBJECT (standard_view->name_renderer), "border-radius", border_radius, NULL);
+
       gtk_css_provider_load_from_data (
       standard_view->priv->css_provider,
       ".standard-view .view:selected { background-color: rgba(0,0,0,0); outline: rgba(0,0,0,0); }",

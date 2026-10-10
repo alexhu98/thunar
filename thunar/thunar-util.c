@@ -1009,7 +1009,8 @@ thunar_util_clip_view_background (GtkCellRenderer     *cell,
                                   cairo_t             *cr,
                                   const GdkRectangle  *background_area,
                                   GtkWidget           *widget,
-                                  GtkCellRendererState flags)
+                                  GtkCellRendererState flags,
+                                  gint                 border_radius)
 {
   GtkStyleContext *context;
   GdkRGBA         *color = NULL;
@@ -1036,6 +1037,9 @@ thunar_util_clip_view_background (GtkCellRenderer     *cell,
       thunar_util_determine_corner_properties (widget, cell,
                                                background_area->height, background_area->width,
                                                &radius, &side);
+
+      if (border_radius >= 0)
+        radius = border_radius;
 
       thunar_util_draw_rounded_corners (cr, background_area, radius, side);
     }

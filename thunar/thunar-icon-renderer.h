@@ -53,6 +53,7 @@ struct _ThunarIconRenderer
   gboolean       rounded_corners;
   gboolean       highlighting_enabled;
   gboolean       use_symbolic_icons;
+  gint           border_radius;
 };
 
 GType

@@ -39,6 +39,7 @@ enum
   PROP_SIZE,
   PROP_HIGHLIGHT_COLOR,
   PROP_ROUNDED_CORNERS,
+  PROP_BORDER_RADIUS,
   PROP_HIGHLIGHTING_ENABLED,
   PROP_USE_SYMBOLIC_ICONS,
 };
@@ -194,6 +195,21 @@ thunar_icon_renderer_class_init (ThunarIconRendererClass *klass)
 
 
   /**
+   * ThunarIconRenderer:border-radius:
+   *
+   * The GTK CSS border radius used for file highlighting.
+   */
+  g_object_class_install_property (gobject_class,
+                                   PROP_BORDER_RADIUS,
+                                   g_param_spec_int ("border-radius", "border-radius", "border-radius",
+                                                     -1,
+                                                     G_MAXINT,
+                                                     -1,
+                                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+
+
+  /**
    * ThunarIconRenderer:highlighting-enabled:
    *
    * Determines if the cell background should be drawn with highlight color.
@@ -225,6 +241,8 @@ thunar_icon_renderer_init (ThunarIconRenderer *icon_renderer)
 {
   /* use 1px padding */
   gtk_cell_renderer_set_padding (GTK_CELL_RENDERER (icon_renderer), 1, 1);
+
+  icon_renderer->border_radius = -1;
 }
 
 
@@ -284,6 +302,10 @@ thunar_icon_renderer_get_property (GObject    *object,
       g_value_set_boolean (value, icon_renderer->rounded_corners);
       break;
 
+    case PROP_BORDER_RADIUS:
+      g_value_set_int (value, icon_renderer->border_radius);
+      break;
+
     case PROP_HIGHLIGHTING_ENABLED:
       g_value_set_boolean (value, icon_renderer->highlighting_enabled);
       break;
@@ -341,6 +363,10 @@ thunar_icon_renderer_set_property (GObject      *object,
 
     case PROP_ROUNDED_CORNERS:
       icon_renderer->rounded_corners = g_value_get_boolean (value);
+      break;
+
+    case PROP_BORDER_RADIUS:
+      icon_renderer->border_radius = g_value_get_int (value);
       break;
 
     case PROP_HIGHLIGHTING_ENABLED:
@@ -506,7 +532,12 @@ thunar_icon_renderer_render (GtkCellRenderer     *renderer,
   g_object_get (renderer, "is-expanded", &is_expanded, NULL);
 
   if (THUNAR_ICON_RENDERER (renderer)->highlighting_enabled)
-    thunar_util_clip_view_background (renderer, cr, background_area, widget, flags);
+    thunar_util_clip_view_background (renderer,
+                                      cr,
+                                      background_area,
+                                      widget,
+                                      flags,
+                                      icon_renderer->border_radius);
 
   /* determine the icon state */
   icon_state = (icon_renderer->drop_file != icon_renderer->file)

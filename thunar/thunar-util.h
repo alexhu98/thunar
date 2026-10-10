@@ -110,7 +110,8 @@ thunar_util_clip_view_background (GtkCellRenderer     *cell,
                                   cairo_t             *cr,
                                   const GdkRectangle  *background_area,
                                   GtkWidget           *widget,
-                                  GtkCellRendererState flags);
+                                  GtkCellRendererState flags,
+                                  gint                 border_radius);
 gchar **
 thunar_util_split_search_query (const gchar *search_query_normalized,
                                 GError     **error);

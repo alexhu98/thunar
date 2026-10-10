@@ -27,6 +27,7 @@ enum
   PROP_0,
   PROP_HIGHLIGHT_COLOR,
   PROP_ROUNDED_CORNERS,
+  PROP_BORDER_RADIUS,
   PROP_HIGHLIGHTING_ENABLED,
 };
 
@@ -72,6 +73,7 @@ struct _ThunarTextRenderer
 
   gchar   *highlight_color;
   gboolean rounded_corners;
+  gint     border_radius;
   gboolean highlighting_enabled;
 };
 
@@ -123,6 +125,21 @@ thunar_text_renderer_class_init (ThunarTextRendererClass *klass)
 
 
   /**
+   * ThunarTextRenderer:border-radius:
+   *
+   * The GTK CSS border radius used for file highlighting.
+   */
+  g_object_class_install_property (object_class,
+                                   PROP_BORDER_RADIUS,
+                                   g_param_spec_int ("border-radius", "border-radius", "border-radius",
+                                                     -1,
+                                                     G_MAXINT,
+                                                     -1,
+                                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+
+
+  /**
    * ThunarTextRenderer:highlighting-enabled:
    *
    * Determines if the cell background should be drawn with highlight color.
@@ -140,6 +157,7 @@ static void
 thunar_text_renderer_init (ThunarTextRenderer *text_renderer)
 {
   text_renderer->highlight_color = NULL;
+  text_renderer->border_radius = -1;
 }
 
 
@@ -174,6 +192,10 @@ thunar_text_renderer_get_property (GObject    *object,
       g_value_set_boolean (value, text_renderer->rounded_corners);
       break;
 
+    case PROP_BORDER_RADIUS:
+      g_value_set_int (value, text_renderer->border_radius);
+      break;
+
     case PROP_HIGHLIGHTING_ENABLED:
       g_value_set_boolean (value, text_renderer->highlighting_enabled);
       break;
@@ -203,6 +225,10 @@ thunar_text_renderer_set_property (GObject      *object,
 
     case PROP_ROUNDED_CORNERS:
       text_renderer->rounded_corners = g_value_get_boolean (value);
+      break;
+
+    case PROP_BORDER_RADIUS:
+      text_renderer->border_radius = g_value_get_int (value);
       break;
 
     case PROP_HIGHLIGHTING_ENABLED:
@@ -244,7 +270,12 @@ thunar_text_renderer_render (GtkCellRenderer     *cell,
                              GtkCellRendererState flags)
 {
   if (THUNAR_TEXT_RENDERER (cell)->highlighting_enabled)
-    thunar_util_clip_view_background (cell, cr, background_area, widget, flags);
+    thunar_util_clip_view_background (cell,
+                                      cr,
+                                      background_area,
+                                      widget,
+                                      flags,
+                                      THUNAR_TEXT_RENDERER (cell)->border_radius);
 
   /* we only needed to manipulate the background_area, otherwise everything remains the same.
      Hence, we are simply running the original render function now */

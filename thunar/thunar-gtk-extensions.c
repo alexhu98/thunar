@@ -17,6 +17,8 @@
  * Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <limits.h>
+
 #ifdef HAVE_STDARG_H
 #include <stdarg.h>
 #endif
@@ -668,4 +670,83 @@ thunar_gtk_window_set_screen (GtkWindow *window,
   /* That is, because the window cannot be transient for a window on a different screen (workspace on that screen) */
   gtk_window_set_transient_for (window, NULL);
   gtk_window_set_screen (window, screen);
+}
+
+
+
+/**
+ * thunar_gtk_style_context_is_css_attribute_defined:
+ * @provider       : a scratch #GtkCssProvider, not currently attached to @context.
+ * @context        : a #GtkStyleContext.
+ * @state          : the state for which to check the attribute.
+ * @attribute_name : the CSS property name.
+ *
+ * Checks whether CSS overrides a fallback value for an integer length or RGBA
+ * colour property. Two different fallback values distinguish an undefined
+ * property from an explicit value equal to either fallback (including zero or
+ * transparent). Theme and user CSS both count as definitions.
+ *
+ * The contents of @provider are replaced; the caller may reuse it afterwards.
+ * Unsupported property types and invalid fallback declarations return %FALSE.
+ *
+ * Return value: %TRUE if the attribute overrides both fallback values.
+ **/
+gboolean
+thunar_gtk_style_context_is_css_attribute_defined (GtkCssProvider  *provider,
+                                                   GtkStyleContext *context,
+                                                   GtkStateFlags    state,
+                                                   const gchar     *attribute_name)
+{
+  GValue   values[2] = { G_VALUE_INIT, G_VALUE_INIT };
+  GValue   value = G_VALUE_INIT;
+  gchar   *css;
+  gboolean is_length;
+  gboolean defined = FALSE;
+  guint    i;
+
+  _thunar_return_val_if_fail (GTK_IS_CSS_PROVIDER (provider), FALSE);
+  _thunar_return_val_if_fail (GTK_IS_STYLE_CONTEXT (context), FALSE);
+  _thunar_return_val_if_fail (attribute_name != NULL, FALSE);
+
+  gtk_style_context_save (context);
+  gtk_style_context_set_state (context, state);
+  gtk_style_context_get_property (context, attribute_name, state, &value);
+  is_length = G_VALUE_HOLDS_INT (&value);
+  if (!is_length && !G_VALUE_HOLDS (&value, GDK_TYPE_RGBA))
+    goto out;
+
+  for (i = 0; i < G_N_ELEMENTS (values); ++i)
+    {
+      if (is_length)
+        css = g_strdup_printf ("* { %s: %dpx; }", attribute_name, i == 0 ? INT_MAX : 0);
+      else
+        css = g_strdup_printf ("* { %s: rgba(0, 0, 0, %u); }", attribute_name, i);
+
+      if (!gtk_css_provider_load_from_data (provider, css, -1, NULL))
+        {
+          g_free (css);
+          goto out;
+        }
+      g_free (css);
+
+      gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
+                                      GTK_STYLE_PROVIDER_PRIORITY_FALLBACK);
+      gtk_style_context_get_property (context, attribute_name, state, &values[i]);
+      gtk_style_context_remove_provider (context, GTK_STYLE_PROVIDER (provider));
+    }
+
+  if (is_length)
+    defined = g_value_get_int (&values[0]) == g_value_get_int (&values[1]);
+  else
+    defined = gdk_rgba_equal (g_value_get_boxed (&values[0]), g_value_get_boxed (&values[1]));
+
+out:
+  if (G_IS_VALUE (&value))
+    g_value_unset (&value);
+  for (i = 0; i < G_N_ELEMENTS (values); ++i)
+    if (G_IS_VALUE (&values[i]))
+      g_value_unset (&values[i]);
+  gtk_style_context_restore (context);
+
+  return defined;
 }

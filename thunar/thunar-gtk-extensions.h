@@ -70,6 +70,12 @@ thunar_gtk_window_set_screen (GtkWindow *window,
 void
 thunar_gtk_dialog_wrap_long_text (GtkDialog *dialog);
 
+gboolean
+thunar_gtk_style_context_is_css_attribute_defined (GtkCssProvider  *provider,
+                                                   GtkStyleContext *context,
+                                                   GtkStateFlags    state,
+                                                   const gchar     *attribute_name);
+
 G_END_DECLS;
 
 #endif /* !__THUNAR_GTK_EXTENSIONS_H__ */
