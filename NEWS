@@ -1,3 +1,38 @@
+4.21.7 (2026-10-10)
+======
+- Allow file highlight radius to follow GTK theme (#1901)
+- Use XfceSessionClient instead of custom session client
+- Grab view focus on click events (#1899)
+- Only restore list view scroll position when going back/up (#1803)
+- Adjust detailed view text on zoom on all columns
+- Adjust main view text size on zoom (#255)
+- thunar-uca-lib: Restoring UCA functionality in xfdesktop
+- Revert "Prevent possible use-after-free in tree-view-model"
+- Prevent possible crash when closing search (#1878)
+- Properly end empty-check on folder-change
+- Fix UI freeze when hovering a drag with remote URIs
+- Improve progress dialog message (#1885)
+- Respect skipped files in the progress dialog calculation (#578)
+- menu-order-uca: Implementation of UCA control via dialogs
+- menu-order-uca: Working UCA as an internal extension
+- menu-order-uca: Moving files from plugins/thunar-uca/ to thunar/
+- Improve untrusted launcher dialog (#1870)
+- Prevent possible use-after-free in tree-view-model
+- Fix compiler warning when building with -Dterminal=disabled
+- Fix a GFile leak in thunar_transfer_job_copy_file
+- Fix ThunarPreferences comments that were accidentally duplicated
+- Translation Updates:
+  Albanian, Arabic, Armenian, Armenian (Armenia), Asturian, Basque,
+  Belarusian, Bulgarian, Catalan, Chinese (China), Chinese (Hong Kong),
+  Chinese (Taiwan), Czech, Danish, Dutch, Eastern Armenian, English
+  (Australia), English (United Kingdom), Estonian, Finnish, French,
+  Galician, Georgian, German, Greek, Hebrew, Hungarian, Icelandic,
+  Indonesian, Interlingue, Italian, Japanese, Kazakh, Lao, Malay,
+  Norwegian Bokmål, Norwegian Nynorsk, Occitan (post 1500), Persian
+  (Iran), Polish, Portuguese, Portuguese (Brazil), Romanian, Serbian,
+  Slovak, Slovenian, Spanish, Swedish, Thai, Turkish, Uyghur, Venetian,
+  Vietnamese
+
 4.21.6 (2026-07-17)
 ======
 - Prevent use-after-free in list-view (#1861)
