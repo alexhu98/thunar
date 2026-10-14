@@ -4565,7 +4565,7 @@ msgstr "Velikost: "
 #. TRANSLATORS: `Catfish' is a software package, please don't translate it.
 #: thunar/thunar-window.c:1273
 msgid "Search with Catfish..."
-msgstr "Iskanje s Catfish..."
+msgstr "Iskanje s Catfish ..."
 
 #: thunar/thunar-window.c:1285
 msgid "Restore Selected Items"
