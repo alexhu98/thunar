@@ -17,7 +17,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: https://gitlab.xfce.org/\n"
 "POT-Creation-Date: 2026-09-13 00:50+0200\n"
 "PO-Revision-Date: 2013-07-02 20:11+0000\n"
-"Last-Translator: Luke Hollins <luke@farcry.ca>, 2015,2023,2026\n"
+"Last-Translator: Andi Chandler <andi@gowling.com>, 2017-2018,2023-2026\n"
 "Language-Team: English (United Kingdom) (http://app.transifex.com/xfce/thunar/language/en_GB/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3611,7 +3611,7 @@ msgstr "Error while copying to \"%s\": %s more space is required to copy to the 
 #: thunar/thunar-transfer-job.c:1196
 #, c-format
 msgid "Restoring \"%s\""
-msgstr ""
+msgstr "Restoring \"%s\""
 
 #: thunar/thunar-transfer-job.c:1224
 #, c-format
@@ -3629,7 +3629,7 @@ msgstr "Failed to restore the folder \"%s\""
 #: thunar/thunar-transfer-job.c:1327
 #, c-format
 msgid "Moving \"%s\""
-msgstr ""
+msgstr "Moving \"%s\""
 
 #. update progress information
 #: thunar/thunar-transfer-job.c:1412
@@ -3685,7 +3685,7 @@ msgid ""
 "These actions are applicable to folders or certain kinds of files.\n"
 "\n"
 "Use the context menu configuration dialog or the toolbar configuration dialog to change the order of the actions."
-msgstr ""
+msgstr "Configure custom actions that will appear in the file manager's context menus and/or toolbar.\nThese actions are applicable to folders or certain kinds of files.\n\nUse the context menu configuration dialogue or the toolbar configuration dialogue to change the order of the actions."
 
 #: thunar/thunar-uca-chooser.c:191
 msgid "Custom Actions"
@@ -3720,23 +3720,23 @@ msgstr "Failed to save actions to disk."
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Editing is not possible"
-msgstr ""
+msgstr "Editing is not possible"
 
 #: thunar/thunar-uca-editor.c:848
 msgid "Unable to apply changes, close other settings dialogs before editing."
-msgstr ""
+msgstr "Unable to apply changes, close other settings dialogues before editing."
 
 #: thunar/thunar-uca-editor.c:878
 msgid "Are you sure you want to delete the selected items?"
-msgstr ""
+msgstr "Are you sure you want to delete the selected items?"
 
 #: thunar/thunar-uca-editor.c:880
 msgid "Delete selected items"
-msgstr ""
+msgstr "Delete selected items"
 
 #: thunar/thunar-uca-editor.c:881
 msgid "Deleted items will be permanently lost."
-msgstr ""
+msgstr "Deleted items will be permanently lost."
 
 #: thunar/thunar-uca-model.c:758
 msgid "End element handler called while in root context"
