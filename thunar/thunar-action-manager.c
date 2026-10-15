@@ -1637,7 +1637,6 @@ thunar_action_manager_append_menu_item (ThunarActionManager      *action_mgr,
   gchar                    *label_text;
   gchar                    *tooltip_text;
   const XfceGtkActionEntry *action_entry = get_action_entry (action);
-  gboolean                  show_delete_item;
   gboolean                  show_item;
   ThunarClipboardManager   *clipboard;
   ThunarFile               *parent;
@@ -1798,9 +1797,6 @@ thunar_action_manager_append_menu_item (ThunarActionManager      *action_mgr,
 
 
     case THUNAR_ACTION_MANAGER_ACTION_DELETE:
-      g_object_get (G_OBJECT (action_mgr->preferences), "misc-show-delete-action", &show_delete_item, NULL);
-      if (!show_delete_item)
-        return NULL;
 
       show_item = action_mgr->files_are_selected;
       if (!show_item && !force)

@@ -172,6 +172,10 @@ thunar_context_menu_order_model_init_prototypes_table (ThunarContextMenuOrderMod
 #endif /* !NDEBUG */
 
       g_hash_table_insert (order_model->prototypes_table, g_strdup (item->id), item);
+
+      /* "delete" is not visible by default */
+      if (g_strcmp0 (item->id, "delete") == 0)
+        item->visibility = FALSE;
     }
   g_list_free (items);
 }
