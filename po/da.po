@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Thunar\n"
 "Report-Msgid-Bugs-To: https://gitlab.xfce.org/\n"
-"POT-Creation-Date: 2026-09-13 00:50+0200\n"
+"POT-Creation-Date: 2026-10-16 00:50+0200\n"
 "PO-Revision-Date: 2013-07-02 20:11+0000\n"
 "Last-Translator: scootergrisen, 2016-2025\n"
 "Language-Team: Danish (http://app.transifex.com/xfce/thunar/language/da/)\n"
@@ -22,7 +22,7 @@ msgstr ""
 "Language: da\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#. setup application name
+#. setup application name and prgname
 #: thunar/main.c:54 org.xfce.thunar.appdata.xml.in:9
 msgid "Thunar"
 msgstr "Thunar"
@@ -66,7 +66,7 @@ msgstr "Naviger til mappen hvor den valgte fil er placeret"
 msgid "Ope_n With Other Application..."
 msgstr "Åbn med et andet _program ..."
 
-#: thunar/thunar-action-manager.c:331 thunar/thunar-action-manager.c:3500
+#: thunar/thunar-action-manager.c:331 thunar/thunar-action-manager.c:3496
 msgid "Choose another application with which to open the selected file"
 msgstr "Vælg et andet program til at åbne den valgte fil"
 
@@ -110,7 +110,7 @@ msgstr "_Egenskaber ..."
 msgid "View the properties of the selected file"
 msgstr "Vis egenskaberne for den valgte fil"
 
-#: thunar/thunar-action-manager.c:340 thunar/thunar-action-manager.c:1725
+#: thunar/thunar-action-manager.c:340 thunar/thunar-action-manager.c:1724
 msgid "Ma_ke Link"
 msgid_plural "Ma_ke Links"
 msgstr[0] "_Lav til henvisning"
@@ -125,7 +125,7 @@ msgid "_Rename..."
 msgstr "_Omdøb ..."
 
 #. prepare the menu item
-#: thunar/thunar-action-manager.c:343 thunar/thunar-application.c:3015
+#: thunar/thunar-action-manager.c:343 thunar/thunar-application.c:3018
 #: plugins/thunar-tpa/thunar-tpa.c:187
 msgid "_Empty Trash"
 msgstr "_Tøm papirkurv"
@@ -170,7 +170,7 @@ msgstr "_Gendan og vis"
 msgid "Mo_ve to Trash"
 msgstr "_Flyt til papirkurv"
 
-#: thunar/thunar-action-manager.c:353 thunar/thunar-application.c:2760
+#: thunar/thunar-action-manager.c:353 thunar/thunar-application.c:2763
 #: thunar/thunar-uca-editor.c:882
 msgid "_Delete"
 msgstr "_Slet"
@@ -280,8 +280,8 @@ msgstr[1] "Åbn %d i nye vinduer"
 
 #. add the "Cancel" button
 #. configure the dialog properties
-#: thunar/thunar-action-manager.c:1071 thunar/thunar-application.c:2759
-#: thunar/thunar-application.c:3014 thunar/thunar-chooser-dialog.c:311
+#: thunar/thunar-action-manager.c:1071 thunar/thunar-application.c:2762
+#: thunar/thunar-application.c:3017 thunar/thunar-chooser-dialog.c:311
 #: thunar/thunar-chooser-dialog.c:777 thunar/thunar-chooser-dialog.c:852
 #: thunar/thunar-chooser-dialog.c:902 thunar/thunar-dialogs.c:104
 #: thunar/thunar-dialogs.c:256 thunar/thunar-dialogs.c:714
@@ -299,14 +299,14 @@ msgstr[1] "Åbn %d i nye vinduer"
 msgid "_Cancel"
 msgstr "_Annuller"
 
-#: thunar/thunar-action-manager.c:1161 thunar/thunar-action-manager.c:2081
+#: thunar/thunar-action-manager.c:1161 thunar/thunar-action-manager.c:2077
 #, c-format
 msgid "Failed to mount \"%s\""
 msgstr "Kunne ikke montere \"%s\""
 
 #. tell the user that we were unable to launch the file specified
-#: thunar/thunar-action-manager.c:1212 thunar/thunar-application.c:1916
-#: thunar/thunar-application.c:2079 thunar/thunar-location-entry.c:371
+#: thunar/thunar-action-manager.c:1212 thunar/thunar-application.c:1919
+#: thunar/thunar-application.c:2082 thunar/thunar-location-entry.c:371
 #: thunar/thunar-location-entry.c:404
 #, c-format
 msgid "Failed to open \"%s\""
@@ -322,69 +322,69 @@ msgid "Failed to open location for \"%s\""
 msgstr "Kunne ikke åbne placeringen for \"%s\""
 
 #. aka "activate"
-#: thunar/thunar-action-manager.c:1657
+#: thunar/thunar-action-manager.c:1656
 msgid "Open the selected file"
 msgid_plural "Open the selected files"
 msgstr[0] "Åbn den valgte fil"
 msgstr[1] "Åbn de valgte filer"
 
-#: thunar/thunar-action-manager.c:1662
+#: thunar/thunar-action-manager.c:1661
 msgid "Execute the selected file"
 msgid_plural "Execute the selected files"
 msgstr[0] "Kør den valgte fil"
 msgstr[1] "Kør de valgte filer"
 
-#: thunar/thunar-action-manager.c:1672
+#: thunar/thunar-action-manager.c:1671
 #, c-format
 msgid "Open in %d new _Tab"
 msgid_plural "Open in %d New _Tabs"
 msgstr[0] ""
 msgstr[1] ""
 
-#: thunar/thunar-action-manager.c:1673
+#: thunar/thunar-action-manager.c:1672
 #, c-format
 msgid "Open the selected directory in %d new tab"
 msgid_plural "Open the selected directories in %d new tabs"
 msgstr[0] "Åbn den valgte mappe i %d nyt faneblad"
 msgstr[1] "Åbn de valgte mapper i %d nye faneblade"
 
-#: thunar/thunar-action-manager.c:1683
+#: thunar/thunar-action-manager.c:1682
 #, c-format
 msgid "Open in %d new _Window"
 msgid_plural "Open in %d New _Windows"
 msgstr[0] ""
 msgstr[1] ""
 
-#: thunar/thunar-action-manager.c:1684
+#: thunar/thunar-action-manager.c:1683
 #, c-format
 msgid "Open the selected directory in %d new window"
 msgid_plural "Open the selected directories in %d new windows"
 msgstr[0] "Åbn den valgt mappe i %d nyt vindue"
 msgstr[1] "Åbn de valgte mapper i %d nye vinduer"
 
-#: thunar/thunar-action-manager.c:1726
+#: thunar/thunar-action-manager.c:1725
 msgid "Create a symbolic link for the selected file"
 msgid_plural "Create a symbolic link for each selected file"
 msgstr[0] "Opret en symbolsk henvisning for den valgte fil"
 msgstr[1] "Opret en symbolsk henvisning for hver af de valgte filer"
 
-#: thunar/thunar-action-manager.c:1752
+#: thunar/thunar-action-manager.c:1751
 msgid "Rename the selected file"
 msgid_plural "Rename the selected files"
 msgstr[0] "Omdøb den valgte fil"
 msgstr[1] "Omdøb de valgte filer"
 
-#: thunar/thunar-action-manager.c:1757
+#: thunar/thunar-action-manager.c:1756
 msgid "Bulk _Rename..."
 msgstr "_Masseomdøbning ..."
 
-#: thunar/thunar-action-manager.c:1768
+#: thunar/thunar-action-manager.c:1767
 msgid "Restore the selected file to its original location"
 msgid_plural "Restore the selected files to its original location"
 msgstr[0] "Gendan den valgte fil til dens oprindelige placering"
 msgstr[1] "Gendan de valgte filer til deres oprindelige placering"
 
-#: thunar/thunar-action-manager.c:1779
+#: thunar/thunar-action-manager.c:1778
 msgid ""
 "Restore the selected file to its original location and open the location in "
 "a new window/tab"
@@ -394,67 +394,67 @@ msgid_plural ""
 msgstr[0] "Gendan den valgte fil til dens oprindelige placering og åbn placeringen i et nyt vindue/faneblad"
 msgstr[1] "Gendan de valgte filer til deres oprindelige placeringer og åbn placeringerne i et nyt vindue/faneblad"
 
-#: thunar/thunar-action-manager.c:1792
+#: thunar/thunar-action-manager.c:1791
 msgid "Move the selected file to the Trash"
 msgid_plural "Move the selected files to the Trash"
 msgstr[0] "Send den valgte fil til papirkurven"
 msgstr[1] "Send de valgte filer til papirkurven"
 
-#: thunar/thunar-action-manager.c:1809
+#: thunar/thunar-action-manager.c:1805
 msgid "Permanently delete the selected file"
 msgid_plural "Permanently delete the selected files"
 msgstr[0] "Slet den valgte fil permanent"
 msgstr[1] "Slet de valgte filer permanent"
 
-#: thunar/thunar-action-manager.c:1869
+#: thunar/thunar-action-manager.c:1865
 msgid "Cut the selection"
 msgstr "Klip markeringen"
 
-#: thunar/thunar-action-manager.c:1879
+#: thunar/thunar-action-manager.c:1875
 msgid "Prepare the selected file to be moved with a Paste command"
 msgid_plural "Prepare the selected files to be moved with a Paste command"
 msgstr[0] "Klargør den valgte fil til flytning med en Indsæt-kommando"
 msgstr[1] "Klargør de valgte filer til flytning med en Indsæt-kommando"
 
-#: thunar/thunar-action-manager.c:1893
+#: thunar/thunar-action-manager.c:1889
 msgid "Copy the selection"
 msgstr "Kopiér markeringen"
 
-#: thunar/thunar-action-manager.c:1903
+#: thunar/thunar-action-manager.c:1899
 msgid "Prepare the selected file to be copied with a Paste command"
 msgid_plural "Prepare the selected files to be copied with a Paste command"
 msgstr[0] "Klargør den valgte fil til kopiering med en Indsæt-kommando"
 msgstr[1] "Klargør de valgte filer til kopiering med en Indsæt-kommando"
 
-#: thunar/thunar-action-manager.c:1926
+#: thunar/thunar-action-manager.c:1922
 msgid "Paste the clipboard"
 msgstr "Indsæt udklipsholderen"
 
-#: thunar/thunar-action-manager.c:2192
+#: thunar/thunar-action-manager.c:2188
 msgid "Side Pane (Add Bookmark)"
 msgid_plural "Side Pane (Add Bookmarks)"
 msgstr[0] "Sidepanel (tilføj bogmærke)"
 msgstr[1] "Sidepanel (tilføj bogmærker)"
 
-#: thunar/thunar-action-manager.c:2193
+#: thunar/thunar-action-manager.c:2189
 msgid "Add the selected folder to the shortcuts side pane"
 msgid_plural "Add the selected folders to the shortcuts side pane"
 msgstr[0] "Tilføj den valgte mappe til genvejssideruden"
 msgstr[1] "Tilføj de valgte mapper til genvejssideruden"
 
-#: thunar/thunar-action-manager.c:2212
+#: thunar/thunar-action-manager.c:2208
 msgid "Desktop (Create Link)"
 msgid_plural "Desktop (Create Links)"
 msgstr[0] "Skrivebord (opret henvisning)"
 msgstr[1] "Skrivebord (opret henvisninger)"
 
-#: thunar/thunar-action-manager.c:2213
+#: thunar/thunar-action-manager.c:2209
 msgid "Create a link to the selected file on the desktop"
 msgid_plural "Create links to the selected files on the desktop"
 msgstr[0] "Opret en henvisning til den valgte fil på skrivebord"
 msgstr[1] "Opret henvisninger til de valgte filer på skrivebord"
 
-#: thunar/thunar-action-manager.c:2234 thunar/thunar-action-manager.c:2273
+#: thunar/thunar-action-manager.c:2230 thunar/thunar-action-manager.c:2269
 #, c-format
 msgid "Send the selected file to \"%s\""
 msgid_plural "Send the selected files to \"%s\""
@@ -462,72 +462,72 @@ msgstr[0] "Send den valgte fil til \"%s\""
 msgstr[1] "Send de valgte filer til \"%s\""
 
 #. ask the user to enter a name for the new folder
-#: thunar/thunar-action-manager.c:2767 thunar/thunar-application.c:2267
+#: thunar/thunar-action-manager.c:2763 thunar/thunar-application.c:2270
 msgid "New Folder"
 msgstr "Ny mappe"
 
-#: thunar/thunar-action-manager.c:2772 thunar/thunar-application.c:2268
+#: thunar/thunar-action-manager.c:2768 thunar/thunar-application.c:2271
 msgid "Create New Folder"
 msgstr "Opret ny mappe"
 
 #. generate a title for the create dialog
-#: thunar/thunar-action-manager.c:2825 thunar/thunar-application.c:2329
+#: thunar/thunar-action-manager.c:2821 thunar/thunar-application.c:2332
 #, c-format
 msgid "Create Document from template \"%s\""
 msgstr "Opret dokument fra skabelonen \"%s\""
 
 #. ask the user to enter a name for the new empty file
-#: thunar/thunar-action-manager.c:2843
+#: thunar/thunar-action-manager.c:2839
 msgid "New Empty File"
 msgstr "Ny tom fil"
 
-#: thunar/thunar-action-manager.c:2848
+#: thunar/thunar-action-manager.c:2844
 msgid "New Empty File..."
 msgstr "Ny tom fil ..."
 
-#: thunar/thunar-action-manager.c:3070
+#: thunar/thunar-action-manager.c:3066
 #, c-format
 msgid ""
 "No templates installed in\n"
 "\"%s\""
 msgstr "Der er ikke installeret nogen skabeloner i\n\"%s\""
 
-#: thunar/thunar-action-manager.c:3083
+#: thunar/thunar-action-manager.c:3079
 msgid "_Empty File"
 msgstr "_Tom fil"
 
-#: thunar/thunar-action-manager.c:3248
+#: thunar/thunar-action-manager.c:3244
 #, c-format
 msgid "Failed to eject \"%s\""
 msgstr "Kunne ikke skubbe \"%s\" ud"
 
-#: thunar/thunar-action-manager.c:3310
+#: thunar/thunar-action-manager.c:3306
 #, c-format
 msgid "Failed to unmount \"%s\""
 msgstr "Kunne ikke afmontere \"%s\""
 
-#: thunar/thunar-action-manager.c:3373 thunar/thunar-action-manager.c:3455
+#: thunar/thunar-action-manager.c:3369 thunar/thunar-action-manager.c:3451
 #, c-format
 msgid "Use \"%s\" to open the selected file"
 msgid_plural "Use \"%s\" to open the selected files"
 msgstr[0] "Brug \"%s\" til at åbne den valgt fil"
 msgstr[1] "Brug \"%s\" til at åbne de valgte filer"
 
-#: thunar/thunar-action-manager.c:3454
+#: thunar/thunar-action-manager.c:3450
 #, c-format
 msgid "_Open With \"%s\""
 msgstr "_Åbn med \"%s\""
 
 #. we can only show a generic "Open" action
-#: thunar/thunar-action-manager.c:3478
+#: thunar/thunar-action-manager.c:3474
 msgid "_Open With Default Applications"
 msgstr "_Åbn med standardprogrammer"
 
-#: thunar/thunar-action-manager.c:3479
+#: thunar/thunar-action-manager.c:3475
 msgid "Open the selected files with the default applications"
 msgstr "Åbn valgte filer med standardprogrammer"
 
-#: thunar/thunar-action-manager.c:3499
+#: thunar/thunar-action-manager.c:3495
 msgid "Ope_n With"
 msgstr "Åbn _med"
 
@@ -593,102 +593,102 @@ msgstr "Rapportér venligst fejl til <%s>."
 msgid "Failed to launch operation"
 msgstr "Kunne ikke starte handlingen"
 
-#: thunar/thunar-application.c:1912
+#: thunar/thunar-application.c:1915
 #, c-format
 msgid "Failed to open \"%s\" (%s)"
 msgstr "Kunne ikke åbne \"%s\" (%s)"
 
-#: thunar/thunar-application.c:2083
+#: thunar/thunar-application.c:2086
 #, c-format
 msgid "Failed to open \"%s\": %s"
 msgstr "Kunne ikke åbne \"%s\": %s"
 
-#: thunar/thunar-application.c:2142 thunar/thunar-properties-dialog.c:1144
+#: thunar/thunar-application.c:2145 thunar/thunar-properties-dialog.c:1144
 #, c-format
 msgid "Failed to rename \"%s\" (%s)"
 msgstr "Kunne ikke omdøbe \"%s\" (%s)"
 
-#: thunar/thunar-application.c:2146 thunar/thunar-properties-dialog.c:1148
+#: thunar/thunar-application.c:2149 thunar/thunar-properties-dialog.c:1148
 #, c-format
 msgid "Failed to rename \"%s\""
 msgstr "Kunne ikke omdøbe \"%s\""
 
-#: thunar/thunar-application.c:2192
+#: thunar/thunar-application.c:2195
 msgid "Rename Launcher Options"
 msgstr "Indstillinger for omdøb opstarter"
 
-#: thunar/thunar-application.c:2195
+#: thunar/thunar-application.c:2198
 msgid "Do you want to rename the launcher, or the file itself?"
 msgstr "Vil du omdøbe opstarteren eller selve filen?"
 
-#: thunar/thunar-application.c:2196
+#: thunar/thunar-application.c:2199
 msgid "Rename _Launcher"
 msgstr "Omdøb _opstarter"
 
-#: thunar/thunar-application.c:2197
+#: thunar/thunar-application.c:2200
 msgid "Rename _File"
 msgstr "Omdøb _fil"
 
-#: thunar/thunar-application.c:2272
+#: thunar/thunar-application.c:2275
 msgid "New File"
 msgstr "Ny fil"
 
-#: thunar/thunar-application.c:2273
+#: thunar/thunar-application.c:2276
 msgid "Create New File"
 msgstr "Opret ny fil"
 
-#: thunar/thunar-application.c:2395
+#: thunar/thunar-application.c:2398
 msgid "Copying files..."
 msgstr "Kopierer filer ..."
 
-#: thunar/thunar-application.c:2455
+#: thunar/thunar-application.c:2458
 #, c-format
 msgid "Copying files to \"%s\"..."
 msgstr "Kopierer filer til \"%s\" ..."
 
-#: thunar/thunar-application.c:2514
+#: thunar/thunar-application.c:2517
 #, c-format
 msgid "Creating symbolic links in \"%s\"..."
 msgstr "Opretter symbolske henvisninger i \"%s\" ..."
 
-#: thunar/thunar-application.c:2604
+#: thunar/thunar-application.c:2607
 #, c-format
 msgid "Moving files into \"%s\"..."
 msgstr "Flytter filer til \"%s\" ..."
 
-#: thunar/thunar-application.c:2651
+#: thunar/thunar-application.c:2654
 msgid "Moving files ..."
 msgstr "Flytter filer ..."
 
-#: thunar/thunar-application.c:2713
+#: thunar/thunar-application.c:2716
 #, c-format
 msgid ""
 "Are you sure that you want to\n"
 "permanently delete \"%s\"?"
 msgstr "Er du sikker på, at du vil\nslette \"%s\" permanent?"
 
-#: thunar/thunar-application.c:2716
+#: thunar/thunar-application.c:2719
 #, c-format
 msgid ""
 "Are you sure that you want to\n"
 "permanently delete \"%s\" (%s)?"
 msgstr "Er du sikker på, at du vil\nslette \"%s\" (%s) permanent?"
 
-#: thunar/thunar-application.c:2720
+#: thunar/thunar-application.c:2723
 #, c-format
 msgid ""
 "Are you sure that you want to\n"
 "move \"%s\" to trash ?"
 msgstr "Er du sikker på, at du vil\nflytte \"%s\" til papirkurven?"
 
-#: thunar/thunar-application.c:2723
+#: thunar/thunar-application.c:2726
 #, c-format
 msgid ""
 "Are you sure that you want to\n"
 "move \"%s\" (%s) to trash ?"
 msgstr "Er du sikker på, at du vil\nflytte \"%s\" (%s) til papirkurven?"
 
-#: thunar/thunar-application.c:2732
+#: thunar/thunar-application.c:2735
 #, c-format
 msgid ""
 "Are you sure that you want to permanently\n"
@@ -699,7 +699,7 @@ msgid_plural ""
 msgstr[0] "Er du sikker på, at du vil slette\nden valgte fil permanent?"
 msgstr[1] "Er du sikker på, at du vil slette\nde %u valgte filer permanent?"
 
-#: thunar/thunar-application.c:2739
+#: thunar/thunar-application.c:2742
 #, c-format
 msgid ""
 "Are you sure that you want to\n"
@@ -710,70 +710,70 @@ msgid_plural ""
 msgstr[0] "Er du sikker på, at du vil\nflytte den valgte fil til papirkurven?"
 msgstr[1] "Er du sikker på, at du vil\nflytte de %u valgte filer til papirkurven?"
 
-#: thunar/thunar-application.c:2757 thunar/thunar-dialogs.c:621
+#: thunar/thunar-application.c:2760 thunar/thunar-dialogs.c:621
 #: thunar/thunar-dialogs.c:1108
 msgid "Attention"
 msgstr "OBS"
 
-#: thunar/thunar-application.c:2765
+#: thunar/thunar-application.c:2768
 msgid "If you delete a file, it is permanently lost."
 msgstr "Hvis du sletter en fil, går den tabt permanent."
 
-#: thunar/thunar-application.c:2818
+#: thunar/thunar-application.c:2821
 msgid "Deleting files..."
 msgstr "Sletter filer ..."
 
-#: thunar/thunar-application.c:2876
+#: thunar/thunar-application.c:2879
 msgid "Moving files into the trash..."
 msgstr "Flytter filer til papirkurven ..."
 
-#: thunar/thunar-application.c:2926
+#: thunar/thunar-application.c:2929
 msgid "Creating files..."
 msgstr "Opretter filer ..."
 
-#: thunar/thunar-application.c:2967
+#: thunar/thunar-application.c:2970
 msgid "Creating directories..."
 msgstr "Opretter mapper ..."
 
-#: thunar/thunar-application.c:3005
+#: thunar/thunar-application.c:3008
 msgid "Remove all files and folders from the Trash?"
 msgstr "Fjern alle filer og mapper fra papirkurven?"
 
-#: thunar/thunar-application.c:3012 thunar/thunar-window.c:1287
+#: thunar/thunar-application.c:3015 thunar/thunar-window.c:1287
 msgid "Empty Trash"
 msgstr "Tøm papirkurv"
 
-#: thunar/thunar-application.c:3019
+#: thunar/thunar-application.c:3022
 msgid ""
 "If you choose to empty the Trash, all items in it will be permanently lost. "
 "Please note that you can also delete them separately."
 msgstr "Hvis du vælger at tømme papirkurven, vil alle elementer i den gå tabt permanent. Bemærk venligst at du også kan slette dem enkeltvis."
 
-#: thunar/thunar-application.c:3036
+#: thunar/thunar-application.c:3039
 msgid "Emptying the Trash..."
 msgstr "Tømmer papirkurven ..."
 
-#: thunar/thunar-application.c:3084
+#: thunar/thunar-application.c:3087
 #, c-format
 msgid "Failed to determine the original path for \"%s\" (%s)"
 msgstr "Kunne ikke afgøre den originale sti for \"%s\" (%s)"
 
-#: thunar/thunar-application.c:3089
+#: thunar/thunar-application.c:3092
 #, c-format
 msgid "Failed to determine the original path for \"%s\""
 msgstr "Kunne ikke afgøre den originale sti for \"%s\""
 
-#: thunar/thunar-application.c:3107
+#: thunar/thunar-application.c:3110
 #, c-format
 msgid "Could not restore \"%s\" (%s)"
 msgstr "Kunne ikke gendanne \"%s\" (%s)"
 
-#: thunar/thunar-application.c:3111
+#: thunar/thunar-application.c:3114
 #, c-format
 msgid "Could not restore \"%s\""
 msgstr "Kunne ikke gendanne \"%s\""
 
-#: thunar/thunar-application.c:3119
+#: thunar/thunar-application.c:3122
 msgid "Restoring files..."
 msgstr "Gendanner filer ..."
 
@@ -830,7 +830,7 @@ msgstr "Brug som _standard til denne type fil"
 #. add the "Ok"/"Open" button
 #: thunar/thunar-chooser-dialog.c:314 thunar/thunar-chooser-dialog.c:1314
 #: thunar/thunar-properties-dialog.c:1245 thunar/thunar-uca-editor.c:155
-#: thunar/thunar-uca-editor.c:453 thunar/thunar-window.c:4997
+#: thunar/thunar-uca-editor.c:453 thunar/thunar-window.c:5000
 msgid "_OK"
 msgstr "_OK"
 
@@ -1134,11 +1134,11 @@ msgstr "Mapper som _udfoldes"
 msgid "Allow tree like expansion of folders"
 msgstr "Tillad at mapper udfoldes som et træ"
 
-#: thunar/thunar-details-view.c:590
+#: thunar/thunar-details-view.c:592
 msgid "Detailed directory listing"
 msgstr "Detaljeret mappevisning"
 
-#: thunar/thunar-details-view.c:591
+#: thunar/thunar-details-view.c:593
 msgid "Details view"
 msgstr "Detaljeret visning"
 
@@ -1192,7 +1192,7 @@ msgid "translator-credits"
 msgstr "Per Kongstad <p_kongstad@op.pl>\nscootergrisen"
 
 #: thunar/thunar-dialogs.c:513 thunar/thunar-renamer-progress.c:173
-#: thunar/thunar-uca-editor.c:817 thunar/thunar-uca-provider.c:606
+#: thunar/thunar-uca-editor.c:817 thunar-uca/thunar-uca-base-provider.c:545
 #: plugins/thunar-apr/thunar-apr-desktop-page.c:840
 #: plugins/thunar-sendto-email/main.c:137
 msgid "Error"
@@ -1429,192 +1429,192 @@ msgstr "Der understøttes højst %u emblemer per fil."
 msgid "Too many emblems selected"
 msgstr "Der er valgt for mange emblemer"
 
-#: thunar/thunar-enum-types.c:87
+#: thunar/thunar-enum-types.c:90
 msgid "Name only"
 msgstr "Kun navn"
 
-#: thunar/thunar-enum-types.c:88
+#: thunar/thunar-enum-types.c:91
 msgid "Extension only"
 msgstr "Kun endelse"
 
-#: thunar/thunar-enum-types.c:89
+#: thunar/thunar-enum-types.c:92
 msgid "Name and Extension"
 msgstr "Navn og endelse"
 
-#: thunar/thunar-enum-types.c:144
+#: thunar/thunar-enum-types.c:147
 msgid "Date Created"
 msgstr "Oprettelsesdato"
 
-#: thunar/thunar-enum-types.c:145
+#: thunar/thunar-enum-types.c:148
 #: plugins/thunar-sbr/thunar-sbr-enum-types.c:134
 msgid "Date Accessed"
 msgstr "Adgangsdato"
 
-#: thunar/thunar-enum-types.c:146
+#: thunar/thunar-enum-types.c:149
 #: plugins/thunar-sbr/thunar-sbr-enum-types.c:135
 msgid "Date Modified"
 msgstr "Ændringsdato"
 
-#: thunar/thunar-enum-types.c:147
+#: thunar/thunar-enum-types.c:150
 msgid "Date Deleted"
 msgstr "Sletningsdato"
 
-#: thunar/thunar-enum-types.c:148
+#: thunar/thunar-enum-types.c:151
 msgid "Recency"
 msgstr "Aktualitet"
 
-#: thunar/thunar-enum-types.c:149
+#: thunar/thunar-enum-types.c:152
 msgid "Location"
 msgstr "Placering"
 
-#: thunar/thunar-enum-types.c:150
+#: thunar/thunar-enum-types.c:153
 msgid "Group"
 msgstr "Gruppe"
 
-#: thunar/thunar-enum-types.c:151
+#: thunar/thunar-enum-types.c:154
 msgid "MIME Type"
 msgstr "MIME-type"
 
-#: thunar/thunar-enum-types.c:152 thunar/thunar-renamer-dialog.c:476
+#: thunar/thunar-enum-types.c:155 thunar/thunar-renamer-dialog.c:476
 #: thunarx/thunarx-renamer.c:170
 msgid "Name"
 msgstr "Navn"
 
-#: thunar/thunar-enum-types.c:153
+#: thunar/thunar-enum-types.c:156
 msgid "Owner"
 msgstr "Ejer"
 
 #. Permissions chooser
-#: thunar/thunar-enum-types.c:154 thunar/thunar-properties-dialog.c:961
+#: thunar/thunar-enum-types.c:157 thunar/thunar-properties-dialog.c:961
 msgid "Permissions"
 msgstr "Tilladelser"
 
-#: thunar/thunar-enum-types.c:155 thunar/thunar-statusbar.c:90
+#: thunar/thunar-enum-types.c:158 thunar/thunar-statusbar.c:90
 msgid "Size"
 msgstr "Størrelse"
 
-#: thunar/thunar-enum-types.c:156
+#: thunar/thunar-enum-types.c:159
 msgid "Size in Bytes"
 msgstr "Størrelse i bytes"
 
-#: thunar/thunar-enum-types.c:157
+#: thunar/thunar-enum-types.c:160
 msgid "Type"
 msgstr "Type"
 
-#: thunar/thunar-enum-types.c:158
+#: thunar/thunar-enum-types.c:161
 msgid "File"
 msgstr "Fil"
 
-#: thunar/thunar-enum-types.c:159
+#: thunar/thunar-enum-types.c:162
 msgid "File Name"
 msgstr "Filnavn"
 
-#: thunar/thunar-enum-types.c:698 thunar/thunar-enum-types.c:723
-#: thunar/thunar-enum-types.c:858 thunar/thunar-preferences-dialog.c:445
-#: thunar/thunar-preferences-dialog.c:1247
-#: thunar/thunar-preferences-dialog.c:1355
-#: thunar/thunar-preferences-dialog.c:1443
+#: thunar/thunar-enum-types.c:761 thunar/thunar-enum-types.c:786
+#: thunar/thunar-enum-types.c:921 thunar/thunar-preferences-dialog.c:445
+#: thunar/thunar-preferences-dialog.c:1213
+#: thunar/thunar-preferences-dialog.c:1321
+#: thunar/thunar-preferences-dialog.c:1409
 msgid "Never"
 msgstr "Aldrig"
 
-#: thunar/thunar-enum-types.c:699 thunar/thunar-enum-types.c:724
+#: thunar/thunar-enum-types.c:762 thunar/thunar-enum-types.c:787
 msgid "Only For Remote Location"
 msgstr "Kun for fjernplacering"
 
-#: thunar/thunar-enum-types.c:700 thunar/thunar-enum-types.c:725
-#: thunar/thunar-enum-types.c:860 thunar/thunar-preferences-dialog.c:447
-#: thunar/thunar-preferences-dialog.c:1243
-#: thunar/thunar-preferences-dialog.c:1353
-#: thunar/thunar-preferences-dialog.c:1444
+#: thunar/thunar-enum-types.c:763 thunar/thunar-enum-types.c:788
+#: thunar/thunar-enum-types.c:923 thunar/thunar-preferences-dialog.c:447
+#: thunar/thunar-preferences-dialog.c:1209
+#: thunar/thunar-preferences-dialog.c:1319
+#: thunar/thunar-preferences-dialog.c:1410
 msgid "Always"
 msgstr "Altid"
 
-#: thunar/thunar-enum-types.c:783
+#: thunar/thunar-enum-types.c:846
 msgid "Copy"
 msgstr "Kopiér"
 
-#: thunar/thunar-enum-types.c:784
+#: thunar/thunar-enum-types.c:847
 msgid "Move"
 msgstr "Flyt"
 
-#: thunar/thunar-enum-types.c:785
+#: thunar/thunar-enum-types.c:848
 msgid "Rename"
 msgstr "Omdøb"
 
-#: thunar/thunar-enum-types.c:786
+#: thunar/thunar-enum-types.c:849
 msgid "Create File"
 msgstr "Opret fil"
 
-#: thunar/thunar-enum-types.c:787
+#: thunar/thunar-enum-types.c:850
 msgid "Create Folder"
 msgstr "Opret mappe"
 
-#: thunar/thunar-enum-types.c:788
+#: thunar/thunar-enum-types.c:851
 msgid "Delete (opposite of create)"
 msgstr "Slet (modsat af opret)"
 
-#: thunar/thunar-enum-types.c:789 thunar/thunar-file.c:1109
-#: thunar/thunar-gio-extensions.c:568 thunar/thunar-shortcuts-model.c:1181
+#: thunar/thunar-enum-types.c:852 thunar/thunar-file.c:1109
+#: thunar/thunar-gio-extensions.c:574 thunar/thunar-shortcuts-model.c:1187
 #: thunar.desktop.in:25
 msgid "Trash"
 msgstr "Papirkurv"
 
-#: thunar/thunar-enum-types.c:790
+#: thunar/thunar-enum-types.c:853
 msgid "Restore (opposite of trash)"
 msgstr "Gendan (modsatte af at flytte til papirkurv)"
 
-#: thunar/thunar-enum-types.c:791
+#: thunar/thunar-enum-types.c:854
 #: plugins/thunar-apr/thunar-apr-desktop-page.c:548
 msgid "Link"
 msgstr "Henvisning"
 
-#: thunar/thunar-enum-types.c:792
+#: thunar/thunar-enum-types.c:855
 msgid "Unlink"
 msgstr "Fjern henvisning"
 
-#: thunar/thunar-enum-types.c:813
+#: thunar/thunar-enum-types.c:876
 msgid "Log operations"
 msgstr "Log handleringer"
 
-#: thunar/thunar-enum-types.c:814
+#: thunar/thunar-enum-types.c:877
 msgid "Log no operations"
 msgstr "Log ingen handleringer"
 
-#: thunar/thunar-enum-types.c:815
+#: thunar/thunar-enum-types.c:878
 msgid "Log only timestamps"
 msgstr "Log kun tidsstempler"
 
-#: thunar/thunar-enum-types.c:836
+#: thunar/thunar-enum-types.c:899
 msgid "Standalone"
 msgstr "Selvstændig"
 
-#: thunar/thunar-enum-types.c:837
+#: thunar/thunar-enum-types.c:900
 msgid "Embedded"
 msgstr "Indlejret"
 
-#: thunar/thunar-enum-types.c:859
+#: thunar/thunar-enum-types.c:922
 msgid "Only for local files"
 msgstr "Kun for lokale filer"
 
-#: thunar/thunar-enum-types.c:981 thunar/thunar-preferences-dialog.c:1022
+#: thunar/thunar-enum-types.c:1044 thunar/thunar-preferences-dialog.c:1022
 #: thunar/thunar-preferences-dialog.c:1062
 msgid "Disabled"
 msgstr "Deaktiveret"
 
-#: thunar/thunar-enum-types.c:982
+#: thunar/thunar-enum-types.c:1045
 msgid "File Manager → Terminal"
 msgstr "Filhåndtering → Terminal"
 
-#: thunar/thunar-enum-types.c:983
+#: thunar/thunar-enum-types.c:1046
 msgid "Terminal → File Manager"
 msgstr "Terminal → Filhåndtering"
 
-#: thunar/thunar-enum-types.c:984
+#: thunar/thunar-enum-types.c:1047
 msgid "Both Ways"
 msgstr "Begge veje"
 
-#: thunar/thunar-file.c:1116 thunar/thunar-gio-extensions.c:566
-#: thunar/thunar-shortcuts-model.c:1063
+#: thunar/thunar-file.c:1116 thunar/thunar-gio-extensions.c:572
+#: thunar/thunar-shortcuts-model.c:1069
 msgid "File System"
 msgstr "Filsystem"
 
@@ -1649,21 +1649,21 @@ msgstr "Der er ikke angivet noget URL-felt"
 msgid "Invalid desktop file"
 msgstr "Ugyldig skrivebordsfil"
 
-#: thunar/thunar-file.c:2592 thunar/thunar-util.c:1455
+#: thunar/thunar-file.c:2619 thunar/thunar-util.c:1473
 msgid "broken link"
 msgstr "ødelagt henvisning"
 
-#: thunar/thunar-file.c:2599
+#: thunar/thunar-file.c:2626
 #, c-format
 msgid "%s (link to %s)"
 msgstr "%s (henvisning til %s)"
 
-#: thunar/thunar-file.c:2601
+#: thunar/thunar-file.c:2628
 #, c-format
 msgid "%s (link)"
 msgstr "%s (henvisning)"
 
-#: thunar/thunar-file.c:2610
+#: thunar/thunar-file.c:2637
 #, c-format
 msgid "%s (mount point)"
 msgstr "%s (monteringspunkt)"
@@ -1739,12 +1739,12 @@ msgid "Phone"
 msgstr "Telefon"
 
 #. TRANSLATORS: this will result in "<path> on <hostname>"
-#: thunar/thunar-gio-extensions.c:648
+#: thunar/thunar-gio-extensions.c:654
 #, c-format
 msgid "%s on %s"
 msgstr "%s på %s"
 
-#: thunar/thunar-gio-extensions.c:846
+#: thunar/thunar-gio-extensions.c:854
 #, c-format
 msgid "%s used (%.0f%%)  |  %s free (%.0f%%)"
 msgstr "%s anvendt (%.0f%%)  |  %s ledig (%.0f%%)"
@@ -1817,12 +1817,12 @@ msgstr "Kunne ikke skifte gruppen for \"%s\": %s"
 msgid "Failed to change the permissions of \"%s\": %s"
 msgstr "Kunne ikke ændre tilladelserne for \"%s\": %s"
 
-#: thunar/thunar-io-jobs.c:2211
+#: thunar/thunar-io-jobs.c:2234
 #, c-format
 msgid "Selection: %s"
 msgstr "Markering: %s"
 
-#: thunar/thunar-io-jobs.c:2227
+#: thunar/thunar-io-jobs.c:2250
 #, c-format
 msgid "Free space: %s"
 msgstr "Ledig plads: %s"
@@ -1878,7 +1878,7 @@ msgid ""
 msgstr "Der er ikke nok plads i målområdet. Prøv at fjerne filer for at frigøre plads."
 
 #: thunar/thunar-job-operation.c:791 thunar/thunar-size-label.c:484
-#: thunar/thunar-util.c:1330
+#: thunar/thunar-util.c:1348
 #, c-format
 msgid "%d file"
 msgid_plural "%d files"
@@ -2098,7 +2098,7 @@ msgid "Allow this file to _run as a program"
 msgstr "Tillad filen at _køre som et program"
 
 #: thunar/thunar-permissions-chooser.c:397
-#: thunar/thunar-preferences-dialog.c:1458
+#: thunar/thunar-preferences-dialog.c:1424
 msgid ""
 "Allowing untrusted programs to run presents a security risk to your system."
 msgstr "Tilladelse til kørsel af ikke-betroede programmer udgør en sikkerhedsrisiko for dit system."
@@ -2248,7 +2248,7 @@ msgid "Icon View"
 msgstr "Ikonvisning"
 
 #: thunar/thunar-preferences-dialog.c:369
-#: thunar/thunar-preferences-dialog.c:1558
+#: thunar/thunar-preferences-dialog.c:1524
 msgid "List View"
 msgstr "Listevisning"
 
@@ -2292,8 +2292,8 @@ msgid "Show thumbnails:"
 msgstr "Vis miniaturer:"
 
 #: thunar/thunar-preferences-dialog.c:446
-#: thunar/thunar-preferences-dialog.c:1244
-#: thunar/thunar-preferences-dialog.c:1354
+#: thunar/thunar-preferences-dialog.c:1210
+#: thunar/thunar-preferences-dialog.c:1320
 msgid "Local Files Only"
 msgstr "Kun lokale filer"
 
@@ -2642,32 +2642,20 @@ msgid ""
 "Thunar"
 msgstr "Vælg indstillingen for at gendanne dine faneblade som de var sidst du brugte Thunar"
 
-#: thunar/thunar-preferences-dialog.c:1171
-msgid "Context Menu"
-msgstr "Genvejsmenu"
-
-#: thunar/thunar-preferences-dialog.c:1187
-msgid "Show action to permanently delete files and folders"
-msgstr "Vis handling til permanent sletning af filer og mapper"
-
-#: thunar/thunar-preferences-dialog.c:1193
-msgid "Select this option to show the 'Delete' action in the context menu"
-msgstr "Vælg indstillingen for at vise 'Slet'-handlingen i genvejsmenuen"
-
 #. Advanced
-#: thunar/thunar-preferences-dialog.c:1202
+#: thunar/thunar-preferences-dialog.c:1168
 msgid "Advanced"
 msgstr "Avanceret"
 
-#: thunar/thunar-preferences-dialog.c:1212
+#: thunar/thunar-preferences-dialog.c:1178
 msgid "File Transfer"
 msgstr "Filoverførsel"
 
-#: thunar/thunar-preferences-dialog.c:1229
+#: thunar/thunar-preferences-dialog.c:1195
 msgid "Transfer files in parallel:"
 msgstr "Overfør filer parallelt:"
 
-#: thunar/thunar-preferences-dialog.c:1231
+#: thunar/thunar-preferences-dialog.c:1197
 msgid ""
 "Indicates the behavior during multiple copies:\n"
 "- Always: all copies are done simultaneously\n"
@@ -2677,30 +2665,30 @@ msgid ""
 "- Never: all copies are done sequentially"
 msgstr "Indikerer opførslen under multikopieringer:\n- Altid: alle kopieringer foretages samtidigt\n- Kun lokale filer: samtidige kopieringer for lokale filer (ikke fjern, ikke vedhæftede)\n- Kun lokale filer (samme enheder): hvis alle filer er lokale men på forskellige enheder (diske, monteringspunkter), så vil kopieringer være fortløbende\n- Kun lokale filer (inaktive enheder): hvis alle filer er lokale men på enheder der er optaget (diske, monteringspunkter), så vil kopieringer være fortløbende\n- Aldrig: alle kopieringer foretages fortløbende"
 
-#: thunar/thunar-preferences-dialog.c:1245
+#: thunar/thunar-preferences-dialog.c:1211
 msgid "Local Files Only (Same Devices)"
 msgstr "Kun lokale filer (samme enheder)"
 
-#: thunar/thunar-preferences-dialog.c:1246
+#: thunar/thunar-preferences-dialog.c:1212
 msgid "Local Files Only (Idle Devices)"
 msgstr "Kun lokale filer (inaktive enheder)"
 
-#: thunar/thunar-preferences-dialog.c:1265
+#: thunar/thunar-preferences-dialog.c:1231
 msgid "Use intermediate file on copy:"
 msgstr "Brug mellemliggende fil ved kopiering:"
 
-#: thunar/thunar-preferences-dialog.c:1269
+#: thunar/thunar-preferences-dialog.c:1235
 msgid ""
 "Use intermediate file '*.partial~' to copy files. This will prevent "
 "fragmented files. The new file will only be shown after the copy was "
 "successfully finished."
 msgstr "Brug mellemliggende fil '*.partial~' til at kopiere filer. Derved forhindres fragmenterede filer. Den ny fil vises kun når det lykkedes af færdiggøre kopieringen."
 
-#: thunar/thunar-preferences-dialog.c:1296
+#: thunar/thunar-preferences-dialog.c:1262
 msgid "Verify file contents on copy:"
 msgstr "Verificer filens indhold ved kopiering:"
 
-#: thunar/thunar-preferences-dialog.c:1300
+#: thunar/thunar-preferences-dialog.c:1266
 msgid ""
 "Compare contents of original file and copy in order to detect corruption. "
 "While this will attempt to compare the actual contents that are on the "
@@ -2709,67 +2697,67 @@ msgid ""
 " will increase copy time."
 msgstr "Sammenlign indholdet af den originale fil og kopien, for at registrere beskadigelse. Selvom det vil prøve på at sammenligne det faktiske indhold på distinationsmediet, så kan Thunar måske ikke forbigå filsystemets mellemlagre, så sammenligningen vil måske ikke kunne registere alle tilfælde af beskadigelse. Aktivering af indstillingen vil øge den tid det tager at kopiere."
 
-#: thunar/thunar-preferences-dialog.c:1330
+#: thunar/thunar-preferences-dialog.c:1296
 msgid "Search"
 msgstr "Søg"
 
-#: thunar/thunar-preferences-dialog.c:1347
+#: thunar/thunar-preferences-dialog.c:1313
 msgid "Include subfolders:"
 msgstr "Inkluder undermapper:"
 
-#: thunar/thunar-preferences-dialog.c:1371
+#: thunar/thunar-preferences-dialog.c:1337
 msgid "Folder Permissions"
 msgstr "Mappetilladelser"
 
-#: thunar/thunar-preferences-dialog.c:1387
+#: thunar/thunar-preferences-dialog.c:1353
 msgid ""
 "When changing the permissions of a folder, you\n"
 "can also apply the changes to the contents of the\n"
 "folder. Select the default behavior below:"
 msgstr "Når tilladelserne for en mappe ændres, kan du\nogså anvende ændringerne på indholdet i\nmappen. Vælg standardopførsel nedenfor:"
 
-#: thunar/thunar-preferences-dialog.c:1399
-#: thunar/thunar-preferences-dialog.c:1445
+#: thunar/thunar-preferences-dialog.c:1365
+#: thunar/thunar-preferences-dialog.c:1411
 msgid "Ask every time"
 msgstr "Spørg hver gang"
 
-#: thunar/thunar-preferences-dialog.c:1400
+#: thunar/thunar-preferences-dialog.c:1366
 msgid "Apply to Folder and Contents"
 msgstr "Anvend på mappen og indholdet"
 
-#: thunar/thunar-preferences-dialog.c:1401
+#: thunar/thunar-preferences-dialog.c:1367
 msgid "Apply to Folder Only"
 msgstr "Anvend kun på mappen"
 
-#: thunar/thunar-preferences-dialog.c:1416
+#: thunar/thunar-preferences-dialog.c:1382
 msgid "Security"
 msgstr "Sikkerhed"
 
-#: thunar/thunar-preferences-dialog.c:1433
+#: thunar/thunar-preferences-dialog.c:1399
 msgid "Execute shell scripts:"
 msgstr "Kør skal-scripter:"
 
-#: thunar/thunar-preferences-dialog.c:1468
+#: thunar/thunar-preferences-dialog.c:1434
 msgid "Volume Management"
 msgstr "Diskområdehåndtering"
 
 #. add check button to enable/disable auto mounting
-#: thunar/thunar-preferences-dialog.c:1485
+#: thunar/thunar-preferences-dialog.c:1451
 msgid "Enable _volume management"
 msgstr "Aktivér _diskområdehåndtering"
 
-#: thunar/thunar-preferences-dialog.c:1504
+#: thunar/thunar-preferences-dialog.c:1470
 msgid ""
 "<a href=\"volman-config:\">Configure</a> the management of removable drives,\n"
 "devices and media."
 msgstr "<a href=\"volman-config:\">Konfigurer</a> håndteringen af flytbare drev,\nenheder og medier."
 
-#: thunar/thunar-preferences-dialog.c:1518
+#: thunar/thunar-preferences-dialog.c:1484
 #: thunar/thunar-properties-dialog.c:855
 msgid "Missing dependencies"
 msgstr "Manglende afhængigheder"
 
-#: thunar/thunar-preferences-dialog.c:1526
+#: thunar/thunar-preferences-dialog.c:1492
 msgid ""
 "It looks like <a href=\"https://wiki.gnome.org/Projects/gvfs\">gvfs</a> is not available.\n"
 "Important features including trash support,\n"
@@ -2778,34 +2766,34 @@ msgid ""
 msgstr "Det ser ikke ud til at <a href=\"https://wiki.gnome.org/Projects/gvfs\">gvfs</a> er tilgængelig.\nVigtige funktionaliteter vil ikke virke, herunder understøttelse af papirkurv,\nflytbare medier og gennemgang af fjernplacering.\n<a href=\"https://docs.xfce.org/xfce/thunar/unix-filesystem#gnome_virtual_file_system\">[Læs mere]</a>"
 
 #. Shortcuts
-#: thunar/thunar-preferences-dialog.c:1541
+#: thunar/thunar-preferences-dialog.c:1507
 msgid "Shortcuts"
 msgstr "Genveje"
 
-#: thunar/thunar-preferences-dialog.c:1556
+#: thunar/thunar-preferences-dialog.c:1522
 msgid "Window"
 msgstr "Vindue"
 
-#: thunar/thunar-preferences-dialog.c:1557
+#: thunar/thunar-preferences-dialog.c:1523
 msgid "View"
 msgstr "Vis"
 
-#: thunar/thunar-preferences-dialog.c:1559
+#: thunar/thunar-preferences-dialog.c:1525
 #: plugins/thunar-apr/thunar-apr-desktop-page.c:546
 msgid "Launcher"
 msgstr "Starter"
 
-#: thunar/thunar-preferences-dialog.c:1560
+#: thunar/thunar-preferences-dialog.c:1526
 msgid "Status Bar"
 msgstr "Statuslinje"
 
-#: thunar/thunar-preferences-dialog.c:1568
+#: thunar/thunar-preferences-dialog.c:1534
 msgid "The Shortcuts Editor requires a Thunar window to be present."
 msgstr "Genvejsredigeringen kræver at der er et Thunar-vindue tilstede."
 
 #. tell the user that we failed to come up with the thunar-volman
 #. configuration dialog
-#: thunar/thunar-preferences-dialog.c:1632
+#: thunar/thunar-preferences-dialog.c:1598
 msgid "Failed to display the volume management settings"
 msgstr "Kunne ikke vise indstillinger for diskområdehåndtering"
 
@@ -2873,7 +2861,7 @@ msgstr "Henvisning til:"
 #. * where the trashed file/folder was located before it was moved to the
 #. trash), otherwise the
 #. * properties dialog width will be messed up.
-#: thunar/thunar-properties-dialog.c:496 thunar/thunar-util.c:1479
+#: thunar/thunar-properties-dialog.c:496 thunar/thunar-util.c:1497
 msgid "Original Path:"
 msgstr "Oprindelig sti:"
 
@@ -2998,8 +2986,8 @@ msgid "%s - Properties"
 msgstr "%s - Egenskaber"
 
 #: thunar/thunar-properties-dialog.c:1423 thunar/thunar-size-label.c:390
-#: thunar/thunar-size-label.c:475 thunar/thunar-tree-view-model.c:1480
-#: thunar/thunar-tree-view-model.c:1493
+#: thunar/thunar-size-label.c:475 thunar/thunar-tree-view-model.c:1472
+#: thunar/thunar-tree-view-model.c:1485
 msgid "unknown"
 msgstr "ukendt"
 
@@ -3153,68 +3141,68 @@ msgid ""
 "Do you want to skip this file and continue to rename the remaining files?"
 msgstr "Vil du springe filen over og fortsætte med at omdøbe de resterende filer?"
 
-#: thunar/thunar-shortcuts-model.c:677 thunar/thunar-shortcuts-model.c:1064
+#: thunar/thunar-shortcuts-model.c:678 thunar/thunar-shortcuts-model.c:1070
 #: thunar/thunar-window.c:716
 msgid "Browse the file system"
 msgstr "Gennemse filsystemet"
 
-#: thunar/thunar-shortcuts-model.c:712
+#: thunar/thunar-shortcuts-model.c:713
 #, c-format
 msgid "Mount and open %s (%s)"
 msgstr "Montér og åbn %s (%s)"
 
-#: thunar/thunar-shortcuts-model.c:725 plugins/thunar-tpa/thunar-tpa.c:304
+#: thunar/thunar-shortcuts-model.c:726 plugins/thunar-tpa/thunar-tpa.c:304
 msgid "Trash is empty"
 msgstr "Papirkurven er tom"
 
-#: thunar/thunar-shortcuts-model.c:729
+#: thunar/thunar-shortcuts-model.c:730
 #, c-format
 msgid "Trash contains %d file"
 msgid_plural "Trash contains %d files"
 msgstr[0] "Papirkurven indeholder %d fil"
 msgstr[1] "Papirkurven indeholder %d filer"
 
-#: thunar/thunar-shortcuts-model.c:1057
+#: thunar/thunar-shortcuts-model.c:1063
 msgid "Devices"
 msgstr "Enheder"
 
-#: thunar/thunar-shortcuts-model.c:1100
+#: thunar/thunar-shortcuts-model.c:1106
 msgid "Network"
 msgstr "Netværk"
 
-#: thunar/thunar-shortcuts-model.c:1108
+#: thunar/thunar-shortcuts-model.c:1114
 msgid "Browse Network"
 msgstr "Gennemse netværk"
 
-#: thunar/thunar-shortcuts-model.c:1109 thunar/thunar-window.c:726
+#: thunar/thunar-shortcuts-model.c:1115 thunar/thunar-window.c:726
 msgid "Browse local network connections"
 msgstr "Gennemse lokale netværksforbindelser"
 
-#: thunar/thunar-shortcuts-model.c:1131
+#: thunar/thunar-shortcuts-model.c:1137
 msgid "Places"
 msgstr "Steder"
 
-#: thunar/thunar-shortcuts-model.c:1143
+#: thunar/thunar-shortcuts-model.c:1149
 msgid "Open the home folder"
 msgstr "Åbn hjemmemappen"
 
-#: thunar/thunar-shortcuts-model.c:1160
+#: thunar/thunar-shortcuts-model.c:1166
 msgid "Open the desktop folder"
 msgstr "Åbn skrivebordsmappen"
 
-#: thunar/thunar-shortcuts-model.c:1208 thunar.desktop.in:21
+#: thunar/thunar-shortcuts-model.c:1214 thunar.desktop.in:21
 msgid "Computer"
 msgstr "Computer"
 
-#: thunar/thunar-shortcuts-model.c:1209
+#: thunar/thunar-shortcuts-model.c:1215
 msgid "Browse the computer"
 msgstr "Gennemse computeren"
 
-#: thunar/thunar-shortcuts-model.c:1221
+#: thunar/thunar-shortcuts-model.c:1227
 msgid "Recent"
 msgstr "Seneste"
 
-#: thunar/thunar-shortcuts-model.c:1222
+#: thunar/thunar-shortcuts-model.c:1228
 msgid "Browse recently used files"
 msgstr "Gennemse seneste brugte filer"
 
@@ -3257,7 +3245,7 @@ msgstr "Beregning afbrudt"
 msgid "unreadable"
 msgstr "ulæseligt"
 
-#: thunar/thunar-size-label.c:483 thunar/thunar-util.c:1361
+#: thunar/thunar-size-label.c:483 thunar/thunar-util.c:1379
 #, c-format
 msgid "%d folder"
 msgid_plural "%d folders"
@@ -3277,129 +3265,129 @@ msgstr[1] "%u elementer (%s, %s)"
 msgid "(some contents unreadable)"
 msgstr "(noget af indholdet er ulæseligt)"
 
-#: thunar/thunar-standard-view.c:501
+#: thunar/thunar-standard-view.c:500
 msgid "Select _all Files"
 msgstr "Vælg _alle filer"
 
-#: thunar/thunar-standard-view.c:501
+#: thunar/thunar-standard-view.c:500
 msgid "Select all files in this window"
 msgstr "Vælg alle filer i vinduet"
 
-#: thunar/thunar-standard-view.c:502
+#: thunar/thunar-standard-view.c:501
 msgid "Select _by Pattern..."
 msgstr "Vælg _med mønster ..."
 
-#: thunar/thunar-standard-view.c:502
+#: thunar/thunar-standard-view.c:501
 msgid "Select all files that match a certain pattern"
 msgstr "Vælg alle filer der passer et bestemt mønster"
 
-#: thunar/thunar-standard-view.c:503
+#: thunar/thunar-standard-view.c:502
 msgid "_Invert Selection"
 msgstr "Om_vendt markering"
 
-#: thunar/thunar-standard-view.c:503
+#: thunar/thunar-standard-view.c:502
 msgid "Select all files but not those currently selected"
 msgstr "Vælg alle filer, undtagen dem som allerede er valgt"
 
-#: thunar/thunar-standard-view.c:504
+#: thunar/thunar-standard-view.c:503
 msgid "U_nselect all Files"
 msgstr "_Fravælg alle filer"
 
-#: thunar/thunar-standard-view.c:504
+#: thunar/thunar-standard-view.c:503
 msgid "Unselect all files in this window"
 msgstr "Fravælg alle filer i vinduet"
 
-#: thunar/thunar-standard-view.c:505
+#: thunar/thunar-standard-view.c:504
 msgid "Arran_ge Items"
 msgstr "_Opstil elementer"
 
-#: thunar/thunar-standard-view.c:506
+#: thunar/thunar-standard-view.c:505
 msgid "_Reversed Order"
 msgstr "_Omvendt rækkefølge"
 
-#: thunar/thunar-standard-view.c:506
+#: thunar/thunar-standard-view.c:505
 msgid "Reverse the sort order"
 msgstr "Gør sorteringsrækkefølgen omvendt"
 
-#: thunar/thunar-standard-view.c:507
+#: thunar/thunar-standard-view.c:506
 msgid "By _Name"
 msgstr "Efter _navn"
 
-#: thunar/thunar-standard-view.c:507
+#: thunar/thunar-standard-view.c:506
 msgid "Keep items sorted by their name"
 msgstr "Hold elementer sorteret efter deres navn"
 
-#: thunar/thunar-standard-view.c:508
+#: thunar/thunar-standard-view.c:507
 msgid "By _Size"
 msgstr "Efter _størrelse"
 
-#: thunar/thunar-standard-view.c:508
+#: thunar/thunar-standard-view.c:507
 msgid "Keep items sorted by their size"
 msgstr "Hold elementer sorteret efter deres størrelse"
 
-#: thunar/thunar-standard-view.c:509
+#: thunar/thunar-standard-view.c:508
 msgid "By _Type"
 msgstr "Efter _type"
 
-#: thunar/thunar-standard-view.c:509
+#: thunar/thunar-standard-view.c:508
 msgid "Keep items sorted by their type"
 msgstr "Hold elementer sorteret efter deres type"
 
-#: thunar/thunar-standard-view.c:510
+#: thunar/thunar-standard-view.c:509
 msgid "By _Modification Date"
 msgstr "Efter ændrings_dato"
 
-#: thunar/thunar-standard-view.c:510
+#: thunar/thunar-standard-view.c:509
 msgid "Keep items sorted by their modification date"
 msgstr "Hold elementer sorteret efter deres ændringsdato"
 
-#: thunar/thunar-standard-view.c:511
+#: thunar/thunar-standard-view.c:510
 msgid "By D_eletion Date"
 msgstr "Efter _sletningsdato"
 
-#: thunar/thunar-standard-view.c:511
+#: thunar/thunar-standard-view.c:510
 msgid "Keep items sorted by their deletion date"
 msgstr "Hold elementer sorteret efter deres sletningsdato"
 
-#: thunar/thunar-standard-view.c:512
+#: thunar/thunar-standard-view.c:511
 msgid "_Ascending"
 msgstr "_Stigende"
 
-#: thunar/thunar-standard-view.c:512
+#: thunar/thunar-standard-view.c:511
 msgid "Sort items in ascending order"
 msgstr "Sortér elementer i stigende rækkefølge"
 
-#: thunar/thunar-standard-view.c:513
+#: thunar/thunar-standard-view.c:512
 msgid "_Descending"
 msgstr "_Faldende"
 
-#: thunar/thunar-standard-view.c:513
+#: thunar/thunar-standard-view.c:512
 msgid "Sort items in descending order"
 msgstr "Sortér elementer i faldende rækkefølge"
 
-#: thunar/thunar-standard-view.c:514
+#: thunar/thunar-standard-view.c:513
 msgid "_Folders First"
 msgstr "_Mapper først"
 
-#: thunar/thunar-standard-view.c:514
+#: thunar/thunar-standard-view.c:513
 msgid "Sort folders before files"
 msgstr "Sortér mapper før filer"
 
-#: thunar/thunar-standard-view.c:515
+#: thunar/thunar-standard-view.c:514
 msgid "_Hidden Files Last"
 msgstr ""
 
-#: thunar/thunar-standard-view.c:515
+#: thunar/thunar-standard-view.c:514
 msgid "Sort hidden files after other files"
 msgstr ""
 
 #. TRANSLATORS: You can swap the order of the arguments if required.
-#: thunar/thunar-standard-view.c:1426
+#: thunar/thunar-standard-view.c:1423
 #, c-format
 msgid "Search for '%1$s' in %2$s"
 msgstr "Søg efter '%1$s' i %2$s"
 
-#: thunar/thunar-standard-view.c:1428
+#: thunar/thunar-standard-view.c:1425
 #, c-format
 msgid "Search in %s"
 msgstr "Søg i %s"
@@ -3412,7 +3400,7 @@ msgstr ""
 msgid "Loading statusbar information..."
 msgstr ""
 
-#: thunar/thunar-standard-view.c:2775
+#: thunar/thunar-standard-view.c:2769
 #, c-format
 msgid "%d file found"
 msgid_plural "%d files found"
@@ -3420,36 +3408,36 @@ msgstr[0] "%d fil fundet"
 msgstr[1] "%d filer fundet"
 
 #. clear information from the statusbar
-#: thunar/thunar-standard-view.c:2817
+#: thunar/thunar-standard-view.c:2815
 msgid "Loading selection information..."
 msgstr ""
 
 #. display an error to the user
-#: thunar/thunar-standard-view.c:2949 thunar/thunar-window.c:4810
+#: thunar/thunar-standard-view.c:2956 thunar/thunar-window.c:4813
 msgid "Failed to open the home folder"
 msgstr "Kunne ikke åbne hjemmemappen"
 
-#: thunar/thunar-standard-view.c:3027
+#: thunar/thunar-standard-view.c:3034
 msgctxt "Select by Pattern dialog: title"
 msgid "Select by Pattern"
 msgstr "Vælg med mønster"
 
-#: thunar/thunar-standard-view.c:3032
+#: thunar/thunar-standard-view.c:3039
 msgctxt "Select by Pattern dialog: buttons"
 msgid "_Cancel"
 msgstr "_Annuller"
 
-#: thunar/thunar-standard-view.c:3035
+#: thunar/thunar-standard-view.c:3042
 msgctxt "Select by Pattern dialog: buttons"
 msgid "_Select"
 msgstr "_Vælg"
 
-#: thunar/thunar-standard-view.c:3049
+#: thunar/thunar-standard-view.c:3056
 msgctxt "Select by Pattern dialog: labels: pattern entry textbox"
 msgid "_Pattern:"
 msgstr "_Mønster:"
 
-#: thunar/thunar-standard-view.c:3050
+#: thunar/thunar-standard-view.c:3057
 msgctxt ""
 "Select by Pattern dialog: tooltips on label for pattern entry textbox"
 msgid ""
@@ -3459,7 +3447,7 @@ msgstr "Filer hvis navne der matcher det jokertegnsmønskter du har indtastet vi
 
 #. TRANSLATORS: the * and ? characters are the ASCII wildcard special symbols,
 #. and they must not be localized.
-#: thunar/thunar-standard-view.c:3064
+#: thunar/thunar-standard-view.c:3071
 msgctxt "Select by Pattern dialog: tooltips: pattern entry text box"
 msgid ""
 "? matches exactly one character,\n"
@@ -3470,24 +3458,24 @@ msgid ""
 "Without any * or ? wildcards, the pattern will match anywhere in a name. With wildcards, the pattern must match at both the start and the end of a name."
 msgstr "? matcher præcist ét tegn,\n* matcher et vilkårligt antal tegn, inklusive nul.\n\nF.eks.: *.txt, fil??.png, bill\n\nUden noget *- eller ?-jokertegn vil mønsteret matche hvor som helst i et navn. Med jokertegn skal mønsteret matche ved både begyndelsen og slutningen af et navn."
 
-#: thunar/thunar-standard-view.c:3068
+#: thunar/thunar-standard-view.c:3075
 msgctxt "Select by Pattern dialog: labels: case sensitive checkbox"
 msgid "C_ase sensitive"
 msgstr "Der skelnes mellem store og små _bogstaver"
 
-#: thunar/thunar-standard-view.c:3069
+#: thunar/thunar-standard-view.c:3076
 msgctxt "Select by Pattern dialog: tooltips: case sensitive checkbox"
 msgid ""
 "If enabled, letter case must match the pattern.\n"
 "Examp* would match Example.txt and not example.txt"
 msgstr "Hvis den er aktiveret, så skal store/små bogstaver matche mønsteret.\nEksemp* vil matche Eksempel.txt og ikke eksempel.txt"
 
-#: thunar/thunar-standard-view.c:3074
+#: thunar/thunar-standard-view.c:3081
 msgctxt "Select by Pattern dialog: labels: match diacritics checkbox"
 msgid "_Match diacritics"
 msgstr "_Match diakritiske tegn"
 
-#: thunar/thunar-standard-view.c:3075
+#: thunar/thunar-standard-view.c:3082
 msgctxt "Select by Pattern dialog: tooltips: match diacritics checkbox"
 msgid ""
 "If enabled, require accents to match the pattern.\n"
@@ -3496,21 +3484,21 @@ msgstr "Hvis den er aktiveret, så skal accenttegn matche mønsteret.\nRés* vil
 
 #. tell the user that the file name provided by the X Direct Save source is
 #. invalid
-#: thunar/thunar-standard-view.c:3523
+#: thunar/thunar-standard-view.c:3530
 msgid "Invalid filename provided by XDS drag site"
 msgstr "Ugyldigt filnavn leveret af XDS-træk-og-slip-sted"
 
 #. display an error dialog to the user
-#: thunar/thunar-standard-view.c:3719
+#: thunar/thunar-standard-view.c:3726
 #, c-format
 msgid "Failed to create a link for the URL \"%s\""
 msgstr "Kunne ikke oprette en henvisning til URL'en \"%s\""
 
-#: thunar/thunar-standard-view.c:3766
+#: thunar/thunar-standard-view.c:3773
 msgid "Untitled document"
 msgstr "Unavngivet dokument"
 
-#: thunar/thunar-standard-view.c:4266 thunar/thunar-window.c:4907
+#: thunar/thunar-standard-view.c:4273 thunar/thunar-window.c:4910
 #, c-format
 msgid "Failed to open directory \"%s\""
 msgstr "Kunne ikke åbne mappen \"%s\""
@@ -3664,12 +3652,12 @@ msgid_plural "%lu seconds remaining (%s/sec)"
 msgstr[0] "%lu sekund tilbage (%s/sek.)"
 msgstr[1] "%lu sekunder tilbage (%s/sek.)"
 
-#: thunar/thunar-tree-model.c:643 thunar/thunar-tree-view-model.c:1409
-#: thunar/thunar-tree-view-model.c:1544
+#: thunar/thunar-tree-model.c:643 thunar/thunar-tree-view-model.c:1401
+#: thunar/thunar-tree-view-model.c:1536
 msgid "Loading..."
 msgstr "Indlæser ..."
 
-#: thunar/thunar-tree-view-model.c:1482 thunar/thunar-tree-view-model.c:1495
+#: thunar/thunar-tree-view-model.c:1474 thunar/thunar-tree-view-model.c:1487
 #, c-format
 msgid "%u item"
 msgid_plural "%u items"
@@ -3735,36 +3723,14 @@ msgstr ""
 msgid "Deleted items will be permanently lost."
 msgstr ""
 
-#: thunar/thunar-uca-model.c:758
-msgid "End element handler called while in root context"
-msgstr "Håndtering til afslutning af element kaldt fra rodkontekst"
-
-#: thunar/thunar-uca-model.c:879
-#, c-format
-msgid "Unknown closing element <%s>"
-msgstr "Ukendt lukkende element <%s>"
-
-#: thunar/thunar-uca-model.c:1310
-msgid "Failed to determine save location for uca.xml"
-msgstr "Kunne ikke afgøre gemmeplacering for uca.xml"
-
-#: thunar/thunar-uca-model.c:1443
-msgid "Command not configured"
-msgstr "Kommandoen er ikke konfigureret"
-
-#: thunar/thunar-uca-provider.c:177
+#: thunar/thunar-uca-provider.c:101
 msgid "Confi_gure custom actions..."
 msgstr "Konfigurer _tilpassede handlinger ..."
 
-#: thunar/thunar-uca-provider.c:177
+#: thunar/thunar-uca-provider.c:101
 msgid ""
 "Setup custom actions that will appear in the file managers context menus"
 msgstr "Opsæt tilpassede handlinger, som vises i filhåndteringernes genvejsmenuer"
-
-#: thunar/thunar-uca-provider.c:605
-#, c-format
-msgid "Failed to launch action \"%s\"."
-msgstr "Kunne ikke starte handlingen \"%s\"."
 
 #: thunar/thunar-uca-editor.ui:63
 msgid "The name of the action that will be displayed in the context menu."
@@ -4016,56 +3982,56 @@ msgstr "Søg:"
 
 #. TRANSLATORS: Using ngettext here, since some languages do require a
 #. different plural form here
-#: thunar/thunar-util.c:1335 thunar/thunar-util.c:1369
+#: thunar/thunar-util.c:1353 thunar/thunar-util.c:1387
 #, c-format
 msgid "%s (%d hidden)"
 msgid_plural "%s (%d hidden)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: thunar/thunar-util.c:1352
+#: thunar/thunar-util.c:1370
 #, c-format
 msgid "%s: %s"
 msgstr "%s: %s"
 
-#: thunar/thunar-util.c:1376
+#: thunar/thunar-util.c:1394
 msgid "0 items"
 msgstr "0 elementer"
 
-#: thunar/thunar-util.c:1385 thunar/thunar-util.c:1507
+#: thunar/thunar-util.c:1403 thunar/thunar-util.c:1525
 #, c-format
 msgid "Last Modified: %s"
 msgstr "Sidst ændret: %s"
 
-#: thunar/thunar-util.c:1434
+#: thunar/thunar-util.c:1452
 #, c-format
 msgid "\"%s\" (%s)"
 msgstr "\"%s\" (%s)"
 
-#: thunar/thunar-util.c:1436
+#: thunar/thunar-util.c:1454
 #, c-format
 msgid "\"%s\""
 msgstr "\"%s\""
 
-#: thunar/thunar-util.c:1457
+#: thunar/thunar-util.c:1475
 #, c-format
 msgid "link to %s"
 msgstr "henvisning til %s"
 
-#: thunar/thunar-util.c:1459
+#: thunar/thunar-util.c:1477
 msgid "shortcut"
 msgstr "genvej"
 
-#: thunar/thunar-util.c:1461
+#: thunar/thunar-util.c:1479
 msgid "mountable"
 msgstr "montérbar"
 
-#: thunar/thunar-util.c:1463
+#: thunar/thunar-util.c:1481
 msgid "mount point"
 msgstr "monteringspunkt"
 
 #. append the image dimensions to the statusbar text
-#: thunar/thunar-util.c:1497 plugins/thunar-apr/thunar-apr-image-page.c:154
+#: thunar/thunar-util.c:1515 plugins/thunar-apr/thunar-apr-image-page.c:154
 msgid "Image Size:"
 msgstr "Billedstørrelse:"
 
@@ -4490,98 +4456,120 @@ msgstr "Gendan de valgte elementer"
 msgid "Close tab"
 msgstr "Luk faneblad"
 
-#: thunar/thunar-window.c:3626
+#: thunar/thunar-window.c:3629
 #, c-format
 msgid "Open the location \"%s\""
 msgstr "Åbn placeringen \"%s\""
 
-#: thunar/thunar-window.c:4738
+#: thunar/thunar-window.c:4741
 msgid "Failed to open parent folder"
 msgstr "Kunne ikke åbne overliggende mappe"
 
-#: thunar/thunar-window.c:4881
+#: thunar/thunar-window.c:4884
 #, c-format
 msgid "The directory \"%s\" does not exist. Do you want to create it?"
 msgstr "Mappen \"%s\" findes ikke. Vil du oprette den?"
 
-#: thunar/thunar-window.c:4883
+#: thunar/thunar-window.c:4886
 msgid "Create directory"
 msgstr "Opret mappe"
 
 #. display an error to the user
-#: thunar/thunar-window.c:4952
+#: thunar/thunar-window.c:4955
 msgid "Failed to browse the computer"
 msgstr "Kunne ikke gennemse computeren"
 
 #. display the "About Templates" dialog
-#: thunar/thunar-window.c:4995
+#: thunar/thunar-window.c:4998
 msgid "About Templates"
 msgstr "Om skabeloner"
 
-#: thunar/thunar-window.c:5017
+#: thunar/thunar-window.c:5020
 msgid "All files in this folder will appear in the \"Create Document\" menu."
 msgstr "Alle filer i mappen vises i \"Opret dokument\"-menuen."
 
-#: thunar/thunar-window.c:5024
+#: thunar/thunar-window.c:5027
 msgid ""
 "If you frequently create certain kinds  of documents, make a copy of one and put it in this folder. Thunar will add an entry for this document in the \"Create Document\" menu.\n"
 "\n"
 "You can then select the entry from the \"Create Document\" menu and a copy of the document will be created in the directory you are viewing."
 msgstr "Hvis du ofte opretter dokumenter af bestemte typer , så lav en kopi af en af dem og læg den i mappen. Thunar tilføjer et punkt for dokumentet i \"Opret dokument\"-menuen.\n\nSå kan du vælge punktet fra \"Opret dokument\"-menuen, og en kopi af dokumentet oprettes i mappen."
 
-#: thunar/thunar-window.c:5036
+#: thunar/thunar-window.c:5039
 msgid "Do _not display this message again"
 msgstr "Vis _ikke meddelelsen igen"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5070
+#: thunar/thunar-window.c:5073
 msgid "Failed to open the file system root folder"
 msgstr "Kunne ikke åbne filsystemets rodmappe"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5106
+#: thunar/thunar-window.c:5109
 msgid "Failed to display `Recent`"
 msgstr "Kunne ikke vise `Seneste`"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5142
+#: thunar/thunar-window.c:5145
 msgid "Failed to display the contents of the trash can"
 msgstr "Kunne ikke vise indholdet af papirkurven"
 
 #. display an error to the user
-#: thunar/thunar-window.c:5178
+#: thunar/thunar-window.c:5181
 msgid "Failed to browse the network"
 msgstr "Kunne ikke gennemse netværket"
 
-#: thunar/thunar-window.c:5337
+#: thunar/thunar-window.c:5340
 msgid ""
 "Thunar is a fast and easy to use file manager\n"
 "for the Xfce Desktop Environment."
 msgstr "Thunar er en hurtig og letanvendelig\nfilhåndtering til Xfce-skrivebordsmiljøet."
 
-#: thunar/thunar-window.c:6499
+#: thunar/thunar-window.c:6502
 msgid "Select an image to preview"
 msgstr "Vælg et billeder som skal forhåndsvises"
 
-#: thunar/thunar-window.c:6643
+#: thunar/thunar-window.c:6646
 msgid "Failed to launch search with Catfish"
 msgstr "Kunne ikke starte søgning med Catfish"
 
-#: thunar/thunar-window.c:6974
+#: thunar/thunar-window.c:6977
 msgid "Change the active view type"
 msgstr "Skift den aktive visningstype"
 
 #. add a proxy menu item for the view switcher to be represent in the overflow
 #. menu
-#: thunar/thunar-window.c:6977 thunar/thunar-window.c:7002
+#: thunar/thunar-window.c:6980 thunar/thunar-window.c:7005
 msgid "View Switcher"
 msgstr "Vis skifter"
 
 #. add a proxy menu item for the location bar to represent the bar in the
 #. overflow menu
-#: thunar/thunar-window.c:7171 thunar/thunar-window.c:7176
+#: thunar/thunar-window.c:7174 thunar/thunar-window.c:7179
 msgid "Location Bar"
 msgstr "Placeringslinje"
+
+#: thunar-uca/thunar-uca-base-provider.c:544
+#, c-format
+msgid "Failed to launch action \"%s\"."
+msgstr "Kunne ikke starte handlingen \"%s\"."
+
+#: thunar-uca/thunar-uca-model.c:758
+msgid "End element handler called while in root context"
+msgstr "Håndtering til afslutning af element kaldt fra rodkontekst"
+
+#: thunar-uca/thunar-uca-model.c:879
+#, c-format
+msgid "Unknown closing element <%s>"
+msgstr "Ukendt lukkende element <%s>"
+
+#: thunar-uca/thunar-uca-model.c:1310
+msgid "Failed to determine save location for uca.xml"
+msgstr "Kunne ikke afgøre gemmeplacering for uca.xml"
+
+#: thunar-uca/thunar-uca-model.c:1443
+msgid "Command not configured"
+msgstr "Kommandoen er ikke konfigureret"
 
 #: thunarx/thunarx-property-page.c:111
 msgid "Label"
