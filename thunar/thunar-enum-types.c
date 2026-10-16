@@ -20,6 +20,8 @@
 
 #include "thunar/thunar-enum-types.h"
 
+#include "thunar/thunar-preferences.h"
+
 #include <libxfce4util/libxfce4util.h>
 
 
@@ -661,7 +663,17 @@ static void
 thunar_font_scale_from_zoom_level (const GValue *src_value,
                                    GValue       *dst_value)
 {
-  g_value_set_double (dst_value, thunar_zoom_level_to_font_scale (g_value_get_enum (src_value)));
+  ThunarPreferences *preferences;
+  gboolean           text_size_follows_zoom_level;
+
+  preferences = thunar_preferences_get ();
+  g_object_get (G_OBJECT (preferences), "misc-text-size-follows-zoom-level", &text_size_follows_zoom_level, NULL);
+  g_object_unref (preferences);
+
+  if (text_size_follows_zoom_level)
+    g_value_set_double (dst_value, thunar_zoom_level_to_font_scale (g_value_get_enum (src_value)));
+  else
+    g_value_set_double (dst_value, 1.0);
 }
 
 

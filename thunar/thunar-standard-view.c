@@ -138,6 +138,8 @@ thunar_standard_view_scale_changed (GObject    *object,
                                     GParamSpec *pspec,
                                     gpointer    user_data);
 static void
+thunar_standard_view_text_size_follows_zoom_level_changed (ThunarStandardView *standard_view);
+static void
 thunar_standard_view_realize (GtkWidget *widget);
 static void
 thunar_standard_view_unrealize (GtkWidget *widget);
@@ -1081,6 +1083,7 @@ thunar_standard_view_init (ThunarStandardView *standard_view)
                 NULL);
   g_object_ref_sink (G_OBJECT (standard_view->name_renderer));
   g_object_bind_property (G_OBJECT (standard_view), "zoom-level", G_OBJECT (standard_view->name_renderer), "scale", G_BINDING_SYNC_CREATE);
+  g_signal_connect_swapped (G_OBJECT (standard_view->preferences), "notify::misc-text-size-follows-zoom-level", G_CALLBACK (thunar_standard_view_text_size_follows_zoom_level_changed), standard_view);
   g_object_bind_property (G_OBJECT (standard_view->preferences), "misc-highlighting-enabled", G_OBJECT (standard_view->name_renderer), "highlighting-enabled", G_BINDING_SYNC_CREATE);
 
   /* this is required in order to disable foreground & background colors on the text renderers when the feature is disabled */
@@ -5397,4 +5400,13 @@ thunar_standard_view_select_first_file (ThunarStandardView *standard_view)
 
       gtk_tree_selection_select_iter (selection, &iter);
     }
+}
+
+
+
+static void
+thunar_standard_view_text_size_follows_zoom_level_changed (ThunarStandardView *standard_view)
+{
+  /* Do as if the zoom level changed to trigger a text scale update. */
+  g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_ZOOM_LEVEL]);
 }

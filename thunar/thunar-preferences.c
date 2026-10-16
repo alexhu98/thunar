@@ -148,6 +148,7 @@ enum
   PROP_MISC_SUPPORT_OVERLAY_SCROLLING,
   PROP_SMART_SORT,
   PROP_MISC_FILE_DRAG_MODE,
+  PROP_MISC_TEXT_SIZE_FOLLOWS_ZOOM_LEVEL,
 #ifdef HAVE_VTE
   PROP_TERMINAL_HEIGHT,
   PROP_TERMINAL_VISIBLE,
@@ -1514,6 +1515,19 @@ thunar_preferences_class_init (ThunarPreferencesClass *klass)
                      THUNAR_TYPE_FILE_DRAG_MODE,
                      THUNAR_FILE_DRAG_MODE_MENU_ALWAYS,
                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+  /**
+   * ThunarPreferences:misc-text-size-follows-zoom-level:
+   *
+   * If true, the text size of file names scales along with the icon size
+   * when changing the zoom level.
+   **/
+  preferences_props[PROP_MISC_TEXT_SIZE_FOLLOWS_ZOOM_LEVEL] =
+  g_param_spec_boolean ("misc-text-size-follows-zoom-level",
+                        "MiscTextSizeFollowsZoomLevel",
+                        NULL,
+                        FALSE,
+                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
 #ifdef HAVE_VTE
   /**
