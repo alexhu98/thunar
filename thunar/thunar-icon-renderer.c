@@ -40,6 +40,8 @@ enum
   PROP_HIGHLIGHT_COLOR,
   PROP_ROUNDED_CORNERS,
   PROP_BORDER_RADIUS,
+  PROP_BACKGROUND_COLOR_SELECTED,
+  PROP_BACKGROUND_COLOR_SELECTED_BACKDROP,
   PROP_HIGHLIGHTING_ENABLED,
   PROP_USE_SYMBOLIC_ICONS,
 };
@@ -210,6 +212,31 @@ thunar_icon_renderer_class_init (ThunarIconRendererClass *klass)
 
 
   /**
+   * ThunarIconRenderer:background-color-selected:
+   *
+   * The GTK CSS background colour for selected files, or %NULL for the fallback.
+   */
+  g_object_class_install_property (gobject_class,
+                                   PROP_BACKGROUND_COLOR_SELECTED,
+                                   g_param_spec_boxed ("background-color-selected", "background-color-selected", "background-color-selected",
+                                                       GDK_TYPE_RGBA,
+                                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  /**
+   * ThunarIconRenderer:background-color-selected-backdrop:
+   *
+   * The GTK CSS background colour for selected files in an inactive window,
+   * or %NULL for the fallback.
+   */
+  g_object_class_install_property (gobject_class,
+                                   PROP_BACKGROUND_COLOR_SELECTED_BACKDROP,
+                                   g_param_spec_boxed ("background-color-selected-backdrop", "background-color-selected-backdrop", "background-color-selected-backdrop",
+                                                       GDK_TYPE_RGBA,
+                                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+
+
+  /**
    * ThunarIconRenderer:highlighting-enabled:
    *
    * Determines if the cell background should be drawn with highlight color.
@@ -258,6 +285,8 @@ thunar_icon_renderer_finalize (GObject *object)
   if (G_LIKELY (icon_renderer->file != NULL))
     g_object_unref (G_OBJECT (icon_renderer->file));
   g_free (icon_renderer->highlight_color);
+  g_clear_pointer (&icon_renderer->background_color_selected, gdk_rgba_free);
+  g_clear_pointer (&icon_renderer->background_color_selected_backdrop, gdk_rgba_free);
 
   (*G_OBJECT_CLASS (thunar_icon_renderer_parent_class)->finalize) (object);
 }
@@ -300,6 +329,14 @@ thunar_icon_renderer_get_property (GObject    *object,
 
     case PROP_ROUNDED_CORNERS:
       g_value_set_boolean (value, icon_renderer->rounded_corners);
+      break;
+
+    case PROP_BACKGROUND_COLOR_SELECTED:
+      g_value_set_boxed (value, icon_renderer->background_color_selected);
+      break;
+
+    case PROP_BACKGROUND_COLOR_SELECTED_BACKDROP:
+      g_value_set_boxed (value, icon_renderer->background_color_selected_backdrop);
       break;
 
     case PROP_BORDER_RADIUS:
@@ -363,6 +400,16 @@ thunar_icon_renderer_set_property (GObject      *object,
 
     case PROP_ROUNDED_CORNERS:
       icon_renderer->rounded_corners = g_value_get_boolean (value);
+      break;
+
+    case PROP_BACKGROUND_COLOR_SELECTED:
+      g_clear_pointer (&icon_renderer->background_color_selected, gdk_rgba_free);
+      icon_renderer->background_color_selected = g_value_dup_boxed (value);
+      break;
+
+    case PROP_BACKGROUND_COLOR_SELECTED_BACKDROP:
+      g_clear_pointer (&icon_renderer->background_color_selected_backdrop, gdk_rgba_free);
+      icon_renderer->background_color_selected_backdrop = g_value_dup_boxed (value);
       break;
 
     case PROP_BORDER_RADIUS:
@@ -537,7 +584,9 @@ thunar_icon_renderer_render (GtkCellRenderer     *renderer,
                                       background_area,
                                       widget,
                                       flags,
-                                      icon_renderer->border_radius);
+                                      icon_renderer->border_radius,
+                                      icon_renderer->background_color_selected,
+                                      icon_renderer->background_color_selected_backdrop);
 
   /* determine the icon state */
   icon_state = (icon_renderer->drop_file != icon_renderer->file)

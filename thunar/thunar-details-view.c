@@ -375,6 +375,14 @@ thunar_details_view_init (ThunarDetailsView *details_view)
   /* allocate the shared right-aligned text renderer */
   right_aligned_renderer = g_object_new (thunar_text_renderer_get_type (), "xalign", 1.0f, NULL);
 
+  /* Keep selection colours consistent with the name column. */
+  g_object_bind_property (G_OBJECT (THUNAR_STANDARD_VIEW (details_view)->name_renderer), "background-color-selected",
+                          G_OBJECT (right_aligned_renderer), "background-color-selected",
+                          G_BINDING_SYNC_CREATE);
+  g_object_bind_property (G_OBJECT (THUNAR_STANDARD_VIEW (details_view)->name_renderer), "background-color-selected-backdrop",
+                          G_OBJECT (right_aligned_renderer), "background-color-selected-backdrop",
+                          G_BINDING_SYNC_CREATE);
+
   /* this is required in order to disable foreground & background colors on text renderers when the feature is disabled */
   g_object_bind_property (G_OBJECT (THUNAR_STANDARD_VIEW (details_view)->preferences), "misc-highlighting-enabled",
                           G_OBJECT (right_aligned_renderer), "foreground-set",
@@ -387,6 +395,14 @@ thunar_details_view_init (ThunarDetailsView *details_view)
 
   /* allocate the shared left-aligned text renderer */
   left_aligned_renderer = g_object_new (thunar_text_renderer_get_type (), "xalign", 0.0f, NULL);
+
+  /* Keep selection colours consistent with the name column. */
+  g_object_bind_property (G_OBJECT (THUNAR_STANDARD_VIEW (details_view)->name_renderer), "background-color-selected",
+                          G_OBJECT (left_aligned_renderer), "background-color-selected",
+                          G_BINDING_SYNC_CREATE);
+  g_object_bind_property (G_OBJECT (THUNAR_STANDARD_VIEW (details_view)->name_renderer), "background-color-selected-backdrop",
+                          G_OBJECT (left_aligned_renderer), "background-color-selected-backdrop",
+                          G_BINDING_SYNC_CREATE);
 
   /* this is required in order to disable foreground & background colors on text renderers when the feature is disabled */
   g_object_bind_property (G_OBJECT (THUNAR_STANDARD_VIEW (details_view)->preferences), "misc-highlighting-enabled",

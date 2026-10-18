@@ -1010,7 +1010,9 @@ thunar_util_clip_view_background (GtkCellRenderer     *cell,
                                   const GdkRectangle  *background_area,
                                   GtkWidget           *widget,
                                   GtkCellRendererState flags,
-                                  gint                 border_radius)
+                                  gint                 border_radius,
+                                  const GdkRGBA       *background_color_selected,
+                                  const GdkRGBA       *background_color_selected_backdrop)
 {
   GtkStyleContext *context;
   GdkRGBA         *color = NULL;
@@ -1023,6 +1025,7 @@ thunar_util_clip_view_background (GtkCellRenderer     *cell,
   GtkWidget       *toplevel;
   gboolean         window_is_backdrop = TRUE;
   gboolean         theme_unfocused_color_found = FALSE;
+  const GdkRGBA   *selection_background = NULL;
 
   g_object_get (G_OBJECT (cell),
                 "highlight-color", &highlight_color,
@@ -1062,10 +1065,18 @@ thunar_util_clip_view_background (GtkCellRenderer     *cell,
    **/
   if (G_UNLIKELY (color_selected && !(THUNAR_IS_ICON_RENDERER (cell) && highlight_color != NULL)))
     {
-      context = gtk_widget_get_style_context (widget);
-      theme_unfocused_color_found = gtk_style_context_lookup_color (context, "theme_unfocused_selected_bg_color", &highlight_color_rgba);
-      if (!window_is_backdrop || !theme_unfocused_color_found)
-        gtk_style_context_lookup_color (context, "theme_selected_bg_color", &highlight_color_rgba);
+      /* Use the CSS selection colour; custom icon backgrounds are preserved above. */
+      selection_background = window_is_backdrop ? background_color_selected_backdrop : background_color_selected;
+
+      if (selection_background != NULL)
+        highlight_color_rgba = *selection_background;
+      else
+        {
+          context = gtk_widget_get_style_context (widget);
+          theme_unfocused_color_found = gtk_style_context_lookup_color (context, "theme_unfocused_selected_bg_color", &highlight_color_rgba);
+          if (!window_is_backdrop || !theme_unfocused_color_found)
+            gtk_style_context_lookup_color (context, "theme_selected_bg_color", &highlight_color_rgba);
+        }
 
       if (color)
         gdk_rgba_free (color);
@@ -1076,7 +1087,11 @@ thunar_util_clip_view_background (GtkCellRenderer     *cell,
     {
       gdk_cairo_set_source_rgba (cr, color);
       gdk_rgba_free (color);
-      cairo_paint_with_alpha (cr, window_is_backdrop ? ALPHA_BACKDROP : ALPHA_FOCUSED);
+      if (selection_background != NULL)
+        /* CSS already specifies the opacity, including for backdrop selections. */
+        cairo_paint (cr);
+      else
+        cairo_paint_with_alpha (cr, window_is_backdrop ? ALPHA_BACKDROP : ALPHA_FOCUSED);
     }
 
   g_free (highlight_color);

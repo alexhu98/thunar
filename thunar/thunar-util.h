@@ -111,7 +111,9 @@ thunar_util_clip_view_background (GtkCellRenderer     *cell,
                                   const GdkRectangle  *background_area,
                                   GtkWidget           *widget,
                                   GtkCellRendererState flags,
-                                  gint                 border_radius);
+                                  gint                 border_radius,
+                                  const GdkRGBA       *background_color_selected,
+                                  const GdkRGBA       *background_color_selected_backdrop);
 gchar **
 thunar_util_split_search_query (const gchar *search_query_normalized,
                                 GError     **error);

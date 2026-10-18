@@ -5164,6 +5164,8 @@ thunar_standard_view_highlight_option_changed (ThunarStandardView *standard_view
   GtkCellLayoutDataFunc function = NULL;
   gboolean              show_highlight;
   gint                  border_radius = -1;
+  GdkRGBA              *background_color_selected = NULL;
+  GdkRGBA              *background_color_selected_backdrop = NULL;
   GtkStyleContext      *context = gtk_widget_get_style_context (view);
 
   if (GTK_IS_TREE_VIEW (view))
@@ -5189,6 +5191,30 @@ thunar_standard_view_highlight_option_changed (ThunarStandardView *standard_view
 
       g_object_set (G_OBJECT (standard_view->icon_renderer), "border-radius", border_radius, NULL);
       g_object_set (G_OBJECT (standard_view->name_renderer), "border-radius", border_radius, NULL);
+
+      /* Read selection colours before hiding the GTK selection background. */
+      if (thunar_gtk_style_context_is_css_attribute_defined (standard_view->priv->css_provider,
+                                                             context, GTK_STATE_FLAG_SELECTED,
+                                                             GTK_STYLE_PROPERTY_BACKGROUND_COLOR))
+        gtk_style_context_get (context, GTK_STATE_FLAG_SELECTED,
+                               GTK_STYLE_PROPERTY_BACKGROUND_COLOR, &background_color_selected, NULL);
+
+      if (thunar_gtk_style_context_is_css_attribute_defined (standard_view->priv->css_provider,
+                                                             context, GTK_STATE_FLAG_SELECTED | GTK_STATE_FLAG_BACKDROP,
+                                                             GTK_STYLE_PROPERTY_BACKGROUND_COLOR))
+        gtk_style_context_get (context, GTK_STATE_FLAG_SELECTED | GTK_STATE_FLAG_BACKDROP,
+                               GTK_STYLE_PROPERTY_BACKGROUND_COLOR, &background_color_selected_backdrop, NULL);
+
+      g_object_set (G_OBJECT (standard_view->icon_renderer),
+                    "background-color-selected", background_color_selected,
+                    "background-color-selected-backdrop", background_color_selected_backdrop,
+                    NULL);
+      g_object_set (G_OBJECT (standard_view->name_renderer),
+                    "background-color-selected", background_color_selected,
+                    "background-color-selected-backdrop", background_color_selected_backdrop,
+                    NULL);
+      g_clear_pointer (&background_color_selected, gdk_rgba_free);
+      g_clear_pointer (&background_color_selected_backdrop, gdk_rgba_free);
 
       gtk_css_provider_load_from_data (
       standard_view->priv->css_provider,

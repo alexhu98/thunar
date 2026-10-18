@@ -28,6 +28,8 @@ enum
   PROP_HIGHLIGHT_COLOR,
   PROP_ROUNDED_CORNERS,
   PROP_BORDER_RADIUS,
+  PROP_BACKGROUND_COLOR_SELECTED,
+  PROP_BACKGROUND_COLOR_SELECTED_BACKDROP,
   PROP_HIGHLIGHTING_ENABLED,
 };
 
@@ -74,6 +76,8 @@ struct _ThunarTextRenderer
   gchar   *highlight_color;
   gboolean rounded_corners;
   gint     border_radius;
+  GdkRGBA *background_color_selected;
+  GdkRGBA *background_color_selected_backdrop;
   gboolean highlighting_enabled;
 };
 
@@ -140,6 +144,31 @@ thunar_text_renderer_class_init (ThunarTextRendererClass *klass)
 
 
   /**
+   * ThunarTextRenderer:background-color-selected:
+   *
+   * The GTK CSS background colour for selected files, or %NULL for the fallback.
+   */
+  g_object_class_install_property (object_class,
+                                   PROP_BACKGROUND_COLOR_SELECTED,
+                                   g_param_spec_boxed ("background-color-selected", "background-color-selected", "background-color-selected",
+                                                       GDK_TYPE_RGBA,
+                                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  /**
+   * ThunarTextRenderer:background-color-selected-backdrop:
+   *
+   * The GTK CSS background colour for selected files in an inactive window,
+   * or %NULL for the fallback.
+   */
+  g_object_class_install_property (object_class,
+                                   PROP_BACKGROUND_COLOR_SELECTED_BACKDROP,
+                                   g_param_spec_boxed ("background-color-selected-backdrop", "background-color-selected-backdrop", "background-color-selected-backdrop",
+                                                       GDK_TYPE_RGBA,
+                                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+
+
+  /**
    * ThunarTextRenderer:highlighting-enabled:
    *
    * Determines if the cell background should be drawn with highlight color.
@@ -168,6 +197,8 @@ thunar_text_renderer_finalize (GObject *object)
   ThunarTextRenderer *text_renderer = THUNAR_TEXT_RENDERER (object);
 
   g_free (text_renderer->highlight_color);
+  g_clear_pointer (&text_renderer->background_color_selected, gdk_rgba_free);
+  g_clear_pointer (&text_renderer->background_color_selected_backdrop, gdk_rgba_free);
 
   G_OBJECT_CLASS (thunar_text_renderer_parent_class)->finalize (object);
 }
@@ -190,6 +221,14 @@ thunar_text_renderer_get_property (GObject    *object,
 
     case PROP_ROUNDED_CORNERS:
       g_value_set_boolean (value, text_renderer->rounded_corners);
+      break;
+
+    case PROP_BACKGROUND_COLOR_SELECTED:
+      g_value_set_boxed (value, text_renderer->background_color_selected);
+      break;
+
+    case PROP_BACKGROUND_COLOR_SELECTED_BACKDROP:
+      g_value_set_boxed (value, text_renderer->background_color_selected_backdrop);
       break;
 
     case PROP_BORDER_RADIUS:
@@ -225,6 +264,16 @@ thunar_text_renderer_set_property (GObject      *object,
 
     case PROP_ROUNDED_CORNERS:
       text_renderer->rounded_corners = g_value_get_boolean (value);
+      break;
+
+    case PROP_BACKGROUND_COLOR_SELECTED:
+      g_clear_pointer (&text_renderer->background_color_selected, gdk_rgba_free);
+      text_renderer->background_color_selected = g_value_dup_boxed (value);
+      break;
+
+    case PROP_BACKGROUND_COLOR_SELECTED_BACKDROP:
+      g_clear_pointer (&text_renderer->background_color_selected_backdrop, gdk_rgba_free);
+      text_renderer->background_color_selected_backdrop = g_value_dup_boxed (value);
       break;
 
     case PROP_BORDER_RADIUS:
@@ -275,7 +324,9 @@ thunar_text_renderer_render (GtkCellRenderer     *cell,
                                       background_area,
                                       widget,
                                       flags,
-                                      THUNAR_TEXT_RENDERER (cell)->border_radius);
+                                      THUNAR_TEXT_RENDERER (cell)->border_radius,
+                                      THUNAR_TEXT_RENDERER (cell)->background_color_selected,
+                                      THUNAR_TEXT_RENDERER (cell)->background_color_selected_backdrop);
 
   /* we only needed to manipulate the background_area, otherwise everything remains the same.
      Hence, we are simply running the original render function now */

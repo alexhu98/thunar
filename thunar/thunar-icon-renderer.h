@@ -54,6 +54,8 @@ struct _ThunarIconRenderer
   gboolean       highlighting_enabled;
   gboolean       use_symbolic_icons;
   gint           border_radius;
+  GdkRGBA       *background_color_selected;
+  GdkRGBA       *background_color_selected_backdrop;
 };
 
 GType
