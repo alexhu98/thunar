@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Thunar\n"
 "Report-Msgid-Bugs-To: https://gitlab.xfce.org/\n"
-"POT-Creation-Date: 2026-10-16 12:50+0200\n"
+"POT-Creation-Date: 2026-10-18 00:49+0200\n"
 "PO-Revision-Date: 2013-07-02 20:11+0000\n"
 "Last-Translator: Michal Várady <miko.vaji@gmail.com>, 2013-2015,2017-2022,2024-2026\n"
 "Language-Team: Czech (http://app.transifex.com/xfce/thunar/language/cs/)\n"
@@ -1572,9 +1572,9 @@ msgstr "Název souboru"
 
 #: thunar/thunar-enum-types.c:773 thunar/thunar-enum-types.c:798
 #: thunar/thunar-enum-types.c:933 thunar/thunar-preferences-dialog.c:459
-#: thunar/thunar-preferences-dialog.c:1227
-#: thunar/thunar-preferences-dialog.c:1335
-#: thunar/thunar-preferences-dialog.c:1423
+#: thunar/thunar-preferences-dialog.c:1258
+#: thunar/thunar-preferences-dialog.c:1366
+#: thunar/thunar-preferences-dialog.c:1454
 msgid "Never"
 msgstr "Nikdy"
 
@@ -1584,9 +1584,9 @@ msgstr "Pouze pro vzdálené umístění"
 
 #: thunar/thunar-enum-types.c:775 thunar/thunar-enum-types.c:800
 #: thunar/thunar-enum-types.c:935 thunar/thunar-preferences-dialog.c:461
-#: thunar/thunar-preferences-dialog.c:1223
-#: thunar/thunar-preferences-dialog.c:1333
-#: thunar/thunar-preferences-dialog.c:1424
+#: thunar/thunar-preferences-dialog.c:1254
+#: thunar/thunar-preferences-dialog.c:1364
+#: thunar/thunar-preferences-dialog.c:1455
 msgid "Always"
 msgstr "Vždy"
 
@@ -2161,7 +2161,7 @@ msgid "Allow this file to _run as a program"
 msgstr "Povolit tomuto _souboru spuštění"
 
 #: thunar/thunar-permissions-chooser.c:397
-#: thunar/thunar-preferences-dialog.c:1438
+#: thunar/thunar-preferences-dialog.c:1469
 msgid ""
 "Allowing untrusted programs to run presents a security risk to your system."
 msgstr "Umožnění spouštění nedůvěryhodných programů představuje bezpečnostní riziko pro váš systém."
@@ -2311,7 +2311,7 @@ msgid "Icon View"
 msgstr "Ikony"
 
 #: thunar/thunar-preferences-dialog.c:369
-#: thunar/thunar-preferences-dialog.c:1538
+#: thunar/thunar-preferences-dialog.c:1569
 msgid "List View"
 msgstr "Seznam"
 
@@ -2365,8 +2365,8 @@ msgid "Show thumbnails:"
 msgstr "Zobrazovat náhledy:"
 
 #: thunar/thunar-preferences-dialog.c:460
-#: thunar/thunar-preferences-dialog.c:1224
-#: thunar/thunar-preferences-dialog.c:1334
+#: thunar/thunar-preferences-dialog.c:1255
+#: thunar/thunar-preferences-dialog.c:1365
 msgid "Local Files Only"
 msgstr "Pouze místní soubory"
 
@@ -2715,20 +2715,34 @@ msgid ""
 "Thunar"
 msgstr "Tuto volbu vyberte pro obnovení karet tak, jak byly otevřené při posledním použití aplikace Thunar"
 
+#: thunar/thunar-preferences-dialog.c:1183
+msgid "Directory Path"
+msgstr "Cesta k adresáři"
+
+#: thunar/thunar-preferences-dialog.c:1199
+msgid "Resolve symbolic links"
+msgstr "Vyhodnocovat symbolické odkazy"
+
+#: thunar/thunar-preferences-dialog.c:1205
+msgid ""
+"Resolve all symbolic links in the current directory and use their canonical "
+"filesystem paths when opening or navigating to them"
+msgstr "Vyhodnocovat všechny symbolické odkazy v aktuálním adresáři a při jejich otevírání nebo přechodu na ně používat jejich kanonické cesty v systému souborů"
+
 #. Advanced
-#: thunar/thunar-preferences-dialog.c:1182
+#: thunar/thunar-preferences-dialog.c:1213
 msgid "Advanced"
 msgstr "Pokročilé"
 
-#: thunar/thunar-preferences-dialog.c:1192
+#: thunar/thunar-preferences-dialog.c:1223
 msgid "File Transfer"
 msgstr "Přenos souboru"
 
-#: thunar/thunar-preferences-dialog.c:1209
+#: thunar/thunar-preferences-dialog.c:1240
 msgid "Transfer files in parallel:"
 msgstr "Paralelní přenos souborů:"
 
-#: thunar/thunar-preferences-dialog.c:1211
+#: thunar/thunar-preferences-dialog.c:1242
 msgid ""
 "Indicates the behavior during multiple copies:\n"
 "- Always: all copies are done simultaneously\n"
@@ -2738,30 +2752,30 @@ msgid ""
 "- Never: all copies are done sequentially"
 msgstr "Označuje chování během více kopií:\n- Vždy: všechny kopie jsou vytvářeny současně\n- Pouze místní soubory: kopie jsou vytvářeny současně pro místní (ne vzdálené, nepřipojené) soubory\n- Pouze místní soubory (stejná zařízení): pokud jsou všechny soubory místní, ale na různých zařízeních (disky, přípojné body), kopie budou vytvářeny postupně\n- Pouze místní soubory (nečinná zařízení): pokud jsou všechny soubory místní, ale na zaneprázdněných zařízeních (disky, body připojení), kopie budou vytvářeny postupně\n- Nikdy: všechny kopie jsou vytvářeny postupně"
 
-#: thunar/thunar-preferences-dialog.c:1225
+#: thunar/thunar-preferences-dialog.c:1256
 msgid "Local Files Only (Same Devices)"
 msgstr "Pouze místní soubory (na stejných zařízeních)"
 
-#: thunar/thunar-preferences-dialog.c:1226
+#: thunar/thunar-preferences-dialog.c:1257
 msgid "Local Files Only (Idle Devices)"
 msgstr "Pouze místní soubory (na nečinných zařízeních)"
 
-#: thunar/thunar-preferences-dialog.c:1245
+#: thunar/thunar-preferences-dialog.c:1276
 msgid "Use intermediate file on copy:"
 msgstr "Použít při kopírování zprostředkující soubor:"
 
-#: thunar/thunar-preferences-dialog.c:1249
+#: thunar/thunar-preferences-dialog.c:1280
 msgid ""
 "Use intermediate file '*.partial~' to copy files. This will prevent "
 "fragmented files. The new file will only be shown after the copy was "
 "successfully finished."
 msgstr "Použije zprostředkující soubor .partial ke zkopírování souborů, tímto se zabrání fragmentaci souborů. Nový soubor se zobrazí až po úspěšném dokončení kopírování."
 
-#: thunar/thunar-preferences-dialog.c:1276
+#: thunar/thunar-preferences-dialog.c:1307
 msgid "Verify file contents on copy:"
 msgstr "Při kopírování ověřit obsah souboru:"
 
-#: thunar/thunar-preferences-dialog.c:1280
+#: thunar/thunar-preferences-dialog.c:1311
 msgid ""
 "Compare contents of original file and copy in order to detect corruption. "
 "While this will attempt to compare the actual contents that are on the "
@@ -2770,67 +2784,67 @@ msgid ""
 " will increase copy time."
 msgstr "Porovnává obsah původního souboru a kopie za účelem detekce poškození. Přestože se pokusí porovnat skutečný obsah na cílovém médiu, Thunar nemusí být schopen obejít cache souborového systému, takže toto porovnání nemusí odhalit všechny případy poškození. Povolení této možnosti prodlouží dobu kopírování."
 
-#: thunar/thunar-preferences-dialog.c:1310
+#: thunar/thunar-preferences-dialog.c:1341
 msgid "Search"
 msgstr "Hledat"
 
-#: thunar/thunar-preferences-dialog.c:1327
+#: thunar/thunar-preferences-dialog.c:1358
 msgid "Include subfolders:"
 msgstr "Zahrnout podsložky:"
 
-#: thunar/thunar-preferences-dialog.c:1351
+#: thunar/thunar-preferences-dialog.c:1382
 msgid "Folder Permissions"
 msgstr "Oprávnění složky"
 
-#: thunar/thunar-preferences-dialog.c:1367
+#: thunar/thunar-preferences-dialog.c:1398
 msgid ""
 "When changing the permissions of a folder, you\n"
 "can also apply the changes to the contents of the\n"
 "folder. Select the default behavior below:"
 msgstr "Při úpravách oprávnění ke složce můžete tyto\nzměny použít také pro obsah složky.\nVýchozí chování zvolte níže:"
 
-#: thunar/thunar-preferences-dialog.c:1379
-#: thunar/thunar-preferences-dialog.c:1425
+#: thunar/thunar-preferences-dialog.c:1410
+#: thunar/thunar-preferences-dialog.c:1456
 msgid "Ask every time"
 msgstr "Vždy se ptát"
 
-#: thunar/thunar-preferences-dialog.c:1380
+#: thunar/thunar-preferences-dialog.c:1411
 msgid "Apply to Folder and Contents"
 msgstr "Použít na složku a její obsah"
 
-#: thunar/thunar-preferences-dialog.c:1381
+#: thunar/thunar-preferences-dialog.c:1412
 msgid "Apply to Folder Only"
 msgstr "Použít pouze na složku"
 
-#: thunar/thunar-preferences-dialog.c:1396
+#: thunar/thunar-preferences-dialog.c:1427
 msgid "Security"
 msgstr "Zabezpečení"
 
-#: thunar/thunar-preferences-dialog.c:1413
+#: thunar/thunar-preferences-dialog.c:1444
 msgid "Execute shell scripts:"
 msgstr "Spustit shellové skripty"
 
-#: thunar/thunar-preferences-dialog.c:1448
+#: thunar/thunar-preferences-dialog.c:1479
 msgid "Volume Management"
 msgstr "Správa svazků"
 
 #. add check button to enable/disable auto mounting
-#: thunar/thunar-preferences-dialog.c:1465
+#: thunar/thunar-preferences-dialog.c:1496
 msgid "Enable _volume management"
 msgstr "Povolit _správu svazků"
 
-#: thunar/thunar-preferences-dialog.c:1484
+#: thunar/thunar-preferences-dialog.c:1515
 msgid ""
 "<a href=\"volman-config:\">Configure</a> the management of removable drives,\n"
 "devices and media."
 msgstr "<a href=\"volman-config:\">Konfigurujte</a> správu vyměnitelných jednotek, zařízení a médií."
 
-#: thunar/thunar-preferences-dialog.c:1498
+#: thunar/thunar-preferences-dialog.c:1529
 #: thunar/thunar-properties-dialog.c:855
 msgid "Missing dependencies"
 msgstr "Chybí součásti, na kterých závisí"
 
-#: thunar/thunar-preferences-dialog.c:1506
+#: thunar/thunar-preferences-dialog.c:1537
 msgid ""
 "It looks like <a href=\"https://wiki.gnome.org/Projects/gvfs\">gvfs</a> is not available.\n"
 "Important features including trash support,\n"
@@ -2839,34 +2853,34 @@ msgid ""
 msgstr "<a href=\"https://wiki.gnome.org/Projects/gvfs\">gvfs</a> pravděpodobně není dostupný.\nDůležité funkce, včetně podpory pro Koš,\nvyjímatelných médií a procházení vzdálených\numístění nebudou pracovat. <a href=\"https://docs.xfce.org/xfce/thunar/unix-filesystem#gnome_virtual_file_system\">[Přečíst si více]</a>"
 
 #. Shortcuts
-#: thunar/thunar-preferences-dialog.c:1521
+#: thunar/thunar-preferences-dialog.c:1552
 msgid "Shortcuts"
 msgstr "Klávesové zkratky"
 
-#: thunar/thunar-preferences-dialog.c:1536
+#: thunar/thunar-preferences-dialog.c:1567
 msgid "Window"
 msgstr "Okno"
 
-#: thunar/thunar-preferences-dialog.c:1537
+#: thunar/thunar-preferences-dialog.c:1568
 msgid "View"
 msgstr "Zobrazit"
 
-#: thunar/thunar-preferences-dialog.c:1539
+#: thunar/thunar-preferences-dialog.c:1570
 #: plugins/thunar-apr/thunar-apr-desktop-page.c:546
 msgid "Launcher"
 msgstr "Spouštěč"
 
-#: thunar/thunar-preferences-dialog.c:1540
+#: thunar/thunar-preferences-dialog.c:1571
 msgid "Status Bar"
 msgstr "Stavový řádek"
 
-#: thunar/thunar-preferences-dialog.c:1548
+#: thunar/thunar-preferences-dialog.c:1579
 msgid "The Shortcuts Editor requires a Thunar window to be present."
 msgstr "Editor klávesových zkratek vyžaduje, aby bylo otevřeno okno Thunaru."
 
 #. tell the user that we failed to come up with the thunar-volman
 #. configuration dialog
-#: thunar/thunar-preferences-dialog.c:1612
+#: thunar/thunar-preferences-dialog.c:1643
 msgid "Failed to display the volume management settings"
 msgstr "Nepodařilo se zobrazit nastavení správy svazků"
 
