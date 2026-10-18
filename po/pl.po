@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Thunar\n"
 "Report-Msgid-Bugs-To: https://gitlab.xfce.org/\n"
-"POT-Creation-Date: 2026-10-16 12:50+0200\n"
+"POT-Creation-Date: 2026-10-18 00:49+0200\n"
 "PO-Revision-Date: 2013-07-02 20:11+0000\n"
 "Last-Translator: Marek Adamski, 2021-2026\n"
 "Language-Team: Polish (http://app.transifex.com/xfce/thunar/language/pl/)\n"
@@ -1572,9 +1572,9 @@ msgstr "Nazwa pliku"
 
 #: thunar/thunar-enum-types.c:773 thunar/thunar-enum-types.c:798
 #: thunar/thunar-enum-types.c:933 thunar/thunar-preferences-dialog.c:459
-#: thunar/thunar-preferences-dialog.c:1227
-#: thunar/thunar-preferences-dialog.c:1335
-#: thunar/thunar-preferences-dialog.c:1423
+#: thunar/thunar-preferences-dialog.c:1258
+#: thunar/thunar-preferences-dialog.c:1366
+#: thunar/thunar-preferences-dialog.c:1454
 msgid "Never"
 msgstr "Nigdy"
 
@@ -1584,9 +1584,9 @@ msgstr "Tylko dla zdalnego położenia"
 
 #: thunar/thunar-enum-types.c:775 thunar/thunar-enum-types.c:800
 #: thunar/thunar-enum-types.c:935 thunar/thunar-preferences-dialog.c:461
-#: thunar/thunar-preferences-dialog.c:1223
-#: thunar/thunar-preferences-dialog.c:1333
-#: thunar/thunar-preferences-dialog.c:1424
+#: thunar/thunar-preferences-dialog.c:1254
+#: thunar/thunar-preferences-dialog.c:1364
+#: thunar/thunar-preferences-dialog.c:1455
 msgid "Always"
 msgstr "Zawsze"
 
@@ -2161,7 +2161,7 @@ msgid "Allow this file to _run as a program"
 msgstr "Zezwolenie na _uruchamianie jako program"
 
 #: thunar/thunar-permissions-chooser.c:397
-#: thunar/thunar-preferences-dialog.c:1438
+#: thunar/thunar-preferences-dialog.c:1469
 msgid ""
 "Allowing untrusted programs to run presents a security risk to your system."
 msgstr "Zezwala na uruchamianie programów niewiadomego źródła, co jest potencjalnie niebezpieczne."
@@ -2311,7 +2311,7 @@ msgid "Icon View"
 msgstr "Ikony"
 
 #: thunar/thunar-preferences-dialog.c:369
-#: thunar/thunar-preferences-dialog.c:1538
+#: thunar/thunar-preferences-dialog.c:1569
 msgid "List View"
 msgstr "Lista"
 
@@ -2365,8 +2365,8 @@ msgid "Show thumbnails:"
 msgstr "Wyświetlanie miniatur:"
 
 #: thunar/thunar-preferences-dialog.c:460
-#: thunar/thunar-preferences-dialog.c:1224
-#: thunar/thunar-preferences-dialog.c:1334
+#: thunar/thunar-preferences-dialog.c:1255
+#: thunar/thunar-preferences-dialog.c:1365
 msgid "Local Files Only"
 msgstr "Tylko plików lokalnych"
 
@@ -2715,20 +2715,34 @@ msgid ""
 "Thunar"
 msgstr "Przywraca karty do stanu, gdy ostatnim razem korzystano z programu Thunar"
 
+#: thunar/thunar-preferences-dialog.c:1183
+msgid "Directory Path"
+msgstr "Ścieżka katalogu"
+
+#: thunar/thunar-preferences-dialog.c:1199
+msgid "Resolve symbolic links"
+msgstr "Rozwiązanie dowiązań symbolicznych"
+
+#: thunar/thunar-preferences-dialog.c:1205
+msgid ""
+"Resolve all symbolic links in the current directory and use their canonical "
+"filesystem paths when opening or navigating to them"
+msgstr "Rozwiązuje wszystkie dowiązania symboliczne w bieżącym katalogu i używa ich kanonicznych ścieżek w systemie plików podczas otwierania tych elementów lub przechodzenia do nich"
+
 #. Advanced
-#: thunar/thunar-preferences-dialog.c:1182
+#: thunar/thunar-preferences-dialog.c:1213
 msgid "Advanced"
 msgstr "Zaawansowane"
 
-#: thunar/thunar-preferences-dialog.c:1192
+#: thunar/thunar-preferences-dialog.c:1223
 msgid "File Transfer"
 msgstr "Przesyłanie plików"
 
-#: thunar/thunar-preferences-dialog.c:1209
+#: thunar/thunar-preferences-dialog.c:1240
 msgid "Transfer files in parallel:"
 msgstr "Przesyłanie plików równolegle:"
 
-#: thunar/thunar-preferences-dialog.c:1211
+#: thunar/thunar-preferences-dialog.c:1242
 msgid ""
 "Indicates the behavior during multiple copies:\n"
 "- Always: all copies are done simultaneously\n"
@@ -2738,30 +2752,30 @@ msgid ""
 "- Never: all copies are done sequentially"
 msgstr "Wskazuje zachowanie przy wielu kopiach:\n– Zawsze: wszystkie kopie są wykonywane jednocześnie\n– Tylko plików lokalnych: jednoczesne kopie plików lokalnych (niezdalnych, niepodłączonych)\n– Tylko plików lokalnych (te same urządzenia): jeśli wszystkie pliki są lokalne, ale na różnych urządzeniach (dyskach, punktach podłączenia), kopie będą sekwencyjne\n–Tylko plików lokalnych (bezczynne urządzenia): jeśli wszystkie pliki są lokalne, ale na zajętych urządzeniach (dyskach, punktach montowania), kopie będą sekwencyjne\n– Nigdy: wszystkie kopie są wykonywane sekwencyjnie"
 
-#: thunar/thunar-preferences-dialog.c:1225
+#: thunar/thunar-preferences-dialog.c:1256
 msgid "Local Files Only (Same Devices)"
 msgstr "Tylko plików lokalnych (te same urządzenia)"
 
-#: thunar/thunar-preferences-dialog.c:1226
+#: thunar/thunar-preferences-dialog.c:1257
 msgid "Local Files Only (Idle Devices)"
 msgstr "Tylko plików lokalnych (bezczynne urządzenia)"
 
-#: thunar/thunar-preferences-dialog.c:1245
+#: thunar/thunar-preferences-dialog.c:1276
 msgid "Use intermediate file on copy:"
 msgstr "Używanie pliku pośredniego przy kopiowaniu:"
 
-#: thunar/thunar-preferences-dialog.c:1249
+#: thunar/thunar-preferences-dialog.c:1280
 msgid ""
 "Use intermediate file '*.partial~' to copy files. This will prevent "
 "fragmented files. The new file will only be shown after the copy was "
 "successfully finished."
 msgstr "Używa pliku pośredniego „*.partial~” do kopiowania plików. Zapobiega to fragmentacji plików. Nowy plik zostanie wyświetlony dopiero po pomyślnym zakończeniu kopiowania."
 
-#: thunar/thunar-preferences-dialog.c:1276
+#: thunar/thunar-preferences-dialog.c:1307
 msgid "Verify file contents on copy:"
 msgstr "Sprawdzanie zawartości pliku przy kopiowaniu:"
 
-#: thunar/thunar-preferences-dialog.c:1280
+#: thunar/thunar-preferences-dialog.c:1311
 msgid ""
 "Compare contents of original file and copy in order to detect corruption. "
 "While this will attempt to compare the actual contents that are on the "
@@ -2770,67 +2784,67 @@ msgid ""
 " will increase copy time."
 msgstr "Porównuje zawartość pierwotnego pliku i kopii, aby wykryć uszkodzenie. Chociaż będzie to próba porównania rzeczywistej zawartości w mediach docelowych, Thunar może nie być w stanie ominąć pamięci podręcznych systemu plików, więc to porównanie może nie wykryć wszystkich przypadków uszkodzeń. Włączenie tej opcji wydłuży czas kopiowania."
 
-#: thunar/thunar-preferences-dialog.c:1310
+#: thunar/thunar-preferences-dialog.c:1341
 msgid "Search"
 msgstr "Wyszukiwanie"
 
-#: thunar/thunar-preferences-dialog.c:1327
+#: thunar/thunar-preferences-dialog.c:1358
 msgid "Include subfolders:"
 msgstr "Uwzględnianie podkatalogów:"
 
-#: thunar/thunar-preferences-dialog.c:1351
+#: thunar/thunar-preferences-dialog.c:1382
 msgid "Folder Permissions"
 msgstr "Uprawnienia do katalogów"
 
-#: thunar/thunar-preferences-dialog.c:1367
+#: thunar/thunar-preferences-dialog.c:1398
 msgid ""
 "When changing the permissions of a folder, you\n"
 "can also apply the changes to the contents of the\n"
 "folder. Select the default behavior below:"
 msgstr "Zmiana uprawnień do katalogów może dotyczyć również\nich zawartości. Proszę zaznaczyć domyślne działanie:"
 
-#: thunar/thunar-preferences-dialog.c:1379
-#: thunar/thunar-preferences-dialog.c:1425
+#: thunar/thunar-preferences-dialog.c:1410
+#: thunar/thunar-preferences-dialog.c:1456
 msgid "Ask every time"
 msgstr "Pytaj za każdym razem"
 
-#: thunar/thunar-preferences-dialog.c:1380
+#: thunar/thunar-preferences-dialog.c:1411
 msgid "Apply to Folder and Contents"
 msgstr "Dla katalogów i zawartości"
 
-#: thunar/thunar-preferences-dialog.c:1381
+#: thunar/thunar-preferences-dialog.c:1412
 msgid "Apply to Folder Only"
 msgstr "Tylko dla katalogów"
 
-#: thunar/thunar-preferences-dialog.c:1396
+#: thunar/thunar-preferences-dialog.c:1427
 msgid "Security"
 msgstr "Bezpieczeństwo"
 
-#: thunar/thunar-preferences-dialog.c:1413
+#: thunar/thunar-preferences-dialog.c:1444
 msgid "Execute shell scripts:"
 msgstr "Wykonuj skrypty powłoki:"
 
-#: thunar/thunar-preferences-dialog.c:1448
+#: thunar/thunar-preferences-dialog.c:1479
 msgid "Volume Management"
 msgstr "Zarządzanie wolumenami"
 
 #. add check button to enable/disable auto mounting
-#: thunar/thunar-preferences-dialog.c:1465
+#: thunar/thunar-preferences-dialog.c:1496
 msgid "Enable _volume management"
 msgstr "_Włączenie zarządzania wolumenami"
 
-#: thunar/thunar-preferences-dialog.c:1484
+#: thunar/thunar-preferences-dialog.c:1515
 msgid ""
 "<a href=\"volman-config:\">Configure</a> the management of removable drives,\n"
 "devices and media."
 msgstr "<a href=\"volman-config:\">Konfiguruj</a> zarządzanie napędami wymiennymi,\nurządzeniami oraz nośnikami."
 
-#: thunar/thunar-preferences-dialog.c:1498
+#: thunar/thunar-preferences-dialog.c:1529
 #: thunar/thunar-properties-dialog.c:855
 msgid "Missing dependencies"
 msgstr "Brakujące zależności"
 
-#: thunar/thunar-preferences-dialog.c:1506
+#: thunar/thunar-preferences-dialog.c:1537
 msgid ""
 "It looks like <a href=\"https://wiki.gnome.org/Projects/gvfs\">gvfs</a> is not available.\n"
 "Important features including trash support,\n"
@@ -2839,34 +2853,34 @@ msgid ""
 msgstr "Wygląda na to, że <a href=\"https://wiki.gnome.org/Projects/gvfs\">gvfs</a> jest niedostępny.\nWażne funkcje, w tym wsparcie dla kosza,\nnośniki wymienne i przeglądanie zdalnych położeń\nnie będą działać. <a href=\"https://docs.xfce.org/xfce/thunar/unix-filesystem#gnome_virtual_file_system\">[Czytaj więcej]</a>"
 
 #. Shortcuts
-#: thunar/thunar-preferences-dialog.c:1521
+#: thunar/thunar-preferences-dialog.c:1552
 msgid "Shortcuts"
 msgstr "Skróty"
 
-#: thunar/thunar-preferences-dialog.c:1536
+#: thunar/thunar-preferences-dialog.c:1567
 msgid "Window"
 msgstr "Okno"
 
-#: thunar/thunar-preferences-dialog.c:1537
+#: thunar/thunar-preferences-dialog.c:1568
 msgid "View"
 msgstr "Widok"
 
-#: thunar/thunar-preferences-dialog.c:1539
+#: thunar/thunar-preferences-dialog.c:1570
 #: plugins/thunar-apr/thunar-apr-desktop-page.c:546
 msgid "Launcher"
 msgstr "Aktywator"
 
-#: thunar/thunar-preferences-dialog.c:1540
+#: thunar/thunar-preferences-dialog.c:1571
 msgid "Status Bar"
 msgstr "Pasek stanu"
 
-#: thunar/thunar-preferences-dialog.c:1548
+#: thunar/thunar-preferences-dialog.c:1579
 msgid "The Shortcuts Editor requires a Thunar window to be present."
 msgstr "Edytor skrótów wymaga obecności okna programu Thunar."
 
 #. tell the user that we failed to come up with the thunar-volman
 #. configuration dialog
-#: thunar/thunar-preferences-dialog.c:1612
+#: thunar/thunar-preferences-dialog.c:1643
 msgid "Failed to display the volume management settings"
 msgstr "Nie udało się wyświetlić ustawień zarządzania wolumenami"
 
