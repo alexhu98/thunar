@@ -17,9 +17,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Thunar\n"
 "Report-Msgid-Bugs-To: https://gitlab.xfce.org/\n"
-"POT-Creation-Date: 2026-10-16 12:50+0200\n"
+"POT-Creation-Date: 2026-10-18 00:49+0200\n"
 "PO-Revision-Date: 2013-07-02 20:11+0000\n"
-"Last-Translator: Yupy <yupy_17y@yahoo.com>, 2017\n"
+"Last-Translator: Remus-Gabriel Chelu <remusgabriel.chelu@disroot.org>, 2024-2026\n"
 "Language-Team: Romanian (http://app.transifex.com/xfce/thunar/language/ro/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1542,9 +1542,9 @@ msgstr "Nume de fișier"
 
 #: thunar/thunar-enum-types.c:773 thunar/thunar-enum-types.c:798
 #: thunar/thunar-enum-types.c:933 thunar/thunar-preferences-dialog.c:459
-#: thunar/thunar-preferences-dialog.c:1227
-#: thunar/thunar-preferences-dialog.c:1335
-#: thunar/thunar-preferences-dialog.c:1423
+#: thunar/thunar-preferences-dialog.c:1258
+#: thunar/thunar-preferences-dialog.c:1366
+#: thunar/thunar-preferences-dialog.c:1454
 msgid "Never"
 msgstr "Niciodată"
 
@@ -1554,9 +1554,9 @@ msgstr "Doar pentru locațiile la distanță"
 
 #: thunar/thunar-enum-types.c:775 thunar/thunar-enum-types.c:800
 #: thunar/thunar-enum-types.c:935 thunar/thunar-preferences-dialog.c:461
-#: thunar/thunar-preferences-dialog.c:1223
-#: thunar/thunar-preferences-dialog.c:1333
-#: thunar/thunar-preferences-dialog.c:1424
+#: thunar/thunar-preferences-dialog.c:1254
+#: thunar/thunar-preferences-dialog.c:1364
+#: thunar/thunar-preferences-dialog.c:1455
 msgid "Always"
 msgstr "Întotdeauna"
 
@@ -2130,7 +2130,7 @@ msgid "Allow this file to _run as a program"
 msgstr "Permite acestui fișier să fie e_xecutat ca un program"
 
 #: thunar/thunar-permissions-chooser.c:397
-#: thunar/thunar-preferences-dialog.c:1438
+#: thunar/thunar-preferences-dialog.c:1469
 msgid ""
 "Allowing untrusted programs to run presents a security risk to your system."
 msgstr "Permiterea rulării programelor care nu sunt de încredere prezintă un risc de securitate pentru sistemul dvs."
@@ -2280,7 +2280,7 @@ msgid "Icon View"
 msgstr "Vizualizare pictograme"
 
 #: thunar/thunar-preferences-dialog.c:369
-#: thunar/thunar-preferences-dialog.c:1538
+#: thunar/thunar-preferences-dialog.c:1569
 msgid "List View"
 msgstr "Vizualizare listă"
 
@@ -2334,8 +2334,8 @@ msgid "Show thumbnails:"
 msgstr "Afișează miniaturi:"
 
 #: thunar/thunar-preferences-dialog.c:460
-#: thunar/thunar-preferences-dialog.c:1224
-#: thunar/thunar-preferences-dialog.c:1334
+#: thunar/thunar-preferences-dialog.c:1255
+#: thunar/thunar-preferences-dialog.c:1365
 msgid "Local Files Only"
 msgstr "Doar pentru fișierele locale"
 
@@ -2684,20 +2684,34 @@ msgid ""
 "Thunar"
 msgstr "Selectați această opțiune pentru a vă restaura filele așa cum erau ultima dată când ați folosit Thunar"
 
+#: thunar/thunar-preferences-dialog.c:1183
+msgid "Directory Path"
+msgstr "Ruta către director"
+
+#: thunar/thunar-preferences-dialog.c:1199
+msgid "Resolve symbolic links"
+msgstr "Rezolvă legăturile simbolice"
+
+#: thunar/thunar-preferences-dialog.c:1205
+msgid ""
+"Resolve all symbolic links in the current directory and use their canonical "
+"filesystem paths when opening or navigating to them"
+msgstr "Rezolvă toate legăturile simbolice din directorul curent și utilizează rutele canonice din sistemul de fișiere ale acestora atunci când le deschizi sau când navighezi către acestea"
+
 #. Advanced
-#: thunar/thunar-preferences-dialog.c:1182
+#: thunar/thunar-preferences-dialog.c:1213
 msgid "Advanced"
 msgstr "Avansate"
 
-#: thunar/thunar-preferences-dialog.c:1192
+#: thunar/thunar-preferences-dialog.c:1223
 msgid "File Transfer"
 msgstr "Transfer de fișiere"
 
-#: thunar/thunar-preferences-dialog.c:1209
+#: thunar/thunar-preferences-dialog.c:1240
 msgid "Transfer files in parallel:"
 msgstr "Transferă fișiere în paralel:"
 
-#: thunar/thunar-preferences-dialog.c:1211
+#: thunar/thunar-preferences-dialog.c:1242
 msgid ""
 "Indicates the behavior during multiple copies:\n"
 "- Always: all copies are done simultaneously\n"
@@ -2707,30 +2721,30 @@ msgid ""
 "- Never: all copies are done sequentially"
 msgstr "Indică comportamentul în timpul copierii multiple:\n- Întotdeauna: toate copiile sunt efectuate simultan\n- Doar fișiere locale: copii simultane pentru fișierele locale (nu la distanță, nu atașate)\n- Doar fișiere locale (aceleași dispozitive): dacă toate fișierele sunt locale, dar pe dispozitive diferite (discuri, puncte de montare), copiile vor fi secvențiale\n- Doar fișiere locale (dispozitive inactive): dacă toate fișierele sunt locale, dar pe dispozitive ocupate (discuri, puncte de montare), copiile vor fi secvențiale\n- Niciodată: toate copiile sunt efectuate secvențial"
 
-#: thunar/thunar-preferences-dialog.c:1225
+#: thunar/thunar-preferences-dialog.c:1256
 msgid "Local Files Only (Same Devices)"
 msgstr "Doar fișiere locale (aceleași dispozitive)"
 
-#: thunar/thunar-preferences-dialog.c:1226
+#: thunar/thunar-preferences-dialog.c:1257
 msgid "Local Files Only (Idle Devices)"
 msgstr "Doar fișiere locale (dispozitive inactive)"
 
-#: thunar/thunar-preferences-dialog.c:1245
+#: thunar/thunar-preferences-dialog.c:1276
 msgid "Use intermediate file on copy:"
 msgstr "Utilizează un fișier intermediar la copiere:"
 
-#: thunar/thunar-preferences-dialog.c:1249
+#: thunar/thunar-preferences-dialog.c:1280
 msgid ""
 "Use intermediate file '*.partial~' to copy files. This will prevent "
 "fragmented files. The new file will only be shown after the copy was "
 "successfully finished."
 msgstr "Utilizează fișierul intermediar „*.partial~” pentru a copia fișiere. Acest lucru va preveni fragmentarea fișierelor. Noul fișier va fi afișat numai după ce copierea a fost finalizată cu succes."
 
-#: thunar/thunar-preferences-dialog.c:1276
+#: thunar/thunar-preferences-dialog.c:1307
 msgid "Verify file contents on copy:"
 msgstr "Verifică conținutul fișierului la copiere:"
 
-#: thunar/thunar-preferences-dialog.c:1280
+#: thunar/thunar-preferences-dialog.c:1311
 msgid ""
 "Compare contents of original file and copy in order to detect corruption. "
 "While this will attempt to compare the actual contents that are on the "
@@ -2739,67 +2753,67 @@ msgid ""
 " will increase copy time."
 msgstr "Compară conținutul fișierului original și al copiei pentru a detecta corupția. Deși acest lucru va încerca să compare conținutul real care se află pe suportul de destinație, este posibil ca Thunar să nu poată ocoli memoria cache a sistemului de fișiere, astfel încât această comparație să nu poată detecta toate cazurile de corupție. Activarea acestei opțiuni va crește timpul de copiere."
 
-#: thunar/thunar-preferences-dialog.c:1310
+#: thunar/thunar-preferences-dialog.c:1341
 msgid "Search"
 msgstr "Căutare"
 
-#: thunar/thunar-preferences-dialog.c:1327
+#: thunar/thunar-preferences-dialog.c:1358
 msgid "Include subfolders:"
 msgstr "Include subdosarele:"
 
-#: thunar/thunar-preferences-dialog.c:1351
+#: thunar/thunar-preferences-dialog.c:1382
 msgid "Folder Permissions"
 msgstr "Permisiuni pentru dosare"
 
-#: thunar/thunar-preferences-dialog.c:1367
+#: thunar/thunar-preferences-dialog.c:1398
 msgid ""
 "When changing the permissions of a folder, you\n"
 "can also apply the changes to the contents of the\n"
 "folder. Select the default behavior below:"
 msgstr "Atunci când modificați permisiunile unui dosar,\nputeți aplica modificările și la conținutul dosarului.\nSelectați mai jos, comportamentul implicit:"
 
-#: thunar/thunar-preferences-dialog.c:1379
-#: thunar/thunar-preferences-dialog.c:1425
+#: thunar/thunar-preferences-dialog.c:1410
+#: thunar/thunar-preferences-dialog.c:1456
 msgid "Ask every time"
 msgstr "Întreabă de fiecare dată"
 
-#: thunar/thunar-preferences-dialog.c:1380
+#: thunar/thunar-preferences-dialog.c:1411
 msgid "Apply to Folder and Contents"
 msgstr "Aplică dosarului și conținutului său"
 
-#: thunar/thunar-preferences-dialog.c:1381
+#: thunar/thunar-preferences-dialog.c:1412
 msgid "Apply to Folder Only"
 msgstr "Aplică doar dosarului"
 
-#: thunar/thunar-preferences-dialog.c:1396
+#: thunar/thunar-preferences-dialog.c:1427
 msgid "Security"
 msgstr "Securitate"
 
-#: thunar/thunar-preferences-dialog.c:1413
+#: thunar/thunar-preferences-dialog.c:1444
 msgid "Execute shell scripts:"
 msgstr "Execută scripturi shell:"
 
-#: thunar/thunar-preferences-dialog.c:1448
+#: thunar/thunar-preferences-dialog.c:1479
 msgid "Volume Management"
 msgstr "Gestionare de volume"
 
 #. add check button to enable/disable auto mounting
-#: thunar/thunar-preferences-dialog.c:1465
+#: thunar/thunar-preferences-dialog.c:1496
 msgid "Enable _volume management"
 msgstr "Activează gestionarea _volumelor"
 
-#: thunar/thunar-preferences-dialog.c:1484
+#: thunar/thunar-preferences-dialog.c:1515
 msgid ""
 "<a href=\"volman-config:\">Configure</a> the management of removable drives,\n"
 "devices and media."
 msgstr "<a href=\"volman-config:\">Configurează</a> gestionarea unităților,\ndispozitivelor și mediilor amovibile."
 
-#: thunar/thunar-preferences-dialog.c:1498
+#: thunar/thunar-preferences-dialog.c:1529
 #: thunar/thunar-properties-dialog.c:855
 msgid "Missing dependencies"
 msgstr "Dependențe lipsă"
 
-#: thunar/thunar-preferences-dialog.c:1506
+#: thunar/thunar-preferences-dialog.c:1537
 msgid ""
 "It looks like <a href=\"https://wiki.gnome.org/Projects/gvfs\">gvfs</a> is not available.\n"
 "Important features including trash support,\n"
@@ -2808,34 +2822,34 @@ msgid ""
 msgstr "Se pare că situl web <a href=\"https://wiki.gnome.org/Projects/gvfs\">gvfs</a> nu este disponibil.\nFuncțiile importante, inclusiv suportul pentru coșul de gunoi,\nmediile amovibile și navigarea în locații la distanță nu vor\nfuncționa. <a href=\"https://docs.xfce.org/xfce/thunar/unix-filesystem#gnome_virtual_file_system\">[Citiți mai multe]</a>"
 
 #. Shortcuts
-#: thunar/thunar-preferences-dialog.c:1521
+#: thunar/thunar-preferences-dialog.c:1552
 msgid "Shortcuts"
 msgstr "Taste de comenzi rapide"
 
-#: thunar/thunar-preferences-dialog.c:1536
+#: thunar/thunar-preferences-dialog.c:1567
 msgid "Window"
 msgstr "Fereastră"
 
-#: thunar/thunar-preferences-dialog.c:1537
+#: thunar/thunar-preferences-dialog.c:1568
 msgid "View"
 msgstr "Vizualizare"
 
-#: thunar/thunar-preferences-dialog.c:1539
+#: thunar/thunar-preferences-dialog.c:1570
 #: plugins/thunar-apr/thunar-apr-desktop-page.c:546
 msgid "Launcher"
 msgstr "Lansator"
 
-#: thunar/thunar-preferences-dialog.c:1540
+#: thunar/thunar-preferences-dialog.c:1571
 msgid "Status Bar"
 msgstr "Bara de stare"
 
-#: thunar/thunar-preferences-dialog.c:1548
+#: thunar/thunar-preferences-dialog.c:1579
 msgid "The Shortcuts Editor requires a Thunar window to be present."
 msgstr "Editorul de taste de comenzi rapide necesită prezența unei ferestre a gestionarului de fișiere Thunar."
 
 #. tell the user that we failed to come up with the thunar-volman
 #. configuration dialog
-#: thunar/thunar-preferences-dialog.c:1612
+#: thunar/thunar-preferences-dialog.c:1643
 msgid "Failed to display the volume management settings"
 msgstr "Afișarea opțiunilor de gestionare a volumelor a eșuat"
 
