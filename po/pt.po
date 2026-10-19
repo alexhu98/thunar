@@ -12,9 +12,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Thunar\n"
 "Report-Msgid-Bugs-To: https://gitlab.xfce.org/\n"
-"POT-Creation-Date: 2026-10-16 12:50+0200\n"
+"POT-Creation-Date: 2026-10-18 00:49+0200\n"
 "PO-Revision-Date: 2013-07-02 20:11+0000\n"
-"Last-Translator: Nuno Miguel <nunomgue@gmail.com>, 2014-2020,2026\n"
+"Last-Translator: Hugo Carvalho <hugokarvalho@hotmail.com>, 2019-2026\n"
 "Language-Team: Portuguese (http://app.transifex.com/xfce/thunar/language/pt/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -787,7 +787,7 @@ msgstr "Falha ao determinar o caminho original de \"%s\" (%s)"
 #: thunar/thunar-application.c:3092
 #, c-format
 msgid "Failed to determine the original path for \"%s\""
-msgstr "Ocorreu um erro ao determinar a localização original de \"%s\""
+msgstr "Ocorreu um erro ao determinar o caminho original de \"%s\""
 
 #: thunar/thunar-application.c:3110
 #, c-format
@@ -1125,7 +1125,7 @@ msgstr "Nome de ficheiro \"%s\" inválido"
 #. LaunchFiles() invoked without a valid working directory
 #: thunar/thunar-dbus-service.c:999
 msgid "The working directory must be an absolute path"
-msgstr "O diretório de trabalho deve ser uma localização absoluta"
+msgstr "O diretório de trabalho deve ser um caminho absoluto"
 
 #. LaunchFiles() invoked with an empty filename list
 #: thunar/thunar-dbus-service.c:1007 thunar/thunar-dbus-service.c:1447
@@ -1537,9 +1537,9 @@ msgstr "Nome do ficheiro"
 
 #: thunar/thunar-enum-types.c:773 thunar/thunar-enum-types.c:798
 #: thunar/thunar-enum-types.c:933 thunar/thunar-preferences-dialog.c:459
-#: thunar/thunar-preferences-dialog.c:1227
-#: thunar/thunar-preferences-dialog.c:1335
-#: thunar/thunar-preferences-dialog.c:1423
+#: thunar/thunar-preferences-dialog.c:1258
+#: thunar/thunar-preferences-dialog.c:1366
+#: thunar/thunar-preferences-dialog.c:1454
 msgid "Never"
 msgstr "Nunca"
 
@@ -1549,9 +1549,9 @@ msgstr "Apenas para localização remota"
 
 #: thunar/thunar-enum-types.c:775 thunar/thunar-enum-types.c:800
 #: thunar/thunar-enum-types.c:935 thunar/thunar-preferences-dialog.c:461
-#: thunar/thunar-preferences-dialog.c:1223
-#: thunar/thunar-preferences-dialog.c:1333
-#: thunar/thunar-preferences-dialog.c:1424
+#: thunar/thunar-preferences-dialog.c:1254
+#: thunar/thunar-preferences-dialog.c:1364
+#: thunar/thunar-preferences-dialog.c:1455
 msgid "Always"
 msgstr "Sempre"
 
@@ -2079,7 +2079,7 @@ msgstr "Tamanho dos ícones"
 
 #: thunar/thunar-path-entry.c:243
 msgid "The icon size for the path entry"
-msgstr "O tamanho dos ícones para a entrada da localização"
+msgstr "O tamanho dos ícones para a entrada do caminho"
 
 #: thunar/thunar-path-entry.c:1494
 msgid "Stop Search"
@@ -2125,7 +2125,7 @@ msgid "Allow this file to _run as a program"
 msgstr "Permitir que este ficheiro seja executado como um p_rograma"
 
 #: thunar/thunar-permissions-chooser.c:397
-#: thunar/thunar-preferences-dialog.c:1438
+#: thunar/thunar-preferences-dialog.c:1469
 msgid ""
 "Allowing untrusted programs to run presents a security risk to your system."
 msgstr "Permitir a execução de programas não confiáveis é um risco de segurança para o sistema."
@@ -2275,7 +2275,7 @@ msgid "Icon View"
 msgstr "Vista de ícones"
 
 #: thunar/thunar-preferences-dialog.c:369
-#: thunar/thunar-preferences-dialog.c:1538
+#: thunar/thunar-preferences-dialog.c:1569
 msgid "List View"
 msgstr "Vista de lista"
 
@@ -2329,8 +2329,8 @@ msgid "Show thumbnails:"
 msgstr "Mostar miniaturas:"
 
 #: thunar/thunar-preferences-dialog.c:460
-#: thunar/thunar-preferences-dialog.c:1224
-#: thunar/thunar-preferences-dialog.c:1334
+#: thunar/thunar-preferences-dialog.c:1255
+#: thunar/thunar-preferences-dialog.c:1365
 msgid "Local Files Only"
 msgstr "Apenas ficheiros locais"
 
@@ -2661,13 +2661,13 @@ msgstr "Selecionar esta opção para abrir em novos separadores numa janela já 
 
 #: thunar/thunar-preferences-dialog.c:1155
 msgid "Show full directory paths in tab titles"
-msgstr "Mostrar localizações completas de diretórios nos títulos dos separadores"
+msgstr "Apresentar caminhos completos de diretórios nos títulos dos separadores"
 
 #: thunar/thunar-preferences-dialog.c:1161
 msgid ""
 "Select this option to show the full directory path in the tab title instead "
 "of only the directory name"
-msgstr "Selecione esta opção para mostrar a localização completa do diretório no título do separador em vez de apenas o nome do diretório"
+msgstr "Selecionar esta opção para apresentar o caminho completo do diretório no título do separador em vez de apenas o nome do diretório"
 
 #: thunar/thunar-preferences-dialog.c:1168
 msgid "Restore tabs on startup"
@@ -2677,22 +2677,36 @@ msgstr "Restaurar separadores no arranque"
 msgid ""
 "Select this option to restore your tabs as they were last time you used "
 "Thunar"
-msgstr "Selecione esta opção para restaurar os separadores como da última vez que utilizou o Thunar"
+msgstr "Selecionar esta opção para restaurar os separadores como da última vez que utilizou o Thunar"
+
+#: thunar/thunar-preferences-dialog.c:1183
+msgid "Directory Path"
+msgstr "Caminho do diretório"
+
+#: thunar/thunar-preferences-dialog.c:1199
+msgid "Resolve symbolic links"
+msgstr "Resolver ligações simbólicas"
+
+#: thunar/thunar-preferences-dialog.c:1205
+msgid ""
+"Resolve all symbolic links in the current directory and use their canonical "
+"filesystem paths when opening or navigating to them"
+msgstr "Resolver todas as ligações simbólicas no diretório atual e utilizar os seus caminhos canónicos no sistema de ficheiros ao abri-las ou ao navegar até elas"
 
 #. Advanced
-#: thunar/thunar-preferences-dialog.c:1182
+#: thunar/thunar-preferences-dialog.c:1213
 msgid "Advanced"
 msgstr "Avançado"
 
-#: thunar/thunar-preferences-dialog.c:1192
+#: thunar/thunar-preferences-dialog.c:1223
 msgid "File Transfer"
 msgstr "Transferência de ficheiros"
 
-#: thunar/thunar-preferences-dialog.c:1209
+#: thunar/thunar-preferences-dialog.c:1240
 msgid "Transfer files in parallel:"
 msgstr "Transferir ficheiros em paralelo:"
 
-#: thunar/thunar-preferences-dialog.c:1211
+#: thunar/thunar-preferences-dialog.c:1242
 msgid ""
 "Indicates the behavior during multiple copies:\n"
 "- Always: all copies are done simultaneously\n"
@@ -2702,30 +2716,30 @@ msgid ""
 "- Never: all copies are done sequentially"
 msgstr "Indica o comportamento durante várias as cópias:\n- Sempre: todas as cópias são efetuadas em simultâneo\n- Apenas ficheiros locais: cópias simultâneas para ficheiros locais (não remotos, não anexados)\n- Apenas ficheiros locais (mesmos dispositivos): se todos os ficheiros forem locais mas estiverem em dispositivos diferentes (discos, pontos de montagem), as cópias serão sequenciais\n- Apenas ficheiros locais (dispositivos inativos): se todos os ficheiros forem locais mas estiverem em dispositivos ocupados (discos, pontos de montagem), as cópias serão sequenciais\n- Nunca: todas as cópias são efetuadas sequencialmente"
 
-#: thunar/thunar-preferences-dialog.c:1225
+#: thunar/thunar-preferences-dialog.c:1256
 msgid "Local Files Only (Same Devices)"
 msgstr "Apenas ficheiros locais (mesmos dispositivos)"
 
-#: thunar/thunar-preferences-dialog.c:1226
+#: thunar/thunar-preferences-dialog.c:1257
 msgid "Local Files Only (Idle Devices)"
 msgstr "Apenas ficheiros locais (dispositivos inativos)"
 
-#: thunar/thunar-preferences-dialog.c:1245
+#: thunar/thunar-preferences-dialog.c:1276
 msgid "Use intermediate file on copy:"
 msgstr "Utilizar ficheiro intermédio na cópia:"
 
-#: thunar/thunar-preferences-dialog.c:1249
+#: thunar/thunar-preferences-dialog.c:1280
 msgid ""
 "Use intermediate file '*.partial~' to copy files. This will prevent "
 "fragmented files. The new file will only be shown after the copy was "
 "successfully finished."
 msgstr "Utilizar ficheiro intermédio '*.partial~' para copiar ficheiros. Isto evitará ficheiros fragmentados. O novo ficheiro só será mostrado depois de a cópia ter sido concluída com sucesso."
 
-#: thunar/thunar-preferences-dialog.c:1276
+#: thunar/thunar-preferences-dialog.c:1307
 msgid "Verify file contents on copy:"
 msgstr "Verificar o conteúdo do ficheiro na cópia:"
 
-#: thunar/thunar-preferences-dialog.c:1280
+#: thunar/thunar-preferences-dialog.c:1311
 msgid ""
 "Compare contents of original file and copy in order to detect corruption. "
 "While this will attempt to compare the actual contents that are on the "
@@ -2734,67 +2748,67 @@ msgid ""
 " will increase copy time."
 msgstr "Compara o conteúdo do ficheiro original e da cópia para detetar corrupção. Embora isto tente comparar os conteúdos verdadeiros que se encontram no suporte de destino, o Thunar pode não conseguir contornar as caches do sistema de ficheiros, pelo que esta comparação pode não detetar todas as instâncias de corrupção. A ativação desta opção aumentará o tempo de cópia."
 
-#: thunar/thunar-preferences-dialog.c:1310
+#: thunar/thunar-preferences-dialog.c:1341
 msgid "Search"
 msgstr "Procurar"
 
-#: thunar/thunar-preferences-dialog.c:1327
+#: thunar/thunar-preferences-dialog.c:1358
 msgid "Include subfolders:"
 msgstr "Incluir subpastas:"
 
-#: thunar/thunar-preferences-dialog.c:1351
+#: thunar/thunar-preferences-dialog.c:1382
 msgid "Folder Permissions"
 msgstr "Permissões da pasta"
 
-#: thunar/thunar-preferences-dialog.c:1367
+#: thunar/thunar-preferences-dialog.c:1398
 msgid ""
 "When changing the permissions of a folder, you\n"
 "can also apply the changes to the contents of the\n"
 "folder. Select the default behavior below:"
 msgstr "Ao mudar as permissões de uma pasta, pode\ntambém aplicar as mudanças ao conteúdo da pasta.\nSelecione em baixo o comportamento predefinido:"
 
-#: thunar/thunar-preferences-dialog.c:1379
-#: thunar/thunar-preferences-dialog.c:1425
+#: thunar/thunar-preferences-dialog.c:1410
+#: thunar/thunar-preferences-dialog.c:1456
 msgid "Ask every time"
 msgstr "Perguntar sempre"
 
-#: thunar/thunar-preferences-dialog.c:1380
+#: thunar/thunar-preferences-dialog.c:1411
 msgid "Apply to Folder and Contents"
 msgstr "Aplicar à pasta e ao conteúdo"
 
-#: thunar/thunar-preferences-dialog.c:1381
+#: thunar/thunar-preferences-dialog.c:1412
 msgid "Apply to Folder Only"
 msgstr "Aplicar apenas à pasta"
 
-#: thunar/thunar-preferences-dialog.c:1396
+#: thunar/thunar-preferences-dialog.c:1427
 msgid "Security"
 msgstr "Segurança"
 
-#: thunar/thunar-preferences-dialog.c:1413
+#: thunar/thunar-preferences-dialog.c:1444
 msgid "Execute shell scripts:"
 msgstr "Executar shell scripts:"
 
-#: thunar/thunar-preferences-dialog.c:1448
+#: thunar/thunar-preferences-dialog.c:1479
 msgid "Volume Management"
 msgstr "Gestão de discos"
 
 #. add check button to enable/disable auto mounting
-#: thunar/thunar-preferences-dialog.c:1465
+#: thunar/thunar-preferences-dialog.c:1496
 msgid "Enable _volume management"
 msgstr "Ativar a gestão de _volumes"
 
-#: thunar/thunar-preferences-dialog.c:1484
+#: thunar/thunar-preferences-dialog.c:1515
 msgid ""
 "<a href=\"volman-config:\">Configure</a> the management of removable drives,\n"
 "devices and media."
 msgstr "<a href=\"volman-config:\">Configurar</a> a gestão de unidades amovíveis,\ndispositivos e multimédia."
 
-#: thunar/thunar-preferences-dialog.c:1498
+#: thunar/thunar-preferences-dialog.c:1529
 #: thunar/thunar-properties-dialog.c:855
 msgid "Missing dependencies"
 msgstr "Dependências em falta"
 
-#: thunar/thunar-preferences-dialog.c:1506
+#: thunar/thunar-preferences-dialog.c:1537
 msgid ""
 "It looks like <a href=\"https://wiki.gnome.org/Projects/gvfs\">gvfs</a> is not available.\n"
 "Important features including trash support,\n"
@@ -2803,34 +2817,34 @@ msgid ""
 msgstr "Parece que <a href=\"https://wiki.gnome.org/Projects/gvfs\">gvfs</a>não está disponível.\nFunções importantes como suporte a lixo,\ndispositivos amovíveis e navegação remota\nnão irão funcionar. <a href=\"https://docs.xfce.org/xfce/thunar/unix-filesystem#gnome_virtual_file_system\">[Leia mais]</a>"
 
 #. Shortcuts
-#: thunar/thunar-preferences-dialog.c:1521
+#: thunar/thunar-preferences-dialog.c:1552
 msgid "Shortcuts"
 msgstr "Atalhos"
 
-#: thunar/thunar-preferences-dialog.c:1536
+#: thunar/thunar-preferences-dialog.c:1567
 msgid "Window"
 msgstr "Janela"
 
-#: thunar/thunar-preferences-dialog.c:1537
+#: thunar/thunar-preferences-dialog.c:1568
 msgid "View"
 msgstr "Ver"
 
-#: thunar/thunar-preferences-dialog.c:1539
+#: thunar/thunar-preferences-dialog.c:1570
 #: plugins/thunar-apr/thunar-apr-desktop-page.c:546
 msgid "Launcher"
 msgstr "Lançador"
 
-#: thunar/thunar-preferences-dialog.c:1540
+#: thunar/thunar-preferences-dialog.c:1571
 msgid "Status Bar"
 msgstr "Barra de estado"
 
-#: thunar/thunar-preferences-dialog.c:1548
+#: thunar/thunar-preferences-dialog.c:1579
 msgid "The Shortcuts Editor requires a Thunar window to be present."
 msgstr "O Editor de Atalhos requer a presença de uma janela Thunar."
 
 #. tell the user that we failed to come up with the thunar-volman
 #. configuration dialog
-#: thunar/thunar-preferences-dialog.c:1612
+#: thunar/thunar-preferences-dialog.c:1643
 msgid "Failed to display the volume management settings"
 msgstr "Ocorreu um erro ao mostrar as definições da gestão de discos"
 
@@ -2900,7 +2914,7 @@ msgstr "Destino da ligação:"
 #. * properties dialog width will be messed up.
 #: thunar/thunar-properties-dialog.c:496 thunar/thunar-util.c:1497
 msgid "Original Path:"
-msgstr "Localização original:"
+msgstr "Caminho original:"
 
 #: thunar/thunar-properties-dialog.c:514
 msgid "Location:"
@@ -3257,7 +3271,7 @@ msgstr "_Remover atalho"
 #: thunar/thunar-shortcuts-view.c:1722
 #, c-format
 msgid "The path \"%s\" does not refer to a directory"
-msgstr "A localização \"%s\" não se refere a um diretório"
+msgstr "O caminho \"%s\" não se refere a um diretório"
 
 #. display an error message to the user
 #: thunar/thunar-shortcuts-view.c:1742
@@ -3962,7 +3976,7 @@ msgstr "Condições de aparência"
 
 #: thunar/thunar-util.c:304
 msgid "Invalid path"
-msgstr "Localização inválida"
+msgstr "Caminho inválido"
 
 #: thunar/thunar-util.c:339
 #, c-format
@@ -4189,7 +4203,7 @@ msgstr "Estilo de _texto"
 
 #: thunar/thunar-window.c:687
 msgid "Traditional text box showing the current path"
-msgstr "Caixa de texto tradicional que mostra o caminho atual"
+msgstr "Caixa de texto tradicional que apresenta o caminho atual"
 
 #: thunar/thunar-window.c:688
 msgid "_Buttons Style"
