@@ -145,18 +145,8 @@ thunar_g_file_compare_contents (GFile        *file_a,
  **/
 #define THUNAR_TYPE_G_FILE_LIST (thunar_g_file_list_get_type ())
 
-
-/**
- * THUNAR_TYPE_G_FILE_HASH_TABLE:
- *
- * Returns the type ID for #GHashTable<!---->s  (used as a set) which is a boxed type.
- **/
-#define THUNAR_TYPE_G_FILE_HASH_TABLE (thunar_g_file_hastable_get_type ())
-
 GType
 thunar_g_file_list_get_type (void);
-GType
-thunar_g_file_hastable_get_type (void);
 
 GList *
 thunar_g_file_list_new_from_string (const gchar *string);

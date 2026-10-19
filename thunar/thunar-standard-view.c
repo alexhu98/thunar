@@ -1221,6 +1221,9 @@ thunar_standard_view_constructed (GObject *object)
   /* be sure to update the statusbar text whenever the number of files in our model changes. */
   g_signal_connect_swapped (G_OBJECT (standard_view->model), "notify::num-files", G_CALLBACK (thunar_standard_view_update_statusbar_text), standard_view);
 
+  /* Keep summaries current when metadata changes, including in expanded folders. */
+  g_signal_connect_swapped (G_OBJECT (standard_view->model), "row-changed", G_CALLBACK (thunar_standard_view_update_statusbar_text), standard_view);
+
   /* be sure to update the statusbar text whenever the file-size-binary property changes */
   g_signal_connect_swapped (G_OBJECT (standard_view->model), "notify::file-size-binary", G_CALLBACK (thunar_standard_view_update_statusbar_text), standard_view);
 
@@ -1950,6 +1953,9 @@ thunar_standard_view_set_current_directory (ThunarNavigator *navigator,
   /* open the new directory as folder */
   folder = thunar_folder_get_for_file (current_directory);
   g_signal_connect_swapped (folder, "thumbnails-updated", G_CALLBACK (thunar_standard_view_queue_redraw), standard_view);
+
+  /* Update the statusbar on any file change, including changes to hidden files. */
+  g_signal_connect_swapped (folder, "files-changed", G_CALLBACK (thunar_standard_view_update_statusbar_text), standard_view);
 
   /* disconnect any old bindings */
   if (G_UNLIKELY (standard_view->loading_binding != NULL))
@@ -2811,7 +2817,7 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
     }
   else if (!standard_view->loading) /* more than one item selected */
     {
-      GHashTable *selected_g_files = g_hash_table_new (g_direct_hash, NULL);
+      GHashTable *selected_files = g_hash_table_new_full (g_direct_hash, NULL, g_object_unref, NULL);
       GList      *lp;
 
       /* clear information from the statusbar */
@@ -2820,22 +2826,19 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
       g_free (statusbar_text);
       g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_TEXT]);
 
-      /* build GList of files from selection */
+      /* Keep the selected ThunarFiles alive until their metadata is copied. */
       for (lp = selected_items_tree_path_list; lp != NULL; lp = lp->next)
         {
           gtk_tree_model_get_iter (GTK_TREE_MODEL (standard_view->model), &iter, lp->data);
           file = thunar_tree_view_model_get_file (standard_view->model, &iter);
           if (file != NULL)
-            {
-              g_hash_table_add (selected_g_files, thunar_file_get_file (file));
-              g_object_unref (file);
-            }
+            g_hash_table_add (selected_files, file);
         }
 
-      standard_view->priv->statusbar_job = thunar_io_jobs_load_statusbar_text_for_selection (standard_view, selected_g_files);
+      standard_view->priv->statusbar_job = thunar_io_jobs_load_statusbar_text_for_selection (standard_view, selected_files);
       g_signal_connect (standard_view->priv->statusbar_job, "error", G_CALLBACK (thunar_standard_view_update_statusbar_text_error), standard_view);
       g_signal_connect (standard_view->priv->statusbar_job, "finished", G_CALLBACK (thunar_standard_view_load_statusbar_text_finished), standard_view);
-      g_hash_table_destroy (selected_g_files);
+      g_hash_table_unref (selected_files);
 
       thunar_job_launch (THUNAR_JOB (standard_view->priv->statusbar_job));
     }

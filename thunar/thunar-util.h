@@ -122,8 +122,10 @@ thunar_util_search_terms_match (gchar **terms,
                                 gchar  *str);
 gboolean
 thunar_util_save_geometry_timer (gpointer user_data);
+GHashTable *
+thunar_util_get_file_info_snapshot (GHashTable *files);
 gchar *
-thunar_util_get_statusbar_text_for_files (GHashTable     *files,
+thunar_util_get_statusbar_text_for_files (GHashTable     *file_infos,
                                           gboolean        show_hidden,
                                           gboolean        show_file_size_binary_format,
                                           ThunarDateStyle date_style,

@@ -1259,24 +1259,69 @@ thunar_util_get_file_time (GFileInfo         *file_info,
 
 
 
+static void
+thunar_util_file_info_unref (gpointer file_info)
+{
+  g_clear_object (&file_info);
+}
+
+
+
+/**
+ * thunar_util_get_file_info_snapshot:
+ * @files : a #GHashTable with #ThunarFile keys.
+ *
+ * Copies cached file information on the main thread for use by a worker.
+ * Missing information is represented by %NULL.
+ *
+ * Return value: (transfer full): a #GHashTable owning #GFile keys and copied
+ * #GFileInfo values (or %NULL), to be released with g_hash_table_unref().
+ **/
+GHashTable *
+thunar_util_get_file_info_snapshot (GHashTable *files)
+{
+  GHashTable    *file_infos;
+  GHashTableIter iter;
+  gpointer       key;
+
+  file_infos = g_hash_table_new_full (g_direct_hash, NULL, g_object_unref, thunar_util_file_info_unref);
+
+  g_hash_table_iter_init (&iter, files);
+  while (g_hash_table_iter_next (&iter, &key, NULL))
+    {
+      ThunarFile *file = THUNAR_FILE (key);
+      GFileInfo  *info = thunar_file_get_info (file);
+
+      g_hash_table_insert (file_infos,
+                           g_object_ref (thunar_file_get_file (file)),
+                           info != NULL ? g_file_info_dup (info) : NULL);
+    }
+
+  return file_infos;
+}
+
+
+
 /**
  * thunar_util_get_statusbar_text_for_files:
- * @files                        : list of #GFile's for which a text is requested
+ * @file_infos                   : a snapshot mapping #GFile keys to #GFileInfo values or %NULL
  * @show_hidden                  : whether hidden files are shown
  * @show_file_size_binary_format : whether the file size should be displayed in binary format
  * @date_style        : the #ThunarDateFormat used to humanize the @file_time.
  * @date_custom_style : custom style to apply, if @date_style is set to custom
  * @cancellable       : (nullable): a #GCancellable, or %NULL.
  *
- * Generates the statusbar text for the given @files.
+ * Generates the statusbar text from a snapshot created with
+ * thunar_util_get_file_info_snapshot(). Files without cached information are
+ * queried using @cancellable.
  *
  * The caller is reponsible to free the returned text using
  * g_free() when it's no longer needed.
  *
- * Return value: the statusbar text with the given @files, or %NULL on cancellation.
+ * Return value: the statusbar text for @file_infos, or %NULL on cancellation.
  **/
 gchar *
-thunar_util_get_statusbar_text_for_files (GHashTable     *files,
+thunar_util_get_statusbar_text_for_files (GHashTable     *file_infos,
                                           gboolean        show_hidden,
                                           gboolean        show_file_size_binary_format,
                                           ThunarDateStyle date_style,
@@ -1297,7 +1342,7 @@ thunar_util_get_statusbar_text_for_files (GHashTable     *files,
   GFileInfo     *last_modified_file = NULL;
   gboolean       show_hidden_count, show_size, show_size_in_bytes, show_last_modified;
   GHashTableIter iter;
-  gpointer       key;
+  gpointer       key, value;
 
   show_hidden_count = thunar_status_bar_info_check_active (status_bar_actve_info, THUNAR_STATUS_BAR_INFO_HIDDEN_COUNT);
   show_size = thunar_status_bar_info_check_active (status_bar_actve_info, THUNAR_STATUS_BAR_INFO_SIZE);
@@ -1305,20 +1350,28 @@ thunar_util_get_statusbar_text_for_files (GHashTable     *files,
   show_last_modified = thunar_status_bar_info_check_active (status_bar_actve_info, THUNAR_STATUS_BAR_INFO_LAST_MODIFIED);
 
   /* analyze files */
-  g_hash_table_iter_init (&iter, files);
-  while (g_hash_table_iter_next (&iter, &key, NULL))
+  g_hash_table_iter_init (&iter, file_infos);
+  while (g_hash_table_iter_next (&iter, &key, &value))
     {
+      GFileInfo *file_info = value;
+
       if (g_cancellable_is_cancelled (cancellable))
         {
           g_clear_object (&last_modified_file);
           return NULL;
         }
 
-      GFileInfo *file_info = g_file_query_info (G_FILE (key),
-                                                G_FILE_ATTRIBUTE_STANDARD_TYPE "," G_FILE_ATTRIBUTE_STANDARD_SIZE "," G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP "," G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN "," G_FILE_ATTRIBUTE_TIME_MODIFIED,
-                                                G_FILE_QUERY_INFO_NONE,
-                                                cancellable,
-                                                NULL);
+      /* Cached information was requested with THUNARX_FILE_INFO_NAMESPACE, which
+       * includes the summary attributes. Missing optional attributes (including
+       * false hidden/backup flags) need no additional I/O. */
+      if (file_info != NULL)
+        g_object_ref (file_info);
+      else
+        file_info = g_file_query_info (G_FILE (key),
+                                       G_FILE_ATTRIBUTE_STANDARD_TYPE "," G_FILE_ATTRIBUTE_STANDARD_SIZE "," G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP "," G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN "," G_FILE_ATTRIBUTE_TIME_MODIFIED,
+                                       G_FILE_QUERY_INFO_NONE,
+                                       cancellable,
+                                       NULL);
       if (file_info == NULL)
         continue;
 
