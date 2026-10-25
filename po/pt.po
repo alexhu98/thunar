@@ -14,7 +14,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: https://gitlab.xfce.org/\n"
 "POT-Creation-Date: 2026-10-18 00:49+0200\n"
 "PO-Revision-Date: 2013-07-02 20:11+0000\n"
-"Last-Translator: Hugo Carvalho <hugokarvalho@hotmail.com>, 2019-2026\n"
+"Last-Translator: Nuno Miguel <nunomgue@gmail.com>, 2014-2020,2026\n"
 "Language-Team: Portuguese (http://app.transifex.com/xfce/thunar/language/pt/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2814,7 +2814,7 @@ msgid ""
 "Important features including trash support,\n"
 "removable media and remote location browsing\n"
 "will not work. <a href=\"https://docs.xfce.org/xfce/thunar/unix-filesystem#gnome_virtual_file_system\">[Read more]</a>"
-msgstr "Parece que <a href=\"https://wiki.gnome.org/Projects/gvfs\">gvfs</a>não está disponível.\nFunções importantes como suporte a lixo,\ndispositivos amovíveis e navegação remota\nnão irão funcionar. <a href=\"https://docs.xfce.org/xfce/thunar/unix-filesystem#gnome_virtual_file_system\">[Leia mais]</a>"
+msgstr "Parece que <a href=\"https://wiki.gnome.org/Projects/gvfs\">gvfs</a> não está disponível.\nFunções importantes como suporte a lixo,\ndispositivos amovíveis e navegação remota\nnão irão funcionar. <a href=\"https://docs.xfce.org/xfce/thunar/unix-filesystem#gnome_virtual_file_system\">[Leia mais]</a>"
 
 #. Shortcuts
 #: thunar/thunar-preferences-dialog.c:1552
@@ -4763,7 +4763,7 @@ msgid ""
 "checksum of the file and store it via gvfs. The additional check will "
 "protect from malicious launchers which e.g. pretend to be a picture, having "
 "the executable flag pre-set"
-msgstr "Selecione esta opção para confiar neste ficheiro .desktop. Isto irá gerar um \"checksum\" do ficheiro e armazená-lo através do gvfs. A verificação adicional irá proteger contra lançadores maliciosos que, por exemplo, fingem ser uma imagem, tendo a \"flag\" executável pré-definida"
+msgstr "Selecione esta opção para confiar neste ficheiro .desktop. Isto irá gerar uma soma de verificação do ficheiro e armazená-la através do gvfs. A verificação adicional irá proteger contra lançadores maliciosos que, por exemplo, fingem ser uma imagem, tendo o atributo executável pré-definido"
 
 #: plugins/thunar-apr/thunar-apr-desktop-page.c:839
 #, c-format
