@@ -858,7 +858,7 @@ msgstr "Utilizar por pre_definição para este tipo de ficheiro"
 #: thunar/thunar-properties-dialog.c:1245 thunar/thunar-uca-editor.c:155
 #: thunar/thunar-uca-editor.c:453 thunar/thunar-window.c:5000
 msgid "_OK"
-msgstr "_OK"
+msgstr "_Aceitar"
 
 #. display an error to the user
 #: thunar/thunar-chooser-dialog.c:456
@@ -3518,7 +3518,7 @@ msgstr "? corresponde exatamente a um carácter,\n* corresponde a qualquer núme
 #: thunar/thunar-standard-view.c:3078
 msgctxt "Select by Pattern dialog: labels: case sensitive checkbox"
 msgid "C_ase sensitive"
-msgstr "Maiúsculas/Minúsculas"
+msgstr "_Maiúsculas/Minúsculas"
 
 #: thunar/thunar-standard-view.c:3079
 msgctxt "Select by Pattern dialog: tooltips: case sensitive checkbox"
@@ -3530,7 +3530,7 @@ msgstr "Se ativada, a capitalização da letra deve corresponder ao padrão.\nEx
 #: thunar/thunar-standard-view.c:3084
 msgctxt "Select by Pattern dialog: labels: match diacritics checkbox"
 msgid "_Match diacritics"
-msgstr "Diacríticos correspondentes"
+msgstr "_Diacríticos correspondentes"
 
 #: thunar/thunar-standard-view.c:3085
 msgctxt "Select by Pattern dialog: tooltips: match diacritics checkbox"
@@ -4159,7 +4159,7 @@ msgstr "An_ular"
 
 #: thunar/thunar-window.c:677
 msgid "Red_o"
-msgstr "Refazer"
+msgstr "Refa_zer"
 
 #: thunar/thunar-window.c:678
 msgid "Pr_eferences..."
@@ -4329,7 +4329,7 @@ msgstr "Mostra o conteúdo em tamanho normal"
 
 #: thunar/thunar-window.c:711
 msgid "_Icon View"
-msgstr "Vista de ícone"
+msgstr "Vi_sta de ícone"
 
 #: thunar/thunar-window.c:711
 msgid "Display folder content in an icon view"
