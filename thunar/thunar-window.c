@@ -1384,19 +1384,19 @@ thunar_window_show_and_select_files (ThunarWindow *window,
 
   _thunar_return_if_fail (THUNAR_IS_WINDOW (window));
 
-  restore_and_show_in_progress = thunar_file_is_trash (window->current_directory) && thunar_g_file_is_trashed (files_to_select->data) == FALSE;
-  if (restore_and_show_in_progress)
-    {
-      thunar_window_open_files_in_location (window, files_to_select);
-    }
-  else
-    {
-      thunar_window_select_files (window, files_to_select);
-    }
-
-  /* scroll to first file */
   if (files_to_select != NULL)
     {
+      restore_and_show_in_progress = thunar_file_is_trash (window->current_directory) && thunar_g_file_is_trashed (files_to_select->data) == FALSE;
+      if (restore_and_show_in_progress)
+        {
+          thunar_window_open_files_in_location (window, files_to_select);
+        }
+      else
+        {
+          thunar_window_select_files (window, files_to_select);
+        }
+
+      /* scroll to first file */
       first_file = thunar_file_get (files_to_select->data, NULL);
       thunar_view_scroll_to_file (THUNAR_VIEW (window->view), first_file, FALSE, TRUE, 0.1f, 0.1f);
       g_object_unref (first_file);
