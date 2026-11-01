@@ -103,14 +103,18 @@ thunar_icon_view_class_init (ThunarIconViewClass *klass)
 static void
 thunar_icon_view_init (ThunarIconView *icon_view)
 {
+  gint max_text_lines;
+
   /* setup the icon renderer */
   g_object_set (G_OBJECT (THUNAR_STANDARD_VIEW (icon_view)->icon_renderer),
                 "ypad", 1u,
                 NULL);
 
   /* setup the name renderer */
+  g_object_get (G_OBJECT (THUNAR_STANDARD_VIEW (icon_view)->preferences), "misc-icon-view-max-text-lines", &max_text_lines, NULL);
   g_object_set (G_OBJECT (THUNAR_STANDARD_VIEW (icon_view)->name_renderer),
                 "wrap-mode", PANGO_WRAP_WORD_CHAR,
+                "max-lines", max_text_lines,
                 NULL);
 
   /* synchronize the "text-beside-icons" property with the global preference */

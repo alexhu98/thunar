@@ -135,6 +135,7 @@ enum
   PROP_MISC_OPEN_NEW_WINDOWS_IN_SPLIT_VIEW, // Drop for or after 4.22
   PROP_MISC_ALWAYS_ENABLE_SPLIT_VIEW,
   PROP_MISC_COMPACT_VIEW_MAX_CHARS,
+  PROP_MISC_ICON_VIEW_MAX_TEXT_LINES,
   PROP_MISC_HIGHLIGHTING_ENABLED,
   PROP_MISC_UNDO_REDO_HISTORY_SIZE,
   PROP_MISC_CONFIRM_MOVE_TO_TRASH,
@@ -1360,6 +1361,21 @@ thunar_preferences_class_init (ThunarPreferencesClass *klass)
                     NULL,
                     G_MININT, G_MAXINT,
                     100,
+                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+  /**
+   * ThunarPreferences:misc-icon-view-max-text-lines:
+   *
+   * The maximum number of lines used to display a file name in the
+   * icon view. Longer names are ellipsized. -1 means no limit, 0 hides
+   * the file names (e.g. useful for folders full of pictures).
+   **/
+  preferences_props[PROP_MISC_ICON_VIEW_MAX_TEXT_LINES] =
+  g_param_spec_int ("misc-icon-view-max-text-lines",
+                    "MiscIconViewMaxTextLines",
+                    NULL,
+                    -1, G_MAXINT,
+                    3,
                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
   /**
