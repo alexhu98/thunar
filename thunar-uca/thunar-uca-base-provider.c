@@ -389,18 +389,28 @@ thunar_uca_base_provider_get_all_right_click_menu_items (ThunarxMenuProvider *me
           gchar           *tooltip;
           gchar           *icon;
           gchar           *name;
+          gchar           *submenu;
 
           gtk_tree_model_get (GTK_TREE_MODEL (uca_provider->model), &iter,
                               THUNAR_UCA_MODEL_COLUMN_UNIQUE_ID, &unique_id,
                               THUNAR_UCA_MODEL_COLUMN_NAME, &label,
                               THUNAR_UCA_MODEL_COLUMN_DESCRIPTION, &tooltip,
                               THUNAR_UCA_MODEL_COLUMN_ICON_NAME, &icon,
+                              THUNAR_UCA_MODEL_COLUMN_SUB_MENU, &submenu,
                               -1);
 
           /* generate a unique action name */
           name = g_strdup_printf (THUNAR_UCA_ACTION_ID_PREFIX "%s", unique_id);
 
           menu_item = thunarx_menu_item_new (name, label, tooltip, icon);
+
+          if (submenu != NULL)
+            {
+              gchar **submenu_path = g_strsplit (submenu, "/", 1);
+              g_object_set_data_full (G_OBJECT (menu_item), "submenu", g_strdup (submenu_path[0]), g_free);
+              g_strfreev (submenu_path);
+            }
+
           items = g_list_append (items, menu_item);
 
           g_free (unique_id);
@@ -408,6 +418,7 @@ thunar_uca_base_provider_get_all_right_click_menu_items (ThunarxMenuProvider *me
           g_free (tooltip);
           g_free (icon);
           g_free (name);
+          g_free (submenu);
         }
       while (gtk_tree_model_iter_next (GTK_TREE_MODEL (uca_provider->model), &iter));
     }

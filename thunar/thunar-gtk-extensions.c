@@ -23,6 +23,7 @@
 #include <stdarg.h>
 #endif
 
+#include "thunar/thunar-action-manager.h"
 #include "thunar/thunar-gtk-extensions.h"
 #include "thunar/thunar-private.h"
 #include "thunar/thunar-util.h"
@@ -183,6 +184,10 @@ thunar_gtk_menu_thunarx_menu_item_new (GObject      *thunarx_menu_item,
       gtk_menu_item_set_submenu (GTK_MENU_ITEM (gtk_menu_item), submenu);
       g_list_free (children);
     }
+
+
+  /* setting the id for reordering elements by ThunarContextMenuOrderModel */
+  g_object_set_data_full (G_OBJECT (gtk_menu_item), "id", thunar_normalize_plugin_action_id (name), (GDestroyNotify) g_free);
 
   g_free (name);
   g_free (accel_path);

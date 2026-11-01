@@ -36,9 +36,11 @@ G_BEGIN_DECLS
  * To map a ThunarContextMenuOrderModelItem to a GtkMenuItem, each GtkMenuItem must have an "id" set
  * via g_object_set_data().
  */
-typedef struct _ThunarContextMenuOrderModel      ThunarContextMenuOrderModel;
-typedef struct _ThunarContextMenuOrderModelClass ThunarContextMenuOrderModelClass;
-typedef struct _ThunarContextMenuOrderModelItem  ThunarContextMenuOrderModelItem;
+typedef struct _ThunarContextMenuOrderModel         ThunarContextMenuOrderModel;
+typedef struct _ThunarContextMenuOrderModelClass    ThunarContextMenuOrderModelClass;
+typedef struct _ThunarContextMenuOrderModelItem     ThunarContextMenuOrderModelItem;
+typedef struct _ThunarContextMenuOrderModelDrawItem ThunarContextMenuOrderModelDrawItem;
+
 
 #define THUNAR_TYPE_CONTEXT_MENU_ORDER_MODEL (thunar_context_menu_order_model_get_type ())
 #define THUNAR_CONTEXT_MENU_ORDER_MODEL(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), THUNAR_TYPE_CONTEXT_MENU_ORDER_MODEL, ThunarContextMenuOrderModel))
@@ -50,12 +52,19 @@ typedef struct _ThunarContextMenuOrderModelItem  ThunarContextMenuOrderModelItem
 /* Items stored in ThunarContextMenuOrderModel */
 struct _ThunarContextMenuOrderModelItem
 {
-  char    *id;
+  gchar   *id;
   gchar   *icon;
   gchar   *name;
   gchar   *tooltip;
+  gchar   *submenu;
   gboolean visibility;
   gboolean removable;
+};
+
+struct _ThunarContextMenuOrderModelDrawItem
+{
+  gchar   *id;
+  gboolean visibility;
 };
 
 GType
@@ -66,6 +75,9 @@ thunar_context_menu_order_model_get_default (void);
 
 GList *
 thunar_context_menu_order_model_get_items (ThunarContextMenuOrderModel *order_model);
+
+GList *
+thunar_context_menu_order_model_get_draw_items (ThunarContextMenuOrderModel *order_model);
 
 void
 thunar_context_menu_order_model_move (ThunarContextMenuOrderModel *order_model,
@@ -107,6 +119,9 @@ thunar_context_menu_order_model_item_new_list_from_entries (const XfceGtkActionE
 void
 thunar_context_menu_item_set_id_by_entry (GtkWidget                *menu_item,
                                           const XfceGtkActionEntry *entry);
+
+void
+thunar_context_menu_order_model_draw_item_free (ThunarContextMenuOrderModelDrawItem *item);
 
 G_END_DECLS
 

@@ -65,12 +65,15 @@ static void
 thunar_menu_remove_all_separators (ThunarMenu *menu);
 static void
 thunar_menu_insert_separators (ThunarMenu *menu,
-                               GList      *new_order,
+                               GList      *draw_items_order,
                                GList      *unlisted_plugin_actions,
                                gint        plugin_actions_position);
+static gboolean
+thunar_menu_remove_hidden_items (GtkMenu *menu,
+                                 GList   *draw_items_order);
 static void
 thunar_menu_reorder (ThunarMenu *menu,
-                     GList      *new_order,
+                     GList      *draw_items_order,
                      GList     **unlisted_plugin_actions,
                      gint        plugin_actions_position);
 
@@ -264,7 +267,7 @@ thunar_menu_remove_all_separators (ThunarMenu *menu)
 
 static void
 thunar_menu_insert_separators (ThunarMenu *menu,
-                               GList      *new_order,
+                               GList      *draw_items_order,
                                GList      *unlisted_plugin_actions,
                                gint        plugin_actions_position)
 {
@@ -275,10 +278,10 @@ thunar_menu_insert_separators (ThunarMenu *menu,
 
   /* if we just go through the list and create separators, there will be too many of them, so this function only
    * inserts separators if an element matching the model was encountered */
-  for (GList *li = children, *lj = new_order; li != NULL && lj != NULL; lj = lj->next, ++lj_index)
+  for (GList *li = children, *lj = draw_items_order; li != NULL && lj != NULL; lj = lj->next, ++lj_index)
     {
-      GtkWidget                       *child = GTK_WIDGET (li->data);
-      ThunarContextMenuOrderModelItem *item = lj->data;
+      GtkWidget                           *child = GTK_WIDGET (li->data);
+      ThunarContextMenuOrderModelDrawItem *item = lj->data;
 
       if (item->visibility)
         {
@@ -326,9 +329,70 @@ thunar_menu_insert_separators (ThunarMenu *menu,
 
 
 
+/**
+ * thunar_menu_remove_hidden_items:
+ * @menu             : a #GtkMenu
+ * @draw_items_order : a list of #ThunarContextMenuModelDrawItem
+ *
+ * Removes hidden items from the menu
+ *
+ * Returns: %TRUE if there are items remaining in the menu after clearing
+ */
+static gboolean
+thunar_menu_remove_hidden_items (GtkMenu *menu,
+                                 GList   *draw_items_order)
+{
+  GList   *children = gtk_container_get_children (GTK_CONTAINER (menu));
+  gboolean has_any_child;
+
+  for (GList *li = children; li != NULL;)
+    {
+      GtkWidget   *item = GTK_WIDGET (li->data);
+      gboolean     delete_item = FALSE;
+      const gchar *item_id = g_object_get_data (G_OBJECT (item), "id");
+
+      /* Mark the item for deletion if it is hidden according to draw_items_order */
+      for (GList *lj = draw_items_order; lj != NULL; lj = lj->next)
+        {
+          ThunarContextMenuOrderModelDrawItem *draw_item = lj->data;
+
+          if (g_strcmp0 (draw_item->id, item_id) == 0)
+            {
+              if (!draw_item->visibility)
+                delete_item = TRUE;
+              break;
+            }
+        }
+
+      /* If an item is visible and has a submenu, and that submenu becomes empty after being cleared (recursively),
+       * then mark this item for removal. */
+      if (!delete_item)
+        {
+          GtkWidget *submenu = gtk_menu_item_get_submenu (GTK_MENU_ITEM (item));
+
+          if (submenu != NULL)
+            delete_item = !thunar_menu_remove_hidden_items (GTK_MENU (submenu), draw_items_order);
+        }
+
+      /* Iterate forward, and remove the current item if necessary */
+      li = li->next;
+      if (delete_item)
+        {
+          children = g_list_remove (children, item);
+          gtk_container_remove (GTK_CONTAINER (menu), item);
+        }
+    }
+
+  has_any_child = g_list_length (children);
+  g_list_free (children);
+  return has_any_child;
+}
+
+
+
 static void
 thunar_menu_reorder (ThunarMenu *menu,
-                     GList      *new_order,
+                     GList      *draw_items_order,
                      GList     **unlisted_plugin_actions,
                      gint        plugin_actions_position)
 {
@@ -336,7 +400,7 @@ thunar_menu_reorder (ThunarMenu *menu,
   gint   li_index = 0;
   gint   lj_index = 0;
 
-  if (new_order == NULL)
+  if (draw_items_order == NULL)
     {
       for (GList *l = children; l != NULL; l = l->next)
         gtk_container_remove (GTK_CONTAINER (menu), l->data);
@@ -353,9 +417,9 @@ thunar_menu_reorder (ThunarMenu *menu,
             {
               gboolean unlisted = TRUE;
 
-              for (GList *lj = new_order; lj != NULL; lj = lj->next)
+              for (GList *lj = draw_items_order; lj != NULL; lj = lj->next)
                 {
-                  ThunarContextMenuOrderModelItem *item = lj->data;
+                  ThunarContextMenuOrderModelDrawItem *item = lj->data;
 
                   if (g_strcmp0 (child_id, item->id) == 0)
                     {
@@ -372,9 +436,9 @@ thunar_menu_reorder (ThunarMenu *menu,
     }
 
   /* a loop in which GtkMenu items are moved to the required positions */
-  for (GList *li = new_order; li != NULL; li = li->next, ++li_index)
+  for (GList *li = draw_items_order; li != NULL; li = li->next, ++li_index)
     {
-      ThunarContextMenuOrderModelItem *item = li->data;
+      ThunarContextMenuOrderModelDrawItem *item = li->data;
 
       if (item->visibility)
         {
@@ -408,7 +472,7 @@ thunar_menu_reorder (ThunarMenu *menu,
         }
     }
 
-  if (new_order != NULL)
+  if (draw_items_order != NULL)
     {
       /* if there are any menu items left, they are hidden and can be removed */
       for (GList *l = children; l != NULL; l = l->next)
@@ -563,21 +627,21 @@ thunar_menu_add_sections (ThunarMenu        *menu,
   if (apply_context_menu_order)
     {
       ThunarContextMenuOrderModel *order_model = thunar_context_menu_order_model_get_default ();
-      GList                       *new_order = thunar_context_menu_order_model_get_items (order_model);
+      GList                       *draw_items_order = thunar_context_menu_order_model_get_draw_items (order_model);
       gint                         plugin_actions_position = thunar_context_menu_order_model_get_plugin_actions_position (order_model);
 
-      /* a list of plugin action menu items that are missing from the "new_order" list. This may happen because the
+      /* a list of plugin action menu items that are missing from the "draw_items_order" list. This may happen because the
        * plugin that provides plugin actions does not support passing information about menu items to the model, or
        * because the model is not updated for some reason */
       GList *unlisted_plugin_actions = NULL;
 
       /* we will insert our own separators later, so let's remove all current separators */
       thunar_menu_remove_all_separators (menu);
+      thunar_menu_remove_hidden_items (GTK_MENU (menu), draw_items_order);
+      thunar_menu_reorder (menu, draw_items_order, &unlisted_plugin_actions, plugin_actions_position);
+      thunar_menu_insert_separators (menu, draw_items_order, unlisted_plugin_actions, plugin_actions_position);
 
-      thunar_menu_reorder (menu, new_order, &unlisted_plugin_actions, plugin_actions_position);
-      thunar_menu_insert_separators (menu, new_order, unlisted_plugin_actions, plugin_actions_position);
-
-      g_list_free (new_order);
+      g_list_free_full (draw_items_order, (GDestroyNotify) thunar_context_menu_order_model_draw_item_free);
       g_object_unref (order_model);
       g_list_free (unlisted_plugin_actions);
     }

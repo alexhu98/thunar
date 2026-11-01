@@ -110,8 +110,12 @@ thunar_uca_model_get_item_value (XfceItemListModel *model,
                                  gint               column,
                                  GValue            *value);
 static gboolean
-thunar_uca_model_remove (XfceItemListModel *model,
-                         gint               index);
+thunar_uca_model_remove_item (XfceItemListModel *model,
+                              gint               index);
+static void
+thunar_uca_model_move_item (XfceItemListModel *model,
+                            gint               source,
+                            gint               dest);
 static void
 thunar_uca_model_item_reset (ThunarUcaModelItem *item);
 static void
@@ -233,7 +237,8 @@ thunar_uca_model_class_init (ThunarUcaModelClass *klass)
   model_class->get_list_column_type = thunar_uca_model_get_column_type;
   model_class->get_n_items = thunar_uca_model_get_n_items;
   model_class->get_item_value = thunar_uca_model_get_item_value;
-  model_class->remove = thunar_uca_model_remove;
+  model_class->remove = thunar_uca_model_remove_item;
+  model_class->move = thunar_uca_model_move_item;
 }
 
 
@@ -444,8 +449,8 @@ thunar_uca_model_get_item_value (XfceItemListModel *model,
 
 
 static gboolean
-thunar_uca_model_remove (XfceItemListModel *model,
-                         gint               index)
+thunar_uca_model_remove_item (XfceItemListModel *model,
+                              gint               index)
 {
   ThunarUcaModel     *uca_model = THUNAR_UCA_MODEL (model);
   GList              *link = g_list_nth (uca_model->items, index);
@@ -466,6 +471,21 @@ thunar_uca_model_remove (XfceItemListModel *model,
   uca_model->items = g_list_delete_link (uca_model->items, link);
 
   return TRUE;
+}
+
+
+
+static void
+thunar_uca_model_move_item (XfceItemListModel *model,
+                            gint               source,
+                            gint               dest)
+{
+  ThunarUcaModel     *uca_model = THUNAR_UCA_MODEL (model);
+  GList              *link = g_list_nth (uca_model->items, source);
+  ThunarUcaModelItem *item = link->data;
+
+  uca_model->items = g_list_delete_link (uca_model->items, link);
+  uca_model->items = g_list_insert (uca_model->items, item, dest);
 }
 
 

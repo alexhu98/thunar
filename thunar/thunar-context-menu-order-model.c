@@ -202,6 +202,46 @@ thunar_context_menu_order_model_finalize (GObject *object)
 
 
 
+/**
+ * thunar_context_menu_order_model_save_order_in_uca:
+ * @order_model: a #ThunarContextMenuOrderModel
+ *
+ * Preserves the order of UCA actions in UcaModel; this order is useful only for users of
+ * thunarx that are external to Thunar, such as xfdesktop.
+ */
+static void
+thunar_context_menu_order_model_save_order_in_uca (ThunarContextMenuOrderModel *order_model)
+{
+  gint order_position = 0;
+
+  g_signal_handlers_block_by_func (order_model->uca_model, thunar_context_menu_order_model_load, order_model);
+  for (GList *l = order_model->items; l != NULL; l = l->next)
+    {
+      ThunarContextMenuOrderModelItem *item = l->data;
+
+      /* UCA? */
+      if (thunar_is_uca_action_id (item->id))
+        {
+          const gchar *unique_id = thunar_get_unqiue_id_from_uca_action_id (item->id);
+          GtkTreeIter  iter;
+
+          /* Let's move the element within UcaModel so that it matches the order in ThunarContextMenuOrderModel */
+          if (thunar_uca_model_get_iter_by_unique_id (order_model->uca_model, &iter, unique_id))
+            {
+              gint source = xfce_item_list_model_get_index (XFCE_ITEM_LIST_MODEL (order_model->uca_model), &iter);
+
+              xfce_item_list_model_move (XFCE_ITEM_LIST_MODEL (order_model->uca_model), source, order_position);
+              ++order_position;
+            }
+        }
+    }
+
+  thunar_uca_model_save (order_model->uca_model, NULL);
+  g_signal_handlers_unblock_by_func (order_model->uca_model, thunar_context_menu_order_model_load, order_model);
+}
+
+
+
 static void
 thunar_context_menu_order_model_save (ThunarContextMenuOrderModel *order_model)
 {
@@ -219,6 +259,9 @@ thunar_context_menu_order_model_save (ThunarContextMenuOrderModel *order_model)
 
   g_object_set (order_model->preferences, "last-context-menu-items", content->str, NULL);
   g_string_free (content, TRUE);
+
+  /* Save the order in ThunarUcaModel */
+  thunar_context_menu_order_model_save_order_in_uca (order_model);
 }
 
 
@@ -241,6 +284,7 @@ thunar_context_menu_order_model_get_plugin_actions (void)
           gchar                           *name = NULL;
           gchar                           *icon = NULL;
           gchar                           *tooltip = NULL;
+          gchar                           *submenu = NULL;
           gchar                           *id = NULL;
           ThunarContextMenuOrderModelItem *item = NULL;
 
@@ -251,6 +295,8 @@ thunar_context_menu_order_model_get_plugin_actions (void)
                         "tooltip", &tooltip,
                         NULL);
 
+          submenu = g_object_get_data (G_OBJECT (provider_menu_item), "submenu");
+
           if (plugin_action_id != NULL)
             {
               id = thunar_normalize_plugin_action_id (plugin_action_id);
@@ -259,6 +305,7 @@ thunar_context_menu_order_model_get_plugin_actions (void)
               item->name = g_strdup (name);
               item->icon = g_strdup (icon);
               item->tooltip = g_strdup (tooltip);
+              item->submenu = g_strdup (submenu);
 
               if (thunar_is_uca_action_id (id))
                 item->removable = TRUE;
@@ -482,7 +529,22 @@ thunar_context_menu_order_model_item_free (ThunarContextMenuOrderModelItem *item
   g_free (item->name);
   g_free (item->icon);
   g_free (item->tooltip);
+  g_free (item->submenu);
   g_free (item);
+}
+
+
+
+static ThunarContextMenuOrderModelDrawItem *
+thunar_context_menu_order_model_draw_item_new (const gchar *id,
+                                               gboolean     visibility)
+{
+  ThunarContextMenuOrderModelDrawItem *item = g_new0 (ThunarContextMenuOrderModelDrawItem, 1);
+
+  item->id = g_strdup (id);
+  item->visibility = visibility;
+
+  return item;
 }
 
 
@@ -513,6 +575,69 @@ thunar_context_menu_order_model_get_items (ThunarContextMenuOrderModel *order_mo
   _thunar_return_val_if_fail (THUNAR_IS_CONTEXT_MENU_ORDER_MODEL (order_model), NULL);
 
   return g_list_copy (order_model->items);
+}
+
+
+
+/**
+ * thunar_context_menu_order_model_get_draw_items:
+ * @order_model: a #ThunarContextMenuOrderModel
+ *
+ * This function is similar to thunar_context_menu_order_model_get_items(), but it returns items that contain only
+ * the information necessary for displaying the menu; furthermore, in addition to standard items, it includes
+ * top-level submenus, which is useful specifically when rendering the menu.
+ *
+ * Returns: Returns items that serve as auxiliaries for rendering the menu
+ */
+GList *
+thunar_context_menu_order_model_get_draw_items (ThunarContextMenuOrderModel *order_model)
+{
+  GList *items = NULL;
+
+  _thunar_return_val_if_fail (THUNAR_IS_CONTEXT_MENU_ORDER_MODEL (order_model), NULL);
+
+  for (GList *l = order_model->items; l != NULL; l = l->next)
+    {
+      ThunarContextMenuOrderModelItem *item = l->data;
+
+      /* Is this a visible item with a submenu? If so, we add an additional, unique item to the items list,
+       * with an id generated based on the first folder in the submenu path */
+      if (item->visibility && item->submenu != NULL)
+        {
+          gchar   *root_end = strchr (item->submenu, '/');
+          gsize    root_size = strlen (item->submenu);
+          gchar   *item_id;
+          gboolean already_added = FALSE;
+
+          if (root_end != NULL)
+            {
+              root_size = root_end - item->submenu;
+            }
+
+          item_id = g_strdup_printf ("plugin-action-%.*s", (gint) root_size, item->submenu);
+
+          /* Do not add an item with the same id twice */
+          for (GList *lj = items; lj != NULL; lj = lj->next)
+            {
+              ThunarContextMenuOrderModelDrawItem *draw_item = lj->data;
+
+              if (g_strcmp0 (draw_item->id, item_id) == 0)
+                {
+                  already_added = TRUE;
+                  break;
+                }
+            }
+          if (!already_added)
+            items = g_list_append (items, thunar_context_menu_order_model_draw_item_new (item_id, TRUE));
+
+          g_free (item_id);
+        }
+
+      /* Create an item from order_model->items */
+      items = g_list_append (items, thunar_context_menu_order_model_draw_item_new (item->id, item->visibility));
+    }
+
+  return items;
 }
 
 
@@ -930,4 +1055,16 @@ thunar_context_menu_item_set_id_by_entry (GtkWidget                *menu_item,
 
       g_free (id);
     }
+}
+
+
+
+void
+thunar_context_menu_order_model_draw_item_free (ThunarContextMenuOrderModelDrawItem *item)
+{
+  if (item == NULL)
+    return;
+
+  g_free (item->id);
+  g_free (item);
 }
