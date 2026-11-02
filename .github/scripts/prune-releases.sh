@@ -4,7 +4,7 @@
 set -euo pipefail
 
 KEEP=${KEEP:-10}
-gh release list --repo "$REPO" --limit 1000 --json tagName,createdAt \
+gh release list --limit 1000 --json tagName,createdAt \
   --jq 'sort_by(.createdAt) | reverse | .[].tagName' \
   | tail -n +$((KEEP + 1)) \
   | while read -r tag; do
@@ -12,6 +12,6 @@ gh release list --repo "$REPO" --limit 1000 --json tagName,createdAt \
         echo "would delete $tag"
       else
         echo "deleting $tag"
-        gh release delete "$tag" --repo "$REPO" --cleanup-tag --yes
+        gh release delete "$tag" --cleanup-tag --yes
       fi
     done
