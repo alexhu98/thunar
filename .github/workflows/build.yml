@@ -1,0 +1,90 @@
+name: build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  REPO: ${{ github.repository }}
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add Zorin OS PPA (Xfce 4.20 libraries)
+        run: sudo add-apt-repository -y ppa:zorinos/stable
+
+      - name: Install build dependencies
+        run: sudo apt-get build-dep -y ./
+
+      - name: Stamp version
+        id: version
+        if: github.event_name == 'push'
+        run: |
+          version=$(.github/scripts/next-version.sh)
+          {
+            echo "thunar ($version) noble; urgency=medium"
+            echo
+            echo "  * CI build of ${GITHUB_SHA::12}."
+            echo
+            echo " -- GitHub Actions <actions@github.com>  $(date -R)"
+            echo
+            cat debian/changelog
+          } > debian/changelog.new
+          mv debian/changelog.new debian/changelog
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Version: $version" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build
+        run: |
+          dpkg-buildpackage -b -us -uc -j"$(nproc)"
+          mkdir dist
+          mv ../*.deb dist/
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debs
+          path: dist/*.deb
+          retention-days: 14
+
+  release:
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: debs
+          path: dist
+
+      - name: Publish release
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          tag="v${VERSION%%-*}+local${VERSION##*+local}"
+          gh release create "$tag" \
+            dist/thunar_*.deb dist/thunar-data_*.deb dist/libthunarx-3-0_*.deb \
+            --repo "$REPO" --target "$GITHUB_SHA" \
+            --title "$tag" --notes "Thunar $VERSION, built from ${GITHUB_SHA::12}."
+
+      - name: Keep the last 10 releases
+        run: .github/scripts/prune-releases.sh
