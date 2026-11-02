@@ -3,9 +3,12 @@ thunar (4.20.10-1~bpo24.04+local0) noble; urgency=medium
   * Build from git (thunar-4.20.10) with Zorin's 4.20.2-1~bpo24.04 packaging.
   * d/rules: bootstrap with autogen.sh and configure with
     --enable-maintainer-mode; a git checkout lacks the generated files.
-  * d/rules: skip dh_auto_test; abicheck.sh fails on the 4 exported
-    thunarx_provider_module_* symbols in every build, Zorin's included.
-  * CI replaces +local0 with +local<N> at build time.
+  * d/rules: pass --with-thunarx-dirs to also load plugins from
+    /usr/lib/thunarx-3, replacing 01_support-non-multiarch-modules.patch.
+  * thunarx/thunarx.symbols: list the 4 exported thunarx_provider_module_*
+    symbols, so abicheck.sh passes and dh_auto_test runs again.
+  * Drop d/gbp.conf; this repo has none of its branches.
+  * CI prepends a +local<N> entry at build time.
 
  -- Alex Hu <alexhu98@gmail.com>  Sun, 01 Nov 2026 16:00:00 -0800
 

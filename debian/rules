@@ -22,9 +22,8 @@ override_dh_auto_configure:
 		--enable-sbr-plugin \
 		--enable-tpa-plugin \
 		--enable-uca-plugin \
-		--enable-introspection=yes
-
-override_dh_auto_test:
+		--enable-introspection=yes \
+		--with-thunarx-dirs=/usr/lib/$(DEB_HOST_MULTIARCH)/thunarx-3:/usr/lib/thunarx-3
 
 execute_after_dh_auto_install:
 	find debian/tmp -name '*.la*' -delete
