@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #10 Explainers</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #10: An explainer in every PR</h1>
+  <p class="lead" data-k="lead">Branch <code>9-explainer</code> → <code>main</code>, closes #9. Every issue PR now carries a page like this one: a skill writes it, CI requires it and shows it in the PR as an image, and a local script can turn it into a narrated video.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: #7, then the feature PRs</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">A skill that writes the page, a CI job that requires it and posts it into the PR as an image, and an optional script that narrates it as a video.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="Flow: the skill writes the page on the branch; on every PR the explainer job requires it, renders it, uploads the image to the shots branch and puts it in one PR comment">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--text)">① On the branch — write the page</text>
+    <g data-k="1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Skill writes the page</text>
+      <text x="36" y="114" class="m">explainers/</text>
+      <text x="36" y="132" class="m">  9-explainer.html</text>
+      <text x="36" y="154" class="b">from the skill's template</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Check it locally</text>
+      <text x="286" y="114" class="m">explainer-proof.sh render</text>
+      <text x="286" y="134" class="b">the same picture CI makes;</text>
+      <text x="286" y="154" class="b">look at it before pushing</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-you" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Push, open the PR</text>
+      <text x="536" y="114" class="m">9-explainer → main</text>
+      <text x="536" y="134" class="b">every push reruns the</text>
+      <text x="536" y="154" class="b">workflow, beside build</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H840 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--accent)">② explainer job — on every PR</text>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="260" width="210" height="130" rx="10"/>
+      <text x="786" y="290" class="t">Require it</text>
+      <text x="786" y="314" class="b">branch 9-… must add or</text>
+      <text x="786" y="334" class="b">change explainers/9-*.html;</text>
+      <text x="786" y="354" class="b">otherwise the PR fails</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">4</text>
+    </g>
+    <g data-k="5">
+      <rect class="box-pr" x="520" y="260" width="210" height="130" rx="10"/>
+      <text x="536" y="290" class="t">Render it</text>
+      <text x="536" y="314" class="b">headless Chrome, dark,</text>
+      <text x="536" y="334" class="b">1200px wide, full page</text>
+      <text x="536" y="354" class="m">→ explainer-9.png</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-pr" x="270" y="260" width="210" height="130" rx="10"/>
+      <text x="286" y="290" class="t">Upload to shots</text>
+      <text x="286" y="314" class="m">shots:pr-10/</text>
+      <text x="286" y="334" class="m">  explainer-9.png</text>
+      <text x="286" y="354" class="b">one commit per push</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-pr" x="20" y="260" width="210" height="130" rx="10"/>
+      <text x="36" y="290" class="t">One PR comment</text>
+      <text x="36" y="314" class="b">found by a hidden marker;</text>
+      <text x="36" y="334" class="b">only its explainer part</text>
+      <text x="36" y="354" class="b">is replaced on each push</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <path class="arrow" d="M770,325 H734" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M520,325 H484" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M270,325 H234" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you, or the agent writing the PR</span>
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>runs on every PR, in CI</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">A pull request's “Files changed” tab shows <em>what</em> changed, line by line, but not what it means, how it was checked, or what it leads to. PR #8 came with a hand-made page that did: a diagram, numbered steps, the checks that were run, and the issues that come next. This PR makes that page part of every issue PR. A skill tells whoever writes the PR, you or a cloud agent, how to write it. CI refuses a PR without one, and shows it inside the PR.</p>
+  <div class="note" data-k="note">GitHub shows an HTML file in a private repo as source code, not as a page. So CI takes a picture of the page and puts the picture in a PR comment, where it reads on github.com and on the phone.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h">① On the branch: write the page</div>
+  <ol class="steps">
+    <li data-k="1"><b>Skill writes the page.</b> The <code>explainer</code> skill in <code>.claude/skills/explainer/</code> starts from <code>template.html</code>, a copy of PR #8's page with the content taken out. It says what goes in each of the three parts, and the rule that matters most: claim only what was actually run. The new root <code>CLAUDE.md</code> tells every session, including cloud ones, that each issue PR needs this page.</li>
+    <li data-k="2"><b>Check it locally.</b> <code>.github/scripts/explainer-proof.sh render</code> makes the same image CI will make, so the writer can look at it before pushing.</li>
+    <li data-k="3"><b>Push, open the PR.</b> A PR into <code>main</code> starts <code>build.yml</code>. Next to the <code>build</code> job from PR #8, it now runs a second job, <code>explainer</code>, which needs neither the build nor Thunar.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--accent)">② explainer job: require, render, post</div>
+  <ol class="steps" start="4" style="counter-reset: s 3">
+    <li data-k="4"><b>Require it.</b> If the branch is named <code>&lt;n&gt;-&lt;slug&gt;</code>, the job lists the files the PR adds or changes (<code>git diff --name-only origin/main...HEAD</code>) and fails unless one is <code>explainers/&lt;n&gt;-*.html</code>. Other branch names, such as a dependency bump, are exempt. Deleting an explainer doesn't count as having one.</li>
+    <li data-k="5"><b>Render it.</b> Headless Chrome, already installed on GitHub's Ubuntu 24.04 machines, opens the page in dark mode, 1200 pixels wide. It measures how tall the page is, then takes one screenshot exactly that tall, so the whole page fits in one image with nothing to trim. It also checks the page at phone width (390 pixels) and warns if it scrolls sideways.</li>
+    <li data-k="6"><b>Upload to <code>shots</code>.</b> The image is committed to the <code>shots</code> branch as <code>pr-10/explainer-9.png</code> through GitHub's contents API. The comment links the image by that commit, not by the branch, so every push shows its own image, never a cached older one.</li>
+    <li data-k="7"><b>One PR comment.</b> The job looks for its comment by a hidden <code>&lt;!-- pr-proof --&gt;</code> marker. If there's none, it creates one. Otherwise it replaces only the text between <code>&lt;!-- explainer:start --&gt;</code> and <code>&lt;!-- explainer:end --&gt;</code>, so whatever else is in the comment stays.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="comment">
+  <h3 class="sec">The PR comment, with room for #7</h3>
+  <p data-k="why">One comment collects all the proof a PR gets. This PR writes the explainer section. Issue #7's <code>verify</code> job will later add its own section to the same comment instead of posting a second one.</p>
+<pre data-k="body">&lt;!-- pr-proof --&gt;
+&lt;!-- explainer:start --&gt;
+### Explainer: `explainers/9-explainer.html`
+Dark mode, 1200px wide, full page, as of &lt;commit&gt;.
+![Explainer for #9](https://github.com/alexhu98/thunar/blob/&lt;upload commit&gt;/pr-10/explainer-9.png?raw=true)
+&lt;!-- explainer:end --&gt;
+<span class="add">&lt;!-- verify:start --&gt;   ← #7 adds this section later
+…test results and screenshots…
+&lt;!-- verify:end --&gt;</span></pre>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">When the check passes or fails</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Branch</th><th>The PR adds or changes</th><th>Result</th></tr>
+    <tr data-k="r1"><td><code>9-explainer</code></td><td><code>explainers/9-explainer.html</code></td><td class="ok">passes</td></tr>
+    <tr data-k="r2"><td><code>9-explainer</code></td><td>no explainer</td><td class="no">fails</td></tr>
+    <tr data-k="r3"><td><code>9-explainer</code></td><td><code>explainers/1-ci-build.html</code> only (another issue's page)</td><td class="no">fails</td></tr>
+    <tr data-k="r4"><td><code>bump-actions</code></td><td>anything</td><td class="ok">exempt</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="safety">
+  <h3 class="sec">Who can write what</h3>
+  <div class="grid">
+    <div class="card" data-k="c1"><h3>Only this job may write</h3><p>The workflow stays read-only. Only the <code>explainer</code> job gets <code>contents: write</code> (to commit images to <code>shots</code>) and <code>pull-requests: write</code> (to comment). The <code>build</code> job is unchanged.</p></div>
+    <div class="card" data-k="c2"><h3>Only the last step gets the token</h3><p>The checkout keeps no credentials, and the check and render steps run without <code>GH_TOKEN</code>. Only the upload-and-comment step gets it.</p></div>
+    <div class="card" data-k="c3"><h3>Fork PRs are skipped</h3><p>A PR from a fork runs with a read-only token, so this job couldn't upload or comment. It is skipped, the check included.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="video">
+  <h3 class="sec">The optional video</h3>
+  <div class="diagram" role="img" aria-label="Video: the narration file and the page go through a staleness check, Kokoro voices each line, Chrome takes a frame of the page per line, and ffmpeg joins them into an mp4">
+  <svg viewBox="0 0 1000 190" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-video" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="34" style="fill:var(--text)">③ On your machine only — never in CI</text>
+    <g data-k="v1">
+      <rect class="box-you" x="20" y="50" width="168" height="120" rx="10"/>
+      <text x="34" y="78" class="t">Narration file</text>
+      <text x="34" y="100" class="m">9-explainer</text>
+      <text x="34" y="116" class="m">  .narration.json</text>
+      <text x="34" y="136" class="b">one entry per line;</text>
+      <text x="34" y="154" class="b">committed with the page</text>
+    </g>
+    <g data-k="v2">
+      <rect class="box-you" x="218" y="50" width="168" height="120" rx="10"/>
+      <text x="232" y="78" class="t">What changed?</text>
+      <text x="232" y="100" class="m">make-video.py</text>
+      <text x="232" y="116" class="m">  status</text>
+      <text x="232" y="136" class="b">lists the lines whose</text>
+      <text x="232" y="154" class="b">page text changed</text>
+    </g>
+    <g data-k="v3">
+      <rect class="box-you" x="416" y="50" width="168" height="120" rx="10"/>
+      <text x="430" y="78" class="t">Voice</text>
+      <text x="430" y="100" class="b">Kokoro, voice af_heart,</text>
+      <text x="430" y="118" class="b">one clip per line,</text>
+      <text x="430" y="136" class="b">cached by its words</text>
+    </g>
+    <g data-k="v4">
+      <rect class="box-you" x="614" y="50" width="168" height="120" rx="10"/>
+      <text x="628" y="78" class="t">Frames</text>
+      <text x="628" y="100" class="b">a copy of the page in</text>
+      <text x="628" y="118" class="b">video mode: one section,</text>
+      <text x="628" y="136" class="b">highlight and caption</text>
+    </g>
+    <g data-k="v5">
+      <rect class="box-you" x="812" y="50" width="168" height="120" rx="10"/>
+      <text x="826" y="78" class="t">Video</text>
+      <text x="826" y="100" class="b">ffmpeg: chapters,</text>
+      <text x="826" y="118" class="b">H.264 and AAC</text>
+      <text x="826" y="136" class="m">9-explainer.mp4</text>
+      <text x="826" y="154" class="b">not committed</text>
+    </g>
+    <path class="arrow" d="M188,110 H214" marker-end="url(#ah-video)"/>
+    <path class="arrow" d="M386,110 H412" marker-end="url(#ah-video)"/>
+    <path class="arrow" d="M584,110 H610" marker-end="url(#ah-video)"/>
+    <path class="arrow" d="M782,110 H808" marker-end="url(#ah-video)"/>
+  </svg>
+  </div>
+  <ul class="tight">
+    <li data-k="v1">The narration file is the script: for each spoken line, the caption shown on screen, the words actually spoken (respelled where the voice gets them wrong), the part of the page to show, and what to highlight. It also remembers the page text each line was written from.</li>
+    <li data-k="v2">When the page changes, <code>make-video.py status</code> names exactly the lines whose page text changed. Only those are rewritten, so the video never describes an older page.</li>
+    <li data-k="v3">Each line is voiced by Kokoro, a speech model that runs on the desktop. Clips are cached by their words, so an unchanged line is never voiced again.</li>
+    <li data-k="v4">The page is the slides. The script opens a temporary copy of the page with a 1920×1080 video mode added: one section at a time, the rest of it dimmed around the highlight, a caption, and a chapter bar. The committed page never changes.</li>
+    <li data-k="v5">ffmpeg joins the frames and the voice. Frame times come from counting audio samples, so picture and sound stay in step.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">CLAUDE.md                            # new: every issue PR adds its explainer
+.claude/skills/explainer/
+├── SKILL.md                         # how to write the page, the narration and the video
+├── template.html                    # PR #8's page with the content taken out
+└── make-video.py                    # page + narration → mp4, local only
+.github/
+├── workflows/build.yml              # new explainer job on PRs
+└── scripts/explainer-proof.sh       # check, render, upload, comment
+explainers/
+├── 9-explainer.html                 # this page
+└── 9-explainer.narration.json       # its narration</pre>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">What it was built from, what was checked and how, and what wasn't checked.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on three references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>PR #8's page</h3><p><code>explainers/1-ci-build.html</code>, made by hand: three parts, colours for dark mode, inline diagrams, tables. The template keeps its styles and layout, and adds the ids and keys the video needs.</p></div>
+    <div class="card" data-k="r2"><h3>PR #8's video</h3><p>A one-off script made <code>1-ci-build.mp4</code> with slides and narration written into it. <code>make-video.py</code> keeps its voice, timing and ffmpeg steps, and replaces the hand-made slides with the page itself.</p></div>
+    <div class="card" data-k="r3"><h3>PR #8's scripts</h3><p><code>explainer-proof.sh</code> follows the release scripts: a short header, <code>set -euo pipefail</code>, <code>DRY_RUN=1</code>, and the token only on the step that calls GitHub.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>The skill alone is enough</td><td>A fresh agent, given only the skill and PR #8's issue, description and diff, wrote PR #8's page. Compared with the hand-made page by part, diagram, steps, tables and glossary, and its render read slice by slice. Not re-run after the fixes.</td><td class="ok">same structure; 10 gaps fixed in the skill</td></tr>
+    <tr data-k="c2"><td>The required check</td><td><code>explainer-proof.sh check</code> on five local branches: this one; <code>99-…</code> with no page; <code>9-…</code> changing only issue 1's page; <code>1-…</code> deleting its page; <code>bump-actions</code></td><td class="ok">pass, fail, fail, fail, exempt</td></tr>
+    <tr data-k="c3"><td>Adding a page fixes a failing PR</td><td>The same check on <code>99-…</code> after committing <code>explainers/99-….html</code></td><td class="ok">pass</td></tr>
+    <tr data-k="c4"><td>The script, without posting</td><td><code>DRY_RUN=1</code>, whole script: rendered this page, printed the comment, uploaded nothing (<code>shots</code> unchanged)</td><td class="ok">1200 × 6431 image</td></tr>
+    <tr data-k="c5"><td>Updating a comment keeps the rest</td><td><code>DRY_RUN=1</code> against a stand-in <code>gh</code> returning a marked comment with a <code>verify</code> section, with and without an old explainer section</td><td class="ok">2 of 2 kept it</td></tr>
+    <tr data-k="c6"><td>The phone-width warning</td><td>A test page with a 600px-wide box, rendered by the script</td><td class="ok">warned at 608px</td></tr>
+    <tr data-k="c7"><td>CI posts the image</td><td>This PR's first push</td><td class="no">not run yet</td></tr>
+    <tr data-k="c8"><td>A new push updates the same comment</td><td>A second push: one marked comment, same id, new image</td><td class="no">not run yet</td></tr>
+    <tr data-k="c9"><td>The video</td><td><code>make-video.py render 9</code> on this page: picture and sound lengths from <code>ffprobe</code>, chapters from <code>ffprobe -show_chapters</code>, sampled frames looked at</td><td class="ok">within 1 frame; 5 chapters</td></tr>
+    <tr data-k="c10"><td>Only a changed line is re-voiced</td><td>One sentence changed on this page (the fork card above), then <code>status</code>, rewrite, <code>stamp</code>, <code>render</code></td><td class="ok">1 line stale, 1 of 54 re-voiced</td></tr>
+    <tr data-k="c11"><td>Captions change with the voice</td><td>Frames either side of that line's start, and ffmpeg's <code>silencedetect</code> around it</td><td class="ok">switch inside the 0.4 s pause</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="unchecked">
+  <h3 class="sec">Not checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why not</th><th>Status</th></tr>
+    <tr data-k="n1"><td>The voice, by ear</td><td>The audio can't be listened to from here. Pronunciation was checked from the phonemes Kokoro produces for each line.</td><td class="no">not listened to</td></tr>
+    <tr data-k="n2"><td>A PR from a fork is skipped</td><td>There is no fork to open one from.</td><td class="no">not run</td></tr>
+    <tr data-k="n3"><td>Two PRs uploading at the same moment</td><td>The upload retries once on a clash. Not reproduced.</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A <code>medium</code> code review of the whole diff, before the first push, found 10 issues. 8 are fixed in this PR; 2 are kept as decided in #9.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>CI script:</b> a page list left by an earlier local run could be reused; a missing image would have been uploaded empty; a failed first upload could garble the image link.</li>
+    <li data-k="b2"><b>Video script:</b> paths with spaces or quotes broke it; chapter names containing <code>#</code> weren't escaped for ffmpeg; a caption containing <code>&lt;/script&gt;</code> would break video mode; every render checked the page twice.</li>
+    <li data-k="b3"><b>Kept as decided:</b> fork PRs skip the whole job, the check included; two pages for one issue in one PR would share one image name.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>A cloud session follows the root <code>CLAUDE.md</code> and writes its explainer with the skill</td><td>Cloud sessions start from <code>main</code>, which gets these files only at the merge</td><td class="open">#7's trial run</td></tr>
+    <tr data-k="a2"><td>Another PR number gets its own <code>pr-&lt;n&gt;/</code> folder and comment</td><td>Needs the next issue PR</td><td class="open">next PR</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and this page as an image: <a href="https://github.com/alexhu98/thunar/pull/10">PR #10</a>, in its first comment</li>
+    <li data-k="l2">The runs: <a href="https://github.com/alexhu98/thunar/actions?query=branch%3A9-explainer">Actions</a>, job <code>explainer</code></li>
+    <li data-k="l3">The images: the <a href="https://github.com/alexhu98/thunar/tree/shots/pr-10">shots branch, pr-10/</a></li>
+    <li data-k="l4">The video: <code>make-video.py render 9</code> makes <code>explainers/9-explainer.mp4</code> locally</li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: #7, then the feature PRs</h2>
+  <p class="intro" data-k="intro">#7 builds directly on this PR: its cloud agents write explainers with this skill, and its verify job adds to this comment. After it, every feature PR (#3 to #6) arrives with an explainer and its proof.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="Future: this PR's explainer job and comment; #7 adds a verify section and cloud agents that write explainers; the feature PRs #3 to #6 then each carry an explainer and proof">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">#9 → #7 → features</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="130" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">skill, explainer job,</text>
+      <text x="36" y="134" class="b">one proof comment</text>
+      <text x="36" y="154" class="b">per PR</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="130" rx="10"/>
+      <text x="286" y="90" class="t">#7 verify job</text>
+      <text x="286" y="114" class="b">runs Thunar under Xvfb,</text>
+      <text x="286" y="134" class="b">adds results and shots</text>
+      <text x="286" y="154" class="b">to the same comment</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="130" rx="10"/>
+      <text x="536" y="90" class="t">#7 cloud agents</text>
+      <text x="536" y="114" class="b">read CLAUDE.md, open PRs</text>
+      <text x="536" y="134" class="b">with an explainer written</text>
+      <text x="536" y="154" class="b">with this skill</text>
+    </g>
+    <g data-k="n4">
+      <rect class="box-future" x="770" y="60" width="210" height="130" rx="10"/>
+      <text x="786" y="90" class="t">Feature PRs</text>
+      <text x="786" y="114" class="b">#3 to #6: each arrives</text>
+      <text x="786" y="134" class="b">with its page, its image</text>
+      <text x="786" y="154" class="b">and CI's proof</text>
+    </g>
+    <path class="arrow-future" d="M230,125 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M480,125 H516" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M730,125 H766" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue7">
+  <h3 class="sec">#7 Cloud agents open PRs, CI proves them (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Repo <code>CLAUDE.md</code>.</b> #7 extends the file this PR creates with branch naming, build lessons and the screenshot rules, because cloud sessions only see what the repo carries.</li>
+    <li data-k="2"><b><code>verify</code> job.</b> Installs the built packages, runs Thunar on a virtual screen, runs each <code>verify/&lt;issue&gt;.sh</code>, and adds a <code>verify</code> section with results and screenshots to the comment this PR creates, found by the same <code>&lt;!-- pr-proof --&gt;</code> marker.</li>
+    <li data-k="3"><b>Trial run.</b> #3 (double-click to go to the parent folder) is built end to end by a cloud session. Its PR is the first to arrive with an explainer the owner didn't ask for by hand.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="features">
+  <h3 class="sec">Feature PRs (#3 to #6) and #2</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Feature PRs.</b> #3 (double-click to the parent folder), #4 (tab options), #5 (geometry) and #6 (workspace) each carry an explainer, rendered into the PR comment beside the <code>verify</code> results.</li>
+    <li data-k="2"><b>#2 Auto-deploy.</b> Installs each merged release on the desktop and laptop. Its own PR is an issue PR too, so it gets a page like this one.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="explainer"><dt>Explainer</dt><dd>The page every issue PR adds in <code>explainers/</code>: what it adds, how it was checked, what comes next.</dd></div>
+    <div data-k="skill"><dt>Skill</dt><dd>A folder of instructions (and helper files) that Claude Code loads when a task matches it.</dd></div>
+    <div data-k="claudemd"><dt><code>CLAUDE.md</code></dt><dd>Instructions every Claude Code session in this repo reads first, cloud sessions included.</dd></div>
+    <div data-k="job"><dt>Job</dt><dd>One part of a GitHub Actions workflow, run on its own fresh machine; <code>build</code> and <code>explainer</code> run side by side.</dd></div>
+    <div data-k="headless"><dt>Headless Chrome</dt><dd>Chrome running without a window, used here to take a picture of the page.</dd></div>
+    <div data-k="shots"><dt><code>shots</code> branch</dt><dd>A branch that holds only images, one folder per PR, so they never mix with the code.</dd></div>
+    <div data-k="api"><dt>Contents API</dt><dd>GitHub's way to commit one file to a branch over the web, without a git checkout.</dd></div>
+    <div data-k="marker"><dt>Marker</dt><dd>An HTML comment such as <code>&lt;!-- pr-proof --&gt;</code>: invisible in the PR, but a script can find it.</dd></div>
+    <div data-k="token"><dt>Token</dt><dd><code>GH_TOKEN</code>: the job's short-lived key to the repo; only the step that posts gets it.</dd></div>
+    <div data-k="fork"><dt>Fork PR</dt><dd>A PR from someone else's copy of the repo; its token can't write here.</dd></div>
+    <div data-k="kokoro"><dt>Kokoro</dt><dd>A small text-to-speech model that runs on the desktop; <code>af_heart</code> is the voice.</dd></div>
+    <div data-k="phoneme"><dt>Phonemes</dt><dd>The sounds a voice will say for a word, written out; how pronunciation is checked without listening.</dd></div>
+    <div data-k="chapters"><dt>Chapters</dt><dd>Named points in an mp4 that players show as a list to jump to.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
