@@ -127,7 +127,7 @@
     <text class="lane" x="20" y="44" style="fill:var(--text)">① On the branch — write the page</text>
     <g data-k="1">
       <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
-      <text x="36" y="90" class="t">Skill writes the page</text>
+      <text x="36" y="90" class="t">Write the page</text>
       <text x="36" y="114" class="m">explainers/</text>
       <text x="36" y="132" class="m">  9-explainer.html</text>
       <text x="36" y="154" class="b">from the skill's template</text>
@@ -208,7 +208,7 @@
   <div class="panel">
   <div class="lane-h">① On the branch: write the page</div>
   <ol class="steps">
-    <li data-k="1"><b>Skill writes the page.</b> The <code>explainer</code> skill in <code>.claude/skills/explainer/</code> starts from <code>template.html</code>, a copy of PR #8's page with the content taken out. It says what goes in each of the three parts, and the rule that matters most: claim only what was actually run. The new root <code>CLAUDE.md</code> tells every session, including cloud ones, that each issue PR needs this page.</li>
+    <li data-k="1"><b>Write the page.</b> The <code>explainer</code> skill in <code>.claude/skills/explainer/</code> starts from <code>template.html</code>, a copy of PR #8's page with the content taken out. It says what goes in each of the three parts, and the rule that matters most: claim only what was actually run. The new root <code>CLAUDE.md</code> tells every session, including cloud ones, that each issue PR needs this page.</li>
     <li data-k="2"><b>Check it locally.</b> <code>.github/scripts/explainer-proof.sh render</code> makes the same image CI will make, so the writer can look at it before pushing.</li>
     <li data-k="3"><b>Push, open the PR.</b> A PR into <code>main</code> starts <code>build.yml</code>. Next to the <code>build</code> job from PR #8, it now runs a second job, <code>explainer</code>, which needs neither the build nor Thunar.</li>
   </ol>
@@ -273,8 +273,8 @@ Dark mode, 1200px wide, full page, as of &lt;commit&gt;.
       <text x="34" y="78" class="t">Narration file</text>
       <text x="34" y="100" class="m">9-explainer</text>
       <text x="34" y="116" class="m">  .narration.json</text>
-      <text x="34" y="136" class="b">one entry per line;</text>
-      <text x="34" y="154" class="b">committed with the page</text>
+      <text x="34" y="136" class="b">one entry per line,</text>
+      <text x="34" y="154" class="b">committed with it</text>
     </g>
     <g data-k="v2">
       <rect class="box-you" x="218" y="50" width="168" height="120" rx="10"/>
@@ -294,9 +294,10 @@ Dark mode, 1200px wide, full page, as of &lt;commit&gt;.
     <g data-k="v4">
       <rect class="box-you" x="614" y="50" width="168" height="120" rx="10"/>
       <text x="628" y="78" class="t">Frames</text>
-      <text x="628" y="100" class="b">a copy of the page in</text>
-      <text x="628" y="118" class="b">video mode: one section,</text>
-      <text x="628" y="136" class="b">highlight and caption</text>
+      <text x="628" y="100" class="b">a copy of the page</text>
+      <text x="628" y="118" class="b">in video mode: one</text>
+      <text x="628" y="136" class="b">section, highlight,</text>
+      <text x="628" y="154" class="b">caption</text>
     </g>
     <g data-k="v5">
       <rect class="box-you" x="812" y="50" width="168" height="120" rx="10"/>
@@ -363,7 +364,7 @@ explainers/
     <tr data-k="c4"><td>The script, without posting</td><td><code>DRY_RUN=1</code>, whole script: rendered this page, printed the comment, uploaded nothing (<code>shots</code> unchanged)</td><td class="ok">1200 × 6431 image</td></tr>
     <tr data-k="c5"><td>Updating a comment keeps the rest</td><td><code>DRY_RUN=1</code> against a stand-in <code>gh</code> returning a marked comment with a <code>verify</code> section, with and without an old explainer section</td><td class="ok">2 of 2 kept it</td></tr>
     <tr data-k="c6"><td>The phone-width warning</td><td>A test page with a 600px-wide box, rendered by the script</td><td class="ok">warned at 608px</td></tr>
-    <tr data-k="c7"><td>CI posts the image</td><td>This PR's first push</td><td class="no">not run yet</td></tr>
+    <tr data-k="c7"><td>CI posts the image</td><td>This PR's first push, run 41569623755: the <code>explainer</code> job created the marked comment and committed the image to <code>shots</code>; the image was downloaded and read slice by slice. GitHub's font is wider than the desktop's: three diagram labels overflowed, fixed in the next push.</td><td class="ok">1200 × 7141 image in the comment</td></tr>
     <tr data-k="c8"><td>A new push updates the same comment</td><td>A second push: one marked comment, same id, new image</td><td class="no">not run yet</td></tr>
     <tr data-k="c9"><td>The video</td><td><code>make-video.py render 9</code> on this page: picture and sound lengths from <code>ffprobe</code>, chapters from <code>ffprobe -show_chapters</code>, sampled frames looked at</td><td class="ok">within 1 frame; 5 chapters</td></tr>
     <tr data-k="c10"><td>Only a changed line is re-voiced</td><td>One sentence changed on this page (the fork card above), then <code>status</code>, rewrite, <code>stamp</code>, <code>render</code></td><td class="ok">1 line stale, 1 of 54 re-voiced</td></tr>

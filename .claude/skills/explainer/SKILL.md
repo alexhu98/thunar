@@ -47,7 +47,7 @@ Start from `template.html` in this folder: copy it to `explainers/<n>-<slug>.htm
 - Colours only through the `:root` tokens, and they must work in dark mode. CI renders the page with `--force-dark-mode`.
 - No horizontal page scroll at a 390px viewport. Diagrams (`.diagram`), tables (`.table-wrap`) and `pre` scroll inside their own boxes. CI warns when the page is wider than 390px at that viewport.
 - No external assets: no fonts, scripts, images or stylesheets from the network. Everything is inline.
-- SVG text lines fit their box. Box text uses about 26 characters per line at the template's sizes, and each box gets 3–4 lines.
+- SVG text lines fit their box in CI's image, whose font (DejaVu Sans) is wider than the desktop's. In a 210px box, write at most about 22 characters per line, and at most 17 for a title beside a badge. Each box gets 3–4 lines. A local render can look fine and still overflow on GitHub, so read the CI image after the first push.
 - Each SVG defines its own arrow markers with ids unique to the page (`ah-flow`, `ahf-next`, …). A marker defined in another diagram breaks when that diagram is hidden, which video mode does.
 
 ## Ids and keys (what the video needs)
