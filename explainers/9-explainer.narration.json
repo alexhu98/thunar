@@ -1,7 +1,7 @@
 {
   "title": "PR #10 · An explainer in every PR",
   "voice": "af_heart",
-  "page_sha256": "ca5560c2b73258476e31b84fc12491a2253b9b5a6ed7063eeb59aa468ab478e6",
+  "page_sha256": "8bfca936b918815a162dbf1dad951d4c11aa81588c1485a9ce80e4d7a8a13281",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 10, which gives every issue's pull request an explainer page like this one.", "say": "This is a tour of pull request ten, which gives every issue's pull request an explainer page like this one.", "src": "66d50cb924b5"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "2156644f60cf"},
@@ -43,7 +43,7 @@
     {"screen": "checks", "keys": ["c5"], "caption": "Updating a comment kept the other section in it, in both cases tried.", "src": "ea2bcee07c81"},
     {"screen": "checks", "keys": ["c6"], "caption": "And a page too wide for a phone got a warning.", "src": "9e4c6d823766"},
     {"screen": "checks", "keys": ["c7"], "caption": "The first real run on GitHub posted this page as an image, in a comment of its own.", "src": "c081cb643cb0"},
-    {"screen": "checks", "keys": ["c8"], "caption": "A second push, updating that same comment, hadn't run yet when this was written.", "src": "2f20f81cdfd5"},
+    {"screen": "checks", "keys": ["c8"], "caption": "A second push updated that same comment with a new image, instead of adding another.", "src": "29248ea26918"},
     {"screen": "checks", "keys": ["c9"], "caption": "This video's picture and sound match to within a frame, and it has five chapters.", "src": "a62a8ffdbb3a"},
     {"screen": "checks", "keys": ["c10"], "caption": "After one sentence on the page changed, only its one narration line was rewritten and voiced again.", "src": "015fa898a3f8"},
     {"screen": "checks", "keys": ["c11"], "caption": "And at a sampled line, the caption changes in the pause before the voice starts.", "src": "d36e990bf938"},
@@ -116,7 +116,7 @@
     "checks/c5": "ea2bcee07c81",
     "checks/c6": "9e4c6d823766",
     "checks/c7": "c081cb643cb0",
-    "checks/c8": "2f20f81cdfd5",
+    "checks/c8": "29248ea26918",
     "checks/c9": "a62a8ffdbb3a",
     "checks/c10": "015fa898a3f8",
     "checks/c11": "d36e990bf938",
