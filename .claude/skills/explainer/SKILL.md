@@ -1,0 +1,154 @@
+---
+name: explainer
+description: Write the explainer page every issue PR in this repo carries (explainers/<issue>-<slug>.html), and optionally its narrated video. Use when opening or finishing an issue PR, when asked for "an explainer", "explainer with video" (page, then narration, then video), or "/explainer video <n>" (re-render the video, first re-narrating whatever changed on the page).
+---
+
+# Explainer
+
+Every PR for issue `<n>`, from branch `<n>-<slug>`, adds `explainers/<n>-<slug>.html`: one self-contained page that tells the owner what the PR adds, how it was built and verified, and what comes later. CI fails the PR without it, renders it as a 1200px dark full-page PNG, and posts that image in the PR comment, because GitHub shows HTML in a private repo as source. Write for the owner reading that image on a phone: plain words, no assumed context.
+
+## Inputs to gather first
+
+1. **The issue**: `gh issue view <n>`, including its comments. Its decisions are the "why"; its rollout list is what Part 2 must answer.
+2. **The diff**: `git diff --stat origin/main...HEAD` and the diff itself. Every file in it appears in "Files in the PR".
+3. **What was actually run**: commands, outputs, CI runs and review findings from this session. Part 2 is built only from these. If the session that built the PR is gone, use the PR's CI logs (`gh run view <id> --log`) and its description. Label each result with its source, e.g. "CI run 41529610568" or "the building session, per the PR description, not re-run here".
+4. **What builds on it**: open issues whose body says "Depends on #<n>". `gh issue list --state open --search "<n>"` finds candidates, but the search drops the `#`, so read each body before including it. These issues become Part 3, in dependency order, as many as there are.
+
+## The page
+
+Start from `template.html` in this folder: copy it to `explainers/<n>-<slug>.html` and replace every `[placeholder]`. Keep its `<style>` block whole, adding rules only when a new element needs them. It already has the light and dark colour tokens, diagram and table styles, and `td.ok` / `td.open` / `td.no` result colours.
+
+**Header** (`<header id="title">`): `<title>` "PR #<pr> <two-word name>", then `h1` "PR #<pr>: <what it does>", a one-line lead (branch → `main`, closes #<n>, what changes for the owner), and the three part links.
+
+**Part 1: What this PR adds** (`section.part#adds`)
+- A diagram of the flow or behaviour (inline SVG). Number the boxes with badges. The step-by-step list below it uses the same numbers and the same titles, so the reader can go back and forth. The template has two lanes: delete the second if there's one, or copy its pattern for a third. Each later lane's `ol.steps` carries `start` and `counter-reset: s <steps before it>`, so its numbers continue.
+- "The big picture": why this exists, for someone new to the repo, plus a `.note` with the one fact that makes the rest make sense.
+- "Step by step (numbers match the diagram)": one `li` per numbered box. Say what triggers it, what it does, and what it produces. Name the real file, job or command.
+- Close-ups that help: cards (`.grid` fits 3 a row at 1200px, so use 2, 3 or 6), a short `pre` with `<span class="add">` around added lines for a key diff, or a table of cases.
+- "Files in the PR": a `pre` tree of every changed file with a `#` note on each. Put a folder of copied or generated files on one line, e.g. `debian/  # 22 files from Zorin's packaging`, and list only the files that were edited by hand.
+- Anything the owner must know to undo or recover, such as rollback, as a `.note`.
+
+**Part 2: How it was built and verified** (`section.part#verified`)
+- The reference it was checked against: the known-good thing(s) the work was compared with or derived from (cards).
+- "What was checked": a table with Check | How | Result. "How" names the exact command or method and what it ran against. "Result" is what was measured (`1 of 1 pass`, `same`, `+local2`), not "OK".
+- "Code review": the level, how many findings, how many fixed, and the findings grouped in plain words.
+- "Checked only after the merge": what can't run before the merge, why, and when it first runs (`td.open`).
+- "See it yourself": links to the PR, the CI runs and any outputs.
+
+**Part 3: What comes later** (`section.part#later`)
+- A diagram of the open issues that build on this one, in dependency order. Boxes built by this PR are green (`box-merge`), the owner's steps are `box-you`, and anything not built yet is dashed (`box-future`, `arrow-future`). Box colours can mean different things in different diagrams, so every diagram gets a legend saying what its colours mean.
+- One `section.sub` per issue, with numbered steps saying what it adds and how it uses this PR. Mark which is next.
+
+**Glossary** (`section.sub#glossary`, after Part 3): every term a newcomer would stumble on, one line each, as `<div data-k="…"><dt>…</dt><dd>…</dd></div>`.
+
+## Page rules
+
+- **Claim only what was run.** Every result in Part 2 comes from a command or check run in this session or by CI, and says which. Anything not run gets a row with `td.no` "not run" and the reason, or goes in "Checked only after the merge". Never write "verified", "tested" or "works" for something that wasn't run. If a check ran before later fixes, say so.
+- Colours only through the `:root` tokens, and they must work in dark mode. CI renders the page with `--force-dark-mode`.
+- No horizontal page scroll at a 390px viewport. Diagrams (`.diagram`), tables (`.table-wrap`) and `pre` scroll inside their own boxes. CI warns when the page is wider than 390px at that viewport.
+- No external assets: no fonts, scripts, images or stylesheets from the network. Everything is inline.
+- SVG text lines fit their box in CI's image, whose font (DejaVu Sans) is wider than the desktop's. In a 210px box, write at most about 22 characters per line, and at most 17 for a title beside a badge. Each box gets 3–4 lines. A local render can look fine and still overflow on GitHub, so read the CI image after the first push.
+- Each SVG defines its own arrow markers with ids unique to the page (`ah-flow`, `ahf-next`, …). A marker defined in another diagram breaks when that diagram is hidden, which video mode does.
+
+## Ids and keys (what the video needs)
+
+The template already follows these rules. Keep them when adding content, even if no video is planned:
+- Each part is a `section.part` with an id (`adds`, `verified`, `later`) and keyed `label`, `heading` and `intro` children.
+- Each subsection is a `section.sub` with a page-unique id.
+- Every element a sentence would point at carries a `data-k` key that is unique within its `section.sub`: diagram boxes (`<g data-k="1">` wrapping the rect, its text and its badge), steps (`li`), cards, table rows (`tr`), notes, paragraphs, `pre` blocks, glossary entries. Matching things share keys across subsections, e.g. box `1` and step `1`.
+
+## Check the page before committing
+
+Render it the way CI does and look at the image: framing, dark mode, nothing cut off, every diagram readable, badges matching the steps.
+
+```sh
+OUT=/tmp/explainer .github/scripts/explainer-proof.sh render explainers/<n>-<slug>.html   # -> /tmp/explainer/explainer-<n>.png; works before it's committed
+convert /tmp/explainer/explainer-<n>.png -crop 1200x1600 +repage /tmp/explainer/slice-%d.png   # the full image is too tall to read in one view
+```
+
+`DRY_RUN=1 GH_REPO=alexhu98/thunar PR=<pr> .github/scripts/explainer-proof.sh` also prints the PR comment that CI would post.
+
+## Optional video
+
+Local only, never in CI. Output `explainers/<n>-<slug>.mp4` (ignored by git). The narration `explainers/<n>-<slug>.narration.json` is committed with the page.
+
+### "explainer with video"
+1. Write the page as above.
+2. Write the narration from the page (below).
+3. `make-video.py stamp <n>` records which page text each line was written from.
+4. `make-video.py phonemes <n>`: read the phonemes of every new line and fix the respellings (in `say`, or in the table below) until each word sounds right.
+5. `make-video.py render <n>`, then audit the frames (below).
+
+### "/explainer video <n>"
+1. `make-video.py status <n>` lists the stale lines (their page text changed), any changed page text that no line narrates, and keys that no longer exist.
+2. Rewrite only those lines and add lines for new text that should be narrated. Leave every other line byte-for-byte unchanged, so its cached voice clip is reused.
+3. Run `stamp`, `phonemes` and `render` as above. `render` refuses to run while the narration is older than the page, and it reports how many clips were newly voiced. That count should equal the number of lines you changed.
+
+All commands are `.claude/skills/explainer/make-video.py <cmd> <n>`. The script re-runs itself under the Kokoro venv. Voice clips are cached by spoken text in `~/.cache/explainer-video/clips/`, and work files go in `~/.cache/explainer-video/<n>-<slug>/`, including `frames/` and `timeline.json` with each line's start and speech time in samples.
+
+### Narration file
+
+```json
+{
+  "title": "PR #10 · Explainer per PR",
+  "voice": "af_heart",
+  "lines": [
+    {"screen": "title", "keys": [], "caption": "This is a tour of pull request 10, ..."},
+    {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: ..."},
+    {"screen": "adds", "keys": [], "caption": "Part 1. What this PR adds."},
+    {"screen": "flow", "keys": ["2"], "caption": "The job renders the page at 1200 pixels.", "say": "The job renders the page at twelve hundred pixels."},
+    {"screen": "steps", "keys": [], "from": ["3"], "caption": "..."}
+  ]
+}
+```
+
+- `screen` is what is shown: `title` (the header as a title card), a part id (a card with the part's label, heading and intro), or a `section.sub` id (that subsection, zoomed to fill the frame).
+- `keys` are highlighted. Everything else keyed on that screen is dimmed, and a tall screen scrolls to the highlight. Use no keys only on short screens or card screens.
+- `from` names the keys whose text the line narrates, if different from `keys`. With neither, the line is tied to the screen's heading. This is what `status` uses to find stale lines, so tie each line to what it actually says.
+- `caption` is the on-screen text, exact as on the page (`v4.20.10+local2`, `explainer-proof.sh`). At most 2 lines at 1920×1080, about 140 characters. `render` refuses longer ones.
+- `say` (optional) is the spoken text, respelled for the ear. Use it for numbers, versions and paths: "plus local two", "twelve hundred", "in the explainers folder". The table below is applied after it.
+- `src`, `page_sha256` and `page_text` are written by `stamp`. Don't edit them.
+
+How to write the lines:
+- Open on `title` ("This is a tour of pull request N, which …") and a line on the three parts. Each part opens with its card ("Part 1. What this PR adds."). End on `title` with a one-sentence wrap-up (that chapter is named Wrap-up).
+- Follow the page in order. Give one line per numbered box or step, and make the diagram lines highlight the box they talk about.
+- One sentence a line, under about 20 words, as spoken English rather than page text. Don't read paths, hashes or code aloud. Say what they are.
+- Narrate Part 2 as plainly as the page: say what was run, and say what wasn't.
+- The glossary isn't narrated.
+
+### Pronunciation
+
+Applied to every spoken line, in order, as regular expressions. Add a row whenever the owner corrects a word. Before adding one, check the word with `make-video.py phonemes`, because the audio can't be listened to from here.
+
+<!-- say:start -->
+| Pattern | Say |
+|---|---|
+| `\bThunar\b` | `Thoonar` |
+| `\bCI\b` | `C I` |
+| `\bPRs\b` | `pull requests` |
+| `\bPPA\b` | `P P A` |
+| `\.debs\b` | `debs` |
+| `\.deb\b` | `deb` |
+| `\bSHA\b` | `S H A` |
+| `\bCLAUDE\.md\b` | `Claude dot M D` |
+| `\b1200px\b` | `twelve hundred pixel` |
+| `\b1200\b` | `twelve hundred` |
+| `\b1920×1080\b` | `nineteen twenty by ten eighty` |
+<!-- say:end -->
+
+Version numbers go in words in `say`: "Ubuntu twenty-four oh four", "four point twenty point ten".
+
+### Audit the video
+
+Before handing a video over, look at frames from it:
+- the title card
+- each part card
+- a diagram line, checking that the highlight lands on the right box
+- a table row
+- the last frame
+
+In each one, check that the right screen is showing, the highlight is right, the caption fits in at most 2 lines and doesn't cover the content, and the page is in dark mode. Also check these:
+- `render`'s report shows picture and sound lengths within one frame (33 ms), and the chapter list
+- `ffprobe -show_chapters` lists the chapters
+- at one line boundary from `timeline.json`, the caption changes in the silence before that line's speech starts
+- `git diff --exit-code explainers/<n>-<slug>.html`: the committed page is unchanged

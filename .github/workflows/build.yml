@@ -76,6 +76,33 @@ jobs:
           path: dist/*.deb
           retention-days: 14
 
+  explainer:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_REF: ${{ github.head_ref }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require an explainer
+        run: .github/scripts/explainer-proof.sh check
+
+      - name: Render the explainer
+        run: .github/scripts/explainer-proof.sh render
+
+      - name: Upload the image and update the PR comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/explainer-proof.sh publish
+
   release:
     needs: build
     if: github.event_name == 'push'
