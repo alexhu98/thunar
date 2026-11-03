@@ -1,0 +1,4 @@
+# lintian false positive
+missing-build-dependency-for-dh-addon
+# HTML doc is built from source code with gtk-doc-source
+source-is-missing

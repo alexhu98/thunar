@@ -1,0 +1,101 @@
+name: build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  GH_REPO: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Add Zorin OS PPA (Xfce 4.20 libraries)
+        run: sudo add-apt-repository -y ppa:zorinos/stable
+
+      - name: Install build dependencies
+        run: sudo apt-get build-dep -y ./
+
+      - name: Dry-run the publish scripts
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          export VERSION DRY_RUN=1
+          VERSION=$(.github/scripts/next-version.sh)
+          echo "Version: $VERSION"
+          .github/scripts/publish-release.sh
+          .github/scripts/prune-releases.sh
+
+      - name: Stamp version
+        id: version
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(.github/scripts/next-version.sh)
+          {
+            echo "thunar ($version) noble; urgency=medium"
+            echo
+            echo "  * CI build of ${GITHUB_SHA::12}."
+            echo
+            echo " -- GitHub Actions <actions@github.com>  $(date -R)"
+            echo
+            cat debian/changelog
+          } > debian/changelog.new
+          mv debian/changelog.new debian/changelog
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Version: $version" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build
+        run: |
+          dpkg-buildpackage -b -us -uc -j"$(nproc)"
+          mkdir dist
+          mv ../*.deb dist/
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debs
+          path: dist/*.deb
+          retention-days: 14
+
+  release:
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: debs
+          path: dist
+
+      - name: Publish release
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: .github/scripts/publish-release.sh
+
+      - name: Keep the last 10 releases
+        run: .github/scripts/prune-releases.sh
