@@ -1101,8 +1101,8 @@ thunar_util_split_search_query (const gchar *search_query_normalized,
   whitespace_regex = g_regex_new ("\\s+", 0, 0, error);
   if (whitespace_regex == NULL)
     return NULL;
-  search_terms = g_regex_split (whitespace_regex, search_query_normalized, 0);
   g_regex_unref (whitespace_regex);
+  search_terms = g_regex_split (whitespace_regex, search_query_normalized, 0);
   return search_terms;
 }
 
