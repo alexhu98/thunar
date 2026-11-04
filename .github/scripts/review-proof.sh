@@ -185,7 +185,7 @@ EOF
   fi
   hunks > "$OUT/hunks.txt"
   local unresolved
-  unresolved=$(python3 -"$OUT/state.json" "$IN" "$OUT" "$HEAD_SHA" "$commit" "$pushed" "$note" "${mins:-}" "${RUN_URL:-}" "$GH_REPO" <<'EOF'
+  unresolved=$(python3 - "$OUT/state.json" "$IN" "$OUT" "$HEAD_SHA" "$commit" "$pushed" "$note" "${mins:-}" "${RUN_URL:-}" "$GH_REPO" <<'EOF'
 import json, os, sys
 state_p, inp, out, sha, commit, pushed, note, mins, run_url, repo = sys.argv[1:]
 state = json.load(open(state_p))
