@@ -33,8 +33,7 @@ def hunks(out):
 
 def decide(state_p, inp, out, sha, commit, mins, run_url):
     state = load(state_p, {})
-    done_p = os.path.join(out, 'fixed-files.txt')
-    done = set(open(done_p).read().splitlines()) if os.path.exists(done_p) else set()
+    done = {f['i'] for f in load(os.path.join(out, 'fixed.json'), [])}
     plan = load(os.path.join(inp, 'plan.json'), {})
     res = load(os.path.join(inp, 'findings.json'))
     findings = state.get('findings', [])
@@ -53,13 +52,13 @@ def decide(state_p, inp, out, sha, commit, mins, run_url):
             if f['status'] in OPEN and f['verdict'] != 'CONFIRMED' and not f.get('new'):
                 f['status'] = 'unconfirmed'
         n = state.get('next', 1)
-        for r in res['findings']:
+        for i, r in enumerate(res['findings']):
             fid = f'R{n}'
             n += 1
             start = r.get('start_line') or r['line']
             f = {'id': fid, 'sha': sha, 'file': r['file'], 'line': r['line'], 'severity': r['severity'],
                  'summary': cap(r['summary']), 'verdict': r['verdict'], 'new': True}
-            if r.get('fixed') and commit and any(x in done for x in r.get('files') or [r['file']]):
+            if commit and i in done:
                 f['status'], f['commit'] = 'fixed', commit
             elif 'suggestion' in r and any(r['file'] == hf and s <= start and r['line'] <= e for hf, s, e in hs):
                 f['status'] = 'suggested'

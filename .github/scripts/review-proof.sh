@@ -1,15 +1,16 @@
 #!/bin/bash
 # CI code review of a PR: review-proof.sh plan | collect | report
-#   plan     before the review: picks the mode from the head commit's Review: trailer, skips when only explainers/
-#            changed since the last reviewed commit, and writes the diff, the issue, the open findings and the
-#            prompt to $OUT. Prints its decisions as key=value lines for $GITHUB_OUTPUT.
+#   plan     before the review: picks the mode from the head commit's Review: trailer, waits (up to 30 min) until
+#            earlier runs on the branch have written their review state, skips when the head was already reviewed
+#            or only explainers/ changed since the last reviewed commit, and writes the diff, the issue, the open
+#            findings and the prompt to $OUT. Prints its decisions as key=value lines for $GITHUB_OUTPUT.
 #   collect  after the review: saves the findings ($FINDINGS, the action's structured_output) and the working-tree
 #            fix as a patch, for the report job.
 #   report   in a separate job holding the push token: commits and pushes the fix as claude[bot], posts the other
 #            findings as suggested changes, writes the review section of the PR comment through pr-comment.sh, and
 #            fails while confirmed findings stay unresolved.
 # Env: PR, HEAD_SHA, HEAD_REF, BASE (default origin/main), OUT, IN (report: the collected files), REVIEW_RESULT
-# (report: the review job's result), RUN_URL, REVIEW_LEVEL, REVIEW_MODEL. DRY_RUN=1 makes report print the
+# (report: the review job's result), RUN_ID, RUN_NUMBER (plan), RUN_URL, REVIEW_LEVEL, REVIEW_MODEL. DRY_RUN=1 makes report print the
 # commit, the suggestions and the section instead of pushing and posting them.
 set -euo pipefail
 
@@ -37,15 +38,19 @@ schema() {
 EOF
 }
 
-wait_for_earlier_runs() {  # until no earlier run of this workflow on the branch has a review job still to finish
+wait_for_earlier_runs() {
   [[ -n ${RUN_ID:-} && -n ${RUN_NUMBER:-} && -n ${HEAD_REF:-} ]] || return 0
-  local waited=0 busy run
+  local waited=0 busy run runs jobs
   while :; do
     busy=0
-    for run in $(gh api "repos/{owner}/{repo}/actions/runs?branch=$HEAD_REF&event=pull_request&per_page=30" --jq \
-      ".workflow_runs[] | select(.path == \".github/workflows/build.yml\" and .status != \"completed\" and .run_number < $RUN_NUMBER) | .id"); do
-      if gh api "repos/{owner}/{repo}/actions/runs/$run/jobs" --jq \
-        '[.jobs[] | select((.name == "review" or .name == "review-report") and .status != "completed")] | length > 0' | grep -q true; then
+    if ! runs=$(gh api -X GET "repos/{owner}/{repo}/actions/runs" -f branch="$HEAD_REF" -f event=pull_request -F per_page=30 --jq \
+      ".workflow_runs[] | select(.path == \".github/workflows/build.yml\" and .status != \"completed\" and .run_number < $RUN_NUMBER) | .id"); then
+      busy=1 runs=
+    fi
+    for run in $runs; do
+      if ! jobs=$(gh api "repos/{owner}/{repo}/actions/runs/$run/jobs" --jq \
+        '[.jobs[] | select(.name == "review" or .name == "review-report") | {(.name): .status}] | add // {}
+         | .review == "completed" and .["review-report"] != "completed"') || [[ $jobs == true ]]; then
         busy=1
       fi
     done
@@ -177,40 +182,11 @@ hunks() {  # the PR's diff at HEAD_SHA -> "file<TAB>start<TAB>end" for each hunk
     /^@@/ { split($3, r, ","); s = substr(r[1], 2); n = (r[2] == "" ? 1 : r[2]); if (n > 0) print f "\t" s "\t" s + n - 1 }'
 }
 
-write_report() {  # fix commit (or ""), note -> posts the suggestions not yet in POSTED, writes the section, sets UNRESOLVED
-  local failed=() ids i id
-  python3 "$HERE/review-state.py" decide "$OUT/state.json" "$IN" "$OUT" "$HEAD_SHA" "$1" "${mins:-}" "${RUN_URL:-}"
-  jq --argjson done "$(printf '%s\n' "${POSTED[@]}" | jq -R . | jq -s 'map(select(. != ""))')" \
-    '.comments |= map(select(.id | IN($done[]) | not)) | (.comments | length) as $n | .body |= sub("[0-9]+ suggested"; "\($n) suggested")' \
-    "$OUT/suggestions.json" > "$OUT/to-post.json"
-  mapfile -t ids < <(jq -r '.comments[].id' "$OUT/to-post.json")
-  if (( ${#ids[@]} > 0 )); then
-    if [[ ${DRY_RUN:-0} == 1 ]]; then
-      echo "would post a review with these suggestions:"; jq . "$OUT/to-post.json" | sed 's/^/  | /'
-    elif jq 'del(.comments[].id)' "$OUT/to-post.json" | gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --input - --jq '"posted \(.html_url)"'; then
-      POSTED+=("${ids[@]}")
-    else
-      for i in "${!ids[@]}"; do
-        id=${ids[$i]}
-        if jq ".comments = [.comments[$i] | del(.id)] | .body |= sub(\"[0-9]+ suggested\"; \"1 suggested\")" "$OUT/to-post.json" \
-          | gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --input - --jq '"posted \(.html_url)"'; then
-          POSTED+=("$id")
-        else
-          failed+=("$id")
-        fi
-      done
-      (( ${#failed[@]} == 0 )) || echo "::warning::suggestions ${failed[*]} could not be posted" >&2
-    fi
-  fi
-  UNRESOLVED=$(python3 "$HERE/review-state.py" render "$OUT" "$GH_REPO" "$2" "${failed[@]}")
-  OUT="$OUT/comment" "$HERE/pr-comment.sh" put review "$OUT/section.md"
-}
-
 report() {
   : "${HEAD_SHA:?}" "${HEAD_REF:?}"
-  local result=${REVIEW_RESULT:-success} commit= note= mins=
+  local result=${REVIEW_RESULT:-success} commit= note= mins= failed=() ids i unresolved
   state > "$OUT/state.json"
-  rm -f "$OUT/fixed-files.txt"
+  rm -f "$OUT/fixed-files.txt" "$OUT/fixed.json"
   if [[ ! -s $IN/plan.json ]]; then
     note="The review of \`${HEAD_SHA::12}\` didn't run ($result)."
     result=failure
@@ -223,19 +199,20 @@ report() {
   if [[ -z $note && $(jq -r .mode "$IN/plan.json") == auto-fix && -s $IN/fix.patch ]]; then
     local fixed remote unverified stray
     git apply --numstat -z "$IN/fix.patch" | cut -z -f3- | tr '\0' '\n' | sort -u > "$OUT/fixed-files.txt"
-    jq --rawfile files "$OUT/fixed-files.txt" '[.findings[] | select(.fixed and any((.files // [.file])[]; IN($files | split("\n")[])))]' \
+    jq --rawfile files "$OUT/fixed-files.txt" '[.findings | to_entries[] | .value + {i: .key}
+      | select(.fixed and all(if (.files // []) == [] then .file else .files[] end; IN($files | split("\n")[])))]' \
       "$IN/findings.json" > "$OUT/fixed.json"
     fixed=$(jq length "$OUT/fixed.json")
     remote=$(git ls-remote origin "refs/heads/$HEAD_REF" | cut -f1)
     unverified=$(jq '[.findings[] | select(.fixed and .verdict != "CONFIRMED")] | length' "$IN/findings.json")
     stray=$(comm -23 "$OUT/fixed-files.txt" \
-      <(jq -r '.findings[] | select(.fixed and .verdict == "CONFIRMED") | (.files // [] | .[]), .file' "$IN/findings.json" | sort -u) | wc -l)
+      <(jq -r '.[] | if (.files // []) == [] then .file else .files[] end' "$OUT/fixed.json" | sort -u) | wc -l)
     if (( fixed == 0 )); then
       note="The review left changes in the working tree but marked no finding in those files fixed, so they weren't pushed."
     elif (( unverified > 0 )); then
       note="The fix also changed code for $unverified unconfirmed finding(s), so it wasn't pushed; its findings are suggestions instead."
     elif (( stray > 0 )); then
-      note="The fix also changed $stray file(s) with no confirmed fixed finding, so it wasn't pushed; its findings are suggestions instead."
+      note="The fix also changed $stray file(s) with no fully fixed finding, so it wasn't pushed; its findings are suggestions instead."
     elif [[ $remote != "$HEAD_SHA" ]]; then
       note="The branch moved to \`${remote::12}\` during the review, so the fix wasn't pushed; its findings are suggestions instead."
     elif ! git apply --index "$IN/fix.patch"; then
@@ -249,6 +226,12 @@ $(jq -r '.[] | "- \(.file):\(.line): \(.summary)"' "$OUT/fixed.json")
 Review: suggest
 EOF
       commit=$(git rev-parse HEAD)
+      if [[ ${DRY_RUN:-0} == 1 ]]; then
+        echo "would push ${commit::12} to $HEAD_REF:"; git show --stat HEAD | sed 's/^/  | /'
+      elif ! git push origin "HEAD:refs/heads/$HEAD_REF"; then
+        note="Pushing the fix failed (the branch moved, or it touches .github/workflows/), so its findings are suggestions instead."
+        commit=
+      fi
     fi
   fi
   if [[ -n ${RUN_ID:-} ]]; then
@@ -256,17 +239,21 @@ EOF
       '[.jobs[] | select(.name == "review" and .completed_at != null) | ((.completed_at | fromdate) - (.started_at | fromdate))] | add // empty | . / 60 | ceil' 2>/dev/null) || mins=
   fi
   hunks > "$OUT/hunks.txt"
-  POSTED=() UNRESOLVED=0
-  write_report "$commit" "$note"
-  if [[ -n $commit ]]; then
+  python3 "$HERE/review-state.py" decide "$OUT/state.json" "$IN" "$OUT" "$HEAD_SHA" "$commit" "$mins" "${RUN_URL:-}"
+  mapfile -t ids < <(jq -r '.comments[].id' "$OUT/suggestions.json")
+  if (( ${#ids[@]} > 0 )); then
     if [[ ${DRY_RUN:-0} == 1 ]]; then
-      echo "would push ${commit::12} to $HEAD_REF:"; git show --stat HEAD | sed 's/^/  | /'
-    elif ! git push origin "HEAD:refs/heads/$HEAD_REF"; then
-      note="Pushing the fix failed (the branch moved, or it touches .github/workflows/), so its findings are suggestions instead."
-      write_report "" "$note"
+      echo "would post a review with these suggestions:"; jq . "$OUT/suggestions.json" | sed 's/^/  | /'
+    elif ! jq 'del(.comments[].id)' "$OUT/suggestions.json" | gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --input - --jq '"posted \(.html_url)"'; then
+      for i in "${!ids[@]}"; do
+        jq ".comments = [.comments[$i] | del(.id)] | .body |= sub(\"[0-9]+ suggested\"; \"1 suggested\")" "$OUT/suggestions.json" \
+          | gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --input - --jq '"posted \(.html_url)"' || failed+=("${ids[$i]}")
+      done
+      (( ${#failed[@]} == 0 )) || echo "::warning::suggestions ${failed[*]} could not be posted" >&2
     fi
   fi
-  local unresolved=$UNRESOLVED
+  unresolved=$(python3 "$HERE/review-state.py" render "$OUT" "$GH_REPO" "$note" "${failed[@]}")
+  OUT="$OUT/comment" "$HERE/pr-comment.sh" put review "$OUT/section.md"
   if (( unresolved > 0 )) || [[ $result == failure ]]; then
     echo "::error::$unresolved confirmed finding(s) unresolved${note:+; $note}" >&2
     exit 1
