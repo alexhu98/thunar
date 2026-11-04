@@ -121,6 +121,8 @@ jobs:
       HEAD_REF: ${{ github.head_ref }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       OUT: ${{ runner.temp }}/review
+      REVIEW_LEVEL: low
+      REVIEW_MODEL: claude-opus-5-5
     steps:
       - uses: actions/checkout@v4
         with:
@@ -148,7 +150,7 @@ jobs:
           github_token: ${{ github.token }}
           prompt: ${{ steps.plan.outputs.prompt }}
           claude_args: >-
-            --model claude-opus-5-5
+            --model ${{ env.REVIEW_MODEL }}
             --add-dir ${{ runner.temp }}/review
             --allowedTools "Skill,ReportFindings,Read,Grep,Glob,Agent,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),Bash(git status:*)${{ steps.plan.outputs.mode == 'auto-fix' && ',Edit,Write,MultiEdit' || '' }}"
             --json-schema '${{ steps.plan.outputs.schema }}'

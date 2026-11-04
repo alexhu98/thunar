@@ -129,7 +129,7 @@ collect() {
   git add -A
   git diff --cached --binary HEAD -- . ':!explainers/' > "$OUT/fix.patch"
   git reset -q
-  echo "$(jq '.findings | length' "$OUT/findings.json") findings; fix patch: $(git apply --numstat "$OUT/fix.patch" | wc -l) files" >&2
+  echo "$(jq '.findings | length' "$OUT/findings.json") findings; fix patch: $([[ -s $OUT/fix.patch ]] && git apply --numstat "$OUT/fix.patch" | wc -l || echo 0) files" >&2
 }
 
 hunks() {  # the PR's diff at HEAD_SHA -> "file start end" for each hunk on the right side, where inline comments can go
