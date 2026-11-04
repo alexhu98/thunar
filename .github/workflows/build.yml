@@ -120,7 +120,6 @@ jobs:
       PR: ${{ github.event.pull_request.number }}
       HEAD_REF: ${{ github.head_ref }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      OUT: ${{ runner.temp }}/review
       REVIEW_LEVEL: low
       REVIEW_MODEL: claude-opus-5-5
     steps:
@@ -135,6 +134,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          export OUT=$RUNNER_TEMP/review
           .github/scripts/review-proof.sh plan >> "$GITHUB_OUTPUT"
           {
             echo 'prompt<<PROMPT_EOF'; cat "$OUT/prompt.md"; echo 'PROMPT_EOF'
@@ -192,8 +192,6 @@ jobs:
       REVIEW_RESULT: ${{ needs.review.result }}
       RUN_ID: ${{ github.run_id }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      IN: ${{ runner.temp }}/review-in
-      OUT: ${{ runner.temp }}/review
     steps:
       - uses: actions/checkout@v4
         with:
@@ -212,6 +210,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p "$RUNNER_TEMP/bin" && cp .github/scripts/review-proof.sh .github/scripts/pr-comment.sh "$RUNNER_TEMP/bin/"
+          export IN=$RUNNER_TEMP/review-in
           [[ -f $IN/review/plan.json ]] && IN=$IN/review
           "$RUNNER_TEMP/bin/review-proof.sh" report
 
