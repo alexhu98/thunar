@@ -120,7 +120,7 @@ jobs:
       PR: ${{ github.event.pull_request.number }}
       HEAD_REF: ${{ github.head_ref }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      REVIEW_LEVEL: low
+      REVIEW_LEVEL: xhigh
       REVIEW_MODEL: claude-opus-5-5
     steps:
       - uses: actions/checkout@v4

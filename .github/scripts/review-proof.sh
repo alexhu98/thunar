@@ -201,6 +201,10 @@ for ln in open(os.path.join(out, 'hunks.txt')):
     f, s, e = ln.split()
     hunks.append((f, int(s), int(e)))
 
+def short(s, n=160):
+    s = ' '.join(s.split())
+    return s if len(s) <= n else s[:n - 1].rstrip() + '…'
+
 def in_hunk(f, a, b):
     return any(f == hf and s <= a and b <= e for hf, s, e in hunks)
 
@@ -211,14 +215,14 @@ if reviewed:
     for f in findings:
         p = prev.get(f['id'])
         if f['status'] in ('suggested', 'not fixed') and p and p.get('resolved'):
-            f['status'], f['detail'] = 'resolved', f"resolved by {sha[:12]}" + (f": {p['note']}" if p.get('note') else '')
+            f['status'], f['detail'] = 'resolved', f"resolved by {sha[:12]}" + (f": {short(p['note'])}" if p.get('note') else '')
     n = state.get('next', 1)
     for r in res['findings']:
         fid = f'R{n}'
         n += 1
         start = r.get('start_line') or r['line']
         f = {'id': fid, 'sha': sha, 'file': r['file'], 'line': r['line'], 'severity': r['severity'],
-             'summary': ' '.join(r['summary'].split())[:300], 'verdict': r['verdict']}
+             'summary': short(r['summary'], 200), 'verdict': r['verdict']}
         if r.get('fixed') and commit and pushed == '1':
             f['status'], f['commit'] = 'fixed', commit
         elif 'suggestion' in r and in_hunk(r['file'], start, r['line']):
@@ -230,7 +234,7 @@ if reviewed:
             comments.append(c)
         else:
             f['status'] = 'not fixed'
-            f['detail'] = r.get('reason') or ('not on a line this PR changes' if 'suggestion' in r else 'no suggestion given')
+            f['detail'] = short(r['reason']) if r.get('reason') else ('not on a line this PR changes' if 'suggestion' in r else 'no suggestion given')
         findings.append(f)
     state.update(next=n, sha=sha, mode=plan['mode'], level=plan['level'], model=plan['model'], reason=plan['reason'],
                  minutes=int(mins) if mins else None, run=run_url)
