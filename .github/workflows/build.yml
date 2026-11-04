@@ -6,10 +6,6 @@ on:
   push:
     branches: [main]
 
-concurrency:
-  group: build-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 permissions:
   contents: read
 
@@ -19,6 +15,9 @@ env:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    concurrency:
+      group: build-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -79,6 +78,9 @@ jobs:
   explainer:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
+    concurrency:
+      group: explainer-${{ github.ref }}
+      cancel-in-progress: true
     permissions:
       contents: write
       pull-requests: write
@@ -102,6 +104,114 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: .github/scripts/explainer-proof.sh publish
+
+  review:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    concurrency:
+      group: review-${{ github.ref }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    env:
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_REF: ${{ github.head_ref }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      OUT: ${{ runner.temp }}/review
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Plan the review
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          .github/scripts/review-proof.sh plan >> "$GITHUB_OUTPUT"
+          {
+            echo 'prompt<<PROMPT_EOF'; cat "$OUT/prompt.md"; echo 'PROMPT_EOF'
+            echo "schema=$(cat "$OUT/schema.json")"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Review
+        id: review
+        if: steps.plan.outputs.skip == '0'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.plan.outputs.prompt }}
+          claude_args: >-
+            --model claude-opus-5-5
+            --add-dir ${{ runner.temp }}/review
+            --allowedTools "Skill,ReportFindings,Read,Grep,Glob,Agent,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*),Bash(git status:*)${{ steps.plan.outputs.mode == 'auto-fix' && ',Edit,Write,MultiEdit' || '' }}"
+            --json-schema '${{ steps.plan.outputs.schema }}'
+
+      - name: Collect the findings and the fix
+        if: steps.plan.outputs.skip == '0'
+        env:
+          FINDINGS: ${{ steps.review.outputs.structured_output }}
+        run: .github/scripts/review-proof.sh collect
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: review
+          path: |
+            ${{ runner.temp }}/review/plan.json
+            ${{ runner.temp }}/review/findings.json
+            ${{ runner.temp }}/review/fix.patch
+            ${{ runner.temp }}/claude-execution-output.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 14
+
+  review-report:
+    needs: review
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.review.result != 'cancelled' && needs.review.result != 'skipped'
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: review-report-${{ github.ref }}
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+    env:
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_REF: ${{ github.head_ref }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      REVIEW_RESULT: ${{ needs.review.result }}
+      RUN_ID: ${{ github.run_id }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      IN: ${{ runner.temp }}/review-in
+      OUT: ${{ runner.temp }}/review
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          token: ${{ secrets.REVIEW_PUSH_TOKEN }}
+
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: review
+          path: ${{ runner.temp }}/review-in
+
+      - name: Push the fix, post suggestions and report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin" && cp .github/scripts/review-proof.sh .github/scripts/pr-comment.sh "$RUNNER_TEMP/bin/"
+          [[ -f $IN/review/plan.json ]] && IN=$IN/review
+          "$RUNNER_TEMP/bin/review-proof.sh" report
 
   release:
     needs: build
