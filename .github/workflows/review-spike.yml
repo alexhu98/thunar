@@ -18,22 +18,6 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Probe skills
-        id: probe
-        uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          github_token: ${{ github.token }}
-          prompt: |
-            Do not review or change anything. Run `claude --version`. Then report every skill and slash command available to you
-            whose name contains "review", each with its description and argument hint copied verbatim, and every tool you have
-            whose name contains "Finding" or "Report". Also report the effort levels the code-review skill accepts and whether it
-            accepts --fix.
-          claude_args: >-
-            --model claude-opus-5-5 --max-turns 6
-            --allowedTools "Bash(claude --version)"
-            --json-schema '{"type":"object","properties":{"version":{"type":"string"},"skills":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"description":{"type":"string"},"argument_hint":{"type":"string"}},"required":["name","description"]}},"tools":{"type":"array","items":{"type":"string"}},"levels":{"type":"array","items":{"type":"string"}},"fix_flag":{"type":"boolean"}},"required":["version","skills","tools","levels","fix_flag"]}'
-
       - name: Review at low
         id: review
         uses: anthropics/claude-code-action@v1
@@ -41,22 +25,21 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ github.token }}
           prompt: |
-            /code-review low origin/main...HEAD
+            Use the Skill tool to run the code-review skill with args "low origin/main...HEAD". Report every finding it
+            reports, in the output schema.
           claude_args: >-
             --model claude-opus-5-5
-            --allowedTools "Read,Grep,Glob,Agent,Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
+            --allowedTools "Skill,ReportFindings,Read,Grep,Glob,Agent,Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
             --json-schema '{"type":"object","properties":{"findings":{"type":"array","items":{"type":"object","properties":{"file":{"type":"string"},"line":{"type":"integer"},"severity":{"type":"string"},"summary":{"type":"string"},"failure_scenario":{"type":"string"},"verdict":{"type":"string"}},"required":["file","summary","failure_scenario"]}}},"required":["findings"]}'
 
       - name: Show results
         if: always()
         env:
-          PROBE: ${{ steps.probe.outputs.structured_output }}
           REVIEW: ${{ steps.review.outputs.structured_output }}
-          PROBE_FILE: ${{ steps.probe.outputs.execution_file }}
           REVIEW_FILE: ${{ steps.review.outputs.execution_file }}
         run: |
-          printf '## Probe\n```json\n%s\n```\n## Review\n```json\n%s\n```\n' "$PROBE" "$REVIEW" >> "$GITHUB_STEP_SUMMARY"
-          for f in "$PROBE_FILE" "$REVIEW_FILE"; do
+          printf '## Review\n```json\n%s\n```\n' "$REVIEW" >> "$GITHUB_STEP_SUMMARY"
+          for f in "$REVIEW_FILE"; do
             [ -f "$f" ] && jq -c '.[] | select(.type == "result") | {subtype, num_turns, duration_ms, is_error}' "$f" || true
-            [ -f "$f" ] && jq -r '.[] | select(.type == "system" and .subtype == "init") | {claude_code_version, slash_commands, skills, model}' "$f" || true
+            [ -f "$f" ] && jq -c '.[] | select(.type == "assistant") | .message.content[] | select(.type == "tool_use") | {name, input}' "$f" | cut -c1-400 || true
           done
