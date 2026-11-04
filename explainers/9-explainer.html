@@ -252,7 +252,7 @@ Dark mode, 1200px wide, full page, as of &lt;commit&gt;.
   <section class="sub" id="safety">
   <h3 class="sec">Who can write what</h3>
   <div class="grid">
-    <div class="card" data-k="c1"><h3>Only this job may write</h3><p>The workflow stays read-only. Only the <code>explainer</code> job gets <code>contents: write</code> (to commit images to <code>shots</code>) and <code>pull-requests: write</code> (to comment). The <code>build</code> job is unchanged.</p></div>
+    <div class="card" data-k="c1"><h3>On PRs, only this job may write</h3><p>The workflow's default stays read-only. On a PR, only the <code>explainer</code> job gets <code>contents: write</code> (to commit images to <code>shots</code>) and <code>pull-requests: write</code> (to comment). The <code>build</code> job is unchanged, and so is <code>release</code>, which writes only on pushes to <code>main</code>.</p></div>
     <div class="card" data-k="c2"><h3>Only the last step gets the token</h3><p>The checkout keeps no credentials, and the check and render steps run without <code>GH_TOKEN</code>. Only the upload-and-comment step gets it.</p></div>
     <div class="card" data-k="c3"><h3>Fork PRs are skipped</h3><p>A PR from a fork runs with a read-only token, so this job couldn't upload or comment. It is skipped, the check included.</p></div>
   </div>
@@ -314,11 +314,11 @@ Dark mode, 1200px wide, full page, as of &lt;commit&gt;.
   </svg>
   </div>
   <ul class="tight">
-    <li data-k="v1">The narration file is the script: for each spoken line, the caption shown on screen, the words actually spoken (respelled where the voice gets them wrong), the part of the page to show, and what to highlight. It also remembers the page text each line was written from.</li>
-    <li data-k="v2">When the page changes, <code>make-video.py status</code> names exactly the lines whose page text changed. Only those are rewritten, so the video never describes an older page.</li>
-    <li data-k="v3">Each line is voiced by Kokoro, a speech model that runs on the desktop. Clips are cached by their words, so an unchanged line is never voiced again.</li>
-    <li data-k="v4">The page is the slides. The script opens a temporary copy of the page with a 1920×1080 video mode added: one section at a time, the rest of it dimmed around the highlight, a caption, and a chapter bar. The committed page never changes.</li>
-    <li data-k="v5">ffmpeg joins the frames and the voice. Frame times come from counting audio samples, so picture and sound stay in step.</li>
+    <li data-k="d1">The narration file is the script: for each spoken line, the caption shown on screen, the words actually spoken (respelled where the voice gets them wrong), the part of the page to show, and what to highlight. It also remembers the page text each line was written from.</li>
+    <li data-k="d2">When the page changes, <code>make-video.py status</code> names exactly the lines whose page text changed. Only those are rewritten, so the video never describes an older page.</li>
+    <li data-k="d3">Each line is voiced by Kokoro, a speech model that runs on the desktop. Clips are cached by their words, so an unchanged line is never voiced again.</li>
+    <li data-k="d4">The page is the slides. The script opens a temporary copy of the page with a 1920×1080 video mode added: one section at a time, the rest of it dimmed around the highlight, a caption, and a chapter bar. The committed page never changes.</li>
+    <li data-k="d5">ffmpeg joins the frames and the voice. Frame times come from counting audio samples, so picture and sound stay in step.</li>
   </ul>
   </section>
 
@@ -328,7 +328,8 @@ Dark mode, 1200px wide, full page, as of &lt;commit&gt;.
 .claude/skills/explainer/
 ├── SKILL.md                         # how to write the page, the narration and the video
 ├── template.html                    # PR #8's page with the content taken out
-└── make-video.py                    # page + narration → mp4, local only
+├── make-video.py                    # page + narration → mp4, local only
+└── .gitignore                       # keeps Python's __pycache__/ out of git
 .github/
 ├── workflows/build.yml              # new explainer job on PRs
 └── scripts/explainer-proof.sh       # check, render, upload, comment
@@ -361,16 +362,17 @@ explainers/
     <tr data-k="c1"><td>The skill alone is enough</td><td>A fresh agent, given only the skill and PR #8's issue, description and diff, wrote PR #8's page. Compared with the hand-made page by part, diagram, steps, tables and glossary, and its render read slice by slice. Not re-run after the fixes.</td><td class="ok">same structure; 10 gaps fixed in the skill</td></tr>
     <tr data-k="c2"><td>The required check</td><td><code>explainer-proof.sh check</code> on five local branches: this one; <code>99-…</code> with no page; <code>9-…</code> changing only issue 1's page; <code>1-…</code> deleting its page; <code>bump-actions</code></td><td class="ok">pass, fail, fail, fail, exempt</td></tr>
     <tr data-k="c3"><td>Adding a page fixes a failing PR</td><td>The same check on <code>99-…</code> after committing <code>explainers/99-….html</code></td><td class="ok">pass</td></tr>
-    <tr data-k="c4"><td>The script, without posting</td><td><code>DRY_RUN=1</code>, whole script: rendered this page, printed the comment, uploaded nothing (<code>shots</code> unchanged)</td><td class="ok">1200 × 6431 image</td></tr>
-    <tr data-k="c5"><td>Updating a comment keeps the rest</td><td><code>DRY_RUN=1</code> against a stand-in <code>gh</code> returning a marked comment with a <code>verify</code> section, with and without an old explainer section</td><td class="ok">2 of 2 kept it</td></tr>
+    <tr data-k="c4"><td>The script, without posting</td><td><code>DRY_RUN=1</code>, whole script: rendered this page, printed the comment, uploaded nothing (<code>shots</code> unchanged). A local render; CI's font is wider</td><td class="ok">1200 × 7490 image</td></tr>
+    <tr data-k="c5"><td>Updating a comment keeps the rest</td><td><code>DRY_RUN=1</code> against a stand-in <code>gh</code> returning a marked comment with a <code>verify</code> section, with and without an old explainer section, plus a decoy comment that quotes the marker partway through</td><td class="ok">2 of 2 kept it; decoy left alone</td></tr>
     <tr data-k="c6"><td>The phone-width warning</td><td>A test page with a 600px-wide box, rendered by the script</td><td class="ok">warned at 608px</td></tr>
-    <tr data-k="c7"><td>CI posts the image</td><td>This PR's first push, run 41569623755: the <code>explainer</code> job created the marked comment and committed the image to <code>shots</code>; the image was downloaded and read slice by slice. GitHub's font is wider than the desktop's: three diagram labels overflowed, fixed in the next push.</td><td class="ok">1200 × 7141 image in the comment</td></tr>
-    <tr data-k="c8"><td>A new push updates the same comment</td><td>The second push, run 41570150491: still one comment on the PR, same id, its edit time moved from 03:01 to 03:06, and the image now linked by the new upload commit <code>d453ad8</code>. This push's own update can't show in its own image.</td><td class="ok">same comment, new image</td></tr>
+    <tr data-k="c7"><td>CI posts the image</td><td>This PR's first push, run 41569623755: the <code>explainer</code> job created the marked comment and committed the image to <code>shots</code>; the image was downloaded and read slice by slice. GitHub's font is wider than the desktop's: three diagram labels overflowed, fixed in the next push. Ran before the second code review.</td><td class="ok">1200 × 7141 image in the comment</td></tr>
+    <tr data-k="c8"><td>A new push updates the same comment</td><td>The second push, run 41570150491: still one comment on the PR, same id, its edit time moved from 03:01 to 03:06, and the image now linked by the new upload commit <code>d453ad8</code>. This push's own update can't show in its own image. Ran before the second code review.</td><td class="ok">same comment, new image</td></tr>
     <tr data-k="c9"><td>The video</td><td><code>make-video.py render 9</code> on this page: picture and sound lengths from <code>ffprobe</code>, chapters from <code>ffprobe -show_chapters</code>, sampled frames looked at</td><td class="ok">within 1 frame; 5 chapters</td></tr>
-    <tr data-k="c10"><td>Only a changed line is re-voiced</td><td>One sentence changed on this page (the fork card above), then <code>status</code>, rewrite, <code>stamp</code>, <code>render</code></td><td class="ok">1 line stale, 1 of 54 re-voiced</td></tr>
-    <tr data-k="c11"><td>Captions change with the voice</td><td>Frames either side of that line's start, and ffmpeg's <code>silencedetect</code> around it</td><td class="ok">switch inside the 0.4 s pause</td></tr>
+    <tr data-k="c10"><td>Only a changed line is re-voiced</td><td>After the second code review changed this page: <code>status</code> flagged 10 lines and 7 new page texts; 2 lines reworded and 5 added, the rest kept; then <code>stamp</code>, <code>render</code></td><td class="ok">7 of 64 re-voiced, the 7 changed</td></tr>
+    <tr data-k="c11"><td>Captions change with the voice</td><td>On that render, frames either side of the start of the line for "On PRs, only this job may write", and ffmpeg's <code>silencedetect</code> around it</td><td class="ok">switch inside the 0.7 s pause</td></tr>
   </table>
   </div>
+  <p class="note" data-k="rerun">The required check, adding a page, the dry run, the comment update and the phone-width warning were run again after the second code review, on its fixed scripts, with the results shown. The two GitHub runs came before it.</p>
   </section>
 
   <section class="sub" id="unchecked">
@@ -381,6 +383,7 @@ explainers/
     <tr data-k="n1"><td>The voice, by ear</td><td>The audio can't be listened to from here. Pronunciation was checked from the phonemes Kokoro produces for each line.</td><td class="no">not listened to</td></tr>
     <tr data-k="n2"><td>A PR from a fork is skipped</td><td>There is no fork to open one from.</td><td class="no">not run</td></tr>
     <tr data-k="n3"><td>Two PRs uploading at the same moment</td><td>The upload retries once on a clash. Not reproduced.</td><td class="no">not run</td></tr>
+    <tr data-k="n4"><td>The second review's script fixes, on GitHub</td><td>They were run here only. Whether Actions still shows errors sent to stderr, and whether the merged measuring step works on GitHub's machine, first shows on the next push.</td><td class="no">not run yet</td></tr>
   </table>
   </div>
   </section>
@@ -392,6 +395,13 @@ explainers/
     <li data-k="b1"><b>CI script:</b> a page list left by an earlier local run could be reused; a missing image would have been uploaded empty; a failed first upload could garble the image link.</li>
     <li data-k="b2"><b>Video script:</b> paths with spaces or quotes broke it; chapter names containing <code>#</code> weren't escaped for ffmpeg; a caption containing <code>&lt;/script&gt;</code> would break video mode; every render checked the page twice.</li>
     <li data-k="b3"><b>Kept as decided:</b> fork PRs skip the whole job, the check included; two pages for one issue in one PR would share one image name.</li>
+  </ul>
+  <p data-k="summary2">An <code>xhigh</code> (deeper) code review of the whole branch, after the second push, found 15 more. 13 are fixed in this PR; 2 are left open.</p>
+  <ul class="tight">
+    <li data-k="b4"><b>CI script:</b> a failed <code>git diff</code> or Chrome run was hidden, and a local render's errors were thrown away; a comment that only quoted the marker could be edited; a page name with a space broke its image link; each page took three Chrome starts, now two.</li>
+    <li data-k="b5"><b>Video script:</b> a key used twice in one section hid text from <code>status</code> (this page's video section did it); a key named <code>constructor</code> crashed it; captions put into the page weren't fully escaped; files weren't read as UTF-8.</li>
+    <li data-k="b6"><b>Files and docs:</b> a Python bytecode file was committed; the template allowed 26 characters per box line, not 22; the first card under "Who can write what" left out the <code>release</code> job.</li>
+    <li data-k="b7"><b>Left open:</b> the job fetches every branch, including <code>shots</code>, which grows with every push; and if #7's verify job writes the same comment at the same moment, one section can be lost. #7 settles that.</li>
   </ul>
   </section>
 
