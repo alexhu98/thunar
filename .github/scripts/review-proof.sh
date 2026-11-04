@@ -88,8 +88,7 @@ plan() {
 }
 
 prompt() {  # mode, from sha, full (1|0)
-  local fix= scope
-  [[ $1 == auto-fix ]] && fix=' --fix'
+  local scope
   if [[ $3 == 1 ]]; then
     scope="the whole PR, \`git diff $2 $HEAD_SHA\`, saved in $OUT/diff.patch"
   else
@@ -103,24 +102,28 @@ history from the session that wrote it.
 - The repo rules in CLAUDE.md apply to the review and to every fix. In particular, add no new explanatory comments.
 - Review $scope. Leave explainers/ out: those pages are checked by another job.
 
-1. Use the Skill tool to run the code-review skill with args "$LEVEL$fix $2..$HEAD_SHA".
+1. Use the Skill tool to run the code-review skill with args "$LEVEL $2..$HEAD_SHA".
+2. Verify every finding it reports: give each, with its file, line, claim and failure scenario, to a fresh
+   general-purpose Agent (all at once, in parallel) that tries to disprove it against the code at HEAD. The verdict
+   is CONFIRMED only if that agent confirms the failure scenario; otherwise PLAUSIBLE.
 EOF
   if [[ $1 == auto-fix ]]; then
     cat <<EOF
-2. Fixes stay in the working tree: don't stage, commit, push or switch branches. Fix only confirmed findings. For each
-   finding, set fixed to true only if its fix is in the working tree now; otherwise give the reason. Also give the
-   exact replacement text as suggestion for each fix that fits in its own lines, in case the fix can't be pushed.
+3. Fix each CONFIRMED finding in the working tree, and change no code for a PLAUSIBLE one. Don't stage, commit, push
+   or switch branches. Set fixed to true only if the finding's fix is in the working tree now; otherwise give the
+   reason. Also give the exact replacement text as suggestion for each finding whose fix fits in its own lines, in
+   case the fix can't be pushed.
 EOF
   else
     cat <<EOF
-2. Change no files. For each finding whose fix fits in its own lines, give the exact replacement text as suggestion.
+3. Change no files. For each finding whose fix fits in its own lines, give the exact replacement text as suggestion.
    Set fixed to false for every finding.
 EOF
   fi
   cat <<EOF
-3. $OUT/open.json lists findings from earlier reviews that are still open. For each, check the code at HEAD and report
+4. $OUT/open.json lists findings from earlier reviews that are still open. For each, check the code at HEAD and report
    in previous whether it is resolved, by its id.
-4. Return the findings and previous in the output schema. Report every finding the skill reported.
+5. Return the findings and previous in the output schema. Report every finding the skill reported.
 EOF
 }
 
@@ -133,10 +136,10 @@ collect() {
   echo "$(jq '.findings | length' "$OUT/findings.json") findings; fix patch: $([[ -s $OUT/fix.patch ]] && git apply --numstat "$OUT/fix.patch" | wc -l || echo 0) files" >&2
 }
 
-hunks() {  # the PR's diff at HEAD_SHA -> "file start end" for each hunk on the right side, where inline comments can go
-  git diff "$(git merge-base "$BASE" "$HEAD_SHA")" "$HEAD_SHA" | awk '
-    /^\+\+\+ / { f = substr($0, 7) }
-    /^@@/ { split($3, r, ","); s = substr(r[1], 2); n = (r[2] == "" ? 1 : r[2]); if (n > 0) print f, s, s + n - 1 }'
+hunks() {  # the PR's diff at HEAD_SHA -> "file<TAB>start<TAB>end" for each hunk on the right side, where inline comments can go
+  git -c core.quotePath=false diff "$(git merge-base "$BASE" "$HEAD_SHA")" "$HEAD_SHA" | awk '
+    /^\+\+\+ / { f = substr($0, 7); sub(/\t$/, "", f) }
+    /^@@/ { split($3, r, ","); s = substr(r[1], 2); n = (r[2] == "" ? 1 : r[2]); if (n > 0) print f "\t" s "\t" s + n - 1 }'
 }
 
 report() {
@@ -153,11 +156,14 @@ report() {
     result=failure
   fi
   if [[ -z $note && $(jq -r .mode "$IN/plan.json") == auto-fix && -s $IN/fix.patch ]]; then
-    local fixed remote
+    local fixed remote unverified
     fixed=$(jq -r '[.findings | to_entries[] | select(.value.fixed) | .key] | length' "$IN/findings.json")
     remote=$(git ls-remote origin "refs/heads/$HEAD_REF" | cut -f1)
+    unverified=$(jq '[.findings[] | select(.fixed and .verdict != "CONFIRMED")] | length' "$IN/findings.json")
     if (( fixed == 0 )); then
       note="The review left changes in the working tree but marked no finding fixed, so they weren't pushed."
+    elif (( unverified > 0 )); then
+      note="The fix also changed code for $unverified unconfirmed finding(s), so it wasn't pushed; its findings are suggestions instead."
     elif [[ $remote != "$HEAD_SHA" ]]; then
       note="The branch moved to \`${remote::12}\` during the review, so the fix wasn't pushed; its findings are suggestions instead."
     elif ! git apply --index "$IN/fix.patch"; then
@@ -187,105 +193,22 @@ EOF
       '[.jobs[] | select(.name == "review" and .completed_at != null) | ((.completed_at | fromdate) - (.started_at | fromdate))] | add // empty | . / 60 | ceil' 2>/dev/null) || mins=
   fi
   hunks > "$OUT/hunks.txt"
-  local unresolved
-  unresolved=$(python3 - "$OUT/state.json" "$IN" "$OUT" "$HEAD_SHA" "$commit" "$pushed" "$note" "${mins:-}" "${RUN_URL:-}" "$GH_REPO" <<'EOF'
-import json, os, sys
-state_p, inp, out, sha, commit, pushed, note, mins, run_url, repo = sys.argv[1:]
-state = json.load(open(state_p))
-plan = json.load(open(os.path.join(inp, 'plan.json'))) if os.path.exists(os.path.join(inp, 'plan.json')) else {}
-res_p = os.path.join(inp, 'findings.json')
-res = json.load(open(res_p)) if os.path.exists(res_p) and os.path.getsize(res_p) else None
-findings = state.get('findings', [])
-hunks = []
-for ln in open(os.path.join(out, 'hunks.txt')):
-    f, s, e = ln.split()
-    hunks.append((f, int(s), int(e)))
-
-def short(s, n=160):
-    s = ' '.join(s.split())
-    if len(s) <= n:
-        return s
-    s = s[:n - 1].rstrip() + '…'
-    return s + '`' if s.count('`') % 2 else s
-
-def in_hunk(f, a, b):
-    return any(f == hf and s <= a and b <= e for hf, s, e in hunks)
-
-comments = []
-reviewed = res is not None and not plan.get('skip')
-if reviewed:
-    prev = {p['id']: p for p in res.get('previous', [])}
-    for f in findings:
-        p = prev.get(f['id'])
-        if f['status'] in ('suggested', 'not fixed') and p and p.get('resolved'):
-            f['status'], f['detail'] = 'resolved', f"resolved by {sha[:12]}" + (f": {short(p['note'])}" if p.get('note') else '')
-    n = state.get('next', 1)
-    for r in res['findings']:
-        fid = f'R{n}'
-        n += 1
-        start = r.get('start_line') or r['line']
-        f = {'id': fid, 'sha': sha, 'file': r['file'], 'line': r['line'], 'severity': r['severity'],
-             'summary': short(r['summary'], 200), 'verdict': r['verdict']}
-        if r.get('fixed') and commit and pushed == '1':
-            f['status'], f['commit'] = 'fixed', commit
-        elif 'suggestion' in r and in_hunk(r['file'], start, r['line']):
-            f['status'] = 'suggested'
-            body = f"**{fid} ({r['severity']}, {r['verdict'].lower()})** {r['summary']}\n\n{r['failure_scenario']}\n\n```suggestion\n{r['suggestion'].rstrip(chr(10))}\n```"
-            c = {'path': r['file'], 'line': r['line'], 'side': 'RIGHT', 'body': body}
-            if start != r['line']:
-                c.update(start_line=start, start_side='RIGHT')
-            comments.append(c)
-        else:
-            f['status'] = 'not fixed'
-            f['detail'] = short(r['reason']) if r.get('reason') else ('not on a line this PR changes' if 'suggestion' in r else 'no suggestion given')
-        findings.append(f)
-    state.update(next=n, sha=sha, mode=plan['mode'], level=plan['level'], model=plan['model'], reason=plan['reason'],
-                 minutes=int(mins) if mins else None, run=run_url)
-state['findings'] = findings
-open_ = [f for f in findings if f['status'] in ('suggested', 'not fixed') and f['verdict'] == 'CONFIRMED']
-state['open'] = len(open_)
-
-def cell(s):
-    return ' '.join(str(s).split()).replace('|', '\\|').replace('<!--', '<\\!--')
-
-lines = ['<!-- review:start -->', '<!-- review:state ' + json.dumps(state, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
-         '### Code review', '']
-if state.get('sha'):
-    model = {'claude-opus-5-5': 'Opus 5.5'}.get(state['model'], state['model'])
-    lines.append(f"Last reviewed `{state['sha'][:12]}`: {state['reason']}. Mode: {state['mode']}. {model} at `{state['level']}`."
-                 + (f" Review job: {state['minutes']} min." if state.get('minutes') else '')
-                 + (f" [Run]({state['run']})" if state.get('run') else ''))
-if note:
-    lines += ['', note]
-lines.append('')
-if findings:
-    lines += ['| # | Finding | Severity | Status | Fix commit or reason |', '|---|---|---|---|---|']
-    for f in findings:
-        if f['status'] == 'fixed':
-            detail = f"[{f['commit'][:12]}](https://github.com/{repo}/commit/{f['commit']})"
-        elif f['status'] == 'suggested':
-            detail = 'suggested change on the PR'
-        else:
-            detail = short(f.get('detail', ''))
-        lines.append(f"| {f['id']} | `{cell(f['file'])}:{f['line']}` {cell(short(f['summary'], 200))} | {f['severity']}"
-                     f"{'' if f['verdict'] == 'CONFIRMED' else ' (plausible)'} | {f['status']} | {cell(detail)} |")
-else:
-    lines.append('No findings.' if state.get('sha') else 'Not reviewed yet.')
-lines += ['', f"**{len(open_)} confirmed finding(s) unresolved.**" if open_ else 'No confirmed findings unresolved.', '<!-- review:end -->']
-open(os.path.join(out, 'section.md'), 'w').write('\n'.join(lines) + '\n')
-json.dump({'commit_id': sha, 'event': 'COMMENT', 'body': f'CI code review of {sha[:12]}: {len(comments)} suggested change(s).',
-           'comments': comments}, open(os.path.join(out, 'suggestions.json'), 'w'))
-print(len(open_))
-EOF
-)
+  python3 "$HERE/review-state.py" decide "$OUT/state.json" "$IN" "$OUT" "$HEAD_SHA" "$commit" "$pushed" "${mins:-}" "${RUN_URL:-}"
+  local failed=() unresolved
   if [[ $(jq '.comments | length' "$OUT/suggestions.json") -gt 0 ]]; then
     if [[ ${DRY_RUN:-0} == 1 ]]; then
       echo "would post a review with these suggestions:"; jq . "$OUT/suggestions.json" | sed 's/^/  | /'
-    else
-      gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --input "$OUT/suggestions.json" --jq '"posted \(.html_url)"' \
-        || echo "::warning::the suggestions could not be posted; they are in the report only" >&2
+    elif ! jq 'del(.comments[].id)' "$OUT/suggestions.json" | gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --input - --jq '"posted \(.html_url)"'; then
+      local i id
+      for i in $(seq 0 $(($(jq '.comments | length' "$OUT/suggestions.json") - 1))); do
+        id=$(jq -r ".comments[$i].id" "$OUT/suggestions.json")
+        jq ".comments = [.comments[$i] | del(.id)]" "$OUT/suggestions.json" \
+          | gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --input - --jq '"posted \(.html_url)"' || failed+=("$id")
+      done
+      (( ${#failed[@]} == 0 )) || echo "::warning::suggestions ${failed[*]} could not be posted" >&2
     fi
   fi
+  unresolved=$(python3 "$HERE/review-state.py" render "$OUT" "$GH_REPO" "$note" "${failed[@]}")
   OUT="$OUT/comment" "$HERE/pr-comment.sh" put review "$OUT/section.md"
   if (( unresolved > 0 )) || [[ $result == failure ]]; then
     echo "::error::$unresolved confirmed finding(s) unresolved${note:+; $note}" >&2
