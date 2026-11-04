@@ -65,6 +65,11 @@ wait_for_earlier_runs() {
   done
 }
 
+accepted() {
+  git log --format='%(trailers:key=Review-accept,valueonly,separator=%x2C)' "$(git merge-base "$BASE" "$HEAD_SHA")..$HEAD_SHA" \
+    | tr ',' '\n' | tr -d ' \t' | grep -E '^R[0-9]+$' | sort -u || true
+}
+
 plan() {
   : "${HEAD_SHA:?}"
   local trailer mode forced=0 last skip=0 reason= from full=1 mb issue=
@@ -99,7 +104,9 @@ plan() {
   [[ -n $reason ]] || reason="the whole PR"
   git diff "$from" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/diff.patch"
   git diff "$mb" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/pr.patch"
-  jq '[.findings // [] | .[] | select((.status == "suggested" or .status == "not fixed") and .verdict == "CONFIRMED")]' "$OUT/state.json" > "$OUT/open.json"
+  accepted > "$OUT/accepted.txt"
+  jq --rawfile acc "$OUT/accepted.txt" '[.findings // [] | .[] | select((.status == "suggested" or .status == "not fixed")
+    and .verdict == "CONFIRMED" and (.id | IN($acc | split("\n")[]) | not))]' "$OUT/state.json" > "$OUT/open.json"
   if [[ ${HEAD_REF:-} =~ ^([0-9]+)- ]]; then
     issue=${BASH_REMATCH[1]}
     gh issue view "$issue" --json number,title,body,comments \
@@ -239,6 +246,7 @@ EOF
       '[.jobs[] | select(.name == "review" and .completed_at != null) | ((.completed_at | fromdate) - (.started_at | fromdate))] | add // empty | . / 60 | ceil' 2>/dev/null) || mins=
   fi
   hunks > "$OUT/hunks.txt"
+  accepted > "$OUT/accepted.txt"
   python3 "$HERE/review-state.py" decide "$OUT/state.json" "$IN" "$OUT" "$HEAD_SHA" "$commit" "$mins" "${RUN_URL:-}"
   mapfile -t ids < <(jq -r '.comments[].id' "$OUT/suggestions.json")
   if (( ${#ids[@]} > 0 )); then

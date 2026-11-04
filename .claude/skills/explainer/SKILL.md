@@ -74,6 +74,7 @@ CI's `review` job reviews every push that changes more than `explainers/` and re
 - No trailer: auto-fix. Confirmed fixes come back as one `claude[bot]` commit, so `git pull --rebase` before pushing again.
 - `Review: suggest`: suggested changes on the PR instead of a commit.
 - `Review: auto-fix` or `Review: suggest` on an empty commit forces a re-review: `git commit --allow-empty -m "Re-review" --trailer "Review: auto-fix"`.
+- `Review-accept: R23, R32` on any commit in the PR closes those findings as accepted, for findings kept on purpose.
 
 An explainer-only push skips the review. The job fails while confirmed findings stay unresolved.
 

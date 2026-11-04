@@ -1,5 +1,5 @@
 # Thunar (alexhu98 fork)
 
 - Every issue PR adds `explainers/<issue>-<slug>.html`, named after its `<issue>-<slug>` branch and written with the `explainer` skill (`.claude/skills/explainer/`). CI fails the PR without it and renders it into the PR comment. PRs from forks skip that job, so they aren't checked.
-- CI reviews every code push to a PR and, by default, pushes its fixes as a `claude[bot]` commit. Run `git pull --rebase` before every push to a PR branch. A head commit with the trailer `Review: suggest` gets suggested changes instead of a fix commit; `Review: auto-fix` or `Review: suggest` on an empty commit forces a re-review.
+- CI reviews every code push to a PR and, by default, pushes its fixes as a `claude[bot]` commit. Run `git pull --rebase` before every push to a PR branch. A head commit with the trailer `Review: suggest` gets suggested changes instead of a fix commit; `Review: auto-fix` or `Review: suggest` on an empty commit forces a re-review. A `Review-accept: R23, R32` trailer on any commit in the PR closes those findings as accepted, so they stop failing the job.
 - Don't add new explanatory code comments, in fixes and reviews too; when a change makes a comment stale, update it.

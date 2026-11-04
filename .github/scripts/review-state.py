@@ -2,7 +2,8 @@
 """The review state kept in the PR comment, for review-proof.sh.
 
 review-state.py decide STATE IN OUT SHA COMMIT MINUTES RUN_URL
-    Merges this run's findings ($IN/findings.json) into the saved state and writes $OUT/state-new.json and
+    Merges this run's findings ($IN/findings.json) into the saved state, closes the open findings named in
+    $OUT/accepted.txt (from Review-accept trailers), and writes $OUT/state-new.json and
     $OUT/suggestions.json (the inline suggested changes, each tagged with its finding id).
 review-state.py render OUT REPO NOTE [FAILED_ID...]
     Marks the findings whose suggestion couldn't be posted, writes the review section to $OUT/section.md and
@@ -37,8 +38,13 @@ def decide(state_p, inp, out, sha, commit, mins, run_url):
     plan = load(os.path.join(inp, 'plan.json'), {})
     res = load(os.path.join(inp, 'findings.json'))
     findings = state.get('findings', [])
+    accepted_p = os.path.join(out, 'accepted.txt')
+    accepted = set(open(accepted_p).read().split()) if os.path.exists(accepted_p) else set()
     for f in findings:
         f.pop('new', None)
+        if f['status'] in OPEN and f['id'] in accepted:
+            f['status'], f['new'] = 'accepted', True
+            f['detail'] = 'accepted by a Review-accept trailer'
     hs = list(hunks(out))
     comments = []
     if res is not None and not plan.get('skip') and state.get('sha') != sha:
