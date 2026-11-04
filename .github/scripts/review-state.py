@@ -94,7 +94,8 @@ def decide(state_p, inp, out, sha, commit, mins, run_url):
             f['detail'] = 'accepted by a Review-accept trailer'
     hs = list(hunks(out))
     comments = []
-    if res is not None and not plan.get('skip') and state.get('sha') != sha:
+    last = state.get('sha')
+    if res is not None and not plan.get('skip') and not (last and git('merge-base', '--is-ancestor', sha, last)):
         prev = {p['id']: p for p in res.get('previous', [])}
         for f in findings:
             p = prev.get(f['id'])
@@ -104,9 +105,9 @@ def decide(state_p, inp, out, sha, commit, mins, run_url):
                 f['status'], f['commit'], f['new'] = 'fixed', commit, True
             elif p.get('fixed'):
                 f['new'] = True
-                c = 'line' in p and suggestion(f['id'], {**f, 'start_line': None, **p}, hs)
+                c = 'line' in p and suggestion(f['id'], {**f, **p}, hs)
                 if c:
-                    f['status'], f['line'] = 'suggested', p['line']
+                    f['status'], f['file'], f['line'] = 'suggested', p.get('file', f['file']), p['line']
                     comments.append(c)
                 else:
                     f['status'], f['detail'] = 'not fixed', "fixed in the review, but the fix wasn't pushed"
@@ -122,10 +123,9 @@ def decide(state_p, inp, out, sha, commit, mins, run_url):
             n += 1
             f = {'id': fid, 'sha': sha, 'file': r['file'], 'line': r['line'], 'severity': r['severity'],
                  'summary': cap(r['summary']), 'verdict': r['verdict'], 'new': True}
-            c = None if commit and i in done else suggestion(fid, r, hs)
             if commit and i in done:
                 f['status'], f['commit'] = 'fixed', commit
-            elif c:
+            elif c := suggestion(fid, r, hs):
                 f['status'] = 'suggested'
                 comments.append(c)
             else:

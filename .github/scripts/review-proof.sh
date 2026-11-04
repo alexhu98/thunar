@@ -22,7 +22,7 @@ MODEL=${REVIEW_MODEL:-claude-opus-5-5}
 HERE=$(cd "$(dirname "$0")" && pwd)
 BOT_NAME='claude[bot]'
 BOT_EMAIL='209825114+claude[bot]@users.noreply.github.com'
-NOT_IN_FIX=(':!explainers/' ':!.claude' ':!CLAUDE.md' ':!CLAUDE.local.md' ':!.mcp.json' ':!.claude.json' ':!.gitmodules' ':!.ripgreprc' ':!.husky')
+NOT_IN_FIX=(':!explainers/' ':!.claude' ':!CLAUDE.md' ':!CLAUDE.local.md' ':!.mcp.json' ':!.claude.json' ':!.gitmodules' ':!.ripgreprc' ':!.husky' ':!.github/workflows/')
 mkdir -p "$OUT"
 
 state() {  # the review state saved in the PR comment -> stdout (JSON; {} when there is none)
@@ -77,6 +77,11 @@ accepted() {
     | awk -F '[^A-Za-z0-9]+' '{ for (i = 2; i <= NF; i++) if (toupper($i) ~ /^R[0-9]+$/) print toupper($i), $1 }' | sort -u
 }
 
+open_findings() {
+  accepted > "$OUT/accepted.txt"
+  python3 "$HERE/review-state.py" open "$OUT/state.json" "$OUT"
+}
+
 plan() {
   : "${HEAD_SHA:?}"
   local trailer mode forced=0 last skip=0 reason= from full=1 mb issue=
@@ -111,8 +116,7 @@ plan() {
   [[ -n $reason ]] || reason="the whole PR"
   git diff "$from" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/diff.patch"
   git diff "$mb" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/pr.patch"
-  accepted > "$OUT/accepted.txt"
-  python3 "$HERE/review-state.py" open "$OUT/state.json" "$OUT"
+  open_findings
   if [[ ${HEAD_REF:-} =~ ^([0-9]+)- ]]; then
     issue=${BASH_REMATCH[1]}
     gh issue view "$issue" --json number,title,body,comments \
@@ -133,7 +137,8 @@ plan() {
 }
 
 prompt() {  # mode, from sha, full (1|0)
-  local scope
+  local scope skip
+  printf -v skip '%s, ' "${NOT_IN_FIX[@]#:!}"
   if [[ $3 == 1 ]]; then
     scope="the whole PR, \`git diff $2 $HEAD_SHA\`, saved in $OUT/diff.patch"
   else
@@ -157,7 +162,7 @@ EOF
     cat <<EOF
 3. Fix each CONFIRMED finding in the working tree, and each finding in $OUT/open.json that a fresh agent, as in step 2,
    confirms is still there at HEAD. Change no code for a PLAUSIBLE one or one in $OUT/accepted.json. Don't stage,
-   commit, push or switch branches. The fix leaves out every change under $(printf '%s\n' "${NOT_IN_FIX[@]#:!}" | paste -sd, - | sed 's/,/, /g'),
+   commit, push or switch branches. The fix leaves out every change under ${skip%, },
    so set fixed to false for a finding whose fix needs one. Set fixed to true only if
    the finding's fix is in the working tree now; otherwise give the reason. When a fix changes more files than the
    finding's own, list every file it changed in files. Also give the exact replacement text as suggestion for each
@@ -200,46 +205,50 @@ hunks() {  # the PR's diff at HEAD_SHA -> "file<TAB>start<TAB>end" for each hunk
 }
 
 pushed() {
-  local tree
-  git fetch -q origin "$1" 2> /dev/null && [[ $(git rev-parse -q --verify "$1^") == "$HEAD_SHA" ]] \
-    && [[ $(git log -1 --format=%an "$1") == "$BOT_NAME" ]] || return 1
+  local tree c
+  git cat-file -e "$1^{commit}" 2> /dev/null || git fetch -q origin "$1" 2> /dev/null || return 1
+  c=$(git log --ancestry-path --format='%P %H %an' "$HEAD_SHA..$1" \
+    | awk -v h="$HEAD_SHA" -v b="$BOT_NAME" 'NF == 3 && $1 == h && $3 == b { c = $2 } END { print c }')
+  [[ -n $c ]] || return 1
   tree=$(export GIT_INDEX_FILE="$OUT/pushed.index"; git read-tree "$HEAD_SHA" && git apply --cached "$IN/fix.patch" && git write-tree) || return 1
-  [[ $tree == $(git rev-parse "$1^{tree}") ]]
+  [[ $tree == $(git rev-parse "$c^{tree}") ]] && echo "$c"
 }
 
 report() {
   : "${HEAD_SHA:?}" "${HEAD_REF:?}"
-  local result=${REVIEW_RESULT:-success} commit= note= mins= failed=() ids i unresolved
+  local result=${REVIEW_RESULT:-success} commit= note= mins= failed=() ids i unresolved last
   state > "$OUT/state.json"
+  last=$(jq -r '.sha // empty' "$OUT/state.json")
   rm -f "$OUT/fixed-files.txt" "$OUT/fixed.json"
   if [[ ! -s $IN/plan.json ]]; then
     note="The review of \`${HEAD_SHA::12}\` didn't run ($result)."
     result=failure
   elif [[ $(jq -r .skip "$IN/plan.json") == true ]]; then
     note="Skipped \`${HEAD_SHA::12}\`: $(jq -r .reason "$IN/plan.json")."
+  elif [[ -n $last ]] && git merge-base --is-ancestor "$HEAD_SHA" "$last" 2> /dev/null; then
+    note="The review of \`${HEAD_SHA::12}\` was already reported, so this run changed nothing."
   elif [[ $result != success || ! -s $IN/findings.json ]]; then
     note="The review of \`${HEAD_SHA::12}\` failed ($result); its findings are not recorded."
     result=failure
   fi
-  accepted > "$OUT/accepted.txt"
-  python3 "$HERE/review-state.py" open "$OUT/state.json" "$OUT"
+  open_findings
   if [[ -z $note && $(jq -r .mode "$IN/plan.json") == auto-fix && -s $IN/fix.patch ]]; then
-    local fixed partial remote unverified stray
-    local cover='def cover: [.file] + (.files // []) | unique; def covered($f): all(cover[]; IN($f[]));'
+    local fixed partial remote unverified stray stats
     git apply --numstat -z "$IN/fix.patch" | cut -z -f3- | tr '\0' '\n' | sort -u > "$OUT/fixed-files.txt"
     jq --slurpfile st "$OUT/state.json" --slurpfile open "$OUT/open.json" '($st[0].next // 1) as $n
       | ($open[0] | map({(.id): .}) | add // {}) as $o
       | [.findings | to_entries[] | .value + {i: .key, id: "R\($n + .key)"}]
-        + [.previous // [] | map(select(.fixed)) | unique_by(.id)[] | ($o[.id] // {id, file, verdict: "PLAUSIBLE"}) + {files, fixed: true}]' \
+        + [.previous // [] | map(select(.fixed)) | unique_by(.id)[]
+          | ($o[.id] // {id, verdict: "PLAUSIBLE"}) + ({file, line} | with_entries(select(.value != null))) + {files, fixed: true}]' \
       "$IN/findings.json" > "$OUT/all.json"
-    jq --rawfile files "$OUT/fixed-files.txt" "$cover"' ($files | split("\n") - [""]) as $f | [.[] | select(.fixed and covered($f))]' \
-      "$OUT/all.json" > "$OUT/fixed.json"
-    fixed=$(jq length "$OUT/fixed.json")
-    partial=$(jq --rawfile files "$OUT/fixed-files.txt" "$cover"' ($files | split("\n") - [""]) as $f
-      | [.[] | select(.fixed and any(cover[]; IN($f[])) and (covered($f) | not))] | length' "$OUT/all.json")
+    stats=$(jq -r --rawfile files "$OUT/fixed-files.txt" \
+      'def cover: .files // [.file] | unique; def covered($f): all(cover[]; IN($f[]));
+      ($files | split("\n") - [""]) as $f | [.[] | select(.fixed)] as $x | [$x[] | select(covered($f))] as $ok
+      | ($ok | tojson), ([($ok | length), ([$x[] | select(any(cover[]; IN($f[])) and (covered($f) | not))] | length),
+        ([$x[] | select(.verdict != "CONFIRMED")] | length), ($f - [$ok[] | cover[]] | length)] | @tsv)' "$OUT/all.json")
+    printf '%s\n' "${stats%%$'\n'*}" > "$OUT/fixed.json"
+    read -r fixed partial unverified stray <<< "${stats#*$'\n'}"
     remote=$(git ls-remote origin "refs/heads/$HEAD_REF" | cut -f1)
-    unverified=$(jq '[.[] | select(.fixed and .verdict != "CONFIRMED")] | length' "$OUT/all.json")
-    stray=$(comm -23 "$OUT/fixed-files.txt" <(jq -r "$cover"' .[] | cover[]' "$OUT/fixed.json" | sort -u) | wc -l)
     if (( fixed == 0 )); then
       note="The review left changes in the working tree, but no finding marked fixed had all of its fix in them, so they weren't pushed."
     elif (( unverified > 0 )); then
@@ -248,10 +257,11 @@ report() {
       note="The fix for $partial finding(s) was only partly kept, so it wasn't pushed; its findings are suggestions instead."
     elif (( stray > 0 )); then
       note="The fix also changed $stray file(s) with no fully fixed finding, so it wasn't pushed; its findings are suggestions instead."
+    elif [[ -z $remote ]]; then
+      note="The branch \`$HEAD_REF\` was deleted during the review, so the fix wasn't pushed; its findings are suggestions instead."
     elif [[ $remote != "$HEAD_SHA" ]]; then
-      if pushed "$remote"; then
-        commit=$remote
-      else
+      if ! commit=$(pushed "$remote"); then
+        commit=
         note="The branch moved to \`${remote::12}\` during the review, so the fix wasn't pushed; its findings are suggestions instead."
       fi
     elif ! git apply --index "$IN/fix.patch"; then
@@ -267,8 +277,8 @@ EOF
       commit=$(git rev-parse HEAD)
       if [[ ${DRY_RUN:-0} == 1 ]]; then
         echo "would push ${commit::12} to $HEAD_REF:"; git show --stat HEAD | sed 's/^/  | /'
-      elif ! git push origin "HEAD:refs/heads/$HEAD_REF"; then
-        note="Pushing the fix failed (the branch moved, or it touches .github/workflows/), so its findings are suggestions instead."
+      elif ! git push origin "HEAD:refs/heads/$HEAD_REF" && [[ $(git ls-remote origin "refs/heads/$HEAD_REF" | cut -f1) != "$commit" ]]; then
+        note="Pushing the fix failed, so its findings are suggestions instead."
         commit=
       fi
     fi
@@ -283,6 +293,9 @@ EOF
   if (( ${#ids[@]} > 0 )); then
     if [[ ${DRY_RUN:-0} == 1 ]]; then
       echo "would post a review with these suggestions:"; jq . "$OUT/suggestions.json" | sed 's/^/  | /'
+    elif [[ -n $(gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --paginate --jq \
+      ".[] | select(.commit_id == \"$HEAD_SHA\" and (.body // \"\" | startswith(\"CI code review of \"))) | .id" 2> /dev/null) ]]; then
+      echo "suggestions for ${HEAD_SHA::12} were already posted" >&2
     elif ! jq 'del(.comments[].id)' "$OUT/suggestions.json" | gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --input - --jq '"posted \(.html_url)"'; then
       for i in "${!ids[@]}"; do
         jq ".comments = [.comments[$i] | del(.id)] | .body |= sub(\"[0-9]+ suggested\"; \"1 suggested\")" "$OUT/suggestions.json" \
