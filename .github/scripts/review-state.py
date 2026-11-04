@@ -102,6 +102,7 @@ def decide(state_p, inp, out, sha, commit, mins, run_url):
                 continue
             if commit and f['id'] in done_open:
                 f['status'], f['commit'], f['new'] = 'fixed', commit, True
+                f['file'], f['line'] = p.get('file') or f['file'], p.get('line') or f['line']
             elif p.get('fixed'):
                 f['new'] = True
                 c = 'line' in p and suggestion(f['id'], {**f, **p}, hs)
