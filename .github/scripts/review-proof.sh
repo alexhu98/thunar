@@ -203,7 +203,10 @@ for ln in open(os.path.join(out, 'hunks.txt')):
 
 def short(s, n=160):
     s = ' '.join(s.split())
-    return s if len(s) <= n else s[:n - 1].rstrip() + '…'
+    if len(s) <= n:
+        return s
+    s = s[:n - 1].rstrip() + '…'
+    return s + '`' if s.count('`') % 2 else s
 
 def in_hunk(f, a, b):
     return any(f == hf and s <= a and b <= e for hf, s, e in hunks)
@@ -243,7 +246,7 @@ open_ = [f for f in findings if f['status'] in ('suggested', 'not fixed') and f[
 state['open'] = len(open_)
 
 def cell(s):
-    return ' '.join(str(s).split()).replace('|', '\\|')
+    return ' '.join(str(s).split()).replace('|', '\\|').replace('<!--', '<\\!--')
 
 lines = ['<!-- review:start -->', '<!-- review:state ' + json.dumps(state, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
          '### Code review', '']
@@ -263,8 +266,8 @@ if findings:
         elif f['status'] == 'suggested':
             detail = 'suggested change on the PR'
         else:
-            detail = f.get('detail', '')
-        lines.append(f"| {f['id']} | `{cell(f['file'])}:{f['line']}` {cell(f['summary'])} | {f['severity']}"
+            detail = short(f.get('detail', ''))
+        lines.append(f"| {f['id']} | `{cell(f['file'])}:{f['line']}` {cell(short(f['summary'], 200))} | {f['severity']}"
                      f"{'' if f['verdict'] == 'CONFIRMED' else ' (plausible)'} | {f['status']} | {cell(detail)} |")
 else:
     lines.append('No findings.' if state.get('sha') else 'Not reviewed yet.')
