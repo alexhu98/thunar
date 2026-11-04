@@ -82,7 +82,7 @@ def decide(state_p, inp, out, sha, commit, mins, run_url):
     state = load(state_p, {})
     fixed = load(os.path.join(out, 'fixed.json'), [])
     done = {f['i'] for f in fixed if 'i' in f}
-    done_open = {f['id'] for f in fixed if 'i' not in f}
+    done_open = {f['id']: f for f in fixed if 'i' not in f}
     plan = load(os.path.join(inp, 'plan.json'), {})
     res = load(os.path.join(inp, 'findings.json'))
     findings = state.get('findings', [])
@@ -102,12 +102,13 @@ def decide(state_p, inp, out, sha, commit, mins, run_url):
                 continue
             if commit and f['id'] in done_open:
                 f['status'], f['commit'], f['new'] = 'fixed', commit, True
-                f['file'], f['line'] = p.get('file') or f['file'], p.get('line') or f['line']
+                f.update({k: done_open[f['id']][k] for k in ('file', 'line') if k in done_open[f['id']]})
             elif p.get('fixed'):
                 f['new'] = True
                 c = 'line' in p and suggestion(f['id'], {**f, **p}, hs)
+                f.update({k: p[k] for k in ('file', 'line') if p.get(k) is not None})
                 if c:
-                    f['status'], f['file'], f['line'] = 'suggested', p.get('file', f['file']), p['line']
+                    f['status'] = 'suggested'
                     comments.append(c)
                 else:
                     f['status'], f['detail'] = 'not fixed', "fixed in the review, but the fix wasn't pushed"

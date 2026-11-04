@@ -165,7 +165,8 @@ EOF
 3. Fix each CONFIRMED finding in the working tree, and each finding in $OUT/open.json that a fresh agent, as in step 2,
    confirms is still there at HEAD. Change no code for a PLAUSIBLE one or one in $OUT/accepted.json. Don't stage,
    commit, push or switch branches. The fix leaves out every change under ${skip%, },
-   so set fixed to false for a finding whose fix needs one, and undo that finding's other edits. Set fixed to true only if
+   so check that before making any edit for a finding. Set fixed to false for one whose fix needs it, make none of its
+   edits and create no file for it, and undo any of its edits already made. Set fixed to true only if
    the finding's fix is in the working tree now; otherwise give the reason. When a fix changes more files than the
    finding's own, list every file it changed in files. Also give the exact replacement text as suggestion for each
    finding whose fix fits in its own lines, in case the fix can't be pushed.
