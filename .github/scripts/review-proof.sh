@@ -33,7 +33,7 @@ print(m.group(1) if m else "{}")'
 
 schema() {
   cat <<'EOF'
-{"type":"object","required":["findings","previous"],"properties":{"findings":{"type":"array","items":{"type":"object","required":["file","line","severity","summary","failure_scenario","verdict","fixed"],"properties":{"file":{"type":"string","description":"repo-relative path"},"line":{"type":"integer","description":"line in the file at HEAD; the last line of the range when start_line is set"},"start_line":{"type":"integer","description":"first line of a multi-line range, if any"},"severity":{"type":"string","enum":["high","medium","low"]},"summary":{"type":"string","description":"one sentence"},"failure_scenario":{"type":"string","description":"concrete inputs or state -> wrong output or crash"},"verdict":{"type":"string","enum":["CONFIRMED","PLAUSIBLE"],"description":"CONFIRMED only if a verify pass confirmed it"},"fixed":{"type":"boolean","description":"true only if the fix is in the working tree now"},"suggestion":{"type":"string","description":"the exact replacement text for lines start_line..line (or line), without code fences; omit when the fix is not confined to those lines"},"reason":{"type":"string","description":"why it was not fixed, when fixed is false"}}}},"previous":{"type":"array","items":{"type":"object","required":["id","resolved"],"properties":{"id":{"type":"string"},"resolved":{"type":"boolean"},"note":{"type":"string"}}}}}}
+{"type":"object","required":["findings","previous"],"properties":{"findings":{"type":"array","items":{"type":"object","required":["file","line","severity","summary","failure_scenario","verdict","fixed"],"properties":{"file":{"type":"string","description":"repo-relative path"},"line":{"type":"integer","description":"line in the file at HEAD; the last line of the range when start_line is set"},"start_line":{"type":"integer","description":"first line of a multi-line range, if any"},"files":{"type":"array","items":{"type":"string"},"description":"every repo-relative file the fix changed, when it changed more than file"},"severity":{"type":"string","enum":["high","medium","low"]},"summary":{"type":"string","description":"one sentence"},"failure_scenario":{"type":"string","description":"concrete inputs or state -> wrong output or crash"},"verdict":{"type":"string","enum":["CONFIRMED","PLAUSIBLE"],"description":"CONFIRMED only if a verify pass confirmed it"},"fixed":{"type":"boolean","description":"true only if the fix is in the working tree now"},"suggestion":{"type":"string","description":"the exact replacement text for lines start_line..line (or line), without code fences; omit when the fix is not confined to those lines"},"reason":{"type":"string","description":"why it was not fixed, when fixed is false"}}}},"previous":{"type":"array","items":{"type":"object","required":["id","resolved"],"properties":{"id":{"type":"string"},"resolved":{"type":"boolean"},"note":{"type":"string"}}}}}}
 EOF
 }
 
@@ -94,7 +94,7 @@ plan() {
   [[ -n $reason ]] || reason="the whole PR"
   git diff "$from" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/diff.patch"
   git diff "$mb" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/pr.patch"
-  jq '[.findings // [] | .[] | select(.status == "suggested" or .status == "not fixed")]' "$OUT/state.json" > "$OUT/open.json"
+  jq '[.findings // [] | .[] | select((.status == "suggested" or .status == "not fixed") and .verdict == "CONFIRMED")]' "$OUT/state.json" > "$OUT/open.json"
   if [[ ${HEAD_REF:-} =~ ^([0-9]+)- ]]; then
     issue=${BASH_REMATCH[1]}
     gh issue view "$issue" --json number,title,body,comments \
@@ -139,8 +139,9 @@ EOF
     cat <<EOF
 3. Fix each CONFIRMED finding in the working tree, and change no code for a PLAUSIBLE one or one already listed in
    $OUT/open.json. Don't stage, commit, push or switch branches. Set fixed to true only if the finding's fix is in the
-   working tree now; otherwise give the reason. Also give the exact replacement text as suggestion for each finding
-   whose fix fits in its own lines, in case the fix can't be pushed.
+   working tree now; otherwise give the reason. When a fix changes more files than the finding's own, list every file
+   it changed in files. Also give the exact replacement text as suggestion for each finding whose fix fits in its own
+   lines, in case the fix can't be pushed.
 EOF
   else
     cat <<EOF
@@ -222,13 +223,13 @@ report() {
   if [[ -z $note && $(jq -r .mode "$IN/plan.json") == auto-fix && -s $IN/fix.patch ]]; then
     local fixed remote unverified stray
     git apply --numstat -z "$IN/fix.patch" | cut -z -f3- | tr '\0' '\n' | sort -u > "$OUT/fixed-files.txt"
-    jq --rawfile files "$OUT/fixed-files.txt" '[.findings[] | select(.fixed and (.file | IN($files | split("\n")[])))]' \
+    jq --rawfile files "$OUT/fixed-files.txt" '[.findings[] | select(.fixed and any((.files // [.file])[]; IN($files | split("\n")[])))]' \
       "$IN/findings.json" > "$OUT/fixed.json"
     fixed=$(jq length "$OUT/fixed.json")
     remote=$(git ls-remote origin "refs/heads/$HEAD_REF" | cut -f1)
     unverified=$(jq '[.findings[] | select(.fixed and .verdict != "CONFIRMED")] | length' "$IN/findings.json")
     stray=$(comm -23 "$OUT/fixed-files.txt" \
-      <(jq -r '.findings[] | select(.fixed and .verdict == "CONFIRMED") | .file' "$IN/findings.json" | sort -u) | wc -l)
+      <(jq -r '.findings[] | select(.fixed and .verdict == "CONFIRMED") | (.files // [] | .[]), .file' "$IN/findings.json" | sort -u) | wc -l)
     if (( fixed == 0 )); then
       note="The review left changes in the working tree but marked no finding in those files fixed, so they weren't pushed."
     elif (( unverified > 0 )); then

@@ -49,6 +49,9 @@ def decide(state_p, inp, out, sha, commit, mins, run_url):
             if f['status'] in OPEN and p and p.get('resolved'):
                 f['status'], f['new'] = 'resolved', True
                 f['detail'] = f"resolved by {sha[:12]}" + (f": {cap(p['note'])}" if p.get('note') else '')
+        for f in findings:
+            if f['status'] in OPEN and f['verdict'] != 'CONFIRMED' and not f.get('new'):
+                f['status'] = 'unconfirmed'
         n = state.get('next', 1)
         for r in res['findings']:
             fid = f'R{n}'
@@ -56,7 +59,7 @@ def decide(state_p, inp, out, sha, commit, mins, run_url):
             start = r.get('start_line') or r['line']
             f = {'id': fid, 'sha': sha, 'file': r['file'], 'line': r['line'], 'severity': r['severity'],
                  'summary': cap(r['summary']), 'verdict': r['verdict'], 'new': True}
-            if r.get('fixed') and commit and r['file'] in done:
+            if r.get('fixed') and commit and any(x in done for x in r.get('files') or [r['file']]):
                 f['status'], f['commit'] = 'fixed', commit
             elif 'suggestion' in r and any(r['file'] == hf and s <= start and r['line'] <= e for hf, s, e in hs):
                 f['status'] = 'suggested'
