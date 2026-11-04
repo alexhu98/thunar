@@ -21,6 +21,7 @@ MODEL=${REVIEW_MODEL:-claude-opus-5-5}
 HERE=$(cd "$(dirname "$0")" && pwd)
 BOT_NAME='claude[bot]'
 BOT_EMAIL='209825114+claude[bot]@users.noreply.github.com'
+NOT_IN_FIX=(':!explainers/' ':!.claude' ':!CLAUDE.md' ':!CLAUDE.local.md' ':!.mcp.json' ':!.claude.json' ':!.gitmodules' ':!.ripgreprc' ':!.husky')
 mkdir -p "$OUT"
 
 state() {  # the review state saved in the PR comment -> stdout (JSON; {} when there is none)
@@ -127,7 +128,7 @@ collect() {
   printf '%s' "${FINDINGS:-}" | jq -e 'has("findings")' > /dev/null || { echo "::error::the review returned no findings object" >&2; exit 1; }
   printf '%s' "$FINDINGS" | jq . > "$OUT/findings.json"
   git add -A
-  git diff --cached --binary HEAD -- . ':!explainers/' > "$OUT/fix.patch"
+  git diff --cached --binary HEAD -- . "${NOT_IN_FIX[@]}" > "$OUT/fix.patch"
   git reset -q
   echo "$(jq '.findings | length' "$OUT/findings.json") findings; fix patch: $([[ -s $OUT/fix.patch ]] && git apply --numstat "$OUT/fix.patch" | wc -l || echo 0) files" >&2
 }
@@ -155,7 +156,9 @@ report() {
     local fixed remote
     fixed=$(jq -r '[.findings | to_entries[] | select(.value.fixed) | .key] | length' "$IN/findings.json")
     remote=$(git ls-remote origin "refs/heads/$HEAD_REF" | cut -f1)
-    if [[ $remote != "$HEAD_SHA" ]]; then
+    if (( fixed == 0 )); then
+      note="The review left changes in the working tree but marked no finding fixed, so they weren't pushed."
+    elif [[ $remote != "$HEAD_SHA" ]]; then
       note="The branch moved to \`${remote::12}\` during the review, so the fix wasn't pushed; its findings are suggestions instead."
     elif ! git apply --index "$IN/fix.patch"; then
       note="The fix didn't apply to \`${HEAD_SHA::12}\`, so it wasn't pushed; its findings are suggestions instead."

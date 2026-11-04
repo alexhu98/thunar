@@ -31,7 +31,7 @@ Start from `template.html` in this folder: copy it to `explainers/<n>-<slug>.htm
 **Part 2: How it was built and verified** (`section.part#verified`)
 - The reference it was checked against: the known-good thing(s) the work was compared with or derived from (cards).
 - "What was checked": a table with Check | How | Result. "How" names the exact command or method and what it ran against. "Result" is what was measured (`1 of 1 pass`, `same`, `+local2`), not "OK".
-- "Code review": the level, how many findings, how many fixed, and the findings grouped in plain words.
+- "Code review": the local fresh-agent review: after the last code change, a `general-purpose` agent given only the diff (`git diff origin/main...HEAD`) and the issue. Give its level, how many findings, how many were fixed, and the findings grouped in plain words. Then link the PR comment's review section for CI's own review (see "CI review" below).
 - "Checked only after the merge": what can't run before the merge, why, and when it first runs (`td.open`).
 - "See it yourself": links to the PR, the CI runs and any outputs.
 
@@ -67,6 +67,15 @@ convert /tmp/explainer/explainer-<n>.png -crop 1200x1600 +repage /tmp/explainer/
 ```
 
 `DRY_RUN=1 GH_REPO=alexhu98/thunar PR=<pr> .github/scripts/explainer-proof.sh` also prints the PR comment that CI would post.
+
+## CI review
+
+CI's `review` job reviews every push that changes more than `explainers/` and reports in the PR comment's review section, beside the explainer. The head commit's `Review:` trailer picks the mode:
+- No trailer: auto-fix. Confirmed fixes come back as one `claude[bot]` commit, so `git pull --rebase` before pushing again.
+- `Review: suggest`: suggested changes on the PR instead of a commit.
+- `Review: auto-fix` or `Review: suggest` on an empty commit forces a re-review: `git commit --allow-empty -m "Re-review" --trailer "Review: auto-fix"`.
+
+An explainer-only push skips the review. The job fails while confirmed findings stay unresolved.
 
 ## Optional video
 
