@@ -8,7 +8,7 @@
 #            fix as a patch, for the report job.
 #   report   in a separate job holding the push token: commits and pushes the fix as claude[bot], posts the other
 #            findings as suggested changes, writes the review section of the PR comment through pr-comment.sh, and
-#            fails while confirmed findings stay unresolved.
+#            fails while confirmed medium or high findings stay unresolved.
 # Env: PR, HEAD_SHA, HEAD_REF, BASE (default origin/main), OUT, IN (report: the collected files), REVIEW_RESULT
 # (report: the review job's result), RUN_ID, RUN_NUMBER (plan), RUN_URL, REVIEW_LEVEL, REVIEW_MODEL. DRY_RUN=1 makes report print the
 # commit, the suggestions and the section instead of pushing and posting them.
@@ -292,7 +292,7 @@ EOF
   unresolved=$(python3 "$HERE/review-state.py" render "$OUT" "$GH_REPO" "$note" "${failed[@]}")
   OUT="$OUT/comment" "$HERE/pr-comment.sh" put review "$OUT/section.md"
   if (( unresolved > 0 )) || [[ $result == failure ]]; then
-    echo "::error::$unresolved confirmed finding(s) unresolved${note:+; ${note%.}}. Don't re-run this job alone; push a fix or a Review-accept trailer." >&2
+    echo "::error::$unresolved confirmed medium or high finding(s) unresolved${note:+; ${note%.}}. Don't re-run this job alone; push a fix or a Review-accept trailer." >&2
     exit 1
   fi
 }

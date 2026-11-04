@@ -9,7 +9,7 @@ review-state.py open STATE OUT
     Writes the confirmed findings still open to $OUT/open.json and the accepted ones to $OUT/accepted.json.
 review-state.py render OUT REPO NOTE [FAILED_ID...]
     Marks the findings whose suggestion couldn't be posted, writes the review section to $OUT/section.md and
-    prints how many confirmed findings are unresolved.
+    prints how many confirmed medium or high findings are unresolved.
 """
 import json
 import os
@@ -159,7 +159,7 @@ def render(out, repo, note, failed):
     for f in findings:
         if f['id'] in failed and f['status'] == 'suggested':
             f['status'], f['detail'] = 'not fixed', "its suggested change couldn't be posted"
-    open_ = [f for f in findings if unresolved(f)]
+    open_ = [f for f in findings if unresolved(f) and f['severity'] != 'low']
     state['open'] = len(open_)
     lines = ['<!-- review:start -->',
              '<!-- review:state ' + json.dumps(state, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
@@ -195,7 +195,7 @@ def render(out, repo, note, failed):
         for f in closed:
             by.setdefault(f['status'], []).append(f['id'])
         lines += ['', 'Earlier, closed: ' + '; '.join(f"{k} {', '.join(v)}" for k, v in sorted(by.items())) + '.']
-    lines += ['', f"**{len(open_)} confirmed finding(s) unresolved.**" if open_ else 'No confirmed findings unresolved.',
+    lines += ['', f"**{len(open_)} confirmed medium or high finding(s) unresolved.**" if open_ else 'No confirmed medium or high findings unresolved.',
               '<!-- review:end -->']
     open(os.path.join(out, 'section.md'), 'w').write('\n'.join(lines) + '\n')
     print(len(open_))
