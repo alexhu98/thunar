@@ -1127,9 +1127,9 @@ thunar_util_search_terms_match (gchar **terms,
                                 gchar  *str)
 {
   for (gint i = 0; terms[i] != NULL; i++)
-    if (g_strrstr (str, terms[i]) != NULL)
-      return TRUE;
-  return FALSE;
+    if (g_strrstr (str, terms[i]) == NULL)
+      return FALSE;
+  return TRUE;
 }
 
 
