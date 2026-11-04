@@ -199,7 +199,7 @@ hunks() {  # the PR's diff at HEAD_SHA -> "file<TAB>start<TAB>end" for each hunk
     /^@@/ { split($3, r, ","); s = substr(r[1], 2); n = (r[2] == "" ? 1 : r[2]); if (n > 0) print f "\t" s "\t" s + n - 1 }'
 }
 
-pushed() {  # remote sha -> whether it is this fix, pushed on top of HEAD_SHA by an earlier attempt of this report
+pushed() {
   local tree
   git fetch -q origin "$1" 2> /dev/null && [[ $(git rev-parse -q --verify "$1^") == "$HEAD_SHA" ]] \
     && [[ $(git log -1 --format=%an "$1") == "$BOT_NAME" ]] || return 1
