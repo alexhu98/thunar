@@ -3,14 +3,17 @@
 
 review-state.py decide STATE IN OUT SHA COMMIT MINUTES RUN_URL
     Merges this run's findings ($IN/findings.json) into the saved state, closes the open findings named in
-    $OUT/accepted.txt (from Review-accept trailers), and writes $OUT/state-new.json and
+    $OUT/accepted.txt by a Review-accept trailer on a commit after the one they were found in, and writes $OUT/state-new.json and
     $OUT/suggestions.json (the inline suggested changes, each tagged with its finding id).
+review-state.py open STATE OUT
+    Writes the confirmed findings still open to $OUT/open.json and the accepted ones to $OUT/accepted.json.
 review-state.py render OUT REPO NOTE [FAILED_ID...]
     Marks the findings whose suggestion couldn't be posted, writes the review section to $OUT/section.md and
     prints how many confirmed findings are unresolved.
 """
 import json
 import os
+import subprocess
 import sys
 
 OPEN = ('suggested', 'not fixed')
@@ -32,17 +35,47 @@ def hunks(out):
         yield f, int(s), int(e)
 
 
+def git(*args):
+    return subprocess.run(['git', *args], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+
+
+def acceptances(out):
+    acc = {}
+    p = os.path.join(out, 'accepted.txt')
+    for ln in open(p) if os.path.exists(p) else ():
+        fid, c = ln.split()
+        acc.setdefault(fid, []).append(c)
+    return acc
+
+
+def accepts(f, acc):
+    s = f.get('sha')
+    known = bool(s) and git('cat-file', '-e', f'{s}^{{commit}}')
+    return any(c != s and (not known or git('merge-base', '--is-ancestor', s, c)) for c in acc.get(f['id'], ()))
+
+
+def unresolved(f):
+    return f['status'] in OPEN and f['verdict'] == 'CONFIRMED'
+
+
+def open_findings(state_p, out):
+    findings = load(state_p, {}).get('findings', [])
+    acc = acceptances(out)
+    taken = [f for f in findings if f['status'] == 'accepted' or f['status'] in OPEN and accepts(f, acc)]
+    json.dump([f for f in findings if unresolved(f) and f not in taken], open(os.path.join(out, 'open.json'), 'w'))
+    json.dump(taken, open(os.path.join(out, 'accepted.json'), 'w'))
+
+
 def decide(state_p, inp, out, sha, commit, mins, run_url):
     state = load(state_p, {})
     done = {f['i'] for f in load(os.path.join(out, 'fixed.json'), [])}
     plan = load(os.path.join(inp, 'plan.json'), {})
     res = load(os.path.join(inp, 'findings.json'))
     findings = state.get('findings', [])
-    accepted_p = os.path.join(out, 'accepted.txt')
-    accepted = set(open(accepted_p).read().split()) if os.path.exists(accepted_p) else set()
+    acc = acceptances(out)
     for f in findings:
         f.pop('new', None)
-        if f['status'] in OPEN and f['id'] in accepted:
+        if f['status'] in OPEN and accepts(f, acc):
             f['status'], f['new'] = 'accepted', True
             f['detail'] = 'accepted by a Review-accept trailer'
     hs = list(hunks(out))
@@ -82,7 +115,7 @@ def decide(state_p, inp, out, sha, commit, mins, run_url):
             findings.append(f)
         state.update(next=n, sha=sha, mode=plan['mode'], level=plan['level'], model=plan['model'],
                      reason=plan['reason'], minutes=int(mins) if mins else None, run=run_url)
-    state['findings'] = [f if f['status'] in OPEN or f.get('new') else {'id': f['id'], 'status': f['status']}
+    state['findings'] = [f if f['status'] in OPEN + ('accepted',) or f.get('new') else {'id': f['id'], 'status': f['status']}
                          for f in findings]
     json.dump(state, open(os.path.join(out, 'state-new.json'), 'w'))
     json.dump({'commit_id': sha, 'event': 'COMMENT',
@@ -104,7 +137,7 @@ def render(out, repo, note, failed):
     for f in findings:
         if f['id'] in failed and f['status'] == 'suggested':
             f['status'], f['detail'] = 'not fixed', "its suggested change couldn't be posted"
-    open_ = [f for f in findings if f['status'] in OPEN and f['verdict'] == 'CONFIRMED']
+    open_ = [f for f in findings if unresolved(f)]
     state['open'] = len(open_)
     lines = ['<!-- review:start -->',
              '<!-- review:state ' + json.dumps(state, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
@@ -150,6 +183,8 @@ if __name__ == '__main__':
     cmd, args = sys.argv[1], sys.argv[2:]
     if cmd == 'decide':
         decide(*args)
+    elif cmd == 'open':
+        open_findings(*args)
     elif cmd == 'render':
         render(args[0], args[1], args[2], set(args[3:]))
     else:

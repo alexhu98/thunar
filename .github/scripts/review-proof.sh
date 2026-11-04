@@ -3,7 +3,7 @@
 #   plan     before the review: picks the mode from the head commit's Review: trailer, waits (up to 30 min) until
 #            earlier runs on the branch have written their review state, skips when the head was already reviewed
 #            or only explainers/ changed since the last reviewed commit, and writes the diff, the issue, the open
-#            findings and the prompt to $OUT. Prints its decisions as key=value lines for $GITHUB_OUTPUT.
+#            and accepted findings and the prompt to $OUT. Prints its decisions as key=value lines for $GITHUB_OUTPUT.
 #   collect  after the review: saves the findings ($FINDINGS, the action's structured_output) and the working-tree
 #            fix as a patch, for the report job.
 #   report   in a separate job holding the push token: commits and pushes the fix as claude[bot], posts the other
@@ -66,8 +66,8 @@ wait_for_earlier_runs() {
 }
 
 accepted() {
-  git log --format='%(trailers:key=Review-accept,valueonly,separator=%x2C)' "$(git merge-base "$BASE" "$HEAD_SHA")..$HEAD_SHA" \
-    | tr ',' '\n' | tr -d ' \t' | grep -E '^R[0-9]+$' | sort -u || true
+  git log --format='%H %(trailers:key=Review-accept,valueonly,separator=%x2C)' "$(git merge-base "$BASE" "$HEAD_SHA")..$HEAD_SHA" \
+    | awk -F '[^A-Za-z0-9]+' '{ for (i = 2; i <= NF; i++) if (toupper($i) ~ /^R[0-9]+$/) print toupper($i), $1 }' | sort -u
 }
 
 plan() {
@@ -105,8 +105,7 @@ plan() {
   git diff "$from" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/diff.patch"
   git diff "$mb" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/pr.patch"
   accepted > "$OUT/accepted.txt"
-  jq --rawfile acc "$OUT/accepted.txt" '[.findings // [] | .[] | select((.status == "suggested" or .status == "not fixed")
-    and .verdict == "CONFIRMED" and (.id | IN($acc | split("\n")[]) | not))]' "$OUT/state.json" > "$OUT/open.json"
+  python3 "$HERE/review-state.py" open "$OUT/state.json" "$OUT"
   if [[ ${HEAD_REF:-} =~ ^([0-9]+)- ]]; then
     issue=${BASH_REMATCH[1]}
     gh issue view "$issue" --json number,title,body,comments \
@@ -150,10 +149,10 @@ EOF
   if [[ $1 == auto-fix ]]; then
     cat <<EOF
 3. Fix each CONFIRMED finding in the working tree, and change no code for a PLAUSIBLE one or one already listed in
-   $OUT/open.json. Don't stage, commit, push or switch branches. Set fixed to true only if the finding's fix is in the
-   working tree now; otherwise give the reason. When a fix changes more files than the finding's own, list every file
-   it changed in files. Also give the exact replacement text as suggestion for each finding whose fix fits in its own
-   lines, in case the fix can't be pushed.
+   $OUT/open.json or $OUT/accepted.json. Don't stage, commit, push or switch branches. Set fixed to true only if
+   the finding's fix is in the working tree now; otherwise give the reason. When a fix changes more files than the
+   finding's own, list every file it changed in files. Also give the exact replacement text as suggestion for each
+   finding whose fix fits in its own lines, in case the fix can't be pushed.
 EOF
   else
     cat <<EOF
@@ -165,7 +164,8 @@ EOF
 4. $OUT/open.json lists findings from earlier reviews that are still open. For each, check the code at HEAD and report
    in previous whether it is resolved, by its id.
 5. Return the findings and previous in the output schema. Report every finding the skill reported, except one
-   already listed in open.json: report that one only in previous.
+   already listed in open.json: report that one only in previous. Leave out any finding that matches one in
+   $OUT/accepted.json: the PR's author kept those on purpose.
 EOF
 }
 
