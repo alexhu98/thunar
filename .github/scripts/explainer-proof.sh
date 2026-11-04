@@ -15,16 +15,16 @@ WIDTH=1200
 mkdir -p "$OUT"
 
 check() {
-  local branch=${HEAD_REF:-$(git rev-parse --abbrev-ref HEAD)}
-  git diff --name-only --diff-filter=ACMR "$BASE...HEAD" -- 'explainers/*.html' \
-    | grep -E '^explainers/[0-9]+-[^/]+\.html$' > "$OUT/list" || true
+  local branch=${HEAD_REF:-$(git rev-parse --abbrev-ref HEAD)} changed
+  changed=$(git diff --name-only --diff-filter=ACMR "$BASE...HEAD" -- 'explainers/*.html')
+  grep -E '^explainers/[0-9]+-[A-Za-z0-9._-]+\.html$' <<<"$changed" > "$OUT/list" || true
   if [[ ! $branch =~ ^([0-9]+)-[A-Za-z0-9] ]]; then
     echo "$branch is not an <issue>-<slug> branch; no explainer required"
     return
   fi
   local n=${BASH_REMATCH[1]}
   if ! grep -q "^explainers/${n}-" "$OUT/list"; then
-    echo "::error::Branch $branch must add or change explainers/${n}-<slug>.html (see .claude/skills/explainer/SKILL.md)"
+    echo "::error::Branch $branch must add or change explainers/${n}-<slug>.html (see .claude/skills/explainer/SKILL.md)" >&2
     exit 1
   fi
   echo "explainers in this PR:"
@@ -36,30 +36,31 @@ chrome() {
     ${CI:+--no-sandbox} --user-data-dir="$OUT/profile" --virtual-time-budget=3000 "$@"
 }
 
-measure() {  # page width -> "height scrollWidth", laid out in an iframe of that width (headless windows are at least 500px)
-  printf '%s' "<!doctype html><body style='margin:0'><iframe id=f src='file://$PWD/$1' style='border:0;width:$2px;height:100px'></iframe>
-<script>f.onload = () => { const e = f.contentDocument.documentElement; document.title = 'size ' + e.scrollHeight + ' ' + e.scrollWidth; }</script>" \
+measure() {  # page URL -> "height scrollWidth" at $WIDTH and "scrollWidth" at 390px, each laid out in an iframe of that width (headless windows are at least 500px)
+  printf '%s' "<!doctype html><body style='margin:0'><iframe id=w src='$1' style='border:0;width:${WIDTH}px;height:100px'></iframe><iframe id=n src='$1' style='border:0;width:390px;height:100px'></iframe>
+<script>onload = () => { const e = w.contentDocument.documentElement; document.title = ['size', e.scrollHeight, e.scrollWidth, n.contentDocument.documentElement.scrollWidth].join(' '); }</script>" \
     > "$OUT/probe.html"
   chrome --allow-file-access-from-files --window-size=1300,900 --dump-dom "file://$OUT/probe.html" 2>"$OUT/chrome.log" \
-    | sed -n 's|.*<title>size \([0-9]*\) \([0-9]*\)</title>.*|\1 \2|p' | head -1
+    | sed -n 's|.*<title>size \([0-9]*\) \([0-9]*\) \([0-9]*\)</title>.*|\1 \2 \3|p' | head -1
 }
 
 render() {
   if (( $# )); then printf '%s\n' "$@" > "$OUT/list"; else check >/dev/null; fi
-  local page issue height width narrow
+  local page url issue height width narrow
   while read -r page; do
     issue=$(basename "$page" | cut -d- -f1)
-    read -r height width < <(measure "$page" "$WIDTH") || true
+    url="file://$(realpath "$page")"
+    read -r height width narrow < <(measure "$url") || true
     if [[ -z ${height:-} ]]; then
       cat "$OUT/chrome.log" >&2
       echo "::error::Chrome could not measure $page"
       exit 1
     fi
-    read -r _ narrow < <(measure "$page" 390) || true
     if (( ${narrow:-0} > 390 )); then
       echo "::warning file=$page::$page is ${narrow}px wide at a 390px viewport; diagrams and code must scroll inside their own boxes"
     fi
-    chrome --window-size="$WIDTH,$height" --screenshot="$OUT/explainer-$issue.png" "file://$PWD/$page" 2>>"$OUT/chrome.log" >/dev/null
+    rm -f "$OUT/explainer-$issue.png"
+    chrome --window-size="$WIDTH,$height" --screenshot="$OUT/explainer-$issue.png" "$url" 2>>"$OUT/chrome.log" >/dev/null || true
     [[ -s $OUT/explainer-$issue.png ]] || { cat "$OUT/chrome.log" >&2; echo "::error::Chrome made no image of $page"; exit 1; }
     echo "$page -> $OUT/explainer-$issue.png (${width}x${height})"
   done < "$OUT/list"
@@ -119,7 +120,7 @@ publish() {
   local id=
   if [[ -n ${PR:-} ]]; then
     id=$(gh api --paginate "repos/{owner}/{repo}/issues/$PR/comments" \
-      --jq '.[] | select(.body | contains("<!-- pr-proof -->")) | .id' | head -1)
+      --jq '.[] | select(.body | startswith("<!-- pr-proof -->")) | .id' | sed -n 1p)
   fi
   if [[ -n $id ]]; then
     gh api "repos/{owner}/{repo}/issues/comments/$id" --jq .body > "$OUT/old.md"

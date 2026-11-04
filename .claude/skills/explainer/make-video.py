@@ -66,7 +66,7 @@ def paths(n):
 def load_narration(path):
     if not os.path.exists(path):
         die(f'no narration file {os.path.relpath(path, ROOT)}: write it first (see SKILL.md)')
-    with open(path) as f:
+    with open(path, encoding='utf-8') as f:
         nar = json.load(f)
     for i, ln in enumerate(nar['lines']):
         for k in ('screen', 'caption'):
@@ -89,7 +89,7 @@ def save_narration(path, nar):
     out.append(',\n'.join(f'    {json.dumps(k)}: {json.dumps(v)}' for k, v in pt.items()))
     out.append('  }')
     out.append('}')
-    with open(path, 'w') as f:
+    with open(path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(out) + '\n')
 
 
@@ -103,7 +103,7 @@ SAY_TABLE = re.compile(r'^\|\s*`([^`]+)`\s*\|\s*`([^`]*)`\s*\|')
 
 def say_subs():
     subs, on = [], False
-    with open(os.path.join(HERE, 'SKILL.md')) as f:
+    with open(os.path.join(HERE, 'SKILL.md'), encoding='utf-8') as f:
         for line in f:
             if '<!-- say:start -->' in line:
                 on = True
@@ -180,10 +180,10 @@ function screens() {
 }
 const S = screens();
 
-function keyed(sc) {
+function keyed(sc, twice = []) {
   const sel = sc.kind === 'part' ? ':scope > [data-k]' : '[data-k]';
-  const m = {};
-  sc.el.querySelectorAll(sel).forEach(e => { if (!(e.dataset.k in m)) m[e.dataset.k] = e; });
+  const m = Object.create(null);
+  sc.el.querySelectorAll(sel).forEach(e => { if (e.dataset.k in m) twice.push(e.dataset.k); else m[e.dataset.k] = e; });
   return m;
 }
 function defaultText(sc) {
@@ -226,7 +226,7 @@ function build(f) {
   const hl = [];
   if (f.keys.length) {
     zoom.classList.add('vm-focus');
-    const m = {};
+    const m = Object.create(null);
     zoom.querySelectorAll('[data-k]').forEach(e => { if (!(e.dataset.k in m)) m[e.dataset.k] = e; });
     f.keys.forEach(k => { if (m[k]) { m[k].classList.add('vm-hl'); hl.push(m[k]); } else problems.push(`key "${k}" not in screen "${f.screen}"`); });
   }
@@ -258,15 +258,17 @@ function build(f) {
 
 const q = new URLSearchParams(location.search);
 if (q.has('probe')) {
-  const texts = {}, info = {};
+  const texts = {}, info = {}, dups = [];
   for (const [id, sc] of Object.entries(S)) {
+    const twice = [];
     texts[id] = {'': defaultText(sc)};
-    for (const [k, e] of Object.entries(keyed(sc))) texts[id][k] = norm(e.textContent);
+    for (const [k, e] of Object.entries(keyed(sc, twice))) texts[id][k] = norm(e.textContent);
+    dups.push(...twice.map(k => `${id}/${k}`));
     info[id] = {kind: sc.kind, part: sc.part || 0, name: sc.name};
   }
   const frames = D.frames.map(build);
   const pre = document.createElement('pre'); pre.id = 'vm-probe';
-  pre.textContent = JSON.stringify({texts, screens: info, frames});
+  pre.textContent = JSON.stringify({texts, screens: info, frames, dups});
   document.body.appendChild(pre);
 } else {
   build(D.frames[+q.get('i')]);
@@ -276,15 +278,15 @@ if (q.has('probe')) {
 
 
 def write_video_page(page, work, data):
-    with open(page) as f:
+    with open(page, encoding='utf-8') as f:
         src = f.read()
     if '</body>' not in src:
         die('page has no </body>')
-    vm = json.dumps(data, ensure_ascii=False).replace('</', '<\\/')
+    vm = json.dumps(data, ensure_ascii=False).replace('<', '\\u003c')
     inject = f'<style>{VM_CSS}</style>\n<script>window.VM = {vm};</script>\n<script>{VM_JS}</script>\n</body>'
     out = os.path.join(work, 'video.html')
     at = src.rindex('</body>')
-    with open(out, 'w') as f:
+    with open(out, 'w', encoding='utf-8') as f:
         f.write(src[:at] + inject + src[at + len('</body>'):])
     return out
 
@@ -304,7 +306,10 @@ def probe(page, work, nar, subs):
     m = re.search(r'<pre id="vm-probe">(.*?)</pre>', r.stdout, re.S)
     if not m:
         die('probe failed:\n' + r.stderr[-2000:])
-    return json.loads(html.unescape(m.group(1)))
+    res = json.loads(html.unescape(m.group(1)))
+    if res['dups']:
+        die('keys used twice in one screen (each data-k must be unique within its section.sub): ' + ', '.join(res['dups']))
+    return res
 
 
 def fingerprint(ln, texts):
@@ -500,7 +505,7 @@ def render(n, force):
         return "file '" + f'{fdir}/f{i:03d}.png'.replace("'", "'\\''") + "'"
     lst = [f"{listed(i)}\nduration {(f['end'] - f['start']) / RATE:.6f}" for i, f in enumerate(frames)]
     lst.append(listed(len(frames) - 1))
-    with open(os.path.join(work, 'frames.txt'), 'w') as f:
+    with open(os.path.join(work, 'frames.txt'), 'w', encoding='utf-8') as f:
         f.write('\n'.join(lst) + '\n')
     def esc(v):
         return re.sub(r'([=;#\\\n])', r'\\\1', v)
@@ -508,7 +513,7 @@ def render(n, force):
     for c in chaps:
         meta += ['[CHAPTER]', 'TIMEBASE=1/1000', f'START={c["start"] * 1000 // RATE}', f'END={c["end"] * 1000 // RATE}',
                  f'title={esc(c["name"])}']
-    with open(os.path.join(work, 'chapters.txt'), 'w') as f:
+    with open(os.path.join(work, 'chapters.txt'), 'w', encoding='utf-8') as f:
         f.write('\n'.join(meta) + '\n')
     subprocess.run(['ffmpeg', '-nostdin', '-y', '-loglevel', 'error',
                     '-f', 'concat', '-safe', '0', '-i', os.path.join(work, 'frames.txt'), '-i', wav,
@@ -517,7 +522,7 @@ def render(n, force):
                     '-vf', f'fps={FPS},format=yuv420p', '-c:v', 'libx264', '-tune', 'stillimage', '-crf', '20',
                     '-preset', 'medium', '-af', 'loudnorm=I=-16:TP=-1.5', '-ar', '48000', '-c:a', 'aac', '-b:a', '160k',
                     '-t', f'{total / RATE:.3f}', '-movflags', '+faststart', out], check=True)
-    with open(os.path.join(work, 'timeline.json'), 'w') as f:
+    with open(os.path.join(work, 'timeline.json'), 'w', encoding='utf-8') as f:
         json.dump({'rate': RATE, 'total': total, 'chapters': chaps,
                    'lines': [{k: fr[k] for k in ('start', 'speech', 'end', 'screen', 'caption')} for fr in frames]},
                   f, indent=1, ensure_ascii=False)
