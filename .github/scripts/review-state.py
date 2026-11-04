@@ -94,8 +94,7 @@ def decide(state_p, inp, out, sha, commit, mins, run_url):
             f['detail'] = 'accepted by a Review-accept trailer'
     hs = list(hunks(out))
     comments = []
-    last = state.get('sha')
-    if res is not None and not plan.get('skip') and not (last and git('merge-base', '--is-ancestor', sha, last)):
+    if res is not None and not plan.get('skip') and state.get('sha') != sha:
         prev = {p['id']: p for p in res.get('previous', [])}
         for f in findings:
             p = prev.get(f['id'])

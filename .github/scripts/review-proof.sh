@@ -204,29 +204,16 @@ hunks() {  # the PR's diff at HEAD_SHA -> "file<TAB>start<TAB>end" for each hunk
     /^@@/ { split($3, r, ","); s = substr(r[1], 2); n = (r[2] == "" ? 1 : r[2]); if (n > 0) print f "\t" s "\t" s + n - 1 }'
 }
 
-pushed() {
-  local tree c
-  git cat-file -e "$1^{commit}" 2> /dev/null || git fetch -q origin "$1" 2> /dev/null || return 1
-  c=$(git log --ancestry-path --format='%P %H %an' "$HEAD_SHA..$1" \
-    | awk -v h="$HEAD_SHA" -v b="$BOT_NAME" 'NF == 3 && $1 == h && $3 == b { c = $2 } END { print c }')
-  [[ -n $c ]] || return 1
-  tree=$(export GIT_INDEX_FILE="$OUT/pushed.index"; git read-tree "$HEAD_SHA" && git apply --cached "$IN/fix.patch" && git write-tree) || return 1
-  [[ $tree == $(git rev-parse "$c^{tree}") ]] && echo "$c"
-}
-
 report() {
   : "${HEAD_SHA:?}" "${HEAD_REF:?}"
-  local result=${REVIEW_RESULT:-success} commit= note= mins= failed=() ids i unresolved last
+  local result=${REVIEW_RESULT:-success} commit= note= mins= failed=() ids i unresolved
   state > "$OUT/state.json"
-  last=$(jq -r '.sha // empty' "$OUT/state.json")
   rm -f "$OUT/fixed-files.txt" "$OUT/fixed.json"
   if [[ ! -s $IN/plan.json ]]; then
     note="The review of \`${HEAD_SHA::12}\` didn't run ($result)."
     result=failure
   elif [[ $(jq -r .skip "$IN/plan.json") == true ]]; then
     note="Skipped \`${HEAD_SHA::12}\`: $(jq -r .reason "$IN/plan.json")."
-  elif [[ -n $last ]] && git merge-base --is-ancestor "$HEAD_SHA" "$last" 2> /dev/null; then
-    note="The review of \`${HEAD_SHA::12}\` was already reported, so this run changed nothing."
   elif [[ $result != success || ! -s $IN/findings.json ]]; then
     note="The review of \`${HEAD_SHA::12}\` failed ($result); its findings are not recorded."
     result=failure
@@ -242,7 +229,7 @@ report() {
           | ($o[.id] // {id, verdict: "PLAUSIBLE"}) + ({file, line} | with_entries(select(.value != null))) + {files, fixed: true}]' \
       "$IN/findings.json" > "$OUT/all.json"
     stats=$(jq -r --rawfile files "$OUT/fixed-files.txt" \
-      'def cover: .files // [.file] | unique; def covered($f): all(cover[]; IN($f[]));
+      'def cover: (.files | select(length > 0)) // [.file] | unique; def covered($f): all(cover[]; IN($f[]));
       ($files | split("\n") - [""]) as $f | [.[] | select(.fixed)] as $x | [$x[] | select(covered($f))] as $ok
       | ($ok | tojson), ([($ok | length), ([$x[] | select(any(cover[]; IN($f[])) and (covered($f) | not))] | length),
         ([$x[] | select(.verdict != "CONFIRMED")] | length), ($f - [$ok[] | cover[]] | length)] | @tsv)' "$OUT/all.json")
@@ -260,10 +247,7 @@ report() {
     elif [[ -z $remote ]]; then
       note="The branch \`$HEAD_REF\` was deleted during the review, so the fix wasn't pushed; its findings are suggestions instead."
     elif [[ $remote != "$HEAD_SHA" ]]; then
-      if ! commit=$(pushed "$remote"); then
-        commit=
-        note="The branch moved to \`${remote::12}\` during the review, so the fix wasn't pushed; its findings are suggestions instead."
-      fi
+      note="The branch moved to \`${remote::12}\` during the review, so the fix wasn't pushed; its findings are suggestions instead."
     elif ! git apply --index "$IN/fix.patch"; then
       note="The fix didn't apply to \`${HEAD_SHA::12}\`, so it wasn't pushed; its findings are suggestions instead."
     else
@@ -293,9 +277,6 @@ EOF
   if (( ${#ids[@]} > 0 )); then
     if [[ ${DRY_RUN:-0} == 1 ]]; then
       echo "would post a review with these suggestions:"; jq . "$OUT/suggestions.json" | sed 's/^/  | /'
-    elif [[ -n $(gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --paginate --jq \
-      ".[] | select(.commit_id == \"$HEAD_SHA\" and (.body // \"\" | startswith(\"CI code review of \"))) | .id" 2> /dev/null) ]]; then
-      echo "suggestions for ${HEAD_SHA::12} were already posted" >&2
     elif ! jq 'del(.comments[].id)' "$OUT/suggestions.json" | gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --input - --jq '"posted \(.html_url)"'; then
       for i in "${!ids[@]}"; do
         jq ".comments = [.comments[$i] | del(.id)] | .body |= sub(\"[0-9]+ suggested\"; \"1 suggested\")" "$OUT/suggestions.json" \
@@ -307,7 +288,7 @@ EOF
   unresolved=$(python3 "$HERE/review-state.py" render "$OUT" "$GH_REPO" "$note" "${failed[@]}")
   OUT="$OUT/comment" "$HERE/pr-comment.sh" put review "$OUT/section.md"
   if (( unresolved > 0 )) || [[ $result == failure ]]; then
-    echo "::error::$unresolved confirmed finding(s) unresolved${note:+; $note}" >&2
+    echo "::error::$unresolved confirmed finding(s) unresolved${note:+; ${note%.}}. Don't re-run this job alone; push a fix or a Review-accept trailer." >&2
     exit 1
   fi
 }
