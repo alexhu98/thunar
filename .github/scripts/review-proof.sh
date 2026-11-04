@@ -98,6 +98,8 @@ plan() {
   from=$mb
   if [[ $last == "$HEAD_SHA" ]]; then
     skip=1 reason="${last::12} was already reviewed"
+  elif [[ -n $last ]] && git merge-base --is-ancestor "$HEAD_SHA" "$last" 2>/dev/null; then
+    skip=1 reason="${HEAD_SHA::12} is already part of the reviewed ${last::12}"
   elif [[ -n $last ]] && git cat-file -e "$last^{commit}" 2>/dev/null && git merge-base --is-ancestor "$last" "$HEAD_SHA" \
     && git merge-base --is-ancestor "$mb" "$last"; then
     if git diff --quiet "$last" "$HEAD_SHA" -- . ':!explainers/'; then
@@ -235,7 +237,6 @@ report() {
         ([$x[] | select(.verdict != "CONFIRMED")] | length), ($f - [$ok[] | cover[]] | length)] | @tsv)' "$OUT/all.json")
     printf '%s\n' "${stats%%$'\n'*}" > "$OUT/fixed.json"
     read -r fixed partial unverified stray <<< "${stats#*$'\n'}"
-    remote=$(git ls-remote origin "refs/heads/$HEAD_REF" | cut -f1)
     if (( fixed == 0 )); then
       note="The review left changes in the working tree, but no finding marked fixed had all of its fix in them, so they weren't pushed."
     elif (( unverified > 0 )); then
@@ -244,6 +245,8 @@ report() {
       note="The fix for $partial finding(s) was only partly kept, so it wasn't pushed; its findings are suggestions instead."
     elif (( stray > 0 )); then
       note="The fix also changed $stray file(s) with no fully fixed finding, so it wasn't pushed; its findings are suggestions instead."
+    elif ! remote=$(git ls-remote origin "refs/heads/$HEAD_REF" | cut -f1); then
+      note="Reading the branch \`$HEAD_REF\` failed, so the fix wasn't pushed; its findings are suggestions instead."
     elif [[ -z $remote ]]; then
       note="The branch \`$HEAD_REF\` was deleted during the review, so the fix wasn't pushed; its findings are suggestions instead."
     elif [[ $remote != "$HEAD_SHA" ]]; then
