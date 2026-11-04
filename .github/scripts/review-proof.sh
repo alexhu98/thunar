@@ -34,27 +34,34 @@ print(m.group(1) if m else "{}")'
 
 schema() {
   cat <<'EOF'
-{"type":"object","required":["findings","previous"],"properties":{"findings":{"type":"array","items":{"type":"object","required":["file","line","severity","summary","failure_scenario","verdict","fixed"],"properties":{"file":{"type":"string","description":"repo-relative path"},"line":{"type":"integer","description":"line in the file at HEAD; the last line of the range when start_line is set"},"start_line":{"type":"integer","description":"first line of a multi-line range, if any"},"files":{"type":"array","items":{"type":"string"},"description":"every repo-relative file the fix changed, when it changed more than file"},"severity":{"type":"string","enum":["high","medium","low"]},"summary":{"type":"string","description":"one sentence"},"failure_scenario":{"type":"string","description":"concrete inputs or state -> wrong output or crash"},"verdict":{"type":"string","enum":["CONFIRMED","PLAUSIBLE"],"description":"CONFIRMED only if a verify pass confirmed it"},"fixed":{"type":"boolean","description":"true only if the fix is in the working tree now"},"suggestion":{"type":"string","description":"the exact replacement text for lines start_line..line (or line), without code fences; omit when the fix is not confined to those lines"},"reason":{"type":"string","description":"why it was not fixed, when fixed is false"}}}},"previous":{"type":"array","items":{"type":"object","required":["id","resolved"],"properties":{"id":{"type":"string"},"resolved":{"type":"boolean"},"fixed":{"type":"boolean","description":"auto-fix only: true if you fixed it in the working tree in this review"},"file":{"type":"string","description":"its file, when fixed"},"files":{"type":"array","items":{"type":"string"},"description":"every file its fix changed, when more than file"},"note":{"type":"string"}}}}}}
+{"type":"object","required":["findings","previous"],"properties":{"findings":{"type":"array","items":{"type":"object","required":["file","line","severity","summary","failure_scenario","verdict","fixed"],"properties":{"file":{"type":"string","description":"repo-relative path"},"line":{"type":"integer","description":"line in the file at HEAD; the last line of the range when start_line is set"},"start_line":{"type":"integer","description":"first line of a multi-line range, if any"},"files":{"type":"array","items":{"type":"string"},"description":"every repo-relative file the fix changed, when it changed more than file"},"severity":{"type":"string","enum":["high","medium","low"]},"summary":{"type":"string","description":"one sentence"},"failure_scenario":{"type":"string","description":"concrete inputs or state -> wrong output or crash"},"verdict":{"type":"string","enum":["CONFIRMED","PLAUSIBLE"],"description":"CONFIRMED only if a verify pass confirmed it"},"fixed":{"type":"boolean","description":"true only if the fix is in the working tree now"},"suggestion":{"type":"string","description":"the exact replacement text for lines start_line..line (or line), without code fences; omit when the fix is not confined to those lines"},"reason":{"type":"string","description":"why it was not fixed, when fixed is false"}}}},"previous":{"type":"array","items":{"type":"object","required":["id","resolved"],"properties":{"id":{"type":"string"},"resolved":{"type":"boolean"},"fixed":{"type":"boolean","description":"auto-fix only: true if you fixed it in the working tree in this review"},"file":{"type":"string","description":"its file, when fixed"},"files":{"type":"array","items":{"type":"string"},"description":"every file its fix changed, when more than file"},"line":{"type":"integer","description":"when fixed, its line at HEAD; the last line of the range when start_line is set"},"start_line":{"type":"integer","description":"first line of a multi-line range, if any"},"suggestion":{"type":"string","description":"when fixed, the exact replacement text for lines start_line..line (or line), without code fences; omit when the fix is not confined to those lines"},"note":{"type":"string"}}}}}}
 EOF
 }
 
 wait_for_earlier_runs() {
   [[ -n ${RUN_ID:-} && -n ${RUN_NUMBER:-} && -n ${HEAD_REF:-} ]] || return 0
-  local waited=0 busy run runs jobs
+  local waited=0 busy errors=0 failed run runs jobs
   while :; do
-    busy=0
+    busy=0 failed=0
     if ! runs=$(gh api -X GET "repos/{owner}/{repo}/actions/runs" -f branch="$HEAD_REF" -f event=pull_request -F per_page=30 --jq \
       ".workflow_runs[] | select(.path == \".github/workflows/build.yml\" and .status != \"completed\" and .run_number < $RUN_NUMBER) | .id"); then
-      busy=1 runs=
+      busy=1 failed=1 runs=
     fi
     for run in $runs; do
       if ! jobs=$(gh api "repos/{owner}/{repo}/actions/runs/$run/jobs" --jq \
         '[.jobs[] | select(.name == "review" or .name == "review-report") | {(.name): .status}] | add // {}
-         | .review == "completed" and .["review-report"] != "completed"') || [[ $jobs == true ]]; then
+         | .review == "completed" and .["review-report"] != "completed"'); then
+        busy=1 failed=1
+      elif [[ $jobs == true ]]; then
         busy=1
       fi
     done
     (( busy )) || return 0
+    (( failed )) && errors=$((errors + 1)) || errors=0
+    if (( errors >= 3 )); then
+      echo "::warning::the GitHub API failed 3 times in a row while checking earlier runs; reviewing anyway" >&2
+      return 0
+    fi
     if (( waited >= 1800 )); then
       echo "::warning::an earlier run's review still hasn't finished after 30 min; reviewing anyway" >&2
       return 0
@@ -148,8 +155,10 @@ history from the session that wrote it.
 EOF
   if [[ $1 == auto-fix ]]; then
     cat <<EOF
-3. Fix each CONFIRMED finding in the working tree, and each finding in $OUT/open.json that is still there at HEAD.
-   Change no code for a PLAUSIBLE one or one in $OUT/accepted.json. Don't stage, commit, push or switch branches. Set fixed to true only if
+3. Fix each CONFIRMED finding in the working tree, and each finding in $OUT/open.json that a fresh agent, as in step 2,
+   confirms is still there at HEAD. Change no code for a PLAUSIBLE one or one in $OUT/accepted.json. Don't stage,
+   commit, push or switch branches. The fix leaves out every change under $(printf '%s\n' "${NOT_IN_FIX[@]#:!}" | paste -sd, - | sed 's/,/, /g'),
+   so set fixed to false for a finding whose fix needs one. Set fixed to true only if
    the finding's fix is in the working tree now; otherwise give the reason. When a fix changes more files than the
    finding's own, list every file it changed in files. Also give the exact replacement text as suggestion for each
    finding whose fix fits in its own lines, in case the fix can't be pushed.
@@ -162,8 +171,8 @@ EOF
   fi
   cat <<EOF
 4. $OUT/open.json lists findings from earlier reviews that are still open. For each, check the code at HEAD and report
-   in previous whether it is resolved, by its id. If you fixed it in step 3, set fixed and resolved to true and give
-   its file, and files if the fix changed more.
+   in previous whether it is resolved, by its id. If you fixed it in step 3, set fixed to true, resolved to false, and
+   give its file, files if the fix changed more, and its line, start_line and suggestion as in step 3.
 5. Return the findings and previous in the output schema. Report every finding the skill reported, except one
    already listed in open.json: report that one only in previous. Leave out any finding that matches one in
    $OUT/accepted.json: the PR's author kept those on purpose.
@@ -190,6 +199,14 @@ hunks() {  # the PR's diff at HEAD_SHA -> "file<TAB>start<TAB>end" for each hunk
     /^@@/ { split($3, r, ","); s = substr(r[1], 2); n = (r[2] == "" ? 1 : r[2]); if (n > 0) print f "\t" s "\t" s + n - 1 }'
 }
 
+pushed() {  # remote sha -> whether it is this fix, pushed on top of HEAD_SHA by an earlier attempt of this report
+  local tree
+  git fetch -q origin "$1" 2> /dev/null && [[ $(git rev-parse -q --verify "$1^") == "$HEAD_SHA" ]] \
+    && [[ $(git log -1 --format=%an "$1") == "$BOT_NAME" ]] || return 1
+  tree=$(export GIT_INDEX_FILE="$OUT/pushed.index"; git read-tree "$HEAD_SHA" && git apply --cached "$IN/fix.patch" && git write-tree) || return 1
+  [[ $tree == $(git rev-parse "$1^{tree}") ]]
+}
+
 report() {
   : "${HEAD_SHA:?}" "${HEAD_REF:?}"
   local result=${REVIEW_RESULT:-success} commit= note= mins= failed=() ids i unresolved
@@ -204,35 +221,46 @@ report() {
     note="The review of \`${HEAD_SHA::12}\` failed ($result); its findings are not recorded."
     result=failure
   fi
+  accepted > "$OUT/accepted.txt"
+  python3 "$HERE/review-state.py" open "$OUT/state.json" "$OUT"
   if [[ -z $note && $(jq -r .mode "$IN/plan.json") == auto-fix && -s $IN/fix.patch ]]; then
-    local fixed remote unverified stray
+    local fixed partial remote unverified stray
+    local cover='def cover: [.file] + (.files // []) | unique; def covered($f): all(cover[]; IN($f[]));'
     git apply --numstat -z "$IN/fix.patch" | cut -z -f3- | tr '\0' '\n' | sort -u > "$OUT/fixed-files.txt"
-    jq '[.findings | to_entries[] | .value + {i: .key}] + [.previous[]? | select(.fixed) | {id, file, files,
-      line: (.line // 0), summary: "still open from an earlier review", verdict: "CONFIRMED", fixed: true}]' \
+    jq --slurpfile st "$OUT/state.json" --slurpfile open "$OUT/open.json" '($st[0].next // 1) as $n
+      | ($open[0] | map({(.id): .}) | add // {}) as $o
+      | [.findings | to_entries[] | .value + {i: .key, id: "R\($n + .key)"}]
+        + [.previous // [] | map(select(.fixed)) | unique_by(.id)[] | ($o[.id] // {id, file, verdict: "PLAUSIBLE"}) + {files, fixed: true}]' \
       "$IN/findings.json" > "$OUT/all.json"
-    jq --rawfile files "$OUT/fixed-files.txt" '[.[]
-      | select(.fixed and all(if (.files // []) == [] then .file else .files[] end; IN($files | split("\n")[])))]' \
+    jq --rawfile files "$OUT/fixed-files.txt" "$cover"' ($files | split("\n") - [""]) as $f | [.[] | select(.fixed and covered($f))]' \
       "$OUT/all.json" > "$OUT/fixed.json"
     fixed=$(jq length "$OUT/fixed.json")
+    partial=$(jq --rawfile files "$OUT/fixed-files.txt" "$cover"' ($files | split("\n") - [""]) as $f
+      | [.[] | select(.fixed and any(cover[]; IN($f[])) and (covered($f) | not))] | length' "$OUT/all.json")
     remote=$(git ls-remote origin "refs/heads/$HEAD_REF" | cut -f1)
     unverified=$(jq '[.[] | select(.fixed and .verdict != "CONFIRMED")] | length' "$OUT/all.json")
-    stray=$(comm -23 "$OUT/fixed-files.txt" \
-      <(jq -r '.[] | if (.files // []) == [] then .file else .files[] end' "$OUT/fixed.json" | sort -u) | wc -l)
+    stray=$(comm -23 "$OUT/fixed-files.txt" <(jq -r "$cover"' .[] | cover[]' "$OUT/fixed.json" | sort -u) | wc -l)
     if (( fixed == 0 )); then
-      note="The review left changes in the working tree but marked no finding in those files fixed, so they weren't pushed."
+      note="The review left changes in the working tree, but no finding marked fixed had all of its fix in them, so they weren't pushed."
     elif (( unverified > 0 )); then
       note="The fix also changed code for $unverified unconfirmed finding(s), so it wasn't pushed; its findings are suggestions instead."
+    elif (( partial > 0 )); then
+      note="The fix for $partial finding(s) was only partly kept, so it wasn't pushed; its findings are suggestions instead."
     elif (( stray > 0 )); then
       note="The fix also changed $stray file(s) with no fully fixed finding, so it wasn't pushed; its findings are suggestions instead."
     elif [[ $remote != "$HEAD_SHA" ]]; then
-      note="The branch moved to \`${remote::12}\` during the review, so the fix wasn't pushed; its findings are suggestions instead."
+      if pushed "$remote"; then
+        commit=$remote
+      else
+        note="The branch moved to \`${remote::12}\` during the review, so the fix wasn't pushed; its findings are suggestions instead."
+      fi
     elif ! git apply --index "$IN/fix.patch"; then
       note="The fix didn't apply to \`${HEAD_SHA::12}\`, so it wasn't pushed; its findings are suggestions instead."
     else
       git -c user.name="$BOT_NAME" -c user.email="$BOT_EMAIL" commit -q -F - <<EOF
 Fix $fixed finding(s) from the CI code review of ${HEAD_SHA::12}
 
-$(jq -r '.[] | "- \(.id // "new"): \(.file)\(if .line > 0 then ":\(.line)" else "" end): \(.summary)"' "$OUT/fixed.json")
+$(jq -r '.[] | "- \(.id): \(.file):\(.line): \(.summary)"' "$OUT/fixed.json")
 
 Review: suggest
 EOF
@@ -250,7 +278,6 @@ EOF
       '[.jobs[] | select(.name == "review" and .completed_at != null) | ((.completed_at | fromdate) - (.started_at | fromdate))] | add // empty | . / 60 | ceil' 2>/dev/null) || mins=
   fi
   hunks > "$OUT/hunks.txt"
-  accepted > "$OUT/accepted.txt"
   python3 "$HERE/review-state.py" decide "$OUT/state.json" "$IN" "$OUT" "$HEAD_SHA" "$commit" "$mins" "${RUN_URL:-}"
   mapfile -t ids < <(jq -r '.comments[].id' "$OUT/suggestions.json")
   if (( ${#ids[@]} > 0 )); then

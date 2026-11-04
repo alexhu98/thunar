@@ -66,11 +66,23 @@ def open_findings(state_p, out):
     json.dump(taken, open(os.path.join(out, 'accepted.json'), 'w'))
 
 
+def suggestion(fid, r, hs):
+    start = r.get('start_line') or r['line']
+    if 'suggestion' not in r or not any(r['file'] == hf and s <= start and r['line'] <= e for hf, s, e in hs):
+        return None
+    body = '\n\n'.join(filter(None, [f"**{fid} ({r['severity']}, {r['verdict'].lower()})** {r['summary']}",
+                                     r.get('failure_scenario'), f"```suggestion\n{r['suggestion'].rstrip(chr(10))}\n```"]))
+    c = {'id': fid, 'path': r['file'], 'line': r['line'], 'side': 'RIGHT', 'body': body}
+    if start != r['line']:
+        c.update(start_line=start, start_side='RIGHT')
+    return c
+
+
 def decide(state_p, inp, out, sha, commit, mins, run_url):
     state = load(state_p, {})
     fixed = load(os.path.join(out, 'fixed.json'), [])
     done = {f['i'] for f in fixed if 'i' in f}
-    done_open = {f['id'] for f in fixed if 'id' in f}
+    done_open = {f['id'] for f in fixed if 'i' not in f}
     plan = load(os.path.join(inp, 'plan.json'), {})
     res = load(os.path.join(inp, 'findings.json'))
     findings = state.get('findings', [])
@@ -86,9 +98,19 @@ def decide(state_p, inp, out, sha, commit, mins, run_url):
         prev = {p['id']: p for p in res.get('previous', [])}
         for f in findings:
             p = prev.get(f['id'])
-            if f['status'] in OPEN and commit and f['id'] in done_open:
+            if f['status'] not in OPEN or not p:
+                continue
+            if commit and f['id'] in done_open:
                 f['status'], f['commit'], f['new'] = 'fixed', commit, True
-            elif f['status'] in OPEN and p and p.get('resolved'):
+            elif p.get('fixed'):
+                f['new'] = True
+                c = 'line' in p and suggestion(f['id'], {**f, 'start_line': None, **p}, hs)
+                if c:
+                    f['status'], f['line'] = 'suggested', p['line']
+                    comments.append(c)
+                else:
+                    f['status'], f['detail'] = 'not fixed', "fixed in the review, but the fix wasn't pushed"
+            elif p.get('resolved'):
                 f['status'], f['new'] = 'resolved', True
                 f['detail'] = f"resolved by {sha[:12]}" + (f": {cap(p['note'])}" if p.get('note') else '')
         for f in findings:
@@ -98,18 +120,13 @@ def decide(state_p, inp, out, sha, commit, mins, run_url):
         for i, r in enumerate(res['findings']):
             fid = f'R{n}'
             n += 1
-            start = r.get('start_line') or r['line']
             f = {'id': fid, 'sha': sha, 'file': r['file'], 'line': r['line'], 'severity': r['severity'],
                  'summary': cap(r['summary']), 'verdict': r['verdict'], 'new': True}
+            c = None if commit and i in done else suggestion(fid, r, hs)
             if commit and i in done:
                 f['status'], f['commit'] = 'fixed', commit
-            elif 'suggestion' in r and any(r['file'] == hf and s <= start and r['line'] <= e for hf, s, e in hs):
+            elif c:
                 f['status'] = 'suggested'
-                body = (f"**{fid} ({r['severity']}, {r['verdict'].lower()})** {r['summary']}\n\n{r['failure_scenario']}\n\n"
-                        f"```suggestion\n{r['suggestion'].rstrip(chr(10))}\n```")
-                c = {'id': fid, 'path': r['file'], 'line': r['line'], 'side': 'RIGHT', 'body': body}
-                if start != r['line']:
-                    c.update(start_line=start, start_side='RIGHT')
                 comments.append(c)
             else:
                 f['status'] = 'not fixed'
