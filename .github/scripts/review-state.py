@@ -33,6 +33,8 @@ def hunks(out):
 
 def decide(state_p, inp, out, sha, commit, pushed, mins, run_url):
     state = load(state_p, {})
+    done_p = os.path.join(out, 'fixed-files.txt')
+    done = set(open(done_p).read().splitlines()) if os.path.exists(done_p) else set()
     plan = load(os.path.join(inp, 'plan.json'), {})
     res = load(os.path.join(inp, 'findings.json'))
     findings = state.get('findings', [])
@@ -40,7 +42,7 @@ def decide(state_p, inp, out, sha, commit, pushed, mins, run_url):
         f.pop('new', None)
     hs = list(hunks(out))
     comments = []
-    if res is not None and not plan.get('skip'):
+    if res is not None and not plan.get('skip') and state.get('sha') != sha:
         prev = {p['id']: p for p in res.get('previous', [])}
         for f in findings:
             p = prev.get(f['id'])
@@ -54,7 +56,7 @@ def decide(state_p, inp, out, sha, commit, pushed, mins, run_url):
             start = r.get('start_line') or r['line']
             f = {'id': fid, 'sha': sha, 'file': r['file'], 'line': r['line'], 'severity': r['severity'],
                  'summary': cap(r['summary']), 'verdict': r['verdict'], 'new': True}
-            if r.get('fixed') and commit and pushed == '1':
+            if r.get('fixed') and commit and pushed == '1' and r['file'] in done:
                 f['status'], f['commit'] = 'fixed', commit
             elif 'suggestion' in r and any(r['file'] == hf and s <= start and r['line'] <= e for hf, s, e in hs):
                 f['status'] = 'suggested'
@@ -67,6 +69,7 @@ def decide(state_p, inp, out, sha, commit, pushed, mins, run_url):
             else:
                 f['status'] = 'not fixed'
                 f['detail'] = cap(r['reason']) if r.get('reason') else (
+                    "fixed in the review, but the fix wasn't pushed" if r.get('fixed') else
                     'not on a line this PR changes' if 'suggestion' in r else 'no suggestion given')
             findings.append(f)
         state.update(next=n, sha=sha, mode=plan['mode'], level=plan['level'], model=plan['model'],
@@ -83,8 +86,11 @@ def decide(state_p, inp, out, sha, commit, pushed, mins, run_url):
 
 
 def cell(s):
-    s = ' '.join(str(s).split()).replace('`', "'").replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-    return s.replace('|', '\\|')
+    parts = ' '.join(str(s).split()).split('`')
+    if len(parts) % 2 == 0:
+        parts[-2:] = [parts[-2] + "'" + parts[-1]]
+    parts = [p if i % 2 else p.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;') for i, p in enumerate(parts)]
+    return '`'.join(parts).replace('|', '\\|')
 
 
 def short(s, n=160):
@@ -122,7 +128,7 @@ def render(out, repo, note, failed):
                 detail = 'suggested change on the PR'
             else:
                 detail = cell(short(f.get('detail', '')))
-            lines.append(f"| {f['id']} | `{cell(f['file'])}:{f['line']}` {cell(short(f['summary'], 200))} | {f['severity']}"
+            lines.append(f"| {f['id']} | {cell(chr(96) + f['file'] + ':' + str(f['line']) + chr(96))} {cell(short(f['summary'], 200))} | {f['severity']}"
                          f"{'' if f['verdict'] == 'CONFIRMED' else ' (plausible)'} | {f['status']} | {detail} |")
     elif state.get('sha'):
         lines.append('No open findings.')

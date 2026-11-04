@@ -104,8 +104,9 @@ history from the session that wrote it.
 
 1. Use the Skill tool to run the code-review skill with args "$LEVEL $2..$HEAD_SHA".
 2. Verify every finding it reports: give each, with its file, line, claim and failure scenario, to a fresh
-   general-purpose Agent (all at once, in parallel) that tries to disprove it against the code at HEAD. The verdict
-   is CONFIRMED only if that agent confirms the failure scenario; otherwise PLAUSIBLE.
+   general-purpose Agent (all at once, in parallel) that tries to disprove it against the code at HEAD, read with
+   \`git show HEAD:<path>\` because the working tree's CLAUDE.md and .claude/ are the base branch's, and that changes
+   no files. The verdict is CONFIRMED only if that agent confirms the failure scenario; otherwise PLAUSIBLE.
 EOF
   if [[ $1 == auto-fix ]]; then
     cat <<EOF
@@ -123,7 +124,8 @@ EOF
   cat <<EOF
 4. $OUT/open.json lists findings from earlier reviews that are still open. For each, check the code at HEAD and report
    in previous whether it is resolved, by its id.
-5. Return the findings and previous in the output schema. Report every finding the skill reported.
+5. Return the findings and previous in the output schema. Report every finding the skill reported, except one
+   already listed in open.json: report that one only in previous.
 EOF
 }
 
@@ -138,7 +140,12 @@ collect() {
 
 hunks() {  # the PR's diff at HEAD_SHA -> "file<TAB>start<TAB>end" for each hunk on the right side, where inline comments can go
   git -c core.quotePath=false diff "$(git merge-base "$BASE" "$HEAD_SHA")" "$HEAD_SHA" | awk '
-    /^\+\+\+ / { f = substr($0, 7); sub(/\t$/, "", f) }
+    /^diff --git / { h = 1 }
+    h && /^\+\+\+ / {
+      h = 0; f = substr($0, 5); sub(/\t$/, "", f)
+      if (f ~ /^"/) { f = substr(f, 2, length(f) - 2); gsub(/\\\\/, "\001", f); gsub(/\\"/, "\"", f); gsub(/\001/, "\\", f) }
+      f = substr(f, 3)
+    }
     /^@@/ { split($3, r, ","); s = substr(r[1], 2); n = (r[2] == "" ? 1 : r[2]); if (n > 0) print f "\t" s "\t" s + n - 1 }'
 }
 
@@ -146,6 +153,7 @@ report() {
   : "${HEAD_SHA:?}" "${HEAD_REF:?}"
   local result=${REVIEW_RESULT:-success} commit= pushed=0 note= mins=
   state > "$OUT/state.json"
+  rm -f "$OUT/fixed-files.txt"
   if [[ ! -s $IN/plan.json ]]; then
     note="The review of \`${HEAD_SHA::12}\` didn't run ($result)."
     result=failure
@@ -156,14 +164,18 @@ report() {
     result=failure
   fi
   if [[ -z $note && $(jq -r .mode "$IN/plan.json") == auto-fix && -s $IN/fix.patch ]]; then
-    local fixed remote unverified
+    local fixed remote unverified stray
     fixed=$(jq -r '[.findings | to_entries[] | select(.value.fixed) | .key] | length' "$IN/findings.json")
     remote=$(git ls-remote origin "refs/heads/$HEAD_REF" | cut -f1)
     unverified=$(jq '[.findings[] | select(.fixed and .verdict != "CONFIRMED")] | length' "$IN/findings.json")
+    stray=$(comm -23 <(git -c core.quotePath=false apply --numstat "$IN/fix.patch" | cut -f3- | sort -u) \
+      <(jq -r '.findings[] | select(.fixed and .verdict == "CONFIRMED") | .file' "$IN/findings.json" | sort -u) | wc -l)
     if (( fixed == 0 )); then
       note="The review left changes in the working tree but marked no finding fixed, so they weren't pushed."
     elif (( unverified > 0 )); then
       note="The fix also changed code for $unverified unconfirmed finding(s), so it wasn't pushed; its findings are suggestions instead."
+    elif (( stray > 0 )); then
+      note="The fix also changed $stray file(s) with no confirmed fixed finding, so it wasn't pushed; its findings are suggestions instead."
     elif [[ $remote != "$HEAD_SHA" ]]; then
       note="The branch moved to \`${remote::12}\` during the review, so the fix wasn't pushed; its findings are suggestions instead."
     elif ! git apply --index "$IN/fix.patch"; then
@@ -177,6 +189,7 @@ $(jq -r '.findings[] | select(.fixed) | "- \(.file):\(.line): \(.summary)"' "$IN
 Review: suggest
 EOF
       commit=$(git rev-parse HEAD)
+      git -c core.quotePath=false diff-tree --no-commit-id --name-only -r HEAD > "$OUT/fixed-files.txt"
       if [[ ${DRY_RUN:-0} == 1 ]]; then
         echo "would push ${commit::12} to $HEAD_REF:"; git show --stat HEAD | sed 's/^/  | /'
         pushed=1
@@ -202,7 +215,7 @@ EOF
       local i id
       for i in $(seq 0 $(($(jq '.comments | length' "$OUT/suggestions.json") - 1))); do
         id=$(jq -r ".comments[$i].id" "$OUT/suggestions.json")
-        jq ".comments = [.comments[$i] | del(.id)]" "$OUT/suggestions.json" \
+        jq ".comments = [.comments[$i] | del(.id)] | .body |= sub(\"[0-9]+ suggested\"; \"1 suggested\")" "$OUT/suggestions.json" \
           | gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --input - --jq '"posted \(.html_url)"' || failed+=("$id")
       done
       (( ${#failed[@]} == 0 )) || echo "::warning::suggestions ${failed[*]} could not be posted" >&2
