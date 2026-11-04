@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The review state kept in the PR comment, for review-proof.sh.
 
-review-state.py decide STATE IN OUT SHA COMMIT PUSHED MINUTES RUN_URL
+review-state.py decide STATE IN OUT SHA COMMIT MINUTES RUN_URL
     Merges this run's findings ($IN/findings.json) into the saved state and writes $OUT/state-new.json and
     $OUT/suggestions.json (the inline suggested changes, each tagged with its finding id).
 review-state.py render OUT REPO NOTE [FAILED_ID...]
@@ -31,7 +31,7 @@ def hunks(out):
         yield f, int(s), int(e)
 
 
-def decide(state_p, inp, out, sha, commit, pushed, mins, run_url):
+def decide(state_p, inp, out, sha, commit, mins, run_url):
     state = load(state_p, {})
     done_p = os.path.join(out, 'fixed-files.txt')
     done = set(open(done_p).read().splitlines()) if os.path.exists(done_p) else set()
@@ -56,7 +56,7 @@ def decide(state_p, inp, out, sha, commit, pushed, mins, run_url):
             start = r.get('start_line') or r['line']
             f = {'id': fid, 'sha': sha, 'file': r['file'], 'line': r['line'], 'severity': r['severity'],
                  'summary': cap(r['summary']), 'verdict': r['verdict'], 'new': True}
-            if r.get('fixed') and commit and pushed == '1' and r['file'] in done:
+            if r.get('fixed') and commit and r['file'] in done:
                 f['status'], f['commit'] = 'fixed', commit
             elif 'suggestion' in r and any(r['file'] == hf and s <= start and r['line'] <= e for hf, s, e in hs):
                 f['status'] = 'suggested'
@@ -74,11 +74,8 @@ def decide(state_p, inp, out, sha, commit, pushed, mins, run_url):
             findings.append(f)
         state.update(next=n, sha=sha, mode=plan['mode'], level=plan['level'], model=plan['model'],
                      reason=plan['reason'], minutes=int(mins) if mins else None, run=run_url)
-    for f in findings:
-        if f['status'] not in OPEN and not f.get('new'):
-            f.pop('summary', None)
-            f.pop('detail', None)
-    state['findings'] = findings
+    state['findings'] = [f if f['status'] in OPEN or f.get('new') else {'id': f['id'], 'status': f['status']}
+                         for f in findings]
     json.dump(state, open(os.path.join(out, 'state-new.json'), 'w'))
     json.dump({'commit_id': sha, 'event': 'COMMENT',
                'body': f'CI code review of {sha[:12]}: {len(comments)} suggested change(s).', 'comments': comments},
@@ -91,10 +88,6 @@ def cell(s):
         parts[-2:] = [parts[-2] + "'" + parts[-1]]
     parts = [p if i % 2 else p.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;') for i, p in enumerate(parts)]
     return '`'.join(parts).replace('|', '\\|')
-
-
-def short(s, n=160):
-    return s if len(s) <= n else s[:n - 1].rstrip() + '…'
 
 
 def render(out, repo, note, failed):
@@ -127,8 +120,8 @@ def render(out, repo, note, failed):
             elif f['status'] == 'suggested':
                 detail = 'suggested change on the PR'
             else:
-                detail = cell(short(f.get('detail', '')))
-            lines.append(f"| {f['id']} | {cell(chr(96) + f['file'] + ':' + str(f['line']) + chr(96))} {cell(short(f['summary'], 200))} | {f['severity']}"
+                detail = cell(cap(f.get('detail', ''), 160))
+            lines.append(f"| {f['id']} | {cell(chr(96) + f['file'] + ':' + str(f['line']) + chr(96))} {cell(cap(f['summary'], 200))} | {f['severity']}"
                          f"{'' if f['verdict'] == 'CONFIRMED' else ' (plausible)'} | {f['status']} | {detail} |")
     elif state.get('sha'):
         lines.append('No open findings.')

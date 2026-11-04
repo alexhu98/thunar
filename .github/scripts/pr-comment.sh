@@ -15,7 +15,7 @@ mkdir -p "$OUT"
 comment_id() {
   [[ -n ${PR:-} ]] || return 0
   gh api --paginate "repos/{owner}/{repo}/issues/$PR/comments" \
-    --jq ".[] | select(.body | startswith(\"$MARK\")) | .id" | sed -n 1p
+    --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$MARK\"))) | .id" | sed -n 1p
 }
 
 get() {
@@ -33,7 +33,7 @@ if not new.startswith(start) or not new.endswith(end):
     sys.exit(f'section must start with {start} and end with {end}')
 if not old:
     old = '<!-- pr-proof -->'
-pat = re.compile(re.escape(start) + '.*?' + re.escape(end), re.S)
+pat = re.compile('^' + re.escape(start) + '.*?^' + re.escape(end), re.S | re.M)
 print(pat.sub(lambda _: new, old, count=1) if pat.search(old) else old + '\n\n' + new)
 EOF
 }

@@ -27,7 +27,7 @@ mkdir -p "$OUT"
 state() {  # the review state saved in the PR comment -> stdout (JSON; {} when there is none)
   "$HERE/pr-comment.sh" get | python3 -c '
 import json, re, sys
-m = re.search(r"<!-- review:state (.*?) -->", sys.stdin.read(), re.S)
+m = re.search(r"^<!-- review:state (.*?) -->", sys.stdin.read(), re.M)
 print(m.group(1) if m else "{}")'
 }
 
@@ -35,6 +35,29 @@ schema() {
   cat <<'EOF'
 {"type":"object","required":["findings","previous"],"properties":{"findings":{"type":"array","items":{"type":"object","required":["file","line","severity","summary","failure_scenario","verdict","fixed"],"properties":{"file":{"type":"string","description":"repo-relative path"},"line":{"type":"integer","description":"line in the file at HEAD; the last line of the range when start_line is set"},"start_line":{"type":"integer","description":"first line of a multi-line range, if any"},"severity":{"type":"string","enum":["high","medium","low"]},"summary":{"type":"string","description":"one sentence"},"failure_scenario":{"type":"string","description":"concrete inputs or state -> wrong output or crash"},"verdict":{"type":"string","enum":["CONFIRMED","PLAUSIBLE"],"description":"CONFIRMED only if a verify pass confirmed it"},"fixed":{"type":"boolean","description":"true only if the fix is in the working tree now"},"suggestion":{"type":"string","description":"the exact replacement text for lines start_line..line (or line), without code fences; omit when the fix is not confined to those lines"},"reason":{"type":"string","description":"why it was not fixed, when fixed is false"}}}},"previous":{"type":"array","items":{"type":"object","required":["id","resolved"],"properties":{"id":{"type":"string"},"resolved":{"type":"boolean"},"note":{"type":"string"}}}}}}
 EOF
+}
+
+wait_for_earlier_runs() {  # until no earlier run of this workflow on the branch has a review job still to finish
+  [[ -n ${RUN_ID:-} && -n ${RUN_NUMBER:-} && -n ${HEAD_REF:-} ]] || return 0
+  local waited=0 busy run
+  while :; do
+    busy=0
+    for run in $(gh api "repos/{owner}/{repo}/actions/runs?branch=$HEAD_REF&event=pull_request&per_page=30" --jq \
+      ".workflow_runs[] | select(.path == \".github/workflows/build.yml\" and .status != \"completed\" and .run_number < $RUN_NUMBER) | .id"); do
+      if gh api "repos/{owner}/{repo}/actions/runs/$run/jobs" --jq \
+        '[.jobs[] | select((.name == "review" or .name == "review-report") and .status != "completed")] | length > 0' | grep -q true; then
+        busy=1
+      fi
+    done
+    (( busy )) || return 0
+    if (( waited >= 1800 )); then
+      echo "::warning::an earlier run's review still hasn't finished after 30 min; reviewing anyway" >&2
+      return 0
+    fi
+    (( waited == 0 )) && echo "waiting for an earlier run's review to finish" >&2
+    sleep 20
+    waited=$((waited + 20))
+  done
 }
 
 plan() {
@@ -46,11 +69,15 @@ plan() {
     '') mode=auto-fix ;;
     *) echo "::warning::unknown Review: trailer \"$trailer\"; using auto-fix" >&2; mode=auto-fix ;;
   esac
+  wait_for_earlier_runs
   state > "$OUT/state.json"
   last=$(jq -r '.sha // empty' "$OUT/state.json")
   mb=$(git merge-base "$BASE" "$HEAD_SHA")
   from=$mb
-  if [[ -n $last ]] && git cat-file -e "$last^{commit}" 2>/dev/null && git merge-base --is-ancestor "$last" "$HEAD_SHA"; then
+  if [[ $last == "$HEAD_SHA" ]]; then
+    skip=1 reason="${last::12} was already reviewed"
+  elif [[ -n $last ]] && git cat-file -e "$last^{commit}" 2>/dev/null && git merge-base --is-ancestor "$last" "$HEAD_SHA" \
+    && git merge-base --is-ancestor "$mb" "$last"; then
     if git diff --quiet "$last" "$HEAD_SHA" -- . ':!explainers/'; then
       if (( forced )); then
         reason="forced by the head commit's Review: $mode trailer; nothing changed since ${last::12}, so the whole PR"
@@ -71,7 +98,7 @@ plan() {
   if [[ ${HEAD_REF:-} =~ ^([0-9]+)- ]]; then
     issue=${BASH_REMATCH[1]}
     gh issue view "$issue" --json number,title,body,comments \
-      --jq '"# #\(.number): \(.title)\n\n\(.body)\n\n" + ([.comments[] | "## Comment by \(.author.login)\n\n\(.body)\n"] | join("\n"))' \
+      --jq '"# #\(.number): \(.title)\n\n\(.body)\n\n" + ([.comments[] | select(.authorAssociation | IN("OWNER", "MEMBER", "COLLABORATOR")) | "## Comment by \(.author.login)\n\n\(.body)\n"] | join("\n"))' \
       > "$OUT/issue.md" 2>/dev/null || echo "Issue #$issue could not be read." > "$OUT/issue.md"
   else
     echo "This branch is not named after an issue." > "$OUT/issue.md"
@@ -110,10 +137,10 @@ history from the session that wrote it.
 EOF
   if [[ $1 == auto-fix ]]; then
     cat <<EOF
-3. Fix each CONFIRMED finding in the working tree, and change no code for a PLAUSIBLE one. Don't stage, commit, push
-   or switch branches. Set fixed to true only if the finding's fix is in the working tree now; otherwise give the
-   reason. Also give the exact replacement text as suggestion for each finding whose fix fits in its own lines, in
-   case the fix can't be pushed.
+3. Fix each CONFIRMED finding in the working tree, and change no code for a PLAUSIBLE one or one already listed in
+   $OUT/open.json. Don't stage, commit, push or switch branches. Set fixed to true only if the finding's fix is in the
+   working tree now; otherwise give the reason. Also give the exact replacement text as suggestion for each finding
+   whose fix fits in its own lines, in case the fix can't be pushed.
 EOF
   else
     cat <<EOF
@@ -149,9 +176,38 @@ hunks() {  # the PR's diff at HEAD_SHA -> "file<TAB>start<TAB>end" for each hunk
     /^@@/ { split($3, r, ","); s = substr(r[1], 2); n = (r[2] == "" ? 1 : r[2]); if (n > 0) print f "\t" s "\t" s + n - 1 }'
 }
 
+write_report() {  # fix commit (or ""), note -> posts the suggestions not yet in POSTED, writes the section, sets UNRESOLVED
+  local failed=() ids i id
+  python3 "$HERE/review-state.py" decide "$OUT/state.json" "$IN" "$OUT" "$HEAD_SHA" "$1" "${mins:-}" "${RUN_URL:-}"
+  jq --argjson done "$(printf '%s\n' "${POSTED[@]}" | jq -R . | jq -s 'map(select(. != ""))')" \
+    '.comments |= map(select(.id | IN($done[]) | not)) | (.comments | length) as $n | .body |= sub("[0-9]+ suggested"; "\($n) suggested")' \
+    "$OUT/suggestions.json" > "$OUT/to-post.json"
+  mapfile -t ids < <(jq -r '.comments[].id' "$OUT/to-post.json")
+  if (( ${#ids[@]} > 0 )); then
+    if [[ ${DRY_RUN:-0} == 1 ]]; then
+      echo "would post a review with these suggestions:"; jq . "$OUT/to-post.json" | sed 's/^/  | /'
+    elif jq 'del(.comments[].id)' "$OUT/to-post.json" | gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --input - --jq '"posted \(.html_url)"'; then
+      POSTED+=("${ids[@]}")
+    else
+      for i in "${!ids[@]}"; do
+        id=${ids[$i]}
+        if jq ".comments = [.comments[$i] | del(.id)] | .body |= sub(\"[0-9]+ suggested\"; \"1 suggested\")" "$OUT/to-post.json" \
+          | gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --input - --jq '"posted \(.html_url)"'; then
+          POSTED+=("$id")
+        else
+          failed+=("$id")
+        fi
+      done
+      (( ${#failed[@]} == 0 )) || echo "::warning::suggestions ${failed[*]} could not be posted" >&2
+    fi
+  fi
+  UNRESOLVED=$(python3 "$HERE/review-state.py" render "$OUT" "$GH_REPO" "$2" "${failed[@]}")
+  OUT="$OUT/comment" "$HERE/pr-comment.sh" put review "$OUT/section.md"
+}
+
 report() {
   : "${HEAD_SHA:?}" "${HEAD_REF:?}"
-  local result=${REVIEW_RESULT:-success} commit= pushed=0 note= mins=
+  local result=${REVIEW_RESULT:-success} commit= note= mins=
   state > "$OUT/state.json"
   rm -f "$OUT/fixed-files.txt"
   if [[ ! -s $IN/plan.json ]]; then
@@ -165,13 +221,16 @@ report() {
   fi
   if [[ -z $note && $(jq -r .mode "$IN/plan.json") == auto-fix && -s $IN/fix.patch ]]; then
     local fixed remote unverified stray
-    fixed=$(jq -r '[.findings | to_entries[] | select(.value.fixed) | .key] | length' "$IN/findings.json")
+    git apply --numstat -z "$IN/fix.patch" | cut -z -f3- | tr '\0' '\n' | sort -u > "$OUT/fixed-files.txt"
+    jq --rawfile files "$OUT/fixed-files.txt" '[.findings[] | select(.fixed and (.file | IN($files | split("\n")[])))]' \
+      "$IN/findings.json" > "$OUT/fixed.json"
+    fixed=$(jq length "$OUT/fixed.json")
     remote=$(git ls-remote origin "refs/heads/$HEAD_REF" | cut -f1)
     unverified=$(jq '[.findings[] | select(.fixed and .verdict != "CONFIRMED")] | length' "$IN/findings.json")
-    stray=$(comm -23 <(git -c core.quotePath=false apply --numstat "$IN/fix.patch" | cut -f3- | sort -u) \
+    stray=$(comm -23 "$OUT/fixed-files.txt" \
       <(jq -r '.findings[] | select(.fixed and .verdict == "CONFIRMED") | .file' "$IN/findings.json" | sort -u) | wc -l)
     if (( fixed == 0 )); then
-      note="The review left changes in the working tree but marked no finding fixed, so they weren't pushed."
+      note="The review left changes in the working tree but marked no finding in those files fixed, so they weren't pushed."
     elif (( unverified > 0 )); then
       note="The fix also changed code for $unverified unconfirmed finding(s), so it wasn't pushed; its findings are suggestions instead."
     elif (( stray > 0 )); then
@@ -184,21 +243,11 @@ report() {
       git -c user.name="$BOT_NAME" -c user.email="$BOT_EMAIL" commit -q -F - <<EOF
 Fix $fixed finding(s) from the CI code review of ${HEAD_SHA::12}
 
-$(jq -r '.findings[] | select(.fixed) | "- \(.file):\(.line): \(.summary)"' "$IN/findings.json")
+$(jq -r '.[] | "- \(.file):\(.line): \(.summary)"' "$OUT/fixed.json")
 
 Review: suggest
 EOF
       commit=$(git rev-parse HEAD)
-      git -c core.quotePath=false diff-tree --no-commit-id --name-only -r HEAD > "$OUT/fixed-files.txt"
-      if [[ ${DRY_RUN:-0} == 1 ]]; then
-        echo "would push ${commit::12} to $HEAD_REF:"; git show --stat HEAD | sed 's/^/  | /'
-        pushed=1
-      elif git push origin "HEAD:refs/heads/$HEAD_REF"; then
-        pushed=1
-      else
-        note="Pushing the fix failed (the branch moved, or it touches .github/workflows/), so its findings are suggestions instead."
-        commit=
-      fi
     fi
   fi
   if [[ -n ${RUN_ID:-} ]]; then
@@ -206,23 +255,17 @@ EOF
       '[.jobs[] | select(.name == "review" and .completed_at != null) | ((.completed_at | fromdate) - (.started_at | fromdate))] | add // empty | . / 60 | ceil' 2>/dev/null) || mins=
   fi
   hunks > "$OUT/hunks.txt"
-  python3 "$HERE/review-state.py" decide "$OUT/state.json" "$IN" "$OUT" "$HEAD_SHA" "$commit" "$pushed" "${mins:-}" "${RUN_URL:-}"
-  local failed=() unresolved
-  if [[ $(jq '.comments | length' "$OUT/suggestions.json") -gt 0 ]]; then
+  POSTED=() UNRESOLVED=0
+  write_report "$commit" "$note"
+  if [[ -n $commit ]]; then
     if [[ ${DRY_RUN:-0} == 1 ]]; then
-      echo "would post a review with these suggestions:"; jq . "$OUT/suggestions.json" | sed 's/^/  | /'
-    elif ! jq 'del(.comments[].id)' "$OUT/suggestions.json" | gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --input - --jq '"posted \(.html_url)"'; then
-      local i id
-      for i in $(seq 0 $(($(jq '.comments | length' "$OUT/suggestions.json") - 1))); do
-        id=$(jq -r ".comments[$i].id" "$OUT/suggestions.json")
-        jq ".comments = [.comments[$i] | del(.id)] | .body |= sub(\"[0-9]+ suggested\"; \"1 suggested\")" "$OUT/suggestions.json" \
-          | gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --input - --jq '"posted \(.html_url)"' || failed+=("$id")
-      done
-      (( ${#failed[@]} == 0 )) || echo "::warning::suggestions ${failed[*]} could not be posted" >&2
+      echo "would push ${commit::12} to $HEAD_REF:"; git show --stat HEAD | sed 's/^/  | /'
+    elif ! git push origin "HEAD:refs/heads/$HEAD_REF"; then
+      note="Pushing the fix failed (the branch moved, or it touches .github/workflows/), so its findings are suggestions instead."
+      write_report "" "$note"
     fi
   fi
-  unresolved=$(python3 "$HERE/review-state.py" render "$OUT" "$GH_REPO" "$note" "${failed[@]}")
-  OUT="$OUT/comment" "$HERE/pr-comment.sh" put review "$OUT/section.md"
+  local unresolved=$UNRESOLVED
   if (( unresolved > 0 )) || [[ $result == failure ]]; then
     echo "::error::$unresolved confirmed finding(s) unresolved${note:+; $note}" >&2
     exit 1

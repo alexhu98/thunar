@@ -6,6 +6,10 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ${{ github.event_name == 'push' && format('release-{0}', github.ref) || format('run-{0}', github.run_id) }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -113,6 +117,7 @@ jobs:
       group: review-${{ github.ref }}
       cancel-in-progress: false
     permissions:
+      actions: read
       contents: read
       issues: read
       pull-requests: read
@@ -120,6 +125,8 @@ jobs:
       PR: ${{ github.event.pull_request.number }}
       HEAD_REF: ${{ github.head_ref }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      RUN_ID: ${{ github.run_id }}
+      RUN_NUMBER: ${{ github.run_number }}
       REVIEW_LEVEL: xhigh
       REVIEW_MODEL: claude-opus-5-5
     steps:
