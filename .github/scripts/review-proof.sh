@@ -34,7 +34,7 @@ print(m.group(1) if m else "{}")'
 
 schema() {
   cat <<'EOF'
-{"type":"object","required":["findings","previous"],"properties":{"findings":{"type":"array","items":{"type":"object","required":["file","line","severity","summary","failure_scenario","verdict","fixed"],"properties":{"file":{"type":"string","description":"repo-relative path"},"line":{"type":"integer","description":"line in the file at HEAD; the last line of the range when start_line is set"},"start_line":{"type":"integer","description":"first line of a multi-line range, if any"},"files":{"type":"array","items":{"type":"string"},"description":"every repo-relative file the fix changed, when it changed more than file"},"severity":{"type":"string","enum":["high","medium","low"]},"summary":{"type":"string","description":"one sentence"},"failure_scenario":{"type":"string","description":"concrete inputs or state -> wrong output or crash"},"verdict":{"type":"string","enum":["CONFIRMED","PLAUSIBLE"],"description":"CONFIRMED only if a verify pass confirmed it"},"fixed":{"type":"boolean","description":"true only if the fix is in the working tree now"},"suggestion":{"type":"string","description":"the exact replacement text for lines start_line..line (or line), without code fences; omit when the fix is not confined to those lines"},"reason":{"type":"string","description":"why it was not fixed, when fixed is false"}}}},"previous":{"type":"array","items":{"type":"object","required":["id","resolved"],"properties":{"id":{"type":"string"},"resolved":{"type":"boolean"},"note":{"type":"string"}}}}}}
+{"type":"object","required":["findings","previous"],"properties":{"findings":{"type":"array","items":{"type":"object","required":["file","line","severity","summary","failure_scenario","verdict","fixed"],"properties":{"file":{"type":"string","description":"repo-relative path"},"line":{"type":"integer","description":"line in the file at HEAD; the last line of the range when start_line is set"},"start_line":{"type":"integer","description":"first line of a multi-line range, if any"},"files":{"type":"array","items":{"type":"string"},"description":"every repo-relative file the fix changed, when it changed more than file"},"severity":{"type":"string","enum":["high","medium","low"]},"summary":{"type":"string","description":"one sentence"},"failure_scenario":{"type":"string","description":"concrete inputs or state -> wrong output or crash"},"verdict":{"type":"string","enum":["CONFIRMED","PLAUSIBLE"],"description":"CONFIRMED only if a verify pass confirmed it"},"fixed":{"type":"boolean","description":"true only if the fix is in the working tree now"},"suggestion":{"type":"string","description":"the exact replacement text for lines start_line..line (or line), without code fences; omit when the fix is not confined to those lines"},"reason":{"type":"string","description":"why it was not fixed, when fixed is false"}}}},"previous":{"type":"array","items":{"type":"object","required":["id","resolved"],"properties":{"id":{"type":"string"},"resolved":{"type":"boolean"},"fixed":{"type":"boolean","description":"auto-fix only: true if you fixed it in the working tree in this review"},"file":{"type":"string","description":"its file, when fixed"},"files":{"type":"array","items":{"type":"string"},"description":"every file its fix changed, when more than file"},"note":{"type":"string"}}}}}}
 EOF
 }
 
@@ -148,8 +148,8 @@ history from the session that wrote it.
 EOF
   if [[ $1 == auto-fix ]]; then
     cat <<EOF
-3. Fix each CONFIRMED finding in the working tree, and change no code for a PLAUSIBLE one or one already listed in
-   $OUT/open.json or $OUT/accepted.json. Don't stage, commit, push or switch branches. Set fixed to true only if
+3. Fix each CONFIRMED finding in the working tree, and each finding in $OUT/open.json that is still there at HEAD.
+   Change no code for a PLAUSIBLE one or one in $OUT/accepted.json. Don't stage, commit, push or switch branches. Set fixed to true only if
    the finding's fix is in the working tree now; otherwise give the reason. When a fix changes more files than the
    finding's own, list every file it changed in files. Also give the exact replacement text as suggestion for each
    finding whose fix fits in its own lines, in case the fix can't be pushed.
@@ -162,7 +162,8 @@ EOF
   fi
   cat <<EOF
 4. $OUT/open.json lists findings from earlier reviews that are still open. For each, check the code at HEAD and report
-   in previous whether it is resolved, by its id.
+   in previous whether it is resolved, by its id. If you fixed it in step 3, set fixed and resolved to true and give
+   its file, and files if the fix changed more.
 5. Return the findings and previous in the output schema. Report every finding the skill reported, except one
    already listed in open.json: report that one only in previous. Leave out any finding that matches one in
    $OUT/accepted.json: the PR's author kept those on purpose.
@@ -206,12 +207,15 @@ report() {
   if [[ -z $note && $(jq -r .mode "$IN/plan.json") == auto-fix && -s $IN/fix.patch ]]; then
     local fixed remote unverified stray
     git apply --numstat -z "$IN/fix.patch" | cut -z -f3- | tr '\0' '\n' | sort -u > "$OUT/fixed-files.txt"
-    jq --rawfile files "$OUT/fixed-files.txt" '[.findings | to_entries[] | .value + {i: .key}
+    jq '[.findings | to_entries[] | .value + {i: .key}] + [.previous[]? | select(.fixed) | {id, file, files,
+      line: (.line // 0), summary: "still open from an earlier review", verdict: "CONFIRMED", fixed: true}]' \
+      "$IN/findings.json" > "$OUT/all.json"
+    jq --rawfile files "$OUT/fixed-files.txt" '[.[]
       | select(.fixed and all(if (.files // []) == [] then .file else .files[] end; IN($files | split("\n")[])))]' \
-      "$IN/findings.json" > "$OUT/fixed.json"
+      "$OUT/all.json" > "$OUT/fixed.json"
     fixed=$(jq length "$OUT/fixed.json")
     remote=$(git ls-remote origin "refs/heads/$HEAD_REF" | cut -f1)
-    unverified=$(jq '[.findings[] | select(.fixed and .verdict != "CONFIRMED")] | length' "$IN/findings.json")
+    unverified=$(jq '[.[] | select(.fixed and .verdict != "CONFIRMED")] | length' "$OUT/all.json")
     stray=$(comm -23 "$OUT/fixed-files.txt" \
       <(jq -r '.[] | if (.files // []) == [] then .file else .files[] end' "$OUT/fixed.json" | sort -u) | wc -l)
     if (( fixed == 0 )); then
@@ -228,7 +232,7 @@ report() {
       git -c user.name="$BOT_NAME" -c user.email="$BOT_EMAIL" commit -q -F - <<EOF
 Fix $fixed finding(s) from the CI code review of ${HEAD_SHA::12}
 
-$(jq -r '.[] | "- \(.file):\(.line): \(.summary)"' "$OUT/fixed.json")
+$(jq -r '.[] | "- \(.id // "new"): \(.file)\(if .line > 0 then ":\(.line)" else "" end): \(.summary)"' "$OUT/fixed.json")
 
 Review: suggest
 EOF

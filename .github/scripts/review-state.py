@@ -68,7 +68,9 @@ def open_findings(state_p, out):
 
 def decide(state_p, inp, out, sha, commit, mins, run_url):
     state = load(state_p, {})
-    done = {f['i'] for f in load(os.path.join(out, 'fixed.json'), [])}
+    fixed = load(os.path.join(out, 'fixed.json'), [])
+    done = {f['i'] for f in fixed if 'i' in f}
+    done_open = {f['id'] for f in fixed if 'id' in f}
     plan = load(os.path.join(inp, 'plan.json'), {})
     res = load(os.path.join(inp, 'findings.json'))
     findings = state.get('findings', [])
@@ -84,7 +86,9 @@ def decide(state_p, inp, out, sha, commit, mins, run_url):
         prev = {p['id']: p for p in res.get('previous', [])}
         for f in findings:
             p = prev.get(f['id'])
-            if f['status'] in OPEN and p and p.get('resolved'):
+            if f['status'] in OPEN and commit and f['id'] in done_open:
+                f['status'], f['commit'], f['new'] = 'fixed', commit, True
+            elif f['status'] in OPEN and p and p.get('resolved'):
                 f['status'], f['new'] = 'resolved', True
                 f['detail'] = f"resolved by {sha[:12]}" + (f": {cap(p['note'])}" if p.get('note') else '')
         for f in findings:
