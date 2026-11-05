@@ -91,7 +91,7 @@ def decide(state_p, inp, out, sha, commit, mins, run_url, result):
     findings = state.get('findings', [])
     acc = acceptances(out)
     for f in findings:
-        if result != 'failure':
+        if result != 'failure' and not plan.get('skip'):
             f.pop('new', None)
         if f['status'] in OPEN and accepts(f, acc):
             f['status'], f['new'] = 'accepted', True

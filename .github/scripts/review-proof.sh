@@ -140,6 +140,7 @@ plan() {
         printf '\nIts comments could not be read.\n' >> "$OUT/issue.md"
       fi
     fi
+    rm -f "$OUT/issue.json"
   else
     echo "This branch is not named after an issue." > "$OUT/issue.md"
   fi
