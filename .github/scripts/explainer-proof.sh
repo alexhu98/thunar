@@ -77,22 +77,6 @@ section() {  # the explainer section of the comment, for each image URL in $OUT/
   echo '<!-- explainer:end -->'
 }
 
-upload() {  # local png, path on shots -> commit sha
-  local body="$OUT/upload.json" blob attempt sha
-  [[ -s $1 ]] || { echo "::error::$1 is missing; run render first" >&2; return 1; }
-  for attempt in 1 2; do
-    blob=$(gh api "repos/{owner}/{repo}/contents/$2?ref=shots" -H 'Accept: application/vnd.github.object' --jq .sha 2>/dev/null) || blob=
-    jq -n --arg m "Explainer image for PR #$PR" --arg b shots --arg s "$blob" --rawfile c <(base64 -w0 "$1") \
-      '{message: $m, branch: $b, content: $c} + (if $s == "" then {} else {sha: $s} end)' > "$body"
-    if sha=$(gh api -X PUT "repos/{owner}/{repo}/contents/$2" --input "$body" --jq .commit.sha) && [[ $sha =~ ^[0-9a-f]{40}$ ]]; then
-      echo "$sha"
-      return
-    fi
-    echo "upload of $2 failed (attempt $attempt)" >&2
-  done
-  return 1
-}
-
 publish() {
   [[ -n ${PR:-} || ${DRY_RUN:-0} == 1 ]] || { echo "publish needs PR" >&2; exit 1; }
   : "${GH_REPO:?}"
@@ -110,7 +94,7 @@ publish() {
       echo "would upload $OUT/explainer-$issue.png to shots:$path"
       sha=DRY-RUN
     else
-      sha=$(upload "$OUT/explainer-$issue.png" "$path")
+      sha=$(OUT="$OUT/shots" "$(dirname "$0")/shots.sh" "$OUT/explainer-$issue.png" "$path" "Explainer image for PR #$PR")
       echo "uploaded shots:$path in ${sha::12}"
     fi
     echo "$page https://github.com/$GH_REPO/blob/$sha/$path?raw=true" >> "$OUT/urls"

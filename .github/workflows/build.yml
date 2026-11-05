@@ -79,6 +79,72 @@ jobs:
           path: dist/*.deb
           retention-days: 14
 
+  verify:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    concurrency:
+      group: verify-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: debs
+          path: dist
+
+      - name: Pick the deb cache key
+        id: debs
+        run: echo "key=verify-debs-$ImageOS-$ImageVersion-" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: ~/verify-debs
+          key: ${{ steps.debs.outputs.key }}${{ github.run_id }}
+          restore-keys: ${{ steps.debs.outputs.key }}
+
+      - name: Install Thunar and the test tools
+        id: install
+        run: .github/scripts/verify-proof.sh install >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache/save@v4
+        if: steps.install.outputs.cached == 'false'
+        with:
+          path: ~/verify-debs
+          key: ${{ steps.debs.outputs.key }}${{ github.run_id }}
+
+      - name: Smoke test and verify/*.sh
+        id: run
+        run: .github/scripts/verify-proof.sh run
+
+      - name: Upload the screenshots and update the PR comment
+        if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: .github/scripts/verify-proof.sh publish
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: verify
+          path: |
+            ${{ runner.temp }}/verify-proof/results.tsv
+            ${{ runner.temp }}/verify-proof/verify.tsv
+            ${{ runner.temp }}/verify-proof/logs/
+            ${{ runner.temp }}/verify-proof/shots/
+          if-no-files-found: ignore
+          retention-days: 14
+
   explainer:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
