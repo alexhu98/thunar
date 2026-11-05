@@ -22,7 +22,7 @@ MODEL=${REVIEW_MODEL:-claude-opus-5-5}
 HERE=$(cd "$(dirname "$0")" && pwd)
 BOT_NAME='claude[bot]'
 BOT_EMAIL='209825114+claude[bot]@users.noreply.github.com'
-NOT_IN_FIX=(':!explainers/' ':!.claude' ':!CLAUDE.md' ':!CLAUDE.local.md' ':!.mcp.json' ':!.claude.json' ':!.gitmodules' ':!.ripgreprc' ':!.husky' ':!.github/workflows/')
+NOT_IN_FIX=(':!explainers/' ':!.claude' ':!CLAUDE.md' ':!CLAUDE.local.md' ':!.mcp.json' ':!.claude.json' ':!.gitmodules' ':!.ripgreprc' ':!.husky' ':!.github/workflows/' ':!.github/scripts/')
 mkdir -p "$OUT"
 
 state() {  # the review state saved in the PR comment -> stdout (JSON; {} when there is none)
