@@ -83,7 +83,7 @@ session() {
   [[ -s $XDG_RUNTIME_DIR/display ]] || { cat "$XVFB_LOG" >&2; echo "FAIL: Xvfb did not start" >&2; return 1; }
   DISPLAY=:$(cat "$XDG_RUNTIME_DIR/display")
   export DISPLAY
-  dbus-update-activation-environment DISPLAY 2>/dev/null || true
+  dbus-update-activation-environment DISPLAY || echo "warning: services that D-Bus starts won't get DISPLAY" >&2
   xfwm4 --compositor=off --sm-client-disable &
   for ((i = 0; i < 50; i++)); do
     xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null | grep -q 'window id' && break
@@ -125,7 +125,7 @@ not_run() {  # name, status, reason
 }
 
 run() {
-  rm -rf "$OUT/logs" "$OUT/run" "$OUT/shots" "$OUT/complete"
+  rm -rf "$OUT/logs" "$OUT/run" "$OUT/shots" "$OUT/complete" "$OUT/verify.tsv"
   mkdir -p "$OUT/logs"
   : > "$OUT/results.tsv"
   theme > "$OUT/theme"
