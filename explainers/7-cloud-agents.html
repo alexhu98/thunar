@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #18 Verify job</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #18: CI proves every PR in a running Thunar</h1>
+  <p class="lead" data-k="lead">Branch <code>7-cloud-agents</code> → <code>main</code>, refs #7 (sections 1–3). Every PR now gets a <code>verify</code> job: it installs the PR's Thunar under a virtual display, checks that it starts, runs the PR's own test script and posts the screenshots in the PR comment. The repo also carries the rules and skills a cloud agent needs.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: the sandbox check, the #3 trial, then #2</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">A <code>verify</code> job in <code>build.yml</code>, run by <code>verify-proof.sh</code>. A repo <code>CLAUDE.md</code> that cloud sessions read. Three ported skills that audit screenshots before anyone trusts them.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="The build job's debs are installed, smoke-tested and feature-tested under Xvfb; the screenshots go to the shots branch and the PR comment, where they are audited before the owner merges">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① verify job: every PR and every push to main</text>
+    <g data-k="1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Build (#1)</text>
+      <text x="36" y="114" class="m">debs artifact</text>
+      <text x="36" y="134" class="b">5 debs of this PR,</text>
+      <text x="36" y="154" class="b">already on main</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Install</text>
+      <text x="286" y="114" class="m">install</text>
+      <text x="286" y="134" class="b">3 debs + test tools,</text>
+      <text x="286" y="154" class="b">from the deb cache</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Smoke test</text>
+      <text x="536" y="114" class="m">Xvfb + xfwm4</text>
+      <text x="536" y="134" class="b">Thunar still running</text>
+      <text x="536" y="154" class="b">after 10 s, one shot</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Feature tests</text>
+      <text x="786" y="114" class="m">verify/*.sh</text>
+      <text x="786" y="134" class="b">xdotool drives it,</text>
+      <text x="786" y="154" class="b">before/after shots</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--accent)">② publish: PRs only, even when a test failed</text>
+    <g data-k="5">
+      <rect class="box-pr" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Shots branch</text>
+      <text x="786" y="314" class="m">pr-&lt;n&gt;/</text>
+      <text x="786" y="334" class="b">every PNG, and the</text>
+      <text x="786" y="354" class="b">verify.tsv manifest</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-pr" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">PR comment</text>
+      <text x="536" y="314" class="m">verify section</text>
+      <text x="536" y="334" class="b">results table and</text>
+      <text x="536" y="354" class="b">each shot's caption</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-you" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Audit, merge</text>
+      <text x="286" y="314" class="m">/visual-verify</text>
+      <text x="286" y="334" class="b">agent audits shots;</text>
+      <text x="286" y="354" class="b">you review, merge</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M520,320 H484" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new in this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>already on main</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>the agent and you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Issue #7 hands features to Claude Code sessions in the cloud. Such a session writes the code and opens a PR, but its sandbox may not be able to build or run Thunar, and a report saying "it works" proves nothing. So the proof has to come from CI: a job that installs exactly the debs the PR built, runs Thunar on a virtual screen, drives it like a user and photographs the result. The cloud session also can't see the owner's personal Claude settings. So the rules it must follow, and the skill that checks screenshots, have to live in the repo.</p>
+  <div class="note" data-k="note">The PR comment's verify section is the proof: CI ran the script, and the screenshots are what it saw. An agent's own report is not proof, and neither is a green check whose pictures nobody looked at. Before you merge, look at the shots.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① verify job</div>
+  <ol class="steps">
+    <li data-k="1"><b>Build (#1).</b> The existing build job makes the PR's 5 debs and uploads them as the <code>debs</code> artifact. <code>verify</code> waits for it (<code>needs: build</code>) and downloads them into <code>dist/</code>.</li>
+    <li data-k="2"><b>Install.</b> <code>verify-proof.sh install</code> installs <code>thunar</code>, <code>thunar-data</code> and <code>libthunarx-3-0</code>, plus Xvfb, xfwm4, xdotool, ImageMagick and Zorin's GTK themes. It first tries the debs cached for this runner image with one <code>dpkg -i</code>. If any of them doesn't install, or a tool is missing, it uses apt with <code>ppa:zorinos/stable</code>, which repairs what dpkg left. It then saves the installed versions as a new cache entry.</li>
+    <li data-k="3"><b>Smoke test.</b> <code>verify-proof.sh run</code> gives the test its own Xvfb, xfwm4 and D-Bus session, and launches Thunar on a folder of 2 folders and a file. It checks that Thunar is still running after 10 s and photographs its window (<code>import -window</code>).</li>
+    <li data-k="4"><b>Feature tests.</b> Then each <code>verify/&lt;issue&gt;.sh</code> runs the same way, with its own Xvfb, D-Bus session, <code>HOME</code> and XDG folders, for at most 120 s. A script with any other name fails the job unrun. The script drives Thunar with <code>xdotool</code> and checks the result (window title, files on disk). It saves before/after shots, each with a sentence saying what it proves, and exits non-zero on failure.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--accent)">② publish</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Shots branch.</b> <code>verify-proof.sh publish</code> commits each PNG to the orphan <code>shots</code> branch as <code>pr-&lt;n&gt;/verify-&lt;test&gt;-&lt;shot&gt;.png</code>, through the new <code>shots.sh</code>, which the explainer job now shares. It also commits the manifest <code>verify.tsv</code>, with each shot's file, result, caption and commit.</li>
+    <li data-k="6"><b>PR comment.</b> It writes the <code>verify</code> section of the comment marked <code>&lt;!-- pr-proof --&gt;</code>, beside the explainer and review sections. The section has a results table, the log tail of any failed test, and each screenshot under its caption. It runs even when a test failed, so a broken feature still shows its pictures.</li>
+    <li data-k="7"><b>Audit, merge.</b> The agent runs <code>/visual-verify pr:&lt;n&gt;</code>. That skill fetches the shots and the manifest from the shots branch with git alone. A read-only auditor reads every PNG and checks its caption. You review the shots and merge only when build and verify are green.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="parts">
+  <h3 class="sec">A closer look at the pieces</h3>
+  <div class="grid">
+    <div class="card" data-k="c1"><h3>Repo CLAUDE.md</h3><p>Branches <code>&lt;issue&gt;-&lt;slug&gt;</code> into <code>main</code>, with <code>Closes</code> or <code>Refs</code>; never <code>upstream</code>, <code>master</code> or <code>xfce-4.20</code>. It also has the build lessons, the <code>verify/&lt;issue&gt;.sh</code> contract and the explainer and review rules. Two of the owner's own rules come along: no new explanatory comments, and audit every screenshot.</p></div>
+    <div class="card" data-k="c2"><h3>visual-verify, shot-audit, shot-auditor</h3><p>Ported from nx-connect-ui. They keep the gate (PASS, FAIL, INCONCLUSIVE), the read-only auditor, the BLANK and MISMATCH verdicts and the mandatory before-to-after section. Storybook and Playwright give way to Xvfb, <code>xdotool</code> and <code>import</code>, and Figma, the 403 tripwire and the clip check are gone.</p></div>
+    <div class="card" data-k="c3"><h3>verify-lib.sh</h3><p>What a feature script sources: <code>open_thunar</code>, <code>focus</code>, <code>wait_title</code>, <code>shot</code>, <code>fail</code>. <code>focus</code> exists because GTK ignores <code>xdotool key --window</code>, which an early test run showed.</p></div>
+    <div class="card" data-k="c4"><h3>The deb cache</h3><p>Keyed by the runner image (<code>ImageOS</code>, <code>ImageVersion</code>), so a new image starts fresh. A hit skips the PPA, <code>apt-get update</code> and the downloads. A miss saves a new entry. The run on main warms the cache for every PR on the same image, because a PR can't read another PR's cache.</p></div>
+    <div class="card" data-k="c5"><h3>Theme</h3><p>Zorin's GTK theme is in the PPA (<code>zorin-desktop-themes</code>, 0.6 MB), so shots use ZorinBlue-Dark, the owner's theme. Adwaita-dark is the fallback if it's missing. The 46 MB Zorin icon theme is left out, because screenshots prove behavior, not pixels.</p></div>
+    <div class="card" data-k="c6"><h3>Pinned image links</h3><p>The issue writes <code>blob/shots/…</code>. The comment links each image by the <code>shots</code> commit that added it (<code>blob/&lt;sha&gt;/…</code>), as the explainer already does, so a later push can't show an old picture under new results.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="contract">
+  <h3 class="sec">What a verify/&lt;issue&gt;.sh gets</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Name</th><th>What it is</th></tr>
+    <tr data-k="e1"><td><code>DISPLAY</code></td><td>its own Xvfb at 1280×800, with xfwm4 managing windows</td></tr>
+    <tr data-k="e2"><td><code>HOME</code>, D-Bus</td><td>fresh for each script, with its own XDG folders, so no Thunar instance or setting carries over from an earlier test</td></tr>
+    <tr data-k="e3"><td><code>WORK</code></td><td>an empty folder for the test's files</td></tr>
+    <tr data-k="e4"><td><code>SHOTS</code></td><td>where <code>shot</code> writes <code>&lt;name&gt;.png</code> and its line in <code>shots.tsv</code></td></tr>
+    <tr data-k="e5"><td><code>GTK_THEME</code></td><td><code>ZorinBlue-Dark</code>, or <code>Adwaita:dark</code> without it</td></tr>
+    <tr data-k="e6"><td>limit</td><td>120 s per script; a script that could end after 15 min of tests is reported as not run; it runs with <code>bash</code> from the repo root</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">.github/
+├── workflows/build.yml          # new verify job after build: cache, install, run, publish
+└── scripts/
+    ├── verify-proof.sh          # new: install | run | publish, and the smoke test
+    ├── verify-lib.sh            # new: helpers that verify/&lt;issue&gt;.sh sources
+    ├── shots.sh                 # new: commits one file to the shots branch
+    └── explainer-proof.sh       # now uploads through shots.sh
+.claude/
+├── agents/shot-auditor.md       # read-only screenshot auditor
+└── skills/
+    ├── shot-audit/SKILL.md      # forks the audit into shot-auditor
+    └── visual-verify/           # the gate: SKILL.md, README.md
+CLAUDE.md                        # branches, build lessons, verify, comments, screenshots
+explainers/7-cloud-agents.html   # this page</pre>
+  <div class="note" data-k="undo">To turn verify off, delete the <code>verify</code> job from <code>build.yml</code>. Nothing else depends on it. The other comment sections, the build and the release don't read it. Cached debs that no run uses are dropped by GitHub after 7 days.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Most of it was run in a container set up like the runner before any push, then for real on this PR's CI. A real feature script and the cache's first hit on main come after the merge.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>main's debs</h3><p>The <code>debs</code> artifact of CI run 41982366946 (<code>v4.20.10+local5</code>), which the container tests installed.</p></div>
+    <div class="card" data-k="r2"><h3>explainer-proof.sh (#9)</h3><p>The pattern verify copies: check, render, then upload to <code>shots</code> and write one section of the shared PR comment.</p></div>
+    <div class="card" data-k="r3"><h3>nx-connect-ui's skills</h3><p><code>shot-audit</code>, <code>visual-verify</code> and the <code>shot-auditor</code> agent, which are the source of the port.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Install, cache miss</td><td><code>verify-proof.sh install</code> in an <code>ubuntu:24.04</code> container with a sudo user, main's debs, empty cache</td><td class="ok">166 packages, 73–88 s (2 runs), 163 debs cached</td></tr>
+    <tr data-k="c2"><td>Install, cache hit</td><td>the same in a fresh container, given those 163 debs</td><td class="ok">one dpkg -i, 34–44 s (4 runs)</td></tr>
+    <tr data-k="c2b"><td>Install, broken cache</td><td>a cache with <code>libxfce4ui-2-0</code> removed: dpkg fails, apt repairs and installs; the first version of this path failed here and was fixed</td><td class="ok">all installed, dpkg audit clean, cache back to 163</td></tr>
+    <tr data-k="c3"><td>Smoke test</td><td><code>verify-proof.sh run</code> in that container; screenshot read and audited</td><td class="ok">pass in 13 s; ZorinBlue-Dark, 2 folders + 1 file</td></tr>
+    <tr data-k="c4"><td>Feature-test runner</td><td>4 throwaway scripts, not committed. One opens a child folder through the location bar. One opens a second window and checks the XDG folders, with the runner's <code>XDG_CONFIG_HOME</code> set. One gives a two-line caption, and one waits for a title that never comes.</td><td class="ok">2 pass; 2 fail as meant, log tails shown</td></tr>
+    <tr data-k="c5"><td>Publish, dry run</td><td><code>DRY_RUN=1 verify-proof.sh publish</code> after those runs</td><td class="ok">section and manifest as designed</td></tr>
+    <tr data-k="c5b"><td>Publish, uploads failing</td><td>a fake <code>gh</code> that refuses every upload to <code>shots</code></td><td class="ok">section posted, 4 shots marked, exit 1</td></tr>
+    <tr data-k="c6"><td>The one-list apt lesson</td><td><code>apt-get update</code> with only the PPA's list, in a container</td><td class="ok">15 lists → 1; libgtk-3 no candidate</td></tr>
+    <tr data-k="c7"><td>Lint</td><td>shellcheck on the 4 scripts, actionlint on the workflow</td><td class="ok">clean but SC2097/8 (intended)</td></tr>
+    <tr data-k="c8"><td>This PR's CI, first push</td><td>CI run 41996801445 at <code>e16447d683ac</code>, on GitHub's runner</td><td class="ok">build, verify, explainer green; verify 1 min 41 s, install 69 s (cache miss)</td></tr>
+    <tr data-k="c9"><td>CI's smoke shot</td><td><code>shot-audit</code> (the read-only auditor) on <code>pr-18/verify-smoke-window.png</code>, fetched from <code>shots</code> with git; manifest sha = PR head</td><td class="ok">OK; VERDICT: PASS</td></tr>
+    <tr data-k="c10"><td>This PR's CI, second push</td><td>CI run 42000874804 at <code>fdede87257d3</code>; GitHub moved this job to a new runner image (20261026 → 20261101), so its cache entry didn't apply</td><td class="ok">build, verify, explainer green; install 63 s, a new 31-deb entry saved</td></tr>
+    <tr data-k="c11"><td>This PR's CI, third push</td><td>CI run 42003389414 at <code>875d93419b83</code>, back on image 20261026, restored run 41996801445's entry</td><td class="ok">cache hit: 31 debs in 11 s; verify job 47 s; all green but review-report</td></tr>
+    <tr data-k="c12"><td>Billed Actions minutes</td><td>each job of the 3 runs above, rounded up per job as GitHub bills; this page's own push and the full total are in #7</td><td class="ok">66: review 42, build 13, verify 5, explainer 3, report 3</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh <code>general-purpose</code> agent was given only the diff (at <code>7d054baf3</code>) and issue #7. It found 6 issues: 1 medium, 3 low and 2 in the docs. All 6 were fixed and re-run in the container. It also reproduced the cache-fallback bug on the earlier commit and confirmed the fix. Then CI's review of the first push (Opus 5.5 at <code>xhigh</code>, 20 min) found 15 more, 5 of them medium. It may not change <code>.github/</code> or <code>.claude/</code>, so they were fixed by hand: 13 fixed, 2 low ones accepted. Its verdicts on each push are in the PR comment's review section.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Isolation (medium):</b> GitHub's runner sets <code>XDG_CONFIG_HOME</code>, so Thunar's settings would have leaked from one test to the next despite the fresh <code>HOME</code>. Each test now gets its own XDG folders.</li>
+    <li data-k="b2"><b>Second window:</b> a second <code>open_thunar</code> hands off to the running Thunar and exits, so it found no window. It now waits for that instance's new window.</li>
+    <li data-k="b3"><b>Captions:</b> a caption with a tab or line break split the manifest and stopped publish. <code>shot</code> now refuses it.</li>
+    <li data-k="b4"><b>Failed uploads:</b> one failed upload skipped the whole comment, so it kept the last push's results. The shot is now marked and the job still fails.</li>
+    <li data-k="b5"><b>Docs:</b> two lines on this page described the cache wrongly. They are fixed.</li>
+    <li data-k="b6"><b>CI R3 (medium):</b> tests shared one X server, so the next test's window-manager check could see the last test's xfwm4. Each test now starts its own Xvfb.</li>
+    <li data-k="b7"><b>CI R2 (medium):</b> a failing test's log, pasted into the shared comment, could fake the review state line that review-proof.sh reads. Log lines are now indented, with backticks replaced.</li>
+    <li data-k="b8"><b>CI R1, R4, R5 (medium):</b> the manifest now marks a lost upload as file <code>-</code>. The skill fetches <code>shots</code> with an explicit refspec, which works in single-branch clones. Scripts get 120 s each, within a 15-minute budget for the whole run, so a hang can't stop the comment.</li>
+    <li data-k="b9"><b>CI, low:</b> duplicate shot names and scripts not named <code>verify/&lt;issue&gt;.sh</code> now fail. A killed test is reported as a timeout. No sleep after the last failed upload, and no <code>apt-get -f</code> on a plain cache miss. The dry run moved into <code>shots.sh</code>, an explanatory comment was removed, and an empty cache folder can't stop install.</li>
+    <li data-k="b11"><b>CI, second round:</b> it confirmed those fixes and found 9 more. The 2 medium ones: a run stopped by the step limit looked all-pass, and the explainer job (from #9) skipped its section when its upload failed. Both are fixed. So are the timeout label, which now comes from the exit code, <code>DISPLAY</code> for services D-Bus starts, the per-test Xvfb logs, and the <code>CLAUDE.md</code> wording.</li>
+    <li data-k="b12"><b>CI, third round:</b> it confirmed R17 and R20 as fixed and raised 9 low ones. Three are fixed: an interrupted local run no longer leaves the last manifest behind (R25), a failed <code>DISPLAY</code> hand-off to D-Bus is now logged (R29), and <code>CLAUDE.md</code> says a script skipped by the budget fails the job (R31). The other 6 are left open. It didn't re-check R5 and R16, the time budget and the cut-short marker. Both are fixed in <code>875d93419</code> and were run in the container (a 130 s budget, a missing completion marker), so this page's push closes them with <code>Review-accept</code>.</li>
+    <li data-k="b10"><b>CI, accepted:</b> R11, one commit per screenshot, is fine at a few shots per PR. R14, releases don't wait for verify, is by design, because the owner's merge is the gate. R18, a broken Xvfb failing every test instead of once, is rare enough to leave.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>Cache hit across PRs</td><td>only a cache saved on main is visible to every PR</td><td class="open">the verify run on the merge to main, then the next PR</td></tr>
+    <tr data-k="a2"><td>A real <code>verify/&lt;issue&gt;.sh</code></td><td>this PR ships none, by design</td><td class="open">#3's trial PR (<code>verify/3.sh</code>)</td></tr>
+    <tr data-k="a3"><td>The cloud sandbox</td><td>it needs a Claude Code web session the owner starts</td><td class="open">section 4 of #7</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/18">PR #18</a> → “Files changed”</li>
+    <li data-k="l2">The spec: <a href="https://github.com/alexhu98/thunar/issues/7">issue #7</a></li>
+    <li data-k="l3">The screenshots: the <code>shots</code> branch, folder <code>pr-18/</code></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: the sandbox check, the #3 trial, then #2</h2>
+  <p class="intro" data-k="intro">The rest of #7 tries the workflow for real. #2 then ships features to the machines, but only once they come through proven PRs.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR, then the owner's sandbox check, then the #3 trial run with its minutes, then #2's auto-deploy">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">#7 cloud workflow, then #2 auto-deploy</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">CLAUDE.md, skills,</text>
+      <text x="36" y="134" class="b">the verify job</text>
+      <text x="36" y="154" class="b">(sections 1–3)</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Sandbox check</text>
+      <text x="286" y="114" class="b">your web session:</text>
+      <text x="286" y="134" class="b">PPA, build, Xvfb?</text>
+      <text x="286" y="154" class="b">(section 4)</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">#3 trial run</text>
+      <text x="536" y="114" class="b">an agent's PR with</text>
+      <text x="536" y="134" class="b">verify/3.sh; record</text>
+      <text x="536" y="154" class="b">its Actions minutes</text>
+    </g>
+    <g data-k="n4">
+      <rect class="box-future" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">#2 auto-deploy</text>
+      <text x="786" y="114" class="b">releases reach the</text>
+      <text x="786" y="134" class="b">desktop and laptop</text>
+      <text x="786" y="154" class="b">only proven PRs</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M730,120 H766" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="sandbox">
+  <h3 class="sec">#7 section 4: the sandbox check (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>One web session, no code.</b> You start a Claude Code web session on this repo. It checks whether its sandbox can add <code>ppa:zorinos/stable</code>, install the build deps, build from git and run <code>verify-proof.sh install</code> and <code>run</code>.</li>
+    <li data-k="2"><b>Record it in #7.</b> If a step fails, agents still write code there, and only CI builds and verifies. <code>CLAUDE.md</code> already says so.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="trial">
+  <h3 class="sec">#7: the #3 trial run</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>An agent implements #3.</b> A web session implements double-click on blank space to open the parent folder, from branch <code>3-…</code>. It adds <code>verify/3.sh</code> with before/after shots, which is the first real feature test in this job.</li>
+    <li data-k="2"><b>Its minutes are recorded.</b> The billed Actions minutes of the whole PR go in #7, against the ~60–80 per feature estimate.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-2">
+  <h3 class="sec">#2 Auto-deploy CI builds to desktop and laptop</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Releases reach the machines.</b> An updater installs each GitHub Release that #1 publishes. Under the merge rule in <code>CLAUDE.md</code>, a release only follows a merge whose build and verify jobs were green and whose screenshots you reviewed.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>An X server that draws into memory instead of a screen, so GUI apps run on a CI machine.</dd></div>
+    <div data-k="xfwm4"><dt>xfwm4</dt><dd>Xfce's window manager. It gives windows focus and frames, as on the desktop.</dd></div>
+    <div data-k="xdotool"><dt>xdotool</dt><dd>A command that finds windows and sends them clicks and keys, like a user.</dd></div>
+    <div data-k="import"><dt>import</dt><dd>ImageMagick's screenshot command. <code>import -window &lt;id&gt;</code> saves one window as a PNG.</dd></div>
+    <div data-k="dbus"><dt>dbus-run-session</dt><dd>Runs a command with its own private D-Bus, so each test gets its own Thunar and settings service.</dd></div>
+    <div data-k="smoke"><dt>Smoke test</dt><dd>The cheapest check that the build isn't broken: it starts and stays up.</dd></div>
+    <div data-k="shots"><dt>shots branch</dt><dd>An orphan branch, sharing no history with the code, that only stores CI's images.</dd></div>
+    <div data-k="manifest"><dt>verify.tsv</dt><dd>The list of a run's shots: test, result, shot, file and what it proves.</dd></div>
+    <div data-k="cache"><dt>Deb cache</dt><dd>The .deb files apt downloaded, saved by GitHub between runs so the next run can skip apt.</dd></div>
+    <div data-k="image"><dt>Runner image</dt><dd>The VM image GitHub runs jobs on. <code>ImageVersion</code> changes about weekly.</dd></div>
+    <div data-k="ppa"><dt>PPA</dt><dd>A Launchpad package archive. <code>ppa:zorinos/stable</code> has the Xfce 4.20 libraries and Zorin's themes.</dd></div>
+    <div data-k="blank"><dt>BLANK, MISMATCH</dt><dd>Audit verdicts: the frame shows nothing useful, or it shows the wrong state.</dd></div>
+    <div data-k="web"><dt>Claude Code web session</dt><dd>Claude Code running in a cloud sandbox on claude.ai/code, working on a GitHub repo.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>

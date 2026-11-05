@@ -3,7 +3,7 @@
 #   check    a PR from a <n>-<slug> branch must add or change explainers/<n>-*.html; other branches are exempt
 #   render   each explainers/<issue>-*.html the PR adds or changes (or each page given) -> 1200px full-page dark PNG
 #   publish  commits each PNG to the shots branch as pr-$PR/explainer-<issue>.png and puts it in the PR comment's
-#            explainer section, through pr-comment.sh
+#            explainer section, through pr-comment.sh. A failed upload is marked in the section, and publish then fails.
 # Env: PR (number), HEAD_REF (branch, default the current one), HEAD_SHA, BASE (default origin/main), OUT.
 # DRY_RUN=1 runs check and render, then prints the comment instead of uploading and posting.
 set -euo pipefail
@@ -71,26 +71,14 @@ section() {  # the explainer section of the comment, for each image URL in $OUT/
   echo '<!-- explainer:start -->'
   while read -r page url; do
     issue=$(basename "$page" | cut -d- -f1)
-    printf '### Explainer: `%s`\n\nDark mode, %spx wide, full page, as of %s.\n\n![Explainer for #%s](%s)\n\n' \
-      "$page" "$WIDTH" "${sha::12}" "$issue" "$url"
+    if [[ $url == - ]]; then
+      printf '### Explainer: `%s`\n\nThe upload of its image failed, as of %s. See the run.\n\n' "$page" "${sha::12}"
+    else
+      printf '### Explainer: `%s`\n\nDark mode, %spx wide, full page, as of %s.\n\n![Explainer for #%s](%s)\n\n' \
+        "$page" "$WIDTH" "${sha::12}" "$issue" "$url"
+    fi
   done < "$OUT/urls"
   echo '<!-- explainer:end -->'
-}
-
-upload() {  # local png, path on shots -> commit sha
-  local body="$OUT/upload.json" blob attempt sha
-  [[ -s $1 ]] || { echo "::error::$1 is missing; run render first" >&2; return 1; }
-  for attempt in 1 2; do
-    blob=$(gh api "repos/{owner}/{repo}/contents/$2?ref=shots" -H 'Accept: application/vnd.github.object' --jq .sha 2>/dev/null) || blob=
-    jq -n --arg m "Explainer image for PR #$PR" --arg b shots --arg s "$blob" --rawfile c <(base64 -w0 "$1") \
-      '{message: $m, branch: $b, content: $c} + (if $s == "" then {} else {sha: $s} end)' > "$body"
-    if sha=$(gh api -X PUT "repos/{owner}/{repo}/contents/$2" --input "$body" --jq .commit.sha) && [[ $sha =~ ^[0-9a-f]{40}$ ]]; then
-      echo "$sha"
-      return
-    fi
-    echo "upload of $2 failed (attempt $attempt)" >&2
-  done
-  return 1
 }
 
 publish() {
@@ -102,21 +90,21 @@ publish() {
     return
   fi
   : > "$OUT/urls"
-  local page issue path sha
+  local page issue path sha failed=0
   while read -r page; do
     issue=$(basename "$page" | cut -d- -f1)
     path="pr-${PR:-0}/explainer-$issue.png"
-    if [[ ${DRY_RUN:-0} == 1 ]]; then
-      echo "would upload $OUT/explainer-$issue.png to shots:$path"
-      sha=DRY-RUN
+    if sha=$(OUT="$OUT/shots" "$(dirname "$0")/shots.sh" "$OUT/explainer-$issue.png" "$path" "Explainer image for PR #${PR:-0}" </dev/null); then
+      echo "$page https://github.com/$GH_REPO/blob/$sha/$path?raw=true" >> "$OUT/urls"
     else
-      sha=$(upload "$OUT/explainer-$issue.png" "$path")
-      echo "uploaded shots:$path in ${sha::12}"
+      echo "::error::could not upload $path" >&2
+      echo "$page -" >> "$OUT/urls"
+      failed=1
     fi
-    echo "$page https://github.com/$GH_REPO/blob/$sha/$path?raw=true" >> "$OUT/urls"
   done < "$OUT/list"
   section > "$OUT/section.md"
   OUT="$OUT/comment" "$(dirname "$0")/pr-comment.sh" put explainer "$OUT/section.md"
+  return "$failed"
 }
 
 case ${1:-all} in
