@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """The review state kept in the PR comment, for review-proof.sh.
 
-review-state.py decide STATE IN OUT SHA COMMIT MINUTES RUN_URL
-    Merges this run's findings ($IN/findings.json) into the saved state, closes the open findings named in
+review-state.py decide STATE IN OUT SHA COMMIT MINUTES RUN_URL RESULT
+    Merges this run's findings ($IN/findings.json), unless RESULT is failure, into the saved state, closes the open findings named in
     $OUT/accepted.txt by a Review-accept trailer on a commit after the one they were found in, and writes $OUT/state-new.json and
     $OUT/suggestions.json (the inline suggested changes, each tagged with its finding id).
 review-state.py open STATE OUT
@@ -78,13 +78,13 @@ def suggestion(fid, r, hs):
     return c
 
 
-def decide(state_p, inp, out, sha, commit, mins, run_url):
+def decide(state_p, inp, out, sha, commit, mins, run_url, result):
     state = load(state_p, {})
     fixed = load(os.path.join(out, 'fixed.json'), [])
     done = {f['i'] for f in fixed if 'i' in f}
     done_open = {f['id']: f for f in fixed if 'i' not in f}
     plan = load(os.path.join(inp, 'plan.json'), {})
-    res = load(os.path.join(inp, 'findings.json'))
+    res = load(os.path.join(inp, 'findings.json')) if result != 'failure' else None
     findings = state.get('findings', [])
     acc = acceptances(out)
     for f in findings:

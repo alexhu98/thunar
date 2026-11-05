@@ -121,9 +121,10 @@ plan() {
   open_findings
   if [[ ${HEAD_REF:-} =~ ^([0-9]+)- ]]; then
     issue=${BASH_REMATCH[1]}
-    gh issue view "$issue" --json number,title,body,comments \
-      --jq '"# #\(.number): \(.title)\n\n\(.body)\n\n" + ([.comments[] | select(.authorAssociation | IN("OWNER", "MEMBER", "COLLABORATOR")) | "## Comment by \(.author.login)\n\n\(.body)\n"] | join("\n"))' \
-      > "$OUT/issue.md" 2>/dev/null || echo "Issue #$issue could not be read." > "$OUT/issue.md"
+    { gh api "repos/{owner}/{repo}/issues/$issue" --jq 'if .author_association | IN("OWNER", "MEMBER", "COLLABORATOR")
+        then "# #\(.number): \(.title)\n\n\(.body // "")\n" else "Issue #\(.number) was written outside the repo, so it is left out.\n" end' \
+      && gh api --paginate "repos/{owner}/{repo}/issues/$issue/comments" --jq '.[] | select(.author_association | IN("OWNER", "MEMBER", "COLLABORATOR"))
+        | "\n## Comment by \(.user.login)\n\n\(.body)"'; } > "$OUT/issue.md" 2>/dev/null || echo "Issue #$issue could not be read." > "$OUT/issue.md"
   else
     echo "This branch is not named after an issue." > "$OUT/issue.md"
   fi
@@ -276,7 +277,7 @@ EOF
       '[.jobs[] | select(.name == "review" and .completed_at != null) | ((.completed_at | fromdate) - (.started_at | fromdate))] | add // empty | . / 60 | ceil' 2>/dev/null) || mins=
   fi
   hunks > "$OUT/hunks.txt"
-  python3 "$HERE/review-state.py" decide "$OUT/state.json" "$IN" "$OUT" "$HEAD_SHA" "$commit" "$mins" "${RUN_URL:-}"
+  python3 "$HERE/review-state.py" decide "$OUT/state.json" "$IN" "$OUT" "$HEAD_SHA" "$commit" "$mins" "${RUN_URL:-}" "$result"
   mapfile -t ids < <(jq -r '.comments[].id' "$OUT/suggestions.json")
   if (( ${#ids[@]} > 0 )); then
     if [[ ${DRY_RUN:-0} == 1 ]]; then
