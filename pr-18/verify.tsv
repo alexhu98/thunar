@@ -1,2 +1,2 @@
 sha	test	result	shot	file	proves
-e16447d683ac248ad7185a77acc8ed2492ecb99c	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
+fdede87257d329d38bd3b3b97f793d976b6702f3	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
