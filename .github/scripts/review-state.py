@@ -13,6 +13,7 @@ review-state.py render OUT REPO NOTE [FAILED_ID...]
 """
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -70,8 +71,10 @@ def suggestion(fid, r, hs):
     start = r.get('start_line') or r['line']
     if 'suggestion' not in r or not any(r['file'] == hf and s <= start and r['line'] <= e for hf, s, e in hs):
         return None
+    text = r['suggestion'].rstrip('\n')
+    fence = '`' * max(3, 1 + max((len(m) for m in re.findall('`+', text)), default=0))
     body = '\n\n'.join(filter(None, [f"**{fid} ({r['severity']}, {r['verdict'].lower()})** {r['summary']}",
-                                     r.get('failure_scenario'), f"```suggestion\n{r['suggestion'].rstrip(chr(10))}\n```"]))
+                                     r.get('failure_scenario'), f"{fence}suggestion\n{text}\n{fence}"]))
     c = {'id': fid, 'path': r['file'], 'line': r['line'], 'side': 'RIGHT', 'body': body}
     if start != r['line']:
         c.update(start_line=start, start_side='RIGHT')
@@ -88,7 +91,8 @@ def decide(state_p, inp, out, sha, commit, mins, run_url, result):
     findings = state.get('findings', [])
     acc = acceptances(out)
     for f in findings:
-        f.pop('new', None)
+        if result != 'failure':
+            f.pop('new', None)
         if f['status'] in OPEN and accepts(f, acc):
             f['status'], f['new'] = 'accepted', True
             f['detail'] = 'accepted by a Review-accept trailer'
@@ -160,7 +164,6 @@ def render(out, repo, note, failed):
         if f['id'] in failed and f['status'] == 'suggested':
             f['status'], f['detail'] = 'not fixed', "its suggested change couldn't be posted"
     open_ = [f for f in findings if unresolved(f) and f['severity'] != 'low']
-    state['open'] = len(open_)
     lines = ['<!-- review:start -->',
              '<!-- review:state ' + json.dumps(state, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
              '### Code review', '']

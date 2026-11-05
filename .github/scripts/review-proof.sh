@@ -40,9 +40,9 @@ EOF
 
 wait_for_earlier_runs() {
   [[ -n ${RUN_ID:-} && -n ${RUN_NUMBER:-} && -n ${HEAD_REF:-} ]] || return 0
-  local waited=0 busy errors=0 failed run runs jobs
+  local waited=0 busy errors=0 failed seen run runs jobs
   while :; do
-    busy=0 failed=0
+    busy=0 failed=0 seen=0
     if ! runs=$(gh api -X GET "repos/{owner}/{repo}/actions/runs" -f branch="$HEAD_REF" -f event=pull_request -F per_page=30 --jq \
       ".workflow_runs[] | select(.path == \".github/workflows/build.yml\" and .status != \"completed\" and .run_number < $RUN_NUMBER) | .id"); then
       busy=1 failed=1 runs=
@@ -53,11 +53,11 @@ wait_for_earlier_runs() {
          | .review == "completed" and .["review-report"] != "completed"'); then
         busy=1 failed=1
       elif [[ $jobs == true ]]; then
-        busy=1
+        busy=1 seen=1
       fi
     done
     (( busy )) || return 0
-    (( failed )) && errors=$((errors + 1)) || errors=0
+    (( failed && ! seen )) && errors=$((errors + 1)) || errors=0
     if (( errors >= 3 )); then
       echo "::warning::the GitHub API failed 3 times in a row while checking earlier runs; reviewing anyway" >&2
       return 0
@@ -84,7 +84,7 @@ open_findings() {
 
 plan() {
   : "${HEAD_SHA:?}"
-  local trailer mode forced=0 last skip=0 reason= from full=1 mb issue=
+  local trailer mode forced=0 last skip=0 reason= from full=1 mb issue= trusted
   trailer=$(git log -1 --format='%(trailers:key=Review,valueonly,separator=%x2C)' "$HEAD_SHA" | tr -d ' \n' | tr '[:upper:]' '[:lower:]')
   case $trailer in
     suggest|auto-fix) mode=$trailer; forced=1 ;;
@@ -117,14 +117,29 @@ plan() {
   fi
   [[ -n $reason ]] || reason="the whole PR"
   git diff "$from" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/diff.patch"
-  git diff "$mb" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/pr.patch"
+  (( full )) || git diff "$mb" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/pr.patch"
   open_findings
-  if [[ ${HEAD_REF:-} =~ ^([0-9]+)- ]]; then
+  if (( skip )); then
+    : > "$OUT/issue.md"
+  elif [[ ${HEAD_REF:-} =~ ^([0-9]+)- ]]; then
     issue=${BASH_REMATCH[1]}
-    { gh api "repos/{owner}/{repo}/issues/$issue" --jq 'if .author_association | IN("OWNER", "MEMBER", "COLLABORATOR")
-        then "# #\(.number): \(.title)\n\n\(.body // "")\n" else "Issue #\(.number) was written outside the repo, so it is left out.\n" end' \
-      && gh api --paginate "repos/{owner}/{repo}/issues/$issue/comments" --jq '.[] | select(.author_association | IN("OWNER", "MEMBER", "COLLABORATOR"))
-        | "\n## Comment by \(.user.login)\n\n\(.body)"'; } > "$OUT/issue.md" 2>/dev/null || echo "Issue #$issue could not be read." > "$OUT/issue.md"
+    trusted='.author_association | IN("OWNER", "MEMBER", "COLLABORATOR")'
+    if ! gh api "repos/{owner}/{repo}/issues/$issue" > "$OUT/issue.json"; then
+      echo "::warning::issue #$issue could not be read" >&2
+      echo "Issue #$issue could not be read." > "$OUT/issue.md"
+    elif jq -e .pull_request "$OUT/issue.json" > /dev/null; then
+      echo "#$issue is a pull request, not an issue." > "$OUT/issue.md"
+    else
+      jq -r 'if '"$trusted"' then "# #\(.number): \(.title)\n\n\(.body // "")"
+        else "Issue #\(.number) was written outside the repo, so it is left out." end' "$OUT/issue.json" > "$OUT/issue.md"
+      if gh api --paginate "repos/{owner}/{repo}/issues/$issue/comments" --jq '.[] | select('"$trusted"')
+        | "\n## Comment by \(.user.login)\n\n\(.body)"' > "$OUT/comments.md"; then
+        cat "$OUT/comments.md" >> "$OUT/issue.md"
+      else
+        echo "::warning::the comments on issue #$issue could not be read" >&2
+        printf '\nIts comments could not be read.\n' >> "$OUT/issue.md"
+      fi
+    fi
   else
     echo "This branch is not named after an issue." > "$OUT/issue.md"
   fi
@@ -198,7 +213,7 @@ collect() {
 }
 
 hunks() {  # the PR's diff at HEAD_SHA -> "file<TAB>start<TAB>end" for each hunk on the right side, where inline comments can go
-  git -c core.quotePath=false diff "$(git merge-base "$BASE" "$HEAD_SHA")" "$HEAD_SHA" | awk '
+  git -c core.quotePath=false diff --no-ext-diff --no-color --no-relative --src-prefix=a/ --dst-prefix=b/ "$(git merge-base "$BASE" "$HEAD_SHA")" "$HEAD_SHA" | awk '
     /^diff --git / { h = 1 }
     h && /^\+\+\+ / {
       h = 0; f = substr($0, 5); sub(/\t$/, "", f)
@@ -214,7 +229,11 @@ report() {
   state > "$OUT/state.json"
   rm -f "$OUT/fixed-files.txt" "$OUT/fixed.json"
   if [[ ! -s $IN/plan.json ]]; then
-    note="The review of \`${HEAD_SHA::12}\` didn't run ($result)."
+    if [[ $result == success ]]; then
+      note="The review of \`${HEAD_SHA::12}\` ran, but its results couldn't be downloaded, so its findings are not recorded."
+    else
+      note="The review of \`${HEAD_SHA::12}\` didn't run ($result)."
+    fi
     result=failure
   elif [[ $(jq -r .skip "$IN/plan.json") == true ]]; then
     note="Skipped \`${HEAD_SHA::12}\`: $(jq -r .reason "$IN/plan.json")."
