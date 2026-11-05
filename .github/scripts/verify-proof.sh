@@ -5,13 +5,14 @@
 #            which repairs what dpkg left; $DEBS then keeps exactly the installed versions of everything apt and
 #            dpkg added. Prints cached=true|false (for $GITHUB_OUTPUT).
 #   run      runs the smoke test (Thunar is still running 10 s after launch), then each verify/<issue>.sh, each with
-#            its own Xvfb, xfwm4 and D-Bus session, a fresh HOME and XDG folders, and a $TIMEOUT s limit. Writes the
-#            shots, the logs, $OUT/results.tsv and the manifest $OUT/verify.tsv, and fails if any test failed.
+#            its own Xvfb, xfwm4 and D-Bus session, a fresh HOME and XDG folders, and a $TIMEOUT s limit. A script
+#            that could end after $BUDGET s of the run is reported as not run. Writes the shots, the logs,
+#            $OUT/results.tsv, the manifest $OUT/verify.tsv and, last, $OUT/complete, and fails if any test failed.
 #   publish  commits the shots and their manifest to the shots branch under pr-$PR/ (verify-<test>-<shot>.png,
 #            verify.tsv) through shots.sh and puts the verify section in the PR comment through pr-comment.sh.
 #            Run it whether or not run passed. A failed upload is marked in the section and in the manifest (file -),
 #            and publish then fails.
-# Env: PR, HEAD_SHA, GH_REPO, RUN_URL, OUT, DEBS, TIMEOUT (default 120). DRY_RUN=1 makes publish print the section
+# Env: PR, HEAD_SHA, GH_REPO, RUN_URL, OUT, DEBS, TIMEOUT (default 120), BUDGET (default 900). DRY_RUN=1 makes publish print the section
 # instead of uploading and posting it.
 set -euo pipefail
 
@@ -19,6 +20,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 OUT=${OUT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/verify-proof}
 DEBS=${DEBS:-$HOME/verify-debs}
 TIMEOUT=${TIMEOUT:-120}
+BUDGET=${BUDGET:-900}
 TOOLS=(xvfb xfwm4 xdotool imagemagick x11-utils dbus zorin-desktop-themes)
 mkdir -p "$OUT"
 
@@ -28,7 +30,7 @@ install() {
     [[ -f $deb ]] || { echo "::error::no $deb; the build job's debs artifact goes in dist/" >&2; exit 1; }
   done
   sudo rm -f /var/lib/man-db/auto-update
-  local repair=()
+  local repair=0
   if compgen -G "$DEBS/*.deb" >/dev/null; then
     if sudo dpkg -i "$DEBS"/*.deb "${debs[@]}" >"$OUT/dpkg.log" 2>&1 && dpkg -s "${TOOLS[@]}" >/dev/null 2>&1; then
       echo "installed from $(compgen -G "$DEBS/*.deb" | wc -l) cached debs" >&2
@@ -37,12 +39,12 @@ install() {
     fi
     echo "::warning::the cached debs did not install cleanly; installing with apt" >&2
     tail -n 5 "$OUT/dpkg.log" >&2
-    repair=(-f install)
+    repair=1
   fi
   sudo add-apt-repository -y ppa:zorinos/stable >&2
   mkdir -p "$DEBS"
   local apt=(sudo apt-get -y --no-install-recommends -o Dir::Cache::Archives="$DEBS" -o APT::Sandbox::User=root)
-  (( ${#repair[@]} == 0 )) || "${apt[@]}" "${repair[@]}" >&2
+  (( repair == 0 )) || "${apt[@]}" -f install >&2
   "${apt[@]}" install "${debs[@]/#/./}" "${TOOLS[@]}" >&2
   sudo rm -rf "$DEBS/partial" "$DEBS/lock"
   sudo chown -R "$(id -u):$(id -g)" "$DEBS"
@@ -73,14 +75,15 @@ smoke() {
 
 session() {
   local i
-  Xvfb -displayfd 3 -screen 0 1280x800x24 -nolisten tcp 3>"$XDG_RUNTIME_DIR/display" >"$XDG_RUNTIME_DIR/xvfb.log" 2>&1 &
+  Xvfb -displayfd 3 -screen 0 1280x800x24 -nolisten tcp 3>"$XDG_RUNTIME_DIR/display" >"$XVFB_LOG" 2>&1 &
   for ((i = 0; i < 100; i++)); do
     [[ -s $XDG_RUNTIME_DIR/display ]] && break
     sleep 0.1
   done
-  [[ -s $XDG_RUNTIME_DIR/display ]] || { cat "$XDG_RUNTIME_DIR/xvfb.log" >&2; echo "FAIL: Xvfb did not start" >&2; return 1; }
+  [[ -s $XDG_RUNTIME_DIR/display ]] || { cat "$XVFB_LOG" >&2; echo "FAIL: Xvfb did not start" >&2; return 1; }
   DISPLAY=:$(cat "$XDG_RUNTIME_DIR/display")
   export DISPLAY
+  dbus-update-activation-environment DISPLAY 2>/dev/null || true
   xfwm4 --compositor=off --sm-client-disable &
   for ((i = 0; i < 50; i++)); do
     xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null | grep -q 'window id' && break
@@ -98,13 +101,13 @@ test_one() {  # name, command...
   start=$SECONDS
   HOME=$dir/home XDG_CONFIG_HOME=$dir/home/.config XDG_CACHE_HOME=$dir/home/.cache XDG_DATA_HOME=$dir/home/.local/share \
     XDG_STATE_HOME=$dir/home/.local/state XDG_RUNTIME_DIR=$dir/runtime \
-    WORK=$dir/work SHOTS=$OUT/shots/$name GTK_THEME=$(theme) NO_AT_BRIDGE=1 \
+    WORK=$dir/work SHOTS=$OUT/shots/$name XVFB_LOG=$OUT/logs/$name.xvfb.log GTK_THEME=$(theme) NO_AT_BRIDGE=1 \
     timeout -k 5 "$TIMEOUT" dbus-run-session -- "$HERE/verify-proof.sh" session "$@" >"$OUT/logs/$name.log" 2>&1 </dev/null &
   pid=$!
   wait "$pid" && status=0 || status=$?
   if (( status == 0 )); then
     status=pass
-  elif (( SECONDS - start >= TIMEOUT )); then
+  elif (( status == 124 || status == 137 )); then
     status="timeout ${TIMEOUT}s"
   else
     status="exit $status"
@@ -115,25 +118,32 @@ test_one() {  # name, command...
   [[ $status == pass ]] || sed 's/^/  | /' "$OUT/logs/$name.log" | tail -n 30
 }
 
+not_run() {  # name, status, reason
+  echo "FAIL: $3" > "$OUT/logs/$1.log"
+  printf '%s\t%s\t0\n' "$1" "$2" >> "$OUT/results.tsv"
+  echo "$1: $2"
+}
+
 run() {
-  rm -rf "$OUT/logs" "$OUT/run" "$OUT/shots"
+  rm -rf "$OUT/logs" "$OUT/run" "$OUT/shots" "$OUT/complete"
   mkdir -p "$OUT/logs"
   : > "$OUT/results.tsv"
   theme > "$OUT/theme"
-  local script name
+  local script name begin=$SECONDS
   test_one smoke smoke
   for script in verify/*.sh; do
     [[ -f $script ]] || continue
     name=$(basename "$script" .sh)
-    if [[ $name =~ ^[0-9]+$ ]]; then
-      test_one "$name" bash "$script"
+    if [[ ! $name =~ ^[0-9]+$ ]]; then
+      not_run "$name.sh" misnamed "$script is not named verify/<issue>.sh, so it was not run"
+    elif (( SECONDS - begin + TIMEOUT > BUDGET )); then
+      not_run "$name" "not run (time budget)" "$script could end after the run's ${BUDGET} s budget, so it was not run"
     else
-      echo "FAIL: $script is not named verify/<issue>.sh, so it was not run" > "$OUT/logs/$name.sh.log"
-      printf '%s\t%s\t0\n' "$name.sh" "misnamed" >> "$OUT/results.tsv"
-      echo "$script: misnamed, not run"
+      test_one "$name" bash "$script"
     fi
   done
   manifest local > "$OUT/verify.tsv"
+  : > "$OUT/complete"
   local failed
   failed=$(awk -F'\t' '$2 != "pass"' "$OUT/results.tsv" | wc -l)
   echo "$(( $(wc -l < "$OUT/results.tsv") - failed )) of $(wc -l < "$OUT/results.tsv") passed"
@@ -154,7 +164,11 @@ section() {  # results, logs and $OUT/urls ("test<tab>shot<tab>url<tab>proves") 
   fi
   total=$(wc -l < "$OUT/results.tsv")
   passed=$(awk -F'\t' '$2 == "pass"' "$OUT/results.tsv" | wc -l)
-  printf '### Verify: %s of %s passed\n\n' "$passed" "$total"
+  if [[ -f $OUT/complete ]]; then
+    printf '### Verify: %s of %s passed\n\n' "$passed" "$total"
+  else
+    printf '### Verify: cut short, %s of %s passed\n\nThe run step stopped before it finished, so later tests are missing.\n\n' "$passed" "$total"
+  fi
   printf 'Xvfb, xfwm4 and the %s GTK theme, as of %s. [Logs](%s)\n\n' "$(cat "$OUT/theme" 2>/dev/null || echo default)" "${sha::12}" "${RUN_URL:-}"
   echo '| Test | Result | Time |'
   echo '|---|---|---|'
