@@ -211,9 +211,9 @@
   <div class="lane-h" style="color:var(--accent)">① verify job</div>
   <ol class="steps">
     <li data-k="1"><b>Build (#1).</b> The existing build job makes the PR's 5 debs and uploads them as the <code>debs</code> artifact. <code>verify</code> waits for it (<code>needs: build</code>) and downloads them into <code>dist/</code>.</li>
-    <li data-k="2"><b>Install.</b> <code>verify-proof.sh install</code> installs <code>thunar</code>, <code>thunar-data</code> and <code>libthunarx-3-0</code>, plus Xvfb, xfwm4, xdotool, ImageMagick and Zorin's GTK themes. It first tries the debs cached for this runner image with one <code>dpkg -i</code>. If any of them doesn't install, or a tool is missing, it uses apt with <code>ppa:zorinos/stable</code> and saves the downloaded debs as a new cache entry.</li>
+    <li data-k="2"><b>Install.</b> <code>verify-proof.sh install</code> installs <code>thunar</code>, <code>thunar-data</code> and <code>libthunarx-3-0</code>, plus Xvfb, xfwm4, xdotool, ImageMagick and Zorin's GTK themes. It first tries the debs cached for this runner image with one <code>dpkg -i</code>. If any of them doesn't install, or a tool is missing, it uses apt with <code>ppa:zorinos/stable</code>, which repairs what dpkg left. It then saves the installed versions as a new cache entry.</li>
     <li data-k="3"><b>Smoke test.</b> <code>verify-proof.sh run</code> starts Xvfb on <code>:99</code>. In a fresh D-Bus session with xfwm4, it launches Thunar on a folder of 2 folders and a file. It checks that Thunar is still running after 10 s and photographs its window (<code>import -window</code>).</li>
-    <li data-k="4"><b>Feature tests.</b> Then each <code>verify/*.sh</code> runs the same way, each in its own D-Bus session with a fresh <code>HOME</code>, for at most 300 s. The script drives Thunar with <code>xdotool</code> and checks the result (window title, files on disk). It saves before/after shots, each with a sentence saying what it proves, and exits non-zero on failure.</li>
+    <li data-k="4"><b>Feature tests.</b> Then each <code>verify/*.sh</code> runs the same way, each in its own D-Bus session with a fresh <code>HOME</code> and XDG folders, for at most 300 s. The script drives Thunar with <code>xdotool</code> and checks the result (window title, files on disk). It saves before/after shots, each with a sentence saying what it proves, and exits non-zero on failure.</li>
   </ol>
   <div class="lane-h" style="color:var(--accent)">② publish</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
@@ -230,7 +230,7 @@
     <div class="card" data-k="c1"><h3>Repo CLAUDE.md</h3><p>Branches <code>&lt;issue&gt;-&lt;slug&gt;</code> into <code>main</code>, with <code>Closes</code> or <code>Refs</code>; never <code>upstream</code>, <code>master</code> or <code>xfce-4.20</code>. It also has the build lessons, the <code>verify/&lt;issue&gt;.sh</code> contract and the explainer and review rules. Two of the owner's own rules come along: no new explanatory comments, and audit every screenshot.</p></div>
     <div class="card" data-k="c2"><h3>visual-verify, shot-audit, shot-auditor</h3><p>Ported from nx-connect-ui. They keep the gate (PASS, FAIL, INCONCLUSIVE), the read-only auditor, the BLANK and MISMATCH verdicts and the mandatory before-to-after section. Storybook and Playwright give way to Xvfb, <code>xdotool</code> and <code>import</code>, and Figma, the 403 tripwire and the clip check are gone.</p></div>
     <div class="card" data-k="c3"><h3>verify-lib.sh</h3><p>What a feature script sources: <code>open_thunar</code>, <code>focus</code>, <code>wait_title</code>, <code>shot</code>, <code>fail</code>. <code>focus</code> exists because GTK ignores <code>xdotool key --window</code>, which an early test run showed.</p></div>
-    <div class="card" data-k="c4"><h3>The deb cache</h3><p>Keyed by the runner image (<code>ImageOS</code>, <code>ImageVersion</code>), so a new image starts fresh. A hit skips the PPA, <code>apt-get update</code> and the downloads. A miss saves a new entry. The cache run on main warms every PR, because a PR can't read another PR's cache.</p></div>
+    <div class="card" data-k="c4"><h3>The deb cache</h3><p>Keyed by the runner image (<code>ImageOS</code>, <code>ImageVersion</code>), so a new image starts fresh. A hit skips the PPA, <code>apt-get update</code> and the downloads. A miss saves a new entry. The run on main warms the cache for every PR on the same image, because a PR can't read another PR's cache.</p></div>
     <div class="card" data-k="c5"><h3>Theme</h3><p>Zorin's GTK theme is in the PPA (<code>zorin-desktop-themes</code>, 0.6 MB), so shots use ZorinBlue-Dark, the owner's theme. Adwaita-dark is the fallback if it's missing. The 46 MB Zorin icon theme is left out, because screenshots prove behavior, not pixels.</p></div>
     <div class="card" data-k="c6"><h3>Pinned image links</h3><p>The issue writes <code>blob/shots/…</code>. The comment links each image by the <code>shots</code> commit that added it (<code>blob/&lt;sha&gt;/…</code>), as the explainer already does, so a later push can't show an old picture under new results.</p></div>
   </div>
@@ -242,7 +242,7 @@
   <table>
     <tr><th>Name</th><th>What it is</th></tr>
     <tr data-k="e1"><td><code>DISPLAY</code></td><td>Xvfb at 1280×800, with xfwm4 managing windows</td></tr>
-    <tr data-k="e2"><td><code>HOME</code>, D-Bus</td><td>fresh for each script, so no Thunar instance or setting carries over from the smoke test</td></tr>
+    <tr data-k="e2"><td><code>HOME</code>, D-Bus</td><td>fresh for each script, with its own XDG folders, so no Thunar instance or setting carries over from an earlier test</td></tr>
     <tr data-k="e3"><td><code>WORK</code></td><td>an empty folder for the test's files</td></tr>
     <tr data-k="e4"><td><code>SHOTS</code></td><td>where <code>shot</code> writes <code>&lt;name&gt;.png</code> and its line in <code>shots.tsv</code></td></tr>
     <tr data-k="e5"><td><code>GTK_THEME</code></td><td><code>ZorinBlue-Dark</code>, or <code>Adwaita:dark</code> without it</td></tr>
@@ -291,11 +291,13 @@ explainers/7-cloud-agents.html   # this page</pre>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr data-k="c1"><td>Install, cache miss</td><td><code>verify-proof.sh install</code> in an <code>ubuntu:24.04</code> container with a sudo user, main's debs, empty cache</td><td class="ok">166 packages, 73 s, 163 debs cached</td></tr>
-    <tr data-k="c2"><td>Install, cache hit</td><td>the same in a fresh container, given those 163 debs</td><td class="ok">one dpkg -i, 34 s</td></tr>
+    <tr data-k="c1"><td>Install, cache miss</td><td><code>verify-proof.sh install</code> in an <code>ubuntu:24.04</code> container with a sudo user, main's debs, empty cache</td><td class="ok">166 packages, 73–88 s (2 runs), 163 debs cached</td></tr>
+    <tr data-k="c2"><td>Install, cache hit</td><td>the same in a fresh container, given those 163 debs</td><td class="ok">one dpkg -i, 34–44 s (4 runs)</td></tr>
+    <tr data-k="c2b"><td>Install, broken cache</td><td>a cache with <code>libxfce4ui-2-0</code> removed: dpkg fails, apt repairs and installs; the first version of this path failed here and was fixed</td><td class="ok">all installed, dpkg audit clean, cache back to 163</td></tr>
     <tr data-k="c3"><td>Smoke test</td><td><code>verify-proof.sh run</code> in that container; screenshot read and audited</td><td class="ok">pass in 13 s; ZorinBlue-Dark, 2 folders + 1 file</td></tr>
-    <tr data-k="c4"><td>Feature-test runner</td><td>two throwaway scripts, not committed: one opens a child folder through the location bar, one waits for a title that never comes</td><td class="ok">pass in 4 s; exit 1, log tail shown</td></tr>
+    <tr data-k="c4"><td>Feature-test runner</td><td>4 throwaway scripts, not committed. One opens a child folder through the location bar. One opens a second window and checks the XDG folders, with the runner's <code>XDG_CONFIG_HOME</code> set. One gives a two-line caption, and one waits for a title that never comes.</td><td class="ok">2 pass; 2 fail as meant, log tails shown</td></tr>
     <tr data-k="c5"><td>Publish, dry run</td><td><code>DRY_RUN=1 verify-proof.sh publish</code> after those runs</td><td class="ok">section and manifest as designed</td></tr>
+    <tr data-k="c5b"><td>Publish, uploads failing</td><td>a fake <code>gh</code> that refuses every upload to <code>shots</code></td><td class="ok">section posted, 4 shots marked, exit 1</td></tr>
     <tr data-k="c6"><td>The one-list apt lesson</td><td><code>apt-get update</code> with only the PPA's list, in a container</td><td class="ok">15 lists → 1; libgtk-3 no candidate</td></tr>
     <tr data-k="c7"><td>Lint</td><td>shellcheck on the 4 scripts, actionlint on the workflow</td><td class="ok">clean but SC2097/8 (intended)</td></tr>
     <tr data-k="c8"><td>This PR's CI</td><td>build, verify, explainer and review on GitHub's runner</td><td class="open">pending</td></tr>
@@ -305,7 +307,14 @@ explainers/7-cloud-agents.html   # this page</pre>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">Pending: a fresh <code>general-purpose</code> agent is reviewing the diff and issue #7. CI's own review of each push is in the PR comment's review section.</p>
+  <p data-k="summary">A fresh <code>general-purpose</code> agent was given only the diff (at <code>7d054baf3</code>) and issue #7. It found 6 issues: 1 medium, 3 low and 2 in the docs. All 6 were fixed and re-run in the container. It also reproduced the cache-fallback bug on the earlier commit and confirmed the fix. CI's own review of each push is in the PR comment's review section.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Isolation (medium):</b> GitHub's runner sets <code>XDG_CONFIG_HOME</code>, so Thunar's settings would have leaked from one test to the next despite the fresh <code>HOME</code>. Each test now gets its own XDG folders.</li>
+    <li data-k="b2"><b>Second window:</b> a second <code>open_thunar</code> hands off to the running Thunar and exits, so it found no window. It now waits for that instance's new window.</li>
+    <li data-k="b3"><b>Captions:</b> a caption with a tab or line break split the manifest and stopped publish. <code>shot</code> now refuses it.</li>
+    <li data-k="b4"><b>Failed uploads:</b> one failed upload skipped the whole comment, so it kept the last push's results. The shot is now marked and the job still fails.</li>
+    <li data-k="b5"><b>Docs:</b> two lines on this page described the cache wrongly. They are fixed.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">

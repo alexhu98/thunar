@@ -5,11 +5,11 @@
 #            which repairs what dpkg left; $DEBS then keeps exactly the installed versions of everything apt and
 #            dpkg added. Prints cached=true|false (for $GITHUB_OUTPUT).
 #   run      starts Xvfb, then runs the smoke test (Thunar is still running 10 s after launch) and each verify/*.sh,
-#            each in its own D-Bus session with xfwm4, a fresh HOME and a $TIMEOUT s limit. Writes the shots, the
+#            each in its own D-Bus session with xfwm4, a fresh HOME and XDG folders, and a $TIMEOUT s limit. Writes the shots, the
 #            logs, $OUT/results.tsv and the manifest $OUT/verify.tsv, and fails if any test failed.
 #   publish  commits the shots and their manifest to the shots branch under pr-$PR/ (verify-<test>-<shot>.png,
 #            verify.tsv) through shots.sh and puts the verify section in the PR comment through pr-comment.sh.
-#            Run it whether or not run passed.
+#            Run it whether or not run passed. A failed upload is marked in the section, and publish then fails.
 # Env: PR, HEAD_SHA, GH_REPO, RUN_URL, OUT, DEBS, TIMEOUT (default 300). DRY_RUN=1 makes publish print the section
 # instead of uploading and posting it.
 set -euo pipefail
@@ -86,7 +86,9 @@ test_one() {  # name, command...
   mkdir -p "$dir/home" "$dir/work" "$dir/runtime" "$OUT/shots/$name"
   chmod 700 "$dir/runtime"
   start=$SECONDS
-  HOME=$dir/home XDG_RUNTIME_DIR=$dir/runtime WORK=$dir/work SHOTS=$OUT/shots/$name GTK_THEME=$(theme) NO_AT_BRIDGE=1 \
+  HOME=$dir/home XDG_CONFIG_HOME=$dir/home/.config XDG_CACHE_HOME=$dir/home/.cache XDG_DATA_HOME=$dir/home/.local/share \
+    XDG_STATE_HOME=$dir/home/.local/state XDG_RUNTIME_DIR=$dir/runtime \
+    WORK=$dir/work SHOTS=$OUT/shots/$name GTK_THEME=$(theme) NO_AT_BRIDGE=1 \
     timeout -k 5 "$TIMEOUT" dbus-run-session -- "$HERE/verify-proof.sh" session "$@" >"$OUT/logs/$name.log" 2>&1 </dev/null &
   pid=$!
   if wait "$pid"; then status=pass; else status=$?; (( status == 124 )) && status="timeout ${TIMEOUT}s" || status="exit $status"; fi
@@ -150,7 +152,11 @@ section() {  # results, logs and $OUT/urls ("test<tab>shot<tab>url<tab>proves") 
       printf '\nNo screenshots.\n'
     fi
     while IFS=$'\t' read -r _ shot url proves; do
-      printf '\n**%s**: %s\n\n![%s: %s](%s)\n' "$shot" "$proves" "$name" "$shot" "$url"
+      if [[ $url == - ]]; then
+        printf '\n**%s**: %s\n\nThe upload of this screenshot failed; it is in the run'"'"'s `verify` artifact.\n' "$shot" "$proves"
+      else
+        printf '\n**%s**: %s\n\n![%s: %s](%s)\n' "$shot" "$proves" "$name" "$shot" "$url"
+      fi
     done < <(awk -F'\t' -v n="$name" '$1 == n' "$OUT/urls")
   done < "$OUT/results.tsv"
   echo '<!-- verify:end -->'
@@ -184,21 +190,31 @@ publish() {
   [[ -n ${PR:-} || ${DRY_RUN:-0} == 1 ]] || { echo "publish needs PR" >&2; exit 1; }
   : "${GH_REPO:?}"
   : > "$OUT/urls"
-  local name shot file proves path sha
+  local name shot file proves path sha url failed=0
   if [[ -s $OUT/results.tsv ]]; then
     manifest shots > "$OUT/verify-shots.tsv"
     while IFS=$'\t' read -r _ name _ shot file proves; do
       [[ $shot != - ]] || continue
       path="pr-${PR:-0}/$file"
-      sha=$(upload "$OUT/shots/$name/$shot.png" "$path")
-      echo "uploaded shots:$path in ${sha::12}"
-      printf '%s\t%s\t%s\t%s\n' "$name" "$shot" "https://github.com/$GH_REPO/blob/$sha/$path?raw=true" "$proves" >> "$OUT/urls"
+      if sha=$(upload "$OUT/shots/$name/$shot.png" "$path"); then
+        echo "uploaded shots:$path in ${sha::12}"
+        url="https://github.com/$GH_REPO/blob/$sha/$path?raw=true"
+      else
+        echo "::error::could not upload $path" >&2
+        url=- failed=1
+      fi
+      printf '%s\t%s\t%s\t%s\n' "$name" "$shot" "$url" "$proves" >> "$OUT/urls"
     done < <(tail -n +2 "$OUT/verify-shots.tsv")
-    sha=$(upload "$OUT/verify-shots.tsv" "pr-${PR:-0}/verify.tsv")
-    echo "uploaded shots:pr-${PR:-0}/verify.tsv in ${sha::12}"
+    if sha=$(upload "$OUT/verify-shots.tsv" "pr-${PR:-0}/verify.tsv"); then
+      echo "uploaded shots:pr-${PR:-0}/verify.tsv in ${sha::12}"
+    else
+      echo "::error::could not upload pr-${PR:-0}/verify.tsv" >&2
+      failed=1
+    fi
   fi
   section > "$OUT/section.md"
   OUT="$OUT/comment" "$HERE/pr-comment.sh" put verify "$OUT/section.md"
+  return "$failed"
 }
 
 case ${1:-} in
