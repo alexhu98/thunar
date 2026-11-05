@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #13 CI Review</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #13: an independent code review on every push</h1>
+  <p class="lead" data-k="lead">Branch <code>11-ci-review</code> → <code>main</code>, closes #11. Once merged, every push to a PR gets a fresh Claude review in CI: by default it fixes what it confirms in a <code>claude[bot]</code> commit, or it suggests the fixes, and it reports every finding in the PR comment.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: #7</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">Two new jobs in <code>.github/workflows/build.yml</code>: <code>review</code> reviews the push with no token that can write, and <code>review-report</code> pushes the fix, posts suggestions and writes the report. Three scripts in <code>.github/scripts/</code> do the work.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="A push is planned, reviewed by Claude and collected; a second job pushes the fix or posts suggestions, then reports in the PR comment">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① review job — read-only, no secrets to push</text>
+    <g data-k="1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">You push</text>
+      <text x="36" y="114" class="m">git push</text>
+      <text x="36" y="134" class="b">no trailer: auto-fix</text>
+      <text x="36" y="154" class="b">Review: suggest</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Plan</text>
+      <text x="286" y="114" class="m">review-proof.sh</text>
+      <text x="286" y="134" class="b">picks the mode</text>
+      <text x="286" y="154" class="b">only new commits</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Review</text>
+      <text x="536" y="114" class="m">/code-review xhigh</text>
+      <text x="536" y="134" class="b">one fresh agent</text>
+      <text x="536" y="154" class="b">verifies each finding</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Collect</text>
+      <text x="786" y="114" class="m">findings.json</text>
+      <text x="786" y="134" class="b">and fix.patch,</text>
+      <text x="786" y="154" class="b">kept as an artifact</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② review-report job — holds the push token</text>
+    <g data-k="5">
+      <rect class="box-merge" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Push the fix</text>
+      <text x="786" y="314" class="m">claude[bot]</text>
+      <text x="786" y="334" class="b">confirmed fixes only</text>
+      <text x="786" y="354" class="b">follow-up: suggest</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Suggest</text>
+      <text x="536" y="314" class="b">one-click suggested</text>
+      <text x="536" y="334" class="b">changes on the PR</text>
+      <text x="536" y="354" class="b">for the rest</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Report</text>
+      <text x="286" y="314" class="m">pr-comment.sh</text>
+      <text x="286" y="334" class="b">review section</text>
+      <text x="286" y="354" class="b">red on medium/high</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <g data-k="8">
+      <rect class="box-you" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">You decide</text>
+      <text x="36" y="314" class="b">pull, commit a</text>
+      <text x="36" y="334" class="b">suggestion, accept</text>
+      <text x="36" y="354" class="b">or merge</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">8</text>
+    </g>
+    <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M520,320 H484" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M270,320 H234" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>review job (reads only)</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>review-report job (can push)</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Until now the only code review ran inside the same session that wrote the code, so it shared that session's assumptions, and it ran before the last fixes were pushed. Now CI reviews exactly the commit that was pushed, from a clean checkout, with no memory of how the code was written. Cloud agents (#7) will open PRs that nobody has read yet, so they need this from their first push.</p>
+  <div class="note" data-k="note">The reviewer never holds a token that can push. Claude only edits the working tree of a read-only job; a second job takes that edit as a patch, checks it, and pushes it with its own token.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① review job</div>
+  <ol class="steps">
+    <li data-k="1"><b>You push.</b> Any push to a PR from this repo starts the workflow. The head commit's trailer picks the mode: none means auto-fix, <code>Review: suggest</code> means suggested changes only. PRs from forks skip the review, since they get no secrets.</li>
+    <li data-k="2"><b>Plan.</b> <code>review-proof.sh plan</code> waits up to 30 minutes for an earlier run's report, then reads the saved state from the PR comment. It reviews only the commits since the last reviewed one, skips a push that changed nothing but <code>explainers/</code>, and writes the diff, the issue, the still-open findings and the prompt.</li>
+    <li data-k="3"><b>Review.</b> <code>anthropics/claude-code-action</code> runs Claude Opus 5.5 with read-only tools. It runs the built-in <code>/code-review</code> skill at <code>xhigh</code>, then hands each finding to a fresh agent that tries to disprove it. Only findings that agent confirms are CONFIRMED. In auto-fix mode Claude then fixes those in the working tree.</li>
+    <li data-k="4"><b>Collect.</b> <code>review-proof.sh collect</code> saves the findings (the action's structured output) and the edit as <code>fix.patch</code>, leaving out paths the push can't or mustn't touch, and uploads both as the <code>review</code> artifact.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② review-report job</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Push the fix.</b> If every fixed finding is confirmed and fully in the patch, it commits the patch as <code>claude[bot]</code> with the trailer <code>Review: suggest</code> and pushes it with <code>REVIEW_PUSH_TOKEN</code>. That push starts a follow-up review of the bot's own diff, which only reports, so the loop ends there. If the branch moved meanwhile, nothing is pushed.</li>
+    <li data-k="6"><b>Suggest.</b> Findings that weren't pushed and sit on lines the PR changes become one-click suggested changes in one PR review.</li>
+    <li data-k="7"><b>Report.</b> <code>review-state.py</code> merges the findings into the saved state and <code>pr-comment.sh</code> writes the review section of the PR comment, beside the explainer. The job fails while a confirmed medium or high finding is unresolved; low ones are only reported.</li>
+    <li data-k="8"><b>You decide.</b> Pull the bot's commit before pushing again, click "Commit suggestion", or close a finding you keep on purpose with a <code>Review-accept: R23</code> trailer. A red review never blocks the merge.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="parts">
+  <h3 class="sec">A closer look at the controls</h3>
+  <div class="grid">
+    <div class="card" data-k="c1"><h3>Trailers on the head commit</h3><p>None: auto-fix. <code>Review: suggest</code>: suggestions only. Either one on an empty commit forces a review of the whole PR.</p></div>
+    <div class="card" data-k="c2"><h3>Review-accept</h3><p><code>Review-accept: R23, R32</code> on any commit closes those findings as kept on purpose. An accept-only empty commit skips the review, so it costs nothing.</p></div>
+    <div class="card" data-k="c3"><h3>The saved state</h3><p>A hidden JSON line in the PR comment holds every finding with its R number and status: fixed, suggested, not fixed, resolved, accepted or unconfirmed.</p></div>
+    <div class="card" data-k="c4"><h3>What the fix never touches</h3><p><code>.github/</code> workflows and scripts (the report runs the scripts with the push token, so their fixes are only suggested), <code>explainers/</code>, and <code>CLAUDE.md</code>, <code>.claude/</code> and similar files, which the action resets.</p></div>
+    <div class="card" data-k="c5"><h3>What fails the job</h3><p>Only a confirmed medium or high finding still open. A zero-finding bar never converged on this PR, so low ones are reported, and fixed in auto-fix mode, without failing it.</p></div>
+    <div class="card" data-k="c6"><h3>Don't re-run the report alone</h3><p>Re-running <code>review-report</code> by itself after a good review has no guards: it can report a pushed fix as not pushed. Push a fix or an accept instead.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">.github/
+├── workflows/build.yml        # new review and review-report jobs
+└── scripts/
+    ├── review-proof.sh        # new: plan, collect, report
+    ├── review-state.py        # new: merges findings, renders the review section
+    ├── pr-comment.sh          # new: writes one section of the PR comment
+    └── explainer-proof.sh     # now writes its section through pr-comment.sh
+.claude/skills/explainer/SKILL.md  # documents the trailers and the pass bar
+CLAUDE.md                      # trailers, pull before push, no report re-runs
+thunar/thunar-util.c           # a doc comment the bot corrected (R182)
+explainers/11-ci-review.html   # this page, and its .narration.json</pre>
+  <div class="note warn" data-k="undo">To turn the review off, remove the two jobs from <code>build.yml</code>. To stop only the pushes, delete the <code>REVIEW_PUSH_TOKEN</code> secret: fixes then fall back to suggestions. A bot commit you don't want is undone with <code>git revert</code> like any other.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Each piece was first probed in CI, then this PR was reviewed by its own job on every push, and the rollout checks from #11 were run on real pushes with planted bugs.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good pieces</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>claude-code-action@v1</h3><p>Anthropic's GitHub Action, run with the owner's OAuth token, so reviews count against the plan's usage, not an API bill.</p></div>
+    <div class="card" data-k="r2"><h3>The built-in /code-review</h3><p>CI's Claude Code 2.1.318 has it, with levels up to <code>xhigh</code>. It must be started through the Skill tool: a bare prompt ran 0 turns.</p></div>
+    <div class="card" data-k="r3"><h3>#9's PR comment</h3><p>The <code>&lt;!-- pr-proof --&gt;</code> comment the explainer job already writes. The review adds its own section; both now write through one script.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Structured findings with the OAuth token</td><td><code>--json-schema</code> in the action's arguments; every review run since CI run 41771508643 returned its findings as <code>structured_output</code></td><td class="ok">works</td></tr>
+    <tr data-k="c2"><td>No GitHub App needed</td><td>The action revokes its App token in its last step, so the push uses <code>REVIEW_PUSH_TOKEN</code>, a fine-grained token on this repo (Contents only)</td><td class="ok">11 bot pushes</td></tr>
+    <tr data-k="c3"><td>Auto-fix: planted bug</td><td>Pushed <code>9b1c75685</code> making search match any term instead of all (CI run 41907904730); the bot pushed <code>1f145c2e2</code> with <code>Review: suggest</code>; its follow-up (CI run 41908737098) only reported</td><td class="ok">fixed, exact revert</td></tr>
+    <tr data-k="c4"><td>Suggest: planted bug</td><td>Pushed <code>8af420dab</code> with <code>Review: suggest</code> and a use-after-free (CI run 41909791113): a suggested change and a red job. The owner clicked "Commit suggestion" (CI run 41948970870)</td><td class="ok">red, then green</td></tr>
+    <tr data-k="c5"><td>Forced re-review</td><td>An empty commit <code>f257a8f91</code> with <code>Review: suggest</code> (CI run 41949660130)</td><td class="ok">whole PR, 20 min</td></tr>
+    <tr data-k="c6"><td>Explainer-only push skips</td><td>The first push of this page and its narration, <code>f949056ec</code>, changed nothing but <code>explainers/</code> (CI run 41980410473): the review job planned, skipped and took 22 s</td><td class="ok">skipped</td></tr>
+    <tr data-k="c7"><td>One section, updated in place</td><td>Every run on this PR rewrote the same review section of the one PR comment; the explainer section next to it was kept</td><td class="ok">1 comment</td></tr>
+    <tr data-k="c8"><td>Accepting findings</td><td><code>09e1b9a9c</code> carried <code>Review-accept</code> for 9 findings (CI run 41906875606)</td><td class="ok">9 accepted, green</td></tr>
+    <tr data-k="c9"><td>The report, replayed</td><td>In a scratch clone with a local bare remote and a stub <code>gh</code>, a CI review's artifact was replayed through the scripts after each hand change: the normal push, re-runs, an older head, a failed review</td><td class="ok">same tree as CI</td></tr>
+    <tr data-k="c10"><td>Minutes</td><td>Job times from the GitHub API, rounded up per job as GitHub bills them. Review job: about 5 min on a small diff, 8–14 min on these scripts, 20 min for the whole PR</td><td class="ok">11–26 a run</td></tr>
+    <tr data-k="c11"><td>A PR from a fork</td><td>None was opened; the job's condition skips them because they get no secrets</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">After the last code fix of the review logic, a fresh <code>general-purpose</code> agent given only the diff and #11 reviewed the branch at <code>d12ce0ed6</code>, at about <code>medium</code> depth. It found 4 issues: 1 is fixed in this PR, 3 are left open.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed:</b> the bot could push a fix to the review scripts, which the report job then runs while holding the push token. Fixes to <code>.github/scripts/</code> are now only suggested.</li>
+    <li data-k="b1b"><b>Left open:</b> a <code>Review:</code> trailer on an explainer-only commit forces a whole-PR review; GitHub's "Update branch" makes the next review cover the whole PR; and in an auto-fix round, suggestions for unfixed findings land on the pre-fix commit.</li>
+  </ul>
+  <p data-k="summary2">CI's own review ran on every push of this PR, 34 CI runs in all. It reported 230 findings: the bot fixed 88, 32 were resolved by later commits, 14 were accepted as kept on purpose, and 83 were never confirmed; 13 low or unconfirmed ones are still listed. The full list is in the PR comment's review section.</p>
+  <ul class="tight">
+    <li data-k="b2"><b>It doesn't converge on its own code.</b> Each fix to these scripts, even two lines, brought about five new confirmed edge cases. That is why the loop was stopped by hand and why only medium or high findings now fail the job.</li>
+    <li data-k="b3"><b>Kept on purpose:</b> re-runs of the report alone aren't guarded; a force-push back to an older commit isn't reviewed again; the PR comment has no size cap (22.7 KB after 200 findings, of 65 KB).</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>A PR written by a cloud agent</td><td>#7 sets up the agents</td><td class="open">#7's trial PR</td></tr>
+    <tr data-k="a2"><td>Review of a PR that started on <code>main</code> with these scripts</td><td>This PR reviewed itself with scripts that changed under it</td><td class="open">the next PR</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR, its review section and its suggestions: <a href="https://github.com/alexhu98/thunar/pull/13">PR #13</a></li>
+    <li data-k="l2">The auto-fix check: <a href="https://github.com/alexhu98/thunar/actions/runs/41907904730">CI run 41907904730</a> and the bot's <a href="https://github.com/alexhu98/thunar/commit/1f145c2e2">commit 1f145c2e2</a></li>
+    <li data-k="l3">The suggest check: <a href="https://github.com/alexhu98/thunar/actions/runs/41909791113">CI run 41909791113</a>, then <a href="https://github.com/alexhu98/thunar/actions/runs/41948970870">CI run 41948970870</a></li>
+    <li data-k="l4">The spikes and measured minutes: <a href="https://github.com/alexhu98/thunar/issues/11">issue #11</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: #7</h2>
+  <p class="intro" data-k="intro">#7, the cloud agent workflow, depends on this PR: its agents' PRs are reviewed from their first push, and its minutes budget uses the numbers measured here.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR's review feeds #7: cloud agents open PRs, CI builds, verifies and reviews them, and the owner merges">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">#7 Cloud agentic workflow</text>
+    <g data-k="n1">
+      <rect class="box-future" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Agent opens a PR</text>
+      <text x="36" y="114" class="b">Claude Code on</text>
+      <text x="36" y="134" class="b">the web</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-merge" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">CI review</text>
+      <text x="286" y="114" class="b">this PR: fixes or</text>
+      <text x="286" y="134" class="b">suggests, reports</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">verify job</text>
+      <text x="536" y="114" class="b">runs Thunar under</text>
+      <text x="536" y="134" class="b">Xvfb, screenshots</text>
+    </g>
+    <g data-k="n4">
+      <rect class="box-you" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">You merge</text>
+      <text x="786" y="114" class="b">when build, verify</text>
+      <text x="786" y="134" class="b">and review are green</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M730,120 H766" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-7">
+  <h3 class="sec">#7 Cloud agentic workflow (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Agents open PRs.</b> Claude Code on the web implements an issue and opens a PR; this PR's review runs on its first push, and the repo <code>CLAUDE.md</code> tells the agent to pull the bot's fixes before pushing again.</li>
+    <li data-k="2"><b>A verify job.</b> #7 adds smoke and feature tests with screenshots, posted as another section of the same PR comment through <code>pr-comment.sh</code>.</li>
+    <li data-k="3"><b>The budget.</b> One small push costs about 11 billed minutes before <code>verify</code>, and an auto-fix round about 22, so #7's ~45 minutes per feature needs updating against the 2,000 free minutes a month.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="finding"><dt>Finding</dt><dd>One problem the review reports, numbered R1, R2, … across the whole PR.</dd></div>
+    <div data-k="confirmed"><dt>CONFIRMED / PLAUSIBLE</dt><dd>Confirmed: a second, fresh agent reproduced the failure. Plausible: it couldn't, so nothing is fixed for it.</dd></div>
+    <div data-k="xhigh"><dt>xhigh</dt><dd>The second-deepest level of <code>/code-review</code>; deeper finds more and takes longer.</dd></div>
+    <div data-k="trailer"><dt>Trailer</dt><dd>A <code>Key: value</code> line at the end of a commit message, like <code>Review: suggest</code>.</dd></div>
+    <div data-k="autofix"><dt>Auto-fix</dt><dd>The default mode: confirmed findings are fixed and pushed as one <code>claude[bot]</code> commit.</dd></div>
+    <div data-k="suggest"><dt>Suggested change</dt><dd>A PR comment with a code block GitHub can apply with one click, "Commit suggestion".</dd></div>
+    <div data-k="followup"><dt>Follow-up review</dt><dd>The review of the bot's own fix commit; it only reports, which ends the loop.</dd></div>
+    <div data-k="accept"><dt>Review-accept</dt><dd>A trailer that closes findings you keep on purpose, so they stop failing the job.</dd></div>
+    <div data-k="token"><dt>REVIEW_PUSH_TOKEN</dt><dd>A repo secret: a fine-grained GitHub token that may push to this repo's branches, used only by <code>review-report</code>.</dd></div>
+    <div data-k="artifact"><dt>Artifact</dt><dd>Files one CI job uploads for a later job to download; here the findings and the fix patch.</dd></div>
+    <div data-k="structured"><dt>Structured output</dt><dd>The action's answer as JSON that matches a schema, instead of free text.</dd></div>
+    <div data-k="prproof"><dt>PR comment</dt><dd>The one comment CI keeps on each PR, marked <code>&lt;!-- pr-proof --&gt;</code>, with an explainer section and a review section.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>

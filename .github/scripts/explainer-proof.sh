@@ -2,8 +2,8 @@
 # Requires, renders and posts a PR's explainer: explainer-proof.sh [check|render [page...]|publish] (no argument: all three).
 #   check    a PR from a <n>-<slug> branch must add or change explainers/<n>-*.html; other branches are exempt
 #   render   each explainers/<issue>-*.html the PR adds or changes (or each page given) -> 1200px full-page dark PNG
-#   publish  commits each PNG to the shots branch as pr-$PR/explainer-<issue>.png and puts it in the
-#            PR comment marked <!-- pr-proof -->, between <!-- explainer:start --> and <!-- explainer:end -->
+#   publish  commits each PNG to the shots branch as pr-$PR/explainer-<issue>.png and puts it in the PR comment's
+#            explainer section, through pr-comment.sh
 # Env: PR (number), HEAD_REF (branch, default the current one), HEAD_SHA, BASE (default origin/main), OUT.
 # DRY_RUN=1 runs check and render, then prints the comment instead of uploading and posting.
 set -euo pipefail
@@ -116,32 +116,7 @@ publish() {
     echo "$page https://github.com/$GH_REPO/blob/$sha/$path?raw=true" >> "$OUT/urls"
   done < "$OUT/list"
   section > "$OUT/section.md"
-
-  local id=
-  if [[ -n ${PR:-} ]]; then
-    id=$(gh api --paginate "repos/{owner}/{repo}/issues/$PR/comments" \
-      --jq '.[] | select(.body | startswith("<!-- pr-proof -->")) | .id' | sed -n 1p)
-  fi
-  if [[ -n $id ]]; then
-    gh api "repos/{owner}/{repo}/issues/comments/$id" --jq .body > "$OUT/old.md"
-    python3 - "$OUT/old.md" "$OUT/section.md" > "$OUT/comment.md" <<'EOF'
-import re, sys
-old, new = (open(p).read().strip('\n') for p in sys.argv[1:])
-pat = re.compile(r'<!-- explainer:start -->.*?<!-- explainer:end -->', re.S)
-print(pat.sub(lambda _: new, old, count=1) if pat.search(old) else old + '\n\n' + new)
-EOF
-  else
-    { echo '<!-- pr-proof -->'; cat "$OUT/section.md"; } > "$OUT/comment.md"
-  fi
-
-  if [[ ${DRY_RUN:-0} == 1 ]]; then
-    if [[ -n $id ]]; then echo "would update comment $id:"; else echo "would create a comment on PR #${PR:-?}:"; fi
-    sed 's/^/  | /' "$OUT/comment.md"
-  elif [[ -n $id ]]; then
-    gh api -X PATCH "repos/{owner}/{repo}/issues/comments/$id" -F body=@"$OUT/comment.md" --jq '"updated \(.html_url)"'
-  else
-    gh api "repos/{owner}/{repo}/issues/$PR/comments" -F body=@"$OUT/comment.md" --jq '"created \(.html_url)"'
-  fi
+  OUT="$OUT/comment" "$(dirname "$0")/pr-comment.sh" put explainer "$OUT/section.md"
 }
 
 case ${1:-all} in

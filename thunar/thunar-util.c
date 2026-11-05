@@ -1081,7 +1081,7 @@ thunar_util_clip_view_background (GtkCellRenderer     *cell,
 
 /**
  * thunar_util_split_search_query:
- * @search_query: The search query to split.
+ * @search_query_normalized: The normalized search query to split.
  * @error: Return location for regex compilation errors.
  *
  * Search terms are split on whitespace. Search queries must be
@@ -1089,7 +1089,8 @@ thunar_util_clip_view_background (GtkCellRenderer     *cell,
  *
  * See also: thunar_g_utf8_normalize_for_search().
  *
- * Return value: a list of search terms which must be freed with g_strfreev()
+ * Return value: a list of search terms which must be freed with g_strfreev(),
+ *               or %NULL if the regex could not be compiled
  **/
 gchar **
 thunar_util_split_search_query (const gchar *search_query_normalized,
