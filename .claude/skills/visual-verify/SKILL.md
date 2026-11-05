@@ -14,7 +14,7 @@ The audit MUST run in the **independent `shot-audit` skill** (Step 3). That skil
 Free-form tokens. Resolve what is present, and ask only if a required input is missing and can't be inferred.
 
 - **Shots**, one of these (required):
-  - `pr:<n>`: CI's shots for PR `<n>`, from the `shots` branch: `git fetch origin shots`, then `git show origin/shots:pr-<n>/verify.tsv` and each listed `pr-<n>/<file>`, written into a new scratch directory. Needs only git, so it works where `gh` and Xvfb don't.
+  - `pr:<n>`: CI's shots for PR `<n>`, from the `shots` branch: `git fetch origin +refs/heads/shots:refs/remotes/origin/shots` (a plain `git fetch origin shots` updates only `FETCH_HEAD` in a single-branch clone), then `git show origin/shots:pr-<n>/verify.tsv` and each listed `pr-<n>/<file>`, written into a new scratch directory. Needs only git, so it works where `gh` and Xvfb don't.
   - a local directory holding `verify.tsv`, as `.github/scripts/verify-proof.sh run` writes it (`$OUT`, by default `${TMPDIR:-/tmp}/verify-proof/`).
 - **Intents**: the manifest's `proves` column, written by each `shot` call. The caller may add intents inline, for example from the issue's acceptance criteria. Inline intents are added to the manifest's, never replace them.
 - **`run:`** *(optional)*: run `.github/scripts/verify-proof.sh run` first, then audit its `$OUT`. Only in a sandbox where the built debs are installed (see the repo `CLAUDE.md`).
@@ -26,7 +26,7 @@ Before reading any image, check that the run can produce a trustworthy verdict. 
 
 - `run:`: `Xvfb`, `xdotool`, `import` and `xfwm4` exist, and `dpkg -s thunar` shows the version built from this branch. If not, the verdict is INCONCLUSIVE("sandbox can't run the capture"); rely on CI's shots instead (`pr:<n>`).
 - The manifest exists and has at least one row. If none, the verdict is INCONCLUSIVE("no verify.tsv").
-- Every row has a `proves` sentence, except rows with shot `-`, which are tests that saved no shot.
+- Every row has a `proves` sentence, except rows with shot `-`, which are tests that saved no shot. A row with a shot but file `-` lost its upload: list it as a required shot, so the auditor reports it MISSING.
 - `pr:<n>`: the manifest's `sha` is the PR's head commit (`git ls-remote origin refs/pull/<n>/head`, or the branch head). If not, the verdict is INCONCLUSIVE("shots are for <sha>, the PR head is <sha>"), because CI may still be running.
 - If the capture itself errored (Xvfb didn't start, a script timed out before its first shot), the verdict is INCONCLUSIVE.
 

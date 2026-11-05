@@ -90,13 +90,7 @@ publish() {
   while read -r page; do
     issue=$(basename "$page" | cut -d- -f1)
     path="pr-${PR:-0}/explainer-$issue.png"
-    if [[ ${DRY_RUN:-0} == 1 ]]; then
-      echo "would upload $OUT/explainer-$issue.png to shots:$path"
-      sha=DRY-RUN
-    else
-      sha=$(OUT="$OUT/shots" "$(dirname "$0")/shots.sh" "$OUT/explainer-$issue.png" "$path" "Explainer image for PR #$PR")
-      echo "uploaded shots:$path in ${sha::12}"
-    fi
+    sha=$(OUT="$OUT/shots" "$(dirname "$0")/shots.sh" "$OUT/explainer-$issue.png" "$path" "Explainer image for PR #${PR:-0}")
     echo "$page https://github.com/$GH_REPO/blob/$sha/$path?raw=true" >> "$OUT/urls"
   done < "$OUT/list"
   section > "$OUT/section.md"

@@ -4,20 +4,21 @@
 #            $DEBS when they install cleanly and provide every tool, otherwise with apt from ppa:zorinos/stable,
 #            which repairs what dpkg left; $DEBS then keeps exactly the installed versions of everything apt and
 #            dpkg added. Prints cached=true|false (for $GITHUB_OUTPUT).
-#   run      starts Xvfb, then runs the smoke test (Thunar is still running 10 s after launch) and each verify/*.sh,
-#            each in its own D-Bus session with xfwm4, a fresh HOME and XDG folders, and a $TIMEOUT s limit. Writes the shots, the
-#            logs, $OUT/results.tsv and the manifest $OUT/verify.tsv, and fails if any test failed.
+#   run      runs the smoke test (Thunar is still running 10 s after launch), then each verify/<issue>.sh, each with
+#            its own Xvfb, xfwm4 and D-Bus session, a fresh HOME and XDG folders, and a $TIMEOUT s limit. Writes the
+#            shots, the logs, $OUT/results.tsv and the manifest $OUT/verify.tsv, and fails if any test failed.
 #   publish  commits the shots and their manifest to the shots branch under pr-$PR/ (verify-<test>-<shot>.png,
 #            verify.tsv) through shots.sh and puts the verify section in the PR comment through pr-comment.sh.
-#            Run it whether or not run passed. A failed upload is marked in the section, and publish then fails.
-# Env: PR, HEAD_SHA, GH_REPO, RUN_URL, OUT, DEBS, TIMEOUT (default 300). DRY_RUN=1 makes publish print the section
+#            Run it whether or not run passed. A failed upload is marked in the section and in the manifest (file -),
+#            and publish then fails.
+# Env: PR, HEAD_SHA, GH_REPO, RUN_URL, OUT, DEBS, TIMEOUT (default 120). DRY_RUN=1 makes publish print the section
 # instead of uploading and posting it.
 set -euo pipefail
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 OUT=${OUT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/verify-proof}
 DEBS=${DEBS:-$HOME/verify-debs}
-TIMEOUT=${TIMEOUT:-300}
+TIMEOUT=${TIMEOUT:-120}
 TOOLS=(xvfb xfwm4 xdotool imagemagick x11-utils dbus zorin-desktop-themes)
 mkdir -p "$OUT"
 
@@ -27,6 +28,7 @@ install() {
     [[ -f $deb ]] || { echo "::error::no $deb; the build job's debs artifact goes in dist/" >&2; exit 1; }
   done
   sudo rm -f /var/lib/man-db/auto-update
+  local repair=()
   if compgen -G "$DEBS/*.deb" >/dev/null; then
     if sudo dpkg -i "$DEBS"/*.deb "${debs[@]}" >"$OUT/dpkg.log" 2>&1 && dpkg -s "${TOOLS[@]}" >/dev/null 2>&1; then
       echo "installed from $(compgen -G "$DEBS/*.deb" | wc -l) cached debs" >&2
@@ -35,16 +37,18 @@ install() {
     fi
     echo "::warning::the cached debs did not install cleanly; installing with apt" >&2
     tail -n 5 "$OUT/dpkg.log" >&2
+    repair=(-f install)
   fi
   sudo add-apt-repository -y ppa:zorinos/stable >&2
   mkdir -p "$DEBS"
   local apt=(sudo apt-get -y --no-install-recommends -o Dir::Cache::Archives="$DEBS" -o APT::Sandbox::User=root)
-  "${apt[@]}" -f install >&2
+  (( ${#repair[@]} == 0 )) || "${apt[@]}" "${repair[@]}" >&2
   "${apt[@]}" install "${debs[@]/#/./}" "${TOOLS[@]}" >&2
   sudo rm -rf "$DEBS/partial" "$DEBS/lock"
   sudo chown -R "$(id -u):$(id -g)" "$DEBS"
   local pkg ver
   for deb in "$DEBS"/*.deb; do
+    [[ -f $deb ]] || continue
     read -r pkg ver < <(dpkg-deb --show --showformat='${Package} ${Version}\n' "$deb")
     [[ $(dpkg-query -W -f='${db:Status-Abbrev}${Version}' "$pkg" 2>/dev/null) == "ii $ver" ]] || rm -f "$deb"
   done
@@ -67,16 +71,22 @@ smoke() {
   shot "$WID" window "Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file"
 }
 
-session() {  # inside dbus-run-session: a window manager, then the test
+session() {
+  local i
+  Xvfb -displayfd 3 -screen 0 1280x800x24 -nolisten tcp 3>"$XDG_RUNTIME_DIR/display" >"$XDG_RUNTIME_DIR/xvfb.log" 2>&1 &
+  for ((i = 0; i < 100; i++)); do
+    [[ -s $XDG_RUNTIME_DIR/display ]] && break
+    sleep 0.1
+  done
+  [[ -s $XDG_RUNTIME_DIR/display ]] || { cat "$XDG_RUNTIME_DIR/xvfb.log" >&2; echo "FAIL: Xvfb did not start" >&2; return 1; }
+  DISPLAY=:$(cat "$XDG_RUNTIME_DIR/display")
+  export DISPLAY
   xfwm4 --compositor=off --sm-client-disable &
-  local wm=$! i status=0
   for ((i = 0; i < 50; i++)); do
     xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null | grep -q 'window id' && break
     sleep 0.1
   done
-  "$@" || status=$?
-  kill "$wm" 2>/dev/null || true
-  return "$status"
+  "$@"
 }
 
 test_one() {  # name, command...
@@ -91,7 +101,14 @@ test_one() {  # name, command...
     WORK=$dir/work SHOTS=$OUT/shots/$name GTK_THEME=$(theme) NO_AT_BRIDGE=1 \
     timeout -k 5 "$TIMEOUT" dbus-run-session -- "$HERE/verify-proof.sh" session "$@" >"$OUT/logs/$name.log" 2>&1 </dev/null &
   pid=$!
-  if wait "$pid"; then status=pass; else status=$?; (( status == 124 )) && status="timeout ${TIMEOUT}s" || status="exit $status"; fi
+  wait "$pid" && status=0 || status=$?
+  if (( status == 0 )); then
+    status=pass
+  elif (( SECONDS - start >= TIMEOUT )); then
+    status="timeout ${TIMEOUT}s"
+  else
+    status="exit $status"
+  fi
   kill -- -"$pid" 2>/dev/null || true
   printf '%s\t%s\t%s\n' "$name" "$status" $((SECONDS - start)) >> "$OUT/results.tsv"
   echo "$name: $status in $((SECONDS - start)) s"
@@ -103,16 +120,18 @@ run() {
   mkdir -p "$OUT/logs"
   : > "$OUT/results.tsv"
   theme > "$OUT/theme"
-  local display=:99 script
-  Xvfb "$display" -screen 0 1280x800x24 -nolisten tcp >"$OUT/logs/xvfb.log" 2>&1 &
-  XVFB_PID=$!
-  trap 'kill "$XVFB_PID" 2>/dev/null || true' EXIT
-  export DISPLAY=$display
-  timeout 10 bash -c 'until xdpyinfo >/dev/null 2>&1; do sleep 0.1; done' || { cat "$OUT/logs/xvfb.log" >&2; echo "::error::Xvfb did not start" >&2; exit 1; }
+  local script name
   test_one smoke smoke
   for script in verify/*.sh; do
     [[ -f $script ]] || continue
-    test_one "$(basename "$script" .sh)" bash "$script"
+    name=$(basename "$script" .sh)
+    if [[ $name =~ ^[0-9]+$ ]]; then
+      test_one "$name" bash "$script"
+    else
+      echo "FAIL: $script is not named verify/<issue>.sh, so it was not run" > "$OUT/logs/$name.sh.log"
+      printf '%s\t%s\t0\n' "$name.sh" "misnamed" >> "$OUT/results.tsv"
+      echo "$script: misnamed, not run"
+    fi
   done
   manifest local > "$OUT/verify.tsv"
   local failed
@@ -122,7 +141,7 @@ run() {
 }
 
 label() {  # test name -> how the section names it
-  if [[ $1 == smoke ]]; then echo "Smoke test"; else echo "\`verify/$1.sh\`"; fi
+  if [[ $1 == smoke ]]; then echo "Smoke test"; elif [[ $1 =~ ^[0-9]+$ ]]; then echo "\`verify/$1.sh\`"; else echo "\`verify/$1\`"; fi
 }
 
 section() {  # results, logs and $OUT/urls ("test<tab>shot<tab>url<tab>proves") -> the verify section
@@ -146,7 +165,7 @@ section() {  # results, logs and $OUT/urls ("test<tab>shot<tab>url<tab>proves") 
   while IFS=$'\t' read -r name status secs; do
     printf '\n#### %s\n' "$(label "$name")"
     if [[ $status != pass ]]; then
-      printf '\n<details><summary>Last lines of the log</summary>\n\n```\n%s\n```\n\n</details>\n' "$(tail -n 30 "$OUT/logs/$name.log" 2>/dev/null)"
+      printf '\n<details><summary>Last lines of the log</summary>\n\n```\n%s\n```\n\n</details>\n' "$(tail -n 30 "$OUT/logs/$name.log" 2>/dev/null | sed "s/^/  /; s/\`/'/g")"
     fi
     if ! awk -F'\t' -v n="$name" '$1 == n {found = 1} END {exit !found}' "$OUT/urls"; then
       printf '\nNo screenshots.\n'
@@ -178,12 +197,7 @@ manifest() {  # local | shots -> one row per shot: sha, test, result, shot, file
 }
 
 upload() {  # local file, path on shots -> commit sha
-  if [[ ${DRY_RUN:-0} == 1 ]]; then
-    echo "would upload $1 to shots:$2" >&2
-    echo DRY-RUN
-  else
-    OUT="$OUT/upload" "$HERE/shots.sh" "$1" "$2" "Verify screenshots for PR #$PR" </dev/null
-  fi
+  OUT="$OUT/upload" "$HERE/shots.sh" "$1" "$2" "Verify screenshots for PR #${PR:-0}" </dev/null
 }
 
 publish() {
@@ -193,21 +207,25 @@ publish() {
   local name shot file proves path sha url failed=0
   if [[ -s $OUT/results.tsv ]]; then
     manifest shots > "$OUT/verify-shots.tsv"
+    : > "$OUT/upload-failed"
     while IFS=$'\t' read -r _ name _ shot file proves; do
       [[ $shot != - ]] || continue
       path="pr-${PR:-0}/$file"
       if sha=$(upload "$OUT/shots/$name/$shot.png" "$path"); then
-        echo "uploaded shots:$path in ${sha::12}"
         url="https://github.com/$GH_REPO/blob/$sha/$path?raw=true"
       else
         echo "::error::could not upload $path" >&2
+        printf '%s\t%s\n' "$name" "$shot" >> "$OUT/upload-failed"
         url=- failed=1
       fi
       printf '%s\t%s\t%s\t%s\n' "$name" "$shot" "$url" "$proves" >> "$OUT/urls"
     done < <(tail -n +2 "$OUT/verify-shots.tsv")
-    if sha=$(upload "$OUT/verify-shots.tsv" "pr-${PR:-0}/verify.tsv"); then
-      echo "uploaded shots:pr-${PR:-0}/verify.tsv in ${sha::12}"
-    else
+    if [[ -s $OUT/upload-failed ]]; then
+      awk -F'\t' -v OFS='\t' 'NR == FNR {lost[$1 FS $2]; next} FNR > 1 && ($2 FS $4) in lost {$5 = "-"} 1' \
+        "$OUT/upload-failed" "$OUT/verify-shots.tsv" > "$OUT/verify-shots.tmp"
+      mv "$OUT/verify-shots.tmp" "$OUT/verify-shots.tsv"
+    fi
+    if ! upload "$OUT/verify-shots.tsv" "pr-${PR:-0}/verify.tsv" >/dev/null; then
       echo "::error::could not upload pr-${PR:-0}/verify.tsv" >&2
       failed=1
     fi

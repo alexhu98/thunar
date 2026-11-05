@@ -124,6 +124,7 @@ jobs:
 
       - name: Smoke test and verify/*.sh
         id: run
+        timeout-minutes: 20
         run: .github/scripts/verify-proof.sh run
 
       - name: Upload the screenshots and update the PR comment

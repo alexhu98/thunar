@@ -212,8 +212,8 @@
   <ol class="steps">
     <li data-k="1"><b>Build (#1).</b> The existing build job makes the PR's 5 debs and uploads them as the <code>debs</code> artifact. <code>verify</code> waits for it (<code>needs: build</code>) and downloads them into <code>dist/</code>.</li>
     <li data-k="2"><b>Install.</b> <code>verify-proof.sh install</code> installs <code>thunar</code>, <code>thunar-data</code> and <code>libthunarx-3-0</code>, plus Xvfb, xfwm4, xdotool, ImageMagick and Zorin's GTK themes. It first tries the debs cached for this runner image with one <code>dpkg -i</code>. If any of them doesn't install, or a tool is missing, it uses apt with <code>ppa:zorinos/stable</code>, which repairs what dpkg left. It then saves the installed versions as a new cache entry.</li>
-    <li data-k="3"><b>Smoke test.</b> <code>verify-proof.sh run</code> starts Xvfb on <code>:99</code>. In a fresh D-Bus session with xfwm4, it launches Thunar on a folder of 2 folders and a file. It checks that Thunar is still running after 10 s and photographs its window (<code>import -window</code>).</li>
-    <li data-k="4"><b>Feature tests.</b> Then each <code>verify/*.sh</code> runs the same way, each in its own D-Bus session with a fresh <code>HOME</code> and XDG folders, for at most 300 s. The script drives Thunar with <code>xdotool</code> and checks the result (window title, files on disk). It saves before/after shots, each with a sentence saying what it proves, and exits non-zero on failure.</li>
+    <li data-k="3"><b>Smoke test.</b> <code>verify-proof.sh run</code> gives the test its own Xvfb, xfwm4 and D-Bus session, and launches Thunar on a folder of 2 folders and a file. It checks that Thunar is still running after 10 s and photographs its window (<code>import -window</code>).</li>
+    <li data-k="4"><b>Feature tests.</b> Then each <code>verify/&lt;issue&gt;.sh</code> runs the same way, with its own Xvfb, D-Bus session, <code>HOME</code> and XDG folders, for at most 120 s. A script with any other name fails the job unrun. The script drives Thunar with <code>xdotool</code> and checks the result (window title, files on disk). It saves before/after shots, each with a sentence saying what it proves, and exits non-zero on failure.</li>
   </ol>
   <div class="lane-h" style="color:var(--accent)">② publish</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
@@ -241,12 +241,12 @@
   <div class="table-wrap">
   <table>
     <tr><th>Name</th><th>What it is</th></tr>
-    <tr data-k="e1"><td><code>DISPLAY</code></td><td>Xvfb at 1280×800, with xfwm4 managing windows</td></tr>
+    <tr data-k="e1"><td><code>DISPLAY</code></td><td>its own Xvfb at 1280×800, with xfwm4 managing windows</td></tr>
     <tr data-k="e2"><td><code>HOME</code>, D-Bus</td><td>fresh for each script, with its own XDG folders, so no Thunar instance or setting carries over from an earlier test</td></tr>
     <tr data-k="e3"><td><code>WORK</code></td><td>an empty folder for the test's files</td></tr>
     <tr data-k="e4"><td><code>SHOTS</code></td><td>where <code>shot</code> writes <code>&lt;name&gt;.png</code> and its line in <code>shots.tsv</code></td></tr>
     <tr data-k="e5"><td><code>GTK_THEME</code></td><td><code>ZorinBlue-Dark</code>, or <code>Adwaita:dark</code> without it</td></tr>
-    <tr data-k="e6"><td>limit</td><td>300 s per script; it runs with <code>bash</code> from the repo root</td></tr>
+    <tr data-k="e6"><td>limit</td><td>120 s per script, 20 min for all of them; it runs with <code>bash</code> from the repo root</td></tr>
   </table>
   </div>
   </section>
@@ -300,20 +300,27 @@ explainers/7-cloud-agents.html   # this page</pre>
     <tr data-k="c5b"><td>Publish, uploads failing</td><td>a fake <code>gh</code> that refuses every upload to <code>shots</code></td><td class="ok">section posted, 4 shots marked, exit 1</td></tr>
     <tr data-k="c6"><td>The one-list apt lesson</td><td><code>apt-get update</code> with only the PPA's list, in a container</td><td class="ok">15 lists → 1; libgtk-3 no candidate</td></tr>
     <tr data-k="c7"><td>Lint</td><td>shellcheck on the 4 scripts, actionlint on the workflow</td><td class="ok">clean but SC2097/8 (intended)</td></tr>
-    <tr data-k="c8"><td>This PR's CI</td><td>build, verify, explainer and review on GitHub's runner</td><td class="open">pending</td></tr>
+    <tr data-k="c8"><td>This PR's CI, first push</td><td>CI run 41996801445 at <code>e16447d683ac</code>, on GitHub's runner</td><td class="ok">build, verify, explainer green; verify 1 min 41 s, install 69 s (cache miss)</td></tr>
+    <tr data-k="c9"><td>CI's smoke shot</td><td><code>shot-audit</code> (the read-only auditor) on <code>pr-18/verify-smoke-window.png</code>, fetched from <code>shots</code> with git; manifest sha = PR head</td><td class="ok">OK; VERDICT: PASS</td></tr>
+    <tr data-k="c10"><td>This PR's CI, second push</td><td>the review fixes; verify should restore run 41996801445's cache</td><td class="open">pending</td></tr>
   </table>
   </div>
   </section>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">A fresh <code>general-purpose</code> agent was given only the diff (at <code>7d054baf3</code>) and issue #7. It found 6 issues: 1 medium, 3 low and 2 in the docs. All 6 were fixed and re-run in the container. It also reproduced the cache-fallback bug on the earlier commit and confirmed the fix. CI's own review of each push is in the PR comment's review section.</p>
+  <p data-k="summary">A fresh <code>general-purpose</code> agent was given only the diff (at <code>7d054baf3</code>) and issue #7. It found 6 issues: 1 medium, 3 low and 2 in the docs. All 6 were fixed and re-run in the container. It also reproduced the cache-fallback bug on the earlier commit and confirmed the fix. Then CI's review of the first push (Opus 5.5 at <code>xhigh</code>, 20 min) found 15 more, 5 of them medium. It may not change <code>.github/</code> or <code>.claude/</code>, so they were fixed by hand: 13 fixed, 2 low ones accepted. Its verdicts on each push are in the PR comment's review section.</p>
   <ul class="tight">
     <li data-k="b1"><b>Isolation (medium):</b> GitHub's runner sets <code>XDG_CONFIG_HOME</code>, so Thunar's settings would have leaked from one test to the next despite the fresh <code>HOME</code>. Each test now gets its own XDG folders.</li>
     <li data-k="b2"><b>Second window:</b> a second <code>open_thunar</code> hands off to the running Thunar and exits, so it found no window. It now waits for that instance's new window.</li>
     <li data-k="b3"><b>Captions:</b> a caption with a tab or line break split the manifest and stopped publish. <code>shot</code> now refuses it.</li>
     <li data-k="b4"><b>Failed uploads:</b> one failed upload skipped the whole comment, so it kept the last push's results. The shot is now marked and the job still fails.</li>
     <li data-k="b5"><b>Docs:</b> two lines on this page described the cache wrongly. They are fixed.</li>
+    <li data-k="b6"><b>CI R3 (medium):</b> tests shared one X server, so the next test's window-manager check could see the last test's xfwm4. Each test now starts its own Xvfb.</li>
+    <li data-k="b7"><b>CI R2 (medium):</b> a failing test's log, pasted into the shared comment, could fake the review state line that review-proof.sh reads. Log lines are now indented, with backticks replaced.</li>
+    <li data-k="b8"><b>CI R1, R4, R5 (medium):</b> the manifest now marks a lost upload as file <code>-</code>. The skill fetches <code>shots</code> with an explicit refspec, which works in single-branch clones. Scripts get 120 s each, under a 20-minute step limit, so a hang can't stop the comment.</li>
+    <li data-k="b9"><b>CI, low:</b> duplicate shot names and scripts not named <code>verify/&lt;issue&gt;.sh</code> now fail. A killed test is reported as a timeout. No sleep after the last failed upload, and no <code>apt-get -f</code> on a plain cache miss. The dry run moved into <code>shots.sh</code>, an explanatory comment was removed, and an empty cache folder can't stop install.</li>
+    <li data-k="b10"><b>CI, accepted:</b> R11, one commit per screenshot, is fine at a few shots per PR. R14, releases don't wait for verify, is by design, because the owner's merge is the gate.</li>
   </ul>
   </section>
 

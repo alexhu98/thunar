@@ -16,7 +16,7 @@ sha            test   result  shot           file                         proves
 4f0c…          3      pass    after-parent   verify-3-after-parent.png    A double-click on empty space opened the parent folder
 ```
 
-`proves` is the sentence the script passed to `shot`. It is the intent the auditor checks, so write it as the state to confirm ("the parent folder is open"), not as the action ("double-clicked"). A test that saved no shot has `-` in shot, file and proves.
+`proves` is the sentence the script passed to `shot`. A shot whose upload failed has `-` as its file. It is the intent the auditor checks, so write it as the state to confirm ("the parent folder is open"), not as the action ("double-clicked"). A test that saved no shot has `-` in shot, file and proves.
 
 ## Usage
 
@@ -88,5 +88,5 @@ shot "$WID" after-parent "A double-click on empty space opened the parent folder
 - **Send input to a focused window.** `xdotool key`, `type` and `click` with `--window` send synthetic events that GTK ignores. Call `focus "$WID"` first and send them without `--window`. `mousemove --window` is fine, because it only positions the pointer.
 - **Capture popups from the root window.** Menus, tooltips and some dialogs are separate X windows. `shot "$WID"` misses them, so use `shot root <name> "<proves>"`.
 - **Keep pairs comparable.** Shoot `before-<what>` and `after-<what>` of the same window at the same size, so the only difference is the one the intent names.
-- **Stay in `$WORK`.** Create every file the test needs there. `HOME` and the XDG folders are fresh for each script, and nothing from the owner's desktop exists. `open_thunar` again in the same script opens another window of the same Thunar, as a second `thunar` call does.
+- **Stay in `$WORK`.** Create every file the test needs there. Each script gets its own Xvfb, `HOME` and XDG folders, and nothing from the owner's desktop exists. `open_thunar` again in the same script opens another window of the same Thunar, as a second `thunar` call does.
 - **Exit non-zero on failure.** `fail "<what was wrong>"` prints the reason, which CI shows in the PR comment under the test.

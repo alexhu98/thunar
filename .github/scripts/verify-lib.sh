@@ -48,6 +48,7 @@ shot() {
   local wid=$1 name=$2 proves=$3
   [[ $name =~ ^[a-z0-9][a-z0-9-]*$ ]] || fail "shot name '$name' must be lowercase letters, digits and -"
   [[ -n $proves && $proves != *[$'\t\n']* ]] || fail "shot $name needs a one-line sentence saying what it proves"
+  ! grep -q "^$name"$'\t' "$SHOTS/shots.tsv" 2>/dev/null || fail "shot name $name is used twice"
   sleep 1
   import -window "$wid" "$SHOTS/$name.png" || fail "could not capture window $wid as $name"
   printf '%s\t%s\n' "$name" "$proves" >> "$SHOTS/shots.tsv"
