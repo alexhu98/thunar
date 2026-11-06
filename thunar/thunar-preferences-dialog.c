@@ -975,6 +975,11 @@ thunar_preferences_dialog_init (ThunarPreferencesDialog *dialog)
                           G_OBJECT (button),
                           "active",
                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+  g_object_bind_property (G_OBJECT (dialog->preferences),
+                          "misc-single-click",
+                          G_OBJECT (button),
+                          "sensitive",
+                          G_BINDING_INVERT_BOOLEAN | G_BINDING_SYNC_CREATE);
   gtk_widget_set_hexpand (button, TRUE);
   gtk_grid_attach (GTK_GRID (grid), button, 0, row, 1, 1);
   gtk_widget_show (button);
