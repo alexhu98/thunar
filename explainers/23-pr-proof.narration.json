@@ -1,9 +1,9 @@
 {
   "title": "Issue #23 · PR proof comments",
   "voice": "af_heart",
-  "page_sha256": "80f1bd61355a6a800273cb1905af1c17f33dd2f05dde6ebae0153a0a7c810c59",
+  "page_sha256": "c1688791f3eeb835059a6c04c12e2eea73cec1276bdc3491d81979b09c6ca708",
   "lines": [
-    {"screen": "title", "keys": [], "caption": "This is a tour of the change for issue 23, which turns CI's proof on every pull request into four comments.", "src": "eccd00f9e2f1"},
+    {"screen": "title", "keys": [], "caption": "This is a tour of the change for issue 23, which turns CI's proof on every pull request into four comments.", "src": "1ceba5e23478"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "b86bd73ef4ca"},
     {"screen": "adds", "keys": [], "caption": "Part 1. What this PR adds.", "src": "923ed29aba33"},
     {"screen": "flow", "keys": ["1"], "caption": "First, a verify script describes each before and after pair: what it did between the shots, and what they prove.", "src": "3d50ec0323d1"},
@@ -28,7 +28,7 @@
     {"screen": "comments", "keys": ["c4"], "caption": "And the explainer comment shows this page, or why it is missing.", "src": "e98dc3df3180"},
     {"screen": "pairfmt", "keys": ["pair"], "caption": "Each pair gets a small table: the shot number, the action, what it proves, and both captions, then one image.", "src": "6916e9e7fcbd"},
     {"screen": "pairfmt", "keys": ["anchor"], "caption": "Every shot number is a link that jumps to that shot.", "src": "bc564f6b15c6"},
-    {"screen": "files", "keys": ["tree"], "caption": "Most of the work is in two new scripts, one for the shots and one for the summary.", "src": "055e34d4c2bf"},
+    {"screen": "files", "keys": ["tree"], "caption": "Most of the work is in two new scripts, one for the shots and one for the summary.", "src": "39c1e8b63eb5"},
     {"screen": "verified", "keys": [], "caption": "Part 2. How it was built and verified.", "src": "ef17df6b5ec4"},
     {"screen": "refs", "keys": ["r1"], "caption": "The pair images were built from the real screenshots of pull request 20.", "src": "2ae35514a89c"},
     {"screen": "refs", "keys": ["r2"], "caption": "The issue's mockup was never attached, so the comments follow the issue's text.", "src": "99a1b709c174"},
@@ -43,11 +43,11 @@
     {"screen": "next", "keys": ["n2"], "caption": "Next is this pull request's first CI run: read the four comments, and click the shot links.", "src": "e5a5456d1e19"},
     {"screen": "next", "keys": ["n3"], "caption": "Then the screenshot audit, which fills the summary's audit row.", "src": "ee9d4395c61f"},
     {"screen": "next", "keys": ["n4"], "caption": "And last, a re-run of pull request 20's feature, to compare with the old comment.", "src": "5adf2d4a85ba"},
-    {"screen": "title", "keys": [], "caption": "In short: CI's proof now reads in the order you decide, with every pair side by side.", "src": "eccd00f9e2f1"}
+    {"screen": "title", "keys": [], "caption": "In short: CI's proof now reads in the order you decide, with every pair side by side.", "src": "1ceba5e23478"}
   ],
   "page_text": {
     "title/title": "50591e9eebac",
-    "title/lead": "769204d065bd",
+    "title/lead": "b8356ae5bf9d",
     "title/p1": "e2dcca34ab6e",
     "title/p2": "0d01b98be0dc",
     "title/p3": "abac1c1a0427",
@@ -76,7 +76,7 @@
     "comments/c4": "e98dc3df3180",
     "pairfmt/pair": "6916e9e7fcbd",
     "pairfmt/anchor": "bc564f6b15c6",
-    "files/tree": "055e34d4c2bf",
+    "files/tree": "39c1e8b63eb5",
     "verified/label": "5a01db6f2d60",
     "verified/heading": "f0387d007bb6",
     "verified/intro": "cd653794c9f8",

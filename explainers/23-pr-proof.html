@@ -101,7 +101,7 @@
 <main>
   <header id="title">
   <h1 data-k="title">Issue #23: CI's proof as four comments, with numbered side-by-side shots</h1>
-  <p class="lead" data-k="lead">Branch <code>claude/gallant-fermat-v8allh</code> → <code>main</code>, closes #23. Once merged, every PR's CI proof reads in decision order: a short summary first, then the code review, the screenshots and the explainer, each in its own comment, with every before/after pair shown side by side under what the test did and what it proves.</p>
+  <p class="lead" data-k="lead">Branch <code>23-pr-proof</code> → <code>main</code>, closes #23. Once merged, every PR's CI proof reads in decision order: a short summary first, then the code review, the screenshots and the explainer, each in its own comment, with every before/after pair shown side by side under what the test did and what it proves.</p>
 
   <nav class="parts" aria-label="Parts of this page">
     <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
@@ -269,7 +269,8 @@
     ├── review-proof.sh       # reads and writes the review comment
     └── review-state.py       # keeps closed findings whole; the full findings table
 verify/3.sh                   # a pair call after each of its 12 pairs
-CLAUDE.md                     # four comments, pair, the # column, audit comment marker
+CLAUDE.md                     # four comments, pair, the # column, audit comment marker,
+                              # and cloud sessions use <issue>-<slug> branches
 .claude/
 ├── agents/shot-auditor.md    # # column in the audit table
 └── skills/

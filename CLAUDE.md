@@ -2,6 +2,7 @@
 
 ## Branches and PRs
 - Work on a branch named `<issue>-<short-slug>` and open the PR into `main`, the default branch. Put `Closes #<issue>` in the PR description, or `Refs #<issue>` when the PR does only part of the issue.
+- In a cloud session, ignore the `claude/…` branch the session is assigned. Once the issue is known, create `<issue>-<short-slug>` from `origin/main`, and push and open the PR from it.
 - Never push to the `upstream` remote. Never touch `master` or `xfce-4.20`: they mirror upstream.
 - The owner merges, and only when the build and verify jobs are green and the screenshots are reviewed.
 
