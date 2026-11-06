@@ -94,14 +94,17 @@ main() {
   fi
 
   local -A claim=()
-  local base f n
+  local base f n blob path
+  local -A on_main=()
+  while read -r blob path; do
+    on_main["$path $blob"]=1
+  done < <(git log --format= --raw --no-abbrev -m --full-history origin/main -- explainers/ | awk '{ print $4, $NF }')
   for b in "${branches[@]}"; do
     base=$(git merge-base origin/main "origin/$b") || { echo "  $b: no common history with main, skipped"; continue; }
     while read -r f; do
       n=${f#explainers/}; n=${n%%-*}
       [[ $n =~ ^[0-9]+$ ]] || continue
-      ! git log --format= --raw --no-abbrev origin/main -- "$f" | awk '{ print $4 }' | grep -qxF "$(git rev-parse "origin/$b:$f")" \
-        || continue
+      [[ -z ${on_main["$f $(git rev-parse "origin/$b:$f")"]:-} ]] || continue
       [[ " ${claim[$n]:-} " == *" $b "* ]] || claim[$n]="${claim[$n]:-}${claim[$n]:+ }$b"
     done < <(git diff --name-only --diff-filter=ACMR "$base" "origin/$b" -- 'explainers/*.html' 'explainers/*.narration.json')
   done

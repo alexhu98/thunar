@@ -62,8 +62,8 @@ narration() {
 }
 
 chrome() {
-  "$CHROME" --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --force-dark-mode \
-    ${CI:+--no-sandbox} --user-data-dir="$OUT/profile" --virtual-time-budget=3000 "$@"
+  timeout 180 "$CHROME" --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --force-dark-mode \
+    ${CI:+--no-sandbox} --user-data-dir="$OUT/profile" --virtual-time-budget=3000 "$@" </dev/null
 }
 
 measure() {  # page URL -> "height scrollWidth" at $WIDTH and "scrollWidth" at 390px, each laid out in an iframe of that width (headless windows are at least 500px)
@@ -76,24 +76,32 @@ measure() {  # page URL -> "height scrollWidth" at $WIDTH and "scrollWidth" at 3
 
 render() {
   if (( $# )); then printf '%s\n' "$@" > "$OUT/list"; else check >/dev/null; fi
-  local page url issue height width narrow
+  local page url issue height width narrow failed=0
   while read -r page; do
     issue=$(basename "$page" | cut -d- -f1)
+    rm -f "$OUT/explainer-$issue.png"
     url="file://$(realpath "$page")"
+    height=
     read -r height width narrow < <(measure "$url") || true
     if [[ -z ${height:-} ]]; then
       cat "$OUT/chrome.log" >&2
       echo "::error::Chrome could not measure $page"
-      exit 1
+      failed=1
+      continue
     fi
     if (( ${narrow:-0} > 390 )); then
       echo "::warning file=$page::$page is ${narrow}px wide at a 390px viewport; diagrams and code must scroll inside their own boxes"
     fi
-    rm -f "$OUT/explainer-$issue.png"
     chrome --window-size="$WIDTH,$height" --screenshot="$OUT/explainer-$issue.png" "$url" 2>>"$OUT/chrome.log" >/dev/null || true
-    [[ -s $OUT/explainer-$issue.png ]] || { cat "$OUT/chrome.log" >&2; echo "::error::Chrome made no image of $page"; exit 1; }
+    if [[ ! -s $OUT/explainer-$issue.png ]]; then
+      cat "$OUT/chrome.log" >&2
+      echo "::error::Chrome made no image of $page"
+      failed=1
+      continue
+    fi
     echo "$page -> $OUT/explainer-$issue.png (${width}x${height})"
   done < "$OUT/list"
+  return "$failed"
 }
 
 section() {  # the explainer section of the comment, for each image URL in $OUT/urls
@@ -153,6 +161,6 @@ case ${1:-all} in
   narration) narration ;;
   render) shift; render "$@" ;;
   publish) publish ;;
-  all) check; status=0; narration || status=1; render; set +e; (set -e; publish); rc=$?; set -e; (( rc == 0 )) || status=1; exit "$status" ;;
+  all) check; status=0; narration || status=1; render || status=1; set +e; (set -e; publish); rc=$?; set -e; (( rc == 0 )) || status=1; exit "$status" ;;
   *) echo "usage: $0 [check|narration|render|publish]" >&2; exit 2 ;;
 esac
