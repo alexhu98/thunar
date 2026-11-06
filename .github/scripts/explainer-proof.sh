@@ -63,7 +63,7 @@ narration() {
 
 chrome() {
   timeout 180 "$CHROME" --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --force-dark-mode \
-    ${CI:+--no-sandbox} --user-data-dir="$OUT/profile" --virtual-time-budget=3000 "$@" </dev/null
+    $( [[ -n ${CI:-} || $EUID == 0 ]] && echo --no-sandbox ) --user-data-dir="$OUT/profile" --virtual-time-budget=3000 "$@" </dev/null
 }
 
 measure() {  # page URL -> "height scrollWidth" at $WIDTH and "scrollWidth" at 390px, each laid out in an iframe of that width (headless windows are at least 500px)

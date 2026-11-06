@@ -54,10 +54,13 @@ main() {
     top=$(git -C "$gallery" rev-parse --show-toplevel 2>/dev/null || true)
     gitdir=$(git -C "$gallery" rev-parse --path-format=absolute --git-dir 2>/dev/null || true)
     common=$(git -C "$gallery" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
-    if [[ $top != "$gallery" || $common != "$(git rev-parse --path-format=absolute --git-common-dir)" \
+    if [[ $gallery == "$repo" || $top != "$gallery" || $common != "$(git rev-parse --path-format=absolute --git-common-dir)" \
           || ! -e $gitdir/videos-all-gallery ]] || git -C "$gallery" symbolic-ref -q HEAD >/dev/null; then
       echo "videos-all: $gallery is not a gallery worktree this script made for $repo; refusing to reset it." >&2
-      echo "  If it is an old gallery, remove it (git worktree remove --force $gallery) and run again, or pick another --gallery." >&2
+      if [[ $gallery != "$repo" && $top == "$gallery" && $gitdir != "$common" \
+            && $common == "$(git rev-parse --path-format=absolute --git-common-dir)" ]] && ! git -C "$gallery" symbolic-ref -q HEAD >/dev/null; then
+        echo "  If it is an old gallery, remove it (git worktree remove --force \"$gallery\") and run again, or pick another --gallery." >&2
+      fi
       return 1
     fi
     git -C "$gallery" clean -fq -- 'explainers/*.html' 'explainers/*.narration.json'
@@ -67,7 +70,18 @@ main() {
       echo "videos-all: the gallery $gallery would be inside the checkout $repo; pick a folder outside it" >&2
       return 1
     fi
-    git worktree add --force --detach "$gallery" origin/main
+    local admin='' d
+    for d in "$(git rev-parse --path-format=absolute --git-common-dir)"/worktrees/*/; do
+      [[ -f $d/gitdir && $(cat "$d/gitdir") == "$gallery/.git" ]] && admin=$d
+    done
+    if [[ -z $admin ]]; then
+      git worktree add --detach "$gallery" origin/main
+    elif [[ -e $admin/videos-all-gallery ]]; then
+      git worktree add --force --detach "$gallery" origin/main
+    else
+      echo "videos-all: git still has a worktree registered at $gallery that this script did not make; refusing to replace it." >&2
+      return 1
+    fi
     touch "$(git -C "$gallery" rev-parse --path-format=absolute --git-dir)/videos-all-gallery"
   fi
   local dir=$gallery/explainers
@@ -157,8 +171,13 @@ main() {
       rows+=("explainers/$n-*"$'\t'"${conflict[$n]// /, }"$'\t'"-"$'\t'"conflict: more than one branch changes it, not rendered")
       continue
     fi
+    if ! compgen -G "$dir/$n-*.html" >/dev/null; then
+      if compgen -G "$dir/$n-*.narration.json" >/dev/null; then
+        rows+=("explainers/$n-*"$'\t'"${source[$n]:-main}"$'\t'"-"$'\t'"a narration but no page, not rendered")
+      fi
+      continue
+    fi
     for page in "$dir/$n"-*.html; do
-      [[ -e $page ]] || continue
       stem=${page%.html}
       page=explainers/$(basename "$page")
       log=$stem.log
@@ -186,12 +205,13 @@ main() {
     done
   done
 
-  local provided=0
-  for n in "${!source[@]}" "${!conflict[@]}"; do
-    [[ " ${source[$n]:-} ${conflict[$n]:-} " == *" $branch "* ]] && provided=1
-  done
-  if [[ -n $branch ]] && (( ! provided )); then
-    rows+=("-"$'\t'"$branch"$'\t'"$(git rev-parse --short=12 "origin/$branch")"$'\t'"no explainer version on this branch that main hasn't had")
+  if [[ -n $branch ]] && (( ${#rows[@]} == 0 )); then
+    if (( ${#claim[@]} == 0 )); then
+      result="no explainer version on this branch that main hasn't had"
+    else
+      result="provides #$(printf '%s\n' "${!claim[@]}" | sort -n | paste -sd' ' | sed 's/ /, #/g'), not #$only"
+    fi
+    rows+=("-"$'\t'"$branch"$'\t'"$(git rev-parse --short=12 "origin/$branch")"$'\t'"$result")
   fi
   echo "== report"
   { printf 'page\tbranch\tcommit\tresult\n'; (( ${#rows[@]} == 0 )) || printf '%s\n' "${rows[@]}"; } > "$dir/REPORT.tsv"
