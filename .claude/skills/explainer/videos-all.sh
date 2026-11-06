@@ -9,13 +9,13 @@
 #   --gallery <dir>  the gallery worktree, default $GALLERY or ~/thunar-explainers
 # Env: MAKE_VIDEO replaces the gallery's make-video.py (same arguments: status|render <n>); it must act on the
 #      gallery's explainers/, e.g. by calling the gallery's make-video.py.
-# The gallery is a linked git worktree detached at origin/main that this script created and marked, never the
-# checkout the script runs from. Pages and
-# narrations are copied into its explainers/ with git show. A branch provides the explainer files it changed since it
-# left main and that still differ from main's; for each issue it provides, its page and narration both come from that
-# branch. The issue's own <n>-<slug> branch wins over other branches; two <n>-<slug> branches, or two other branches
-# and no own one, are a conflict: reported, not rendered. A page is rendered only when its page and narration hashes
-# differ from <stem>.mp4.sha, which also holds a hash of make-video.py and the pronunciation table.
+# The gallery is a linked git worktree detached at origin/main that this script created and marked, never the checkout
+# the script runs from. Pages and narrations are copied into its explainers/ with git show. A branch provides the
+# explainer files it changed since it left main, in a version main has never had; for each issue it provides, its page
+# and narration both come from that branch. The issue's own <n>-<slug> branch wins over other branches; two <n>-<slug>
+# branches, or two other branches and no own one, are a conflict: reported, not rendered. A page is rendered only when
+# its page and narration hashes differ from <stem>.mp4.sha, which also holds a hash of make-video.py and the
+# pronunciation table.
 # Writes SOURCES.tsv (page, branch, commit) and REPORT.tsv (page, branch, commit, result) in the gallery's explainers/.
 set -euo pipefail
 
@@ -94,14 +94,14 @@ main() {
   fi
 
   local -A claim=()
-  local base f n differs
+  local base f n
   for b in "${branches[@]}"; do
     base=$(git merge-base origin/main "origin/$b") || { echo "  $b: no common history with main, skipped"; continue; }
-    differs=$(git diff --name-only --diff-filter=ACMR origin/main "origin/$b" -- 'explainers/*.html' 'explainers/*.narration.json')
     while read -r f; do
       n=${f#explainers/}; n=${n%%-*}
       [[ $n =~ ^[0-9]+$ ]] || continue
-      grep -qxF "$f" <<<"$differs" || continue
+      ! git log --format= --raw --no-abbrev origin/main -- "$f" | awk '{ print $4 }' | grep -qxF "$(git rev-parse "origin/$b:$f")" \
+        || continue
       [[ " ${claim[$n]:-} " == *" $b "* ]] || claim[$n]="${claim[$n]:-}${claim[$n]:+ }$b"
     done < <(git diff --name-only --diff-filter=ACMR "$base" "origin/$b" -- 'explainers/*.html' 'explainers/*.narration.json')
   done
@@ -184,7 +184,7 @@ main() {
   done
 
   if [[ -n $branch && ${#rows[@]} -eq 0 ]]; then
-    rows+=("-"$'\t'"$branch"$'\t'"$(git rev-parse --short=12 "origin/$branch")"$'\t'"no explainer on this branch differs from main's")
+    rows+=("-"$'\t'"$branch"$'\t'"$(git rev-parse --short=12 "origin/$branch")"$'\t'"no explainer version on this branch that main hasn't had")
   fi
   echo "== report"
   { printf 'page\tbranch\tcommit\tresult\n'; (( ${#rows[@]} == 0 )) || printf '%s\n' "${rows[@]}"; } > "$dir/REPORT.tsv"

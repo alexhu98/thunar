@@ -6,8 +6,8 @@
 #             missing, stale, or names keys the page no longer has
 #   render   each explainers/<issue>-*.html the PR adds or changes (or each page given) -> 1200px full-page dark PNG
 #   publish  commits each PNG to the shots branch as pr-$PR/explainer-<issue>.png and puts it in the PR comment's
-#            explainer section, with the narration results, through pr-comment.sh. A failed upload is marked in the
-#            section, and publish then fails.
+#            explainer section, with the narration results, through pr-comment.sh. A failed render or upload is
+#            marked in the section, and publish then fails.
 # Env: PR (number), HEAD_REF (branch, default the current one), HEAD_SHA, BASE (default origin/main), OUT.
 # DRY_RUN=1 runs check, narration and render, then prints the comment instead of uploading and posting.
 set -euo pipefail
@@ -103,6 +103,8 @@ section() {  # the explainer section of the comment, for each image URL in $OUT/
     issue=$(basename "$page" | cut -d- -f1)
     if [[ $url == - ]]; then
       printf '### Explainer: `%s`\n\nThe upload of its image failed, as of %s. See the run.\n\n' "$page" "${sha::12}"
+    elif [[ $url == '!' ]]; then
+      printf '### Explainer: `%s`\n\nChrome made no image of it, as of %s. See the run.\n\n' "$page" "${sha::12}"
     else
       printf '### Explainer: `%s`\n\nDark mode, %spx wide, full page, as of %s.\n\n![Explainer for #%s](%s)\n\n' \
         "$page" "$WIDTH" "${sha::12}" "$issue" "$url"
@@ -129,7 +131,11 @@ publish() {
   while read -r page; do
     issue=$(basename "$page" | cut -d- -f1)
     path="pr-${PR:-0}/explainer-$issue.png"
-    if sha=$(OUT="$OUT/shots" "$(dirname "$0")/shots.sh" "$OUT/explainer-$issue.png" "$path" "Explainer image for PR #${PR:-0}" </dev/null); then
+    if [[ ! -s $OUT/explainer-$issue.png ]]; then
+      echo "::error::no image of $page to upload" >&2
+      echo "$page !" >> "$OUT/urls"
+      failed=1
+    elif sha=$(OUT="$OUT/shots" "$(dirname "$0")/shots.sh" "$OUT/explainer-$issue.png" "$path" "Explainer image for PR #${PR:-0}" </dev/null); then
       echo "$page https://github.com/$GH_REPO/blob/$sha/$path?raw=true" >> "$OUT/urls"
     else
       echo "::error::could not upload $path" >&2

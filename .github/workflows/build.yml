@@ -174,12 +174,11 @@ jobs:
         run: .github/scripts/explainer-proof.sh narration
 
       - name: Render the explainer
-        id: render
         if: ${{ !cancelled() && steps.require.outcome == 'success' }}
         run: .github/scripts/explainer-proof.sh render
 
       - name: Upload the image and update the PR comment
-        if: ${{ !cancelled() && steps.require.outcome == 'success' && steps.render.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.require.outcome == 'success' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: .github/scripts/explainer-proof.sh publish
