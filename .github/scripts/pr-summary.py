@@ -4,12 +4,12 @@
 Reads the status each of the review, verify and explainer comments carries (<!-- pr-proof:status {...} -->), the
 build job of this run (or BUILD_RESULT, when the build job calls it), and the latest /visual-verify verdict posted
 for the PR's head by the owner, a collaborator or claude[bot] (a comment holding <!-- visual-verify <sha> --> and a
-VERDICT: line). Without RUN_ID it uses the latest build run of the head. Writes the heading (ready for review, or the first failing,
-running or awaited check), the checks table, the key result and the shots table from the verify comment's data, through
-pr-comment.sh. Does nothing when HEAD_SHA is no longer the PR's head, so an older run can't overwrite a newer summary.
-Every job that writes a comment calls it, the summary job calls it last, and the pr-summary workflow calls it when
-an audit comment is posted. After writing it reads everything
-again and writes once more if a job's result or the head changed meanwhile.
+VERDICT: line; the latest posted wins). Without RUN_ID it uses the latest build run of the head. Writes the heading
+(ready for review, or the first failing, running or awaited check), the checks table, the key result and the shots
+table from the verify comment's data, through pr-comment.sh. Does nothing when HEAD_SHA is no longer the PR's head, so
+an older run can't overwrite a newer summary. Every job that writes a comment calls it and the summary job calls it
+last; the pr-summary workflow re-runs that summary job when an audit comment is posted. After writing it reads
+everything again and writes once more if a job's result changed meanwhile.
 Env: PR, GH_REPO, HEAD_SHA, RUN_ID, RUN_URL, BUILD_RESULT, OUT. DRY_RUN=1 prints the comment instead of writing it.
 """
 import json
@@ -58,19 +58,19 @@ def job_states(run_id):
 
 def audit(comments, head):
     found = []
-    for body, when, url in comments:
+    for body, url in comments:
         m = re.search(r'<!-- visual-verify ([0-9a-f]{7,40}) -->', body or '')
         v = re.findall(r'^\s*`*VERDICT: ([^`\n]*)', body or '', re.M)
         if m and v:
-            found.append((m.group(1), v[-1].strip(), when, url))
-    mine = sorted([f for f in found if head.startswith(f[0])], key=lambda f: f[2])
-    where = lambda f: f"[audit comment]({f[3]})"
+            found.append((m.group(1), v[-1].strip(), url))
+    mine = [f for f in found if head.startswith(f[0])]
+    where = lambda f: f"[audit comment]({f[2]})"
     if mine:
         verdict = mine[-1][1]
-        state = 'pass' if verdict.startswith('PASS') else 'fail'
+        state = 'pass' if verdict.startswith('PASS') else 'wait' if verdict.startswith('INCONCLUSIVE') else 'fail'
         return state, f'{verdict} for `{head[:12]}`', where(mine[-1])
     if found:
-        last = sorted(found, key=lambda f: f[2])[-1]
+        last = found[-1]
         return 'wait', f'not run for `{head[:12]}` yet (last: {last[1]} for `{last[0][:12]}`)', where(last)
     pr = os.environ.get('PR', '<n>')
     return 'wait', 'not run yet', f'`/visual-verify pr:{pr}`'
@@ -105,12 +105,12 @@ def summary(runs):
         return None
     comments, mine = [], {}
     for c in lines_json(f'repos/{{owner}}/{{repo}}/issues/{pr}/comments', '--paginate', '--jq',
-                        '.[] | {id, user: .user.login, body, created_at, html_url, author_association} | tojson'):
+                        '.[] | {id, user: .user.login, body, html_url, author_association} | tojson'):
         m = re.match(r'<!-- pr-proof:([a-z]+) -->', c['body'] or '')
         if c['user'] == 'github-actions[bot]' and m:
             mine.setdefault(m.group(1), c)
         elif c['author_association'] in TRUSTED or c['user'] == 'claude[bot]':
-            comments.append((c['body'], c['created_at'], c['html_url']))
+            comments.append((c['body'], c['html_url']))
     run_id = runs.get(head) or build_run(head)
     runs[head] = run_id
     jobs = job_states(run_id)

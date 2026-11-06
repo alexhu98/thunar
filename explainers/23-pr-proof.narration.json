@@ -1,7 +1,7 @@
 {
   "title": "Issue #23 · PR proof comments",
   "voice": "af_heart",
-  "page_sha256": "077892094182e2b4f518a8caaf0b9e713c5562165991969e03ac1b6e503ce96e",
+  "page_sha256": "cfbf3aaefbe62cee3d0e087f3d88d8bf0deaa8e99325af648822888432b2c758",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of the change for issue 23, which turns CI's proof on every pull request into four comments.", "src": "1ceba5e23478"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "b86bd73ef4ca"},
@@ -28,7 +28,7 @@
     {"screen": "comments", "keys": ["c4"], "caption": "And the explainer comment shows this page, or why it is missing.", "src": "e98dc3df3180"},
     {"screen": "pairfmt", "keys": ["pair"], "caption": "Each pair gets a small table: the shot number, the action, what it proves, and both captions, then one image.", "src": "9f4665adaaf8"},
     {"screen": "pairfmt", "keys": ["anchor"], "caption": "Every shot number is a link that jumps to that shot.", "src": "bc564f6b15c6"},
-    {"screen": "files", "keys": ["tree"], "caption": "Most of the work is in two new scripts, one for the shots and one for the summary.", "src": "a697e7e4ded5"},
+    {"screen": "files", "keys": ["tree"], "caption": "Most of the work is in two new scripts, one for the shots and one for the summary.", "src": "b30c8925f65c"},
     {"screen": "verified", "keys": [], "caption": "Part 2. How it was built and verified.", "src": "ef17df6b5ec4"},
     {"screen": "refs", "keys": ["r1"], "caption": "The pair images were built from the real screenshots of pull request 20.", "src": "2ae35514a89c"},
     {"screen": "refs", "keys": ["r2"], "caption": "The issue's mockup was never attached, so the comments follow the issue's text.", "src": "99a1b709c174"},
@@ -77,7 +77,7 @@
     "comments/c4": "e98dc3df3180",
     "pairfmt/pair": "9f4665adaaf8",
     "pairfmt/anchor": "bc564f6b15c6",
-    "files/tree": "a697e7e4ded5",
+    "files/tree": "b30c8925f65c",
     "verified/label": "5a01db6f2d60",
     "verified/heading": "f0387d007bb6",
     "verified/intro": "cd653794c9f8",

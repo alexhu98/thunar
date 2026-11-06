@@ -19,27 +19,25 @@ jobs:
       group: pr-summary-${{ github.event.issue.number }}
       cancel-in-progress: false
     permissions:
-      actions: read
-      contents: read
-      pull-requests: write
+      actions: write
     env:
       GH_REPO: ${{ github.repository }}
       GH_TOKEN: ${{ github.token }}
       PR: ${{ github.event.issue.number }}
     steps:
-      - name: Find the PR's head
-        id: pr
+      - name: Re-run the summary job of the head's build run
         run: |
-          gh api "repos/$GH_REPO/pulls/$PR" --jq '"repo=\(.head.repo.full_name)", "sha=\(.head.sha)"' >> "$GITHUB_OUTPUT"
-
-      - uses: actions/checkout@v4
-        if: steps.pr.outputs.repo == github.repository
-        with:
-          sparse-checkout: .github/scripts
-          persist-credentials: false
-
-      - name: Write the summary comment
-        if: steps.pr.outputs.repo == github.repository
-        env:
-          HEAD_SHA: ${{ steps.pr.outputs.sha }}
-        run: python3 .github/scripts/pr-summary.py
+          read -r repo base sha < <(gh api "repos/$GH_REPO/pulls/$PR" --jq '[.head.repo.full_name, .base.ref, .head.sha] | @tsv')
+          if [[ $repo != "$GH_REPO" || $base != main ]]; then
+            echo "PR #$PR is not from this repo into main; build.yml writes no summary for it"
+            exit 0
+          fi
+          run=$(gh api "repos/$GH_REPO/actions/workflows/build.yml/runs?head_sha=$sha&event=pull_request" \
+            --jq '.workflow_runs[0] | select(.status == "completed") | .id')
+          if [[ -z $run ]]; then
+            echo "the build run of ${sha::12} is still going or missing; its summary job will read the audit when it runs"
+            exit 0
+          fi
+          job=$(gh api "repos/$GH_REPO/actions/runs/$run/jobs" --jq '.jobs[] | select(.name == "summary") | .id')
+          [[ -n $job ]] || { echo "::warning::run $run has no summary job"; exit 0; }
+          gh api -X POST "repos/$GH_REPO/actions/jobs/$job/rerun" && echo "re-running job $job of run $run"
