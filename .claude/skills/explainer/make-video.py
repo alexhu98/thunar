@@ -6,7 +6,8 @@
   make-video.py phonemes <n> [--all] Kokoro phonemes for lines not voiced yet (or all)
   make-video.py render <n>          voice, screenshot and join into explainers/<n>-<slug>.mp4
 
-Local only. Voice: Kokoro af_heart in $TTS_DIR (default ~/.claude/usage-data/rebuild/tts).
+status and stamp need only Chrome ($CHROME, default google-chrome), so they also run in the cloud and in CI.
+phonemes and render are local only. Voice: Kokoro af_heart in $TTS_DIR (default ~/.claude/usage-data/rebuild/tts).
 Work files and the voice cache live in $EXPLAINER_CACHE (default ~/.cache/explainer-video).
 The committed page is never modified: video mode is added to a copy in the work dir.
 """
@@ -17,7 +18,7 @@ ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 TTS = os.path.expanduser(os.environ.get('TTS_DIR', '~/.claude/usage-data/rebuild/tts'))
 CACHE = os.path.expanduser(os.environ.get('EXPLAINER_CACHE', '~/.cache/explainer-video'))
 CHROME = os.environ.get('CHROME', 'google-chrome')
-NO_SANDBOX = ['--no-sandbox'] if os.geteuid() == 0 else []
+NO_SANDBOX = ['--no-sandbox'] if os.geteuid() == 0 or os.environ.get('CI') else []
 ESPEAK = dict(lib_path='/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1',
               data_path='/usr/lib/x86_64-linux-gnu/espeak-ng-data')
 RATE = 24000

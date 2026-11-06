@@ -7,11 +7,14 @@
 #   --open-prs       take pages only from main and the branches of open PRs into main (needs gh)
 #   --dry-run        report what would be rendered, render nothing
 #   --gallery <dir>  the gallery worktree, default $GALLERY or ~/thunar-explainers
-# Env: MAKE_VIDEO replaces the gallery's make-video.py (same arguments: status|render <n>).
-# The gallery is a git worktree detached at origin/main; pages and narrations are copied into its explainers/ with
-# git show. A branch provides the explainer files it changed since it left main, and for each issue it provides, its
-# page and narration both come from that branch. Two branches providing the same issue are a conflict: reported,
-# not rendered. A page is rendered only when its page and narration hashes differ from <stem>.mp4.sha.
+# Env: MAKE_VIDEO replaces the gallery's make-video.py (same arguments: status|render <n>); it must act on the
+#      gallery's explainers/, e.g. by calling the gallery's make-video.py.
+# The gallery is a linked git worktree detached at origin/main, never the checkout the script runs from. Pages and
+# narrations are copied into its explainers/ with git show. A branch provides the explainer files it changed since it
+# left main and that still differ from main's; for each issue it provides, its page and narration both come from that
+# branch. The issue's own <n>-<slug> branch wins over other branches; two <n>-<slug> branches, or two other branches
+# and no own one, are a conflict: reported, not rendered. A page is rendered only when its page and narration hashes
+# differ from <stem>.mp4.sha.
 # Writes SOURCES.tsv (page, branch, commit) and REPORT.tsv (page, branch, commit, result) in the gallery's explainers/.
 set -euo pipefail
 
@@ -45,8 +48,14 @@ main() {
 
   echo "== gallery $gallery"
   if [[ -e $gallery ]]; then
-    if [[ $(git -C "$gallery" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) != "$(git rev-parse --path-format=absolute --git-common-dir)" ]]; then
-      echo "videos-all: $gallery exists and is not a worktree of $repo" >&2
+    gallery=$(realpath "$gallery")
+    local top gitdir common
+    top=$(git -C "$gallery" rev-parse --show-toplevel 2>/dev/null || true)
+    gitdir=$(git -C "$gallery" rev-parse --path-format=absolute --git-dir 2>/dev/null || true)
+    common=$(git -C "$gallery" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
+    if [[ $top != "$gallery" || $common != "$(git rev-parse --path-format=absolute --git-common-dir)" || $gitdir == "$common" \
+          || $gallery == "$repo" ]] || git -C "$gallery" symbolic-ref -q HEAD >/dev/null; then
+      echo "videos-all: $gallery is not a detached linked worktree of $repo; refusing to reset it" >&2
       return 1
     fi
     git -C "$gallery" clean -fq -- 'explainers/*.html' 'explainers/*.narration.json'
@@ -70,7 +79,9 @@ main() {
   elif (( open_prs )); then
     command -v gh >/dev/null || { echo "videos-all: --open-prs needs gh" >&2; return 1; }
     local open
-    open=$(gh pr list --state open --base main --limit 200 --json headRefName --jq '.[].headRefName')
+    local slug
+    slug=$(git remote get-url origin | sed -E 's#^(https://|git@)github\.com[:/]##; s#\.git$##')
+    open=$(gh pr list --repo "$slug" --state open --base main --limit 200 --json headRefName --jq '.[].headRefName')
     local -a kept=()
     for b in "${branches[@]}"; do grep -qxF "$b" <<<"$open" && kept+=("$b"); done
     branches=("${kept[@]}")
@@ -83,13 +94,20 @@ main() {
     while read -r f; do
       n=${f#explainers/}; n=${n%%-*}
       [[ $n =~ ^[0-9]+$ ]] || continue
+      [[ $(git rev-parse "origin/$b:$f") != "$(git rev-parse -q --verify "origin/main:$f" || true)" ]] || continue
       [[ " ${claim[$n]:-} " == *" $b "* ]] || claim[$n]="${claim[$n]:-}${claim[$n]:+ }$b"
     done < <(git diff --name-only --diff-filter=ACMR "$base" "origin/$b" -- 'explainers/*.html' 'explainers/*.narration.json')
   done
 
   local -A conflict=() source=()
+  local -a own
   for n in "${!claim[@]}"; do
-    if [[ ${claim[$n]} == *' '* ]]; then conflict[$n]=${claim[$n]}; else source[$n]=${claim[$n]}; fi
+    own=()
+    for b in ${claim[$n]}; do [[ $b == "$n"-* ]] && own+=("$b"); done
+    if (( ${#own[@]} == 1 )); then source[$n]=${own[0]}
+    elif (( ${#own[@]} > 1 )); then conflict[$n]=${own[*]}
+    elif [[ ${claim[$n]} == *' '* ]]; then conflict[$n]=${claim[$n]}
+    else source[$n]=${claim[$n]}; fi
   done
 
   local main_sha

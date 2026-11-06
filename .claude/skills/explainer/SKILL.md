@@ -156,7 +156,7 @@ The script re-runs itself under the Kokoro venv. Voice clips are cached by spoke
 
 1. `git fetch origin --prune`.
 2. Keeps the gallery as a git worktree detached at `origin/main`, so `make-video.py` and the pronunciation table are current. The owner's own checkout is never touched. `--gallery <dir>` picks another folder.
-3. Copies `explainers/*.html` and `*.narration.json` from `origin/main` and each branch with `git show`, without a checkout. A branch overrides `main` for its own files. Two branches with different slugs for one issue number are reported as a conflict, and that issue is not rendered. `SOURCES.tsv` lists each page with its branch and commit.
+3. Copies `explainers/*.html` and `*.narration.json` from `origin/main` and each branch with `git show`, without a checkout. A branch provides the explainer files it changed since it left `main` and that still differ from `main`'s; each issue's page and narration come from one ref. The issue's own `<n>-<slug>` branch wins over other branches. Two `<n>-<slug>` branches for one issue are reported as a conflict, and that issue is not rendered. Use `--open-prs` so merged branches that were never deleted are left out. `SOURCES.tsv` lists each page with its branch and commit.
 4. Decides per page by content hash, never timestamps: no narration → "needs narration"; `make-video.py status` fails → "needs re-narration"; page and narration hashes equal those in `<stem>.mp4.sha` from the last render → "skipped"; otherwise `make-video.py render`, then the new hashes are written.
 5. Prints a table of page, branch, commit and result (rendered, skipped, needs narration, needs re-narration, conflict, failed), also saved as `REPORT.tsv`. Exits non-zero if any render failed.
 

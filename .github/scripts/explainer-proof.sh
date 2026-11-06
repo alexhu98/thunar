@@ -8,7 +8,7 @@
 #            explainer section, with the narration results, through pr-comment.sh. A failed upload is marked in the
 #            section, and publish then fails.
 # Env: PR (number), HEAD_REF (branch, default the current one), HEAD_SHA, BASE (default origin/main), OUT.
-# DRY_RUN=1 runs check and render, then prints the comment instead of uploading and posting.
+# DRY_RUN=1 runs check, narration and render, then prints the comment instead of uploading and posting.
 set -euo pipefail
 
 BASE=${BASE:-origin/main}
