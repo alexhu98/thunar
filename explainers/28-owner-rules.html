@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #33 owner rules</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #33, part 2: the owner's reply and fix rules in the repo's CLAUDE.md</h1>
+  <p class="lead" data-k="lead">Branch <code>23-pr-proof</code> → <code>main</code>, closes #28 alongside #23. Web sessions read only the repo's <code>CLAUDE.md</code>, so from now on they also follow your rules for reporting to you and for choosing a fix.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: the next web session</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">Two new sections in <code>CLAUDE.md</code>, directly before Building: "Working with the owner" and "Fixes". No other section changes for #28, and no Thunar code changes.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="Your personal rules were only on your machine; now the repo's CLAUDE.md carries them to every web session">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Your rules reach every web session</text>
+    <g data-k="1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Your rules</text>
+      <text x="36" y="114" class="m">~/.claude/CLAUDE.md</text>
+      <text x="36" y="134" class="b">only on your</text>
+      <text x="36" y="154" class="b">own machine</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Copied here</text>
+      <text x="286" y="114" class="m">CLAUDE.md</text>
+      <text x="286" y="134" class="b">two new sections</text>
+      <text x="286" y="154" class="b">before Building</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-merge" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Web session</text>
+      <text x="536" y="114" class="b">reads the repo's</text>
+      <text x="536" y="134" class="b">CLAUDE.md at start</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-you" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">You reply</text>
+      <text x="786" y="114" class="b">with one number</text>
+      <text x="786" y="134" class="b">or letter</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>changed by this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>what reads it</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Your own <code>~/.claude/CLAUDE.md</code> tells Claude how to report to you and how to pick a fix. A web session runs in a fresh cloud container and never sees that file, so it ignored those rules. Copying them into the repo's <code>CLAUDE.md</code> makes every session follow them.</p>
+  <div class="note" data-k="note">The wording is commit <code>64680b762</code> from closed PR #27, plus one bullet the issue added by hand: a change the issue doesn't cover becomes a new issue, not part of the PR.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Your rules.</b> They live in <code>~/.claude/CLAUDE.md</code> on your machine, which only local sessions read.</li>
+    <li data-k="2"><b>Copied here.</b> "Working with the owner" and "Fixes" go into the repo's <code>CLAUDE.md</code>, directly before Building. The Jira workflow is left out, and the screenshot and code-comment rules were already there.</li>
+    <li data-k="3"><b>Web session.</b> Every cloud session loads the repo's <code>CLAUDE.md</code> when it starts, so it gets both sections.</li>
+    <li data-k="4"><b>You reply.</b> A turn that needs you ends with "What I need from you", answered with one number, or a number and a letter.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="rules">
+  <h3 class="sec">What the two sections say</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Rule</th><th>In short</th></tr>
+    <tr data-k="r1"><td>What I need from you</td><td>only when blocked on you; numbered options, recommended first, at most 20 words each</td></tr>
+    <tr data-k="r2"><td>Routine steps</td><td>reviewing, committing, pushing and opening the PR are never options for you</td></tr>
+    <tr data-k="r3"><td>Short answers</td><td>"what is X?" gets 20 words or fewer per item</td></tr>
+    <tr data-k="r4"><td>Long reports</td><td>open with what was done, then what is uncertain; details below</td></tr>
+    <tr data-k="r5"><td>Skipped findings</td><td>after <code>/code-review --fix</code>, listed as S1, S2, … with a reason and a fix</td></tr>
+    <tr data-k="r6"><td>Other changes</td><td>a change the issue doesn't cover becomes a new issue, not part of the PR</td></tr>
+    <tr data-k="r7"><td>Fixes</td><td>the simplest fix that matches existing code; a shared fix over per-dialog patches</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR for #28</h3>
+<pre data-k="tree">CLAUDE.md                         # "Working with the owner" and "Fixes", before Building
+explainers/28-owner-rules.html    # this page, and its .narration.json</pre>
+  <div class="note" data-k="fold">You asked for #28 to go into PR #33, the #23 PR, because both change <code>CLAUDE.md</code>. The #23 changes have their own explainer, <code>23-pr-proof.html</code>.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The new text was compared with the commit it came from. A rule for a conversation can only be checked by using it.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Commit 64680b762</h3><p>The wording from closed PR #27, on branch <code>owner-rules</code>.</p></div>
+    <div class="card" data-k="r2"><h3>Issue #28</h3><p>Its proposed text, including the bullet added by hand.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Same wording as PR #27</td><td><code>git diff origin/owner-rules -- CLAUDE.md</code>, reading the lines that differ</td><td class="ok">identical, except the bullet the issue adds and the #23 changes</td></tr>
+    <tr data-k="c2"><td>Placed before Building</td><td>reading <code>CLAUDE.md</code></td><td class="ok">yes; no other section changed for #28</td></tr>
+    <tr data-k="c3"><td>Sessions follow the rules</td><td>can only be seen in a later session</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">The #28 change is text only, so it had no separate local review. CI's own review of PR #33 covers it, in the code review comment.</p>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: the next web session</h2>
+  <p class="intro" data-k="intro">No open issue depends on #28. The next web session after the merge is the first to start with these rules.</p>
+
+  <section class="sub" id="next">
+  <h3 class="sec">The next web session (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Watch its replies.</b> Its questions to you should end in a short numbered "What I need from you", and never offer committing or pushing as options.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="claude-md"><dt>CLAUDE.md</dt><dd>A file of instructions Claude reads at the start of every session.</dd></div>
+    <div data-k="web"><dt>Web session</dt><dd>A Claude Code session in a cloud container, started from claude.ai.</dd></div>
+    <div data-k="sop"><dt>SOP</dt><dd>The routine steps of every PR: review, commit, push, open the PR.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>

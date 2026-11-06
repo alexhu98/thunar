@@ -6,6 +6,24 @@
 - Never push to the `upstream` remote. Never touch `master` or `xfce-4.20`: they mirror upstream.
 - The owner merges, and only when the build and verify jobs are green and the screenshots are reviewed.
 
+## Working with the owner
+- When a turn is blocked on the owner or its next step needs them, end it with a short multiple-choice "**What I need from you**" section they can answer with one number or letter. Otherwise omit it entirely, with no "Nothing needed from you" line.
+  - One decision: numbered options; the owner replies with the number. "1. Fix the tile check (recommended) 2. Leave it as is" → "1".
+  - Several independent decisions: numbered decisions, lettered options. "1. Tile padding: A. 12px B. Keep 8px" → "1A 2B". A bare number means that decision's recommended option.
+  - Each option: one concrete outcome, at most 20 words; recommended first and marked.
+  - An action only the owner can do: the exact what and where, plus a one-key reply like "1. Done".
+  - Several items: quickest or most blocking first; say what you'll get on with meanwhile.
+- Standard SOP (reviewing the diff, staging, committing, pushing, opening the PR) never needs the owner's attention, so it is never an option, an attention item or a closing prompt. A turn with only SOP left isn't blocked on the owner.
+- Never bury a request for the owner in the middle of a long update.
+- When asked what a term means ("what is X?", "explain X"), answer in 20 words or fewer per item: one sentence each, no preamble, no worked example. If it genuinely needs more, give the short version first and offer to expand.
+- When a turn ends a long task or the answer runs past a screen, open with what was done or found (one line), then anything you're unsure of (one line; omit it if nothing is). Details go below; "What I need from you" stays at the end.
+- When `/code-review --fix` finishes, list the skipped findings as S1, S2, …, each with a one-line reason it was skipped and the fix you recommend. Never use plain bullets for them.
+- When you find a change the current issue doesn't cover (another feature or fix, docs, `CLAUDE.md`, CI, skills), don't add it to this PR and don't start it here. Offer only "Open an issue". The issue gets what you found (approach, prior-art files, risks, test approach), and a new web session implements it.
+
+## Fixes
+- Prefer the simplest fix that matches an existing pattern in the codebase. Search for prior art before introducing a new mechanism (new instances, isolation layers, new architecture).
+- For a UI bug that affects several dialogs or views, prefer a general fix in the shared widget or code path over per-dialog patches, and propose the shared fix first.
+
 ## Building
 - Build from git with `--enable-maintainer-mode`, as `debian/rules` does: `sudo add-apt-repository -y ppa:zorinos/stable` (Xfce 4.20 libraries), `sudo apt-get build-dep -y ./`, then `dpkg-buildpackage -b -us -uc`.
 - Never build from the release tarball. Its pre-generated gdbus files need GLib 2.84, and Ubuntu 24.04 (noble) has 2.80. A git build regenerates them.
