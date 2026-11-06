@@ -54,9 +54,10 @@ main() {
     top=$(git -C "$gallery" rev-parse --show-toplevel 2>/dev/null || true)
     gitdir=$(git -C "$gallery" rev-parse --path-format=absolute --git-dir 2>/dev/null || true)
     common=$(git -C "$gallery" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
-    if [[ $top != "$gallery" || $common != "$(git rev-parse --path-format=absolute --git-common-dir)" || $gitdir == "$common" \
-          || $gallery == "$repo" || ! -e $gitdir/videos-all-gallery ]] || git -C "$gallery" symbolic-ref -q HEAD >/dev/null; then
-      echo "videos-all: $gallery is not a gallery worktree this script made for $repo; refusing to reset it" >&2
+    if [[ $top != "$gallery" || $common != "$(git rev-parse --path-format=absolute --git-common-dir)" \
+          || ! -e $gitdir/videos-all-gallery ]] || git -C "$gallery" symbolic-ref -q HEAD >/dev/null; then
+      echo "videos-all: $gallery is not a gallery worktree this script made for $repo; refusing to reset it." >&2
+      echo "  If it is an old gallery, remove it (git worktree remove --force $gallery) and run again, or pick another --gallery." >&2
       return 1
     fi
     git -C "$gallery" clean -fq -- 'explainers/*.html' 'explainers/*.narration.json'
@@ -66,8 +67,7 @@ main() {
       echo "videos-all: the gallery $gallery would be inside the checkout $repo; pick a folder outside it" >&2
       return 1
     fi
-    git worktree prune
-    git worktree add --detach "$gallery" origin/main
+    git worktree add --force --detach "$gallery" origin/main
     touch "$(git -C "$gallery" rev-parse --path-format=absolute --git-dir)/videos-all-gallery"
   fi
   local dir=$gallery/explainers
@@ -183,7 +183,11 @@ main() {
     done
   done
 
-  if [[ -n $branch && ${#rows[@]} -eq 0 ]]; then
+  local provided=0
+  for n in "${!source[@]}" "${!conflict[@]}"; do
+    [[ " ${source[$n]:-} ${conflict[$n]:-} " == *" $branch "* ]] && provided=1
+  done
+  if [[ -n $branch ]] && (( ! provided )); then
     rows+=("-"$'\t'"$branch"$'\t'"$(git rev-parse --short=12 "origin/$branch")"$'\t'"no explainer version on this branch that main hasn't had")
   fi
   echo "== report"
