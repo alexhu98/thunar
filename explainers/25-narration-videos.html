@@ -311,9 +311,10 @@ explainers/
     <tr data-k="c3"><td>New narrations are current and renderable</td><td><code>stamp</code>, then <code>status</code> for 1, 3, 7 and 25; video mode's own probe (the checks <code>render</code> runs first: keys on screen, captions at most 2 lines)</td><td class="ok">4 of 4 match; 0 problems</td></tr>
     <tr data-k="c4"><td>Page 1 looks the same</td><td>CI-style render (<code>explainer-proof.sh render</code>) before and after adding the keys, <code>compare -metric AE</code></td><td class="ok">0 of 1200×6832 pixels differ</td></tr>
     <tr data-k="c5"><td>Narration step, locally</td><td><code>explainer-proof.sh narration</code> with <code>HEAD_REF=9-explainer</code>, then <code>HEAD_REF=3-double-click-parent</code> before 3 had a narration</td><td class="ok">current, exit 0; missing, exit 1</td></tr>
-    <tr data-k="c6"><td>CI fails a missing narration</td><td>[run-fail]</td><td class="ok">[res-fail]</td></tr>
-    <tr data-k="c7"><td>CI passes a current narration</td><td>[run-pass]</td><td class="ok">[res-pass]</td></tr>
+    <tr data-k="c6"><td>CI fails a missing narration</td><td>This PR's first push, before this page had a narration: <a href="https://github.com/alexhu98/thunar/actions/runs/42185287362/job/127784055691">CI run 42185287362</a>, explainer job</td><td class="ok">step red: 1, 3, 7 current, #25 missing; image and comment still posted</td></tr>
+    <tr data-k="c7"><td>CI passes a current narration</td><td>The push that adds this page's narration; its run is linked here once it has finished</td><td class="open">pending</td></tr>
     <tr data-k="c8"><td>videos-all.sh collects pages</td><td><code>--dry-run</code> in a test clone whose origin is a local bare repo with <code>main</code>, this branch, <code>9-explainer-review-fixes</code>, <code>30-a</code> + <code>30-b</code> (both add page 30), <code>40-solo</code> (no narration) and <code>claude/x</code></td><td class="ok">6 pages from 4 refs; 30 conflict; 40 needs narration; claude/x ignored</td></tr>
+    <tr data-k="c8b"><td>After the review fixes</td><td>The same test clone, plus <code>3-other</code> changing page 3; <code>--gallery</code> pointed at the clone itself, at its <code>explainers/</code>, and at a plain folder, with an uncommitted edit in the clone</td><td class="ok">3 of 3 refused, edit and branch kept; 3 from its own branch; 9 from main</td></tr>
     <tr data-k="c9"><td><code>--open-prs</code></td><td>The same, with a fake <code>gh</code> listing this branch and <code>40-solo</code></td><td class="ok">9 comes from main, not the stale branch</td></tr>
     <tr data-k="c10"><td>Render, skip, re-render</td><td>A stub in place of <code>make-video.py render</code> (<code>MAKE_VIDEO</code>); run twice; then one narration line of 3 changed and stamped, and page 7 edited without a stamp</td><td class="ok">5 rendered; then 5 skipped; then only 3 rendered, 7 needs re-narration</td></tr>
     <tr data-k="c11"><td>Failures and options</td><td>Stub render failing for 11 with <code>--only 11</code>; <code>--branch 40-solo</code>; <code>--branch nope</code>; gallery deleted by hand and rebuilt</td><td class="ok">failed, exit 1, log kept; each as intended</td></tr>
@@ -326,9 +327,13 @@ explainers/
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">[review-summary]</p>
+  <p data-k="summary">A fresh general-purpose agent, given only the diff and issue #25, reviewed it at high level and ran <code>videos-all.sh</code> on its own scratch clone: 8 findings, 1 high, 4 medium and 3 low. 6 are fixed, 1 was already handled, and 1 is accepted.</p>
   <ul class="tight">
-    <li data-k="b1">[review-b1]</li>
+    <li data-k="b1"><b>Fixed, high:</b> a <code>--gallery</code> pointing at your own checkout, or a folder in it, passed the worktree check, and the reset would have thrown away uncommitted work. The gallery must now be a detached linked worktree other than the checkout.</li>
+    <li data-k="b2"><b>Fixed, medium:</b> a branch that was squash-merged and never deleted still overrode <code>main</code>. A branch now provides only files that still differ from <code>main</code>'s.</li>
+    <li data-k="b3"><b>Fixed, medium:</b> any two branches touching one page counted as a conflict. Now the issue's own <code>&lt;n&gt;-&lt;slug&gt;</code> branch wins, and only two of those conflict.</li>
+    <li data-k="b4"><b>Fixed, medium:</b> <code>make-video.py</code> now passes <code>--no-sandbox</code> under CI too, as <code>explainer-proof.sh</code> does. <b>Already handled:</b> the missing page was in the pushed commit, and the narration was held back on purpose for the failing run.</li>
+    <li data-k="b5"><b>Fixed, low:</b> <code>--open-prs</code> asks <code>origin</code>'s repo, not <code>upstream</code>; stale doc lines updated. <b>Accepted, low:</b> a non-issue branch that changes only a narration reports a failure in the log, not in the comment.</li>
   </ul>
   <p data-k="ci-review">CI's own review of every push is in the PR comment's review section.</p>
   </section>
@@ -350,7 +355,7 @@ explainers/
   <ul class="tight">
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/26">PR #26</a> → “Files changed”</li>
     <li data-k="l2">The spec: <a href="https://github.com/alexhu98/thunar/issues/25">issue #25</a></li>
-    <li data-k="l3">[see-runs]</li>
+    <li data-k="l3">CI runs on this branch: <a href="https://github.com/alexhu98/thunar/actions?query=branch%3A25-narration-videos">Actions</a>; the failing narration check is <a href="https://github.com/alexhu98/thunar/actions/runs/42185287362/job/127784055691">run 42185287362</a></li>
   </ul>
   </section>
   </section>
