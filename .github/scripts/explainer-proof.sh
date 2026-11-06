@@ -2,7 +2,8 @@
 # Requires, renders and posts a PR's explainer: explainer-proof.sh [check|narration|render [page...]|publish] (no argument: all four).
 #   check     a PR from a <n>-<slug> branch must add or change explainers/<n>-*.html; other branches are exempt
 #   narration make-video.py status <n> for the branch's issue and for every explainer page or narration the PR adds
-#             or changes: fails when a narration is missing, stale, or names keys the page no longer has
+#             or changes, or for every narration when the PR changes make-video.py: fails when a narration is
+#             missing, stale, or names keys the page no longer has
 #   render   each explainers/<issue>-*.html the PR adds or changes (or each page given) -> 1200px full-page dark PNG
 #   publish  commits each PNG to the shots branch as pr-$PR/explainer-<issue>.png and puts it in the PR comment's
 #            explainer section, with the narration results, through pr-comment.sh. A failed upload is marked in the
@@ -40,6 +41,9 @@ narration() {
     git diff --name-only --diff-filter=ACMR "$BASE...HEAD" -- 'explainers/*.html' 'explainers/*.narration.json' \
       | sed -nE 's|^explainers/([0-9]+)-.*|\1|p'
     if [[ $branch =~ ^([0-9]+)-[A-Za-z0-9] ]]; then echo "${BASH_REMATCH[1]}"; fi
+    if ! git diff --quiet "$BASE...HEAD" -- .claude/skills/explainer/make-video.py; then
+      git ls-files 'explainers/*.narration.json' | sed -nE 's|^explainers/([0-9]+)-.*|\1|p'
+    fi
   } | sort -nu)
   : > "$OUT/narration.md"
   for n in $nums; do
@@ -47,9 +51,9 @@ narration() {
       printf -- '- Narration of #%s: current.\n' "$n" >> "$OUT/narration.md"
       echo "narration of #$n: current"
     else
-      printf -- '- Narration of #%s: **missing or stale**. Write or fix it, then `make-video.py stamp %s` (see `.claude/skills/explainer/SKILL.md`).\n\n  ```text\n%s\n  ```\n' \
-        "$n" "$n" "$(sed 's/^/  /' <<<"$out")" >> "$OUT/narration.md"
-      echo "::error::The narration of #$n is missing or stale; see .claude/skills/explainer/SKILL.md" >&2
+      printf -- '- Narration of #%s: **fails** `make-video.py status %s`. Write or fix it, then `make-video.py stamp %s` (see `.claude/skills/explainer/SKILL.md`).\n\n  ```text\n%s\n  ```\n' \
+        "$n" "$n" "$n" "$(sed 's/^/  /' <<<"$out")" >> "$OUT/narration.md"
+      echo "::error::The narration of #$n fails make-video.py status (missing, stale, or the page is not unique); see .claude/skills/explainer/SKILL.md" >&2
       failed=1
     fi
     sed 's/^/  /' <<<"$out"
@@ -116,7 +120,7 @@ publish() {
   [[ -n ${PR:-} || ${DRY_RUN:-0} == 1 ]] || { echo "publish needs PR" >&2; exit 1; }
   : "${GH_REPO:?}"
   [[ -f $OUT/list ]] || render
-  if [[ ! -s $OUT/list ]]; then
+  if [[ ! -s $OUT/list && ! -s $OUT/narration.md ]]; then
     echo "no explainer in this PR; nothing to post"
     return
   fi
@@ -143,6 +147,6 @@ case ${1:-all} in
   narration) narration ;;
   render) shift; render "$@" ;;
   publish) publish ;;
-  all) check; status=0; narration || status=1; render; publish || status=1; exit "$status" ;;
+  all) check; status=0; narration || status=1; render; set +e; (set -e; publish); rc=$?; set -e; (( rc == 0 )) || status=1; exit "$status" ;;
   *) echo "usage: $0 [check|narration|render|publish]" >&2; exit 2 ;;
 esac

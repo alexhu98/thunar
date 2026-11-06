@@ -14,7 +14,7 @@
 # left main and that still differ from main's; for each issue it provides, its page and narration both come from that
 # branch. The issue's own <n>-<slug> branch wins over other branches; two <n>-<slug> branches, or two other branches
 # and no own one, are a conflict: reported, not rendered. A page is rendered only when its page and narration hashes
-# differ from <stem>.mp4.sha.
+# differ from <stem>.mp4.sha, which also holds a hash of make-video.py and the pronunciation table.
 # Writes SOURCES.tsv (page, branch, commit) and REPORT.tsv (page, branch, commit, result) in the gallery's explainers/.
 set -euo pipefail
 
@@ -137,7 +137,9 @@ main() {
   echo "== decide"
   local mv=${MAKE_VIDEO:-$gallery/.claude/skills/explainer/make-video.py}
   local -a rows=()
-  local failed=0 page stem want have result log
+  local failed=0 page stem want have result log tool
+  tool=$(cat "$gallery/.claude/skills/explainer/make-video.py" <(sed -n '/<!-- say:start -->/,/<!-- say:end -->/p' "$gallery/.claude/skills/explainer/SKILL.md") \
+           | sha256sum | cut -d' ' -f1)
   for n in "${issues[@]}"; do
     [[ -z $only || $n == "$only" ]] || continue
     if [[ -n $branch && ${source[$n]:-} != "$branch" ]]; then continue; fi
@@ -153,9 +155,9 @@ main() {
       if [[ ! -e $stem.narration.json ]]; then
         result='needs narration'
       elif ! "$mv" status "$n" > "$log" 2>&1; then
-        result="needs re-narration (status: $({ grep -m1 -E 'stale|changed|removed|make-video:' "$log" || true; } | sed 's/^ *//' | cut -c1-80))"
+        result="needs re-narration (status: $({ grep -m1 -E '^  |make-video:' "$log" || head -1 "$log"; } | sed 's/^ *//' | cut -c1-80))"
       else
-        want="$(sha256sum < "$stem.html" | cut -d' ' -f1) $(sha256sum < "$stem.narration.json" | cut -d' ' -f1)"
+        want="$(sha256sum < "$stem.html" | cut -d' ' -f1) $(sha256sum < "$stem.narration.json" | cut -d' ' -f1) $tool"
         have=$(cat "$stem.mp4.sha" 2>/dev/null || true)
         if [[ -e $stem.mp4 && $have == "$want" ]]; then
           result=skipped

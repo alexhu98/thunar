@@ -294,9 +294,12 @@ def write_video_page(page, work, data):
 
 
 def chrome(args, prof):
-    return subprocess.run([CHROME] + NO_SANDBOX + ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1',
-                           f'--user-data-dir={prof}', '--window-size=1920,1080', '--virtual-time-budget=2000'] + args,
-                          capture_output=True, text=True)
+    try:
+        return subprocess.run([CHROME] + NO_SANDBOX + ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1',
+                               f'--user-data-dir={prof}', '--window-size=1920,1080', '--virtual-time-budget=2000'] + args,
+                              capture_output=True, text=True, timeout=180)
+    except subprocess.TimeoutExpired:
+        die(f'{CHROME} did not finish within 180 s (see SKILL.md for the Chrome to use in the cloud container)')
 
 
 def probe(page, work, nar, subs):

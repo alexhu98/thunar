@@ -223,13 +223,13 @@
     <li data-k="1"><b>Write the page.</b> <code>explainers/&lt;n&gt;-&lt;slug&gt;.html</code> with the explainer skill, unchanged.</li>
     <li data-k="2"><b>Write narration.</b> <code>explainers/&lt;n&gt;-&lt;slug&gt;.narration.json</code>, written from the final page: one spoken line per diagram box, step and table row, with <code>say</code> respellings for numbers and versions. <code>SKILL.md</code> moves this from "Optional video" into the steps every PR follows, and <code>CLAUDE.md</code>'s Explainers rule now names both files.</li>
     <li data-k="3"><b>Stamp.</b> <code>make-video.py stamp &lt;n&gt;</code>, then <code>status</code> must say "narration matches the page". After any later page edit, including a review fix: <code>status</code>, rewrite the stale lines, stamp again. In the cloud container, <code>CHROME</code> points at the Playwright headless shell, and <code>make-video.py</code> now adds <code>--no-sandbox</code> when it runs as root or under CI.</li>
-    <li data-k="4"><b>CI checks it.</b> A new step in the explainer job, <code>explainer-proof.sh narration</code>, runs <code>make-video.py status</code> for the branch's issue and for every explainer page or narration the PR adds or changes. A missing narration, a stale line, or a key the page no longer has turns the step red. Rendering and the comment still run, and the explainer section of the PR comment gets a Narration list with each result. PRs from forks skip the job, as before.</li>
+    <li data-k="4"><b>CI checks it.</b> A new step in the explainer job, <code>explainer-proof.sh narration</code>, runs <code>make-video.py status</code> for the branch's issue and for every explainer page or narration the PR adds or changes, and for every narration when the PR changes <code>make-video.py</code>. A missing narration, a stale line, or a key the page no longer has turns the step red. Rendering and the comment still run, and the explainer section of the PR comment gets a Narration list with each result. PRs from forks skip the job, as before.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Your machine — videos-all.sh, any time</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
     <li data-k="5"><b>Fetch, gallery.</b> <code>git fetch origin --prune</code>, then a worktree, by default <code>~/thunar-explainers</code>, detached at <code>origin/main</code>, so <code>make-video.py</code> and the pronunciation table are current. Your own checkout is never touched.</li>
     <li data-k="6"><b>Collect pages.</b> From <code>main</code> and every <code>&lt;digits&gt;-&lt;slug&gt;</code> branch, with <code>git show</code>. A branch provides the explainer files it changed since it left <code>main</code>, and that issue's page and narration both come from it. Two branches changing one issue are a conflict, reported and not rendered. <code>SOURCES.tsv</code> lists each page's branch and commit.</li>
-    <li data-k="7"><b>Decide by hash.</b> No narration: "needs narration". <code>status</code> fails: "needs re-narration". Page and narration hashes equal to the last render's <code>&lt;stem&gt;.mp4.sha</code>: "skipped". Otherwise it renders.</li>
+    <li data-k="7"><b>Decide by hash.</b> No narration: "needs narration". <code>status</code> fails: "needs re-narration". Page and narration hashes, and one of <code>make-video.py</code> with the pronunciation table, equal to the last render's <code>&lt;stem&gt;.mp4.sha</code>: "skipped". Otherwise it renders.</li>
     <li data-k="8"><b>Render, report.</b> <code>make-video.py render &lt;n&gt;</code>, then the new hashes are saved. A table of page, branch, commit and result is printed and saved as <code>REPORT.tsv</code>, and the script exits 1 if any render failed.</li>
   </ol>
   </div>
@@ -273,7 +273,7 @@
 ├── make-video.py                      # --no-sandbox as root
 └── videos-all.sh                      # new: every video into one gallery
 .github/
-├── workflows/build.yml                # explainer job: "Check the narration" step
+├── workflows/build.yml                # explainer job: "Check the narration" step, 15 min limit
 └── scripts/explainer-proof.sh         # new narration subcommand + comment list
 explainers/
 ├── 1-ci-build.html                    # ids and data-k keys only
@@ -318,6 +318,7 @@ explainers/
     <tr data-k="c9"><td><code>--open-prs</code></td><td>The same, with a fake <code>gh</code> listing this branch and <code>40-solo</code></td><td class="ok">9 comes from main, not the stale branch</td></tr>
     <tr data-k="c10"><td>Render, skip, re-render</td><td>A stub in place of <code>make-video.py render</code> (<code>MAKE_VIDEO</code>); run twice; then one narration line of 3 changed and stamped, and page 7 edited without a stamp</td><td class="ok">5 rendered; then 5 skipped; then only 3 rendered, 7 needs re-narration</td></tr>
     <tr data-k="c11"><td>Failures and options</td><td>Stub render failing for 11 with <code>--only 11</code>; <code>--branch 40-solo</code>; <code>--branch nope</code>; gallery deleted by hand and rebuilt</td><td class="ok">failed, exit 1, log kept; each as intended</td></tr>
+    <tr data-k="c15"><td>After CI's review fixes</td><td>Locally: <code>explainer-proof.sh narration</code> against <code>main</code> with <code>make-video.py</code> changed; a narration-only commit on a non-issue branch through <code>narration</code>, <code>render</code> and <code>DRY_RUN=1 publish</code>. In the test clone: run twice, then a pronunciation row added on its <code>main</code></td><td class="ok">all 6 narrations checked; Narration section posted with no image; skipped, then all re-rendered</td></tr>
     <tr data-k="c12"><td>Lint</td><td><code>shellcheck</code> on <code>videos-all.sh</code> and <code>explainer-proof.sh</code></td><td class="ok">videos-all clean; style notes only</td></tr>
     <tr data-k="c13"><td>A real render</td><td><code>make-video.py render</code> or <code>videos-all.sh</code> with Kokoro: Kokoro is only on your machine</td><td class="no">not run</td></tr>
     <tr data-k="c14"><td>How Kokoro says the new lines</td><td><code>make-video.py phonemes</code> needs Kokoro too; the PR lists the words to check</td><td class="no">not run</td></tr>
@@ -335,7 +336,7 @@ explainers/
     <li data-k="b4"><b>Fixed, medium:</b> <code>make-video.py</code> now passes <code>--no-sandbox</code> under CI too, as <code>explainer-proof.sh</code> does. <b>Already handled:</b> the missing page was in the pushed commit, and the narration was held back on purpose for the failing run.</li>
     <li data-k="b5"><b>Fixed, low:</b> <code>--open-prs</code> asks <code>origin</code>'s repo, not <code>upstream</code>; stale doc lines updated. <b>Accepted, low:</b> a non-issue branch that changes only a narration reports a failure in the log, not in the comment.</li>
   </ul>
-  <p data-k="ci-review">CI's own review of every push is in the PR comment's review section.</p>
+  <p data-k="ci-review">CI's own review of the first push (Opus at xhigh) found 13: 1 high, 5 medium and 7 low. R1, R3, R8 and R9 were the same as local findings, already fixed. R2, R4 to R7 and R10 to R12 are fixed: publish waits for a good render, two pages for one issue are reported plainly, a change to <code>make-video.py</code> checks every narration, a narration-only PR still gets its comment, the render hash covers the tool and the pronunciation table, Chrome gets a time limit. R13, the usage headers in the scripts, is accepted: the existing scripts have the same. Later pushes are in the PR comment's review section.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -423,7 +424,7 @@ explainers/
   <div class="panel">
   <ol class="steps">
     <li data-k="1"><b>Run it.</b> <code>.claude/skills/explainer/videos-all.sh</code> from your checkout. Expect "rendered" for every narrated page, then run it again and expect "skipped". Add <code>--open-prs</code> if old branches such as <code>9-explainer-review-fixes</code> would otherwise override <code>main</code>'s page.</li>
-    <li data-k="2"><b>Listen and correct.</b> Words to check are listed in the PR description. A wrong one gets a row in the pronunciation table in <code>SKILL.md</code>, or a <code>say</code> in that narration, through a PR. The next run re-renders only the pages whose narration changed. A table row alone changes no hash, so re-render those in the gallery with <code>make-video.py render &lt;n&gt;</code>.</li>
+    <li data-k="2"><b>Listen and correct.</b> Words to check are listed in the PR description. A wrong one gets a row in the pronunciation table in <code>SKILL.md</code>, or a <code>say</code> in that narration, through a PR. The next run re-renders the pages whose narration changed, and every page after a table row changes; the voice of unchanged lines comes from the cache.</li>
   </ol>
   </div>
   <div class="note" data-k="note23">Issue #23 will reshape the PR comment. Its explainer comment should keep this PR's Narration list.</div>

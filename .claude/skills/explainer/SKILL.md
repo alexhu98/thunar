@@ -78,7 +78,7 @@ Written and stamped in the session that builds the PR, from the final page. `sta
 4. After any later page edit, including a review fix: run `status`, rewrite the stale lines and add lines for new text, then `stamp` again. Leave unchanged lines byte-for-byte as they are, so their cached voice clips are reused.
 5. In the PR description, list any word you're unsure how Kokoro will say (names, abbreviations, numbers), so the owner checks it with `phonemes`.
 
-CI's explainer job runs `make-video.py status` for the branch's issue and for every explainer page or narration the PR adds or changes. It fails when a narration is missing, stale (page text changed after the stamp), or names keys the page no longer has, and reports each result in the explainer section of the PR comment.
+CI's explainer job runs `make-video.py status` for the branch's issue and for every explainer page or narration the PR adds or changes, and for every narration when the PR changes `make-video.py`. It fails when a narration is missing, stale (page text changed after the stamp), or names keys the page no longer has, and reports each result in the explainer section of the PR comment.
 
 All commands are `.claude/skills/explainer/make-video.py <cmd> <n>`. Chrome comes from `$CHROME`, default `google-chrome`. In the cloud container, full Chromium hangs on `--dump-dom`; use the Playwright headless shell:
 
@@ -157,7 +157,7 @@ The script re-runs itself under the Kokoro venv. Voice clips are cached by spoke
 1. `git fetch origin --prune`.
 2. Keeps the gallery as a git worktree detached at `origin/main`, so `make-video.py` and the pronunciation table are current. The owner's own checkout is never touched. `--gallery <dir>` picks another folder.
 3. Copies `explainers/*.html` and `*.narration.json` from `origin/main` and each branch with `git show`, without a checkout. A branch provides the explainer files it changed since it left `main` and that still differ from `main`'s; each issue's page and narration come from one ref. The issue's own `<n>-<slug>` branch wins over other branches. Two `<n>-<slug>` branches for one issue are reported as a conflict, and that issue is not rendered. Use `--open-prs` so merged branches that were never deleted are left out. `SOURCES.tsv` lists each page with its branch and commit.
-4. Decides per page by content hash, never timestamps: no narration → "needs narration"; `make-video.py status` fails → "needs re-narration"; page and narration hashes equal those in `<stem>.mp4.sha` from the last render → "skipped"; otherwise `make-video.py render`, then the new hashes are written.
+4. Decides per page by content hash, never timestamps: no narration → "needs narration"; `make-video.py status` fails → "needs re-narration"; page and narration hashes, and the hash of `make-video.py` with the pronunciation table, equal those in `<stem>.mp4.sha` from the last render → "skipped"; otherwise `make-video.py render`, then the new hashes are written.
 5. Prints a table of page, branch, commit and result (rendered, skipped, needs narration, needs re-narration, conflict, failed), also saved as `REPORT.tsv`. Exits non-zero if any render failed.
 
 ### Pronunciation
