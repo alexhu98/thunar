@@ -13,9 +13,21 @@ OUT=${OUT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/pr-comment}
 NAMES=(summary review verify explainer)
 mkdir -p "$OUT"
 
+api() {
+  local out attempt
+  for attempt in 1 2 3; do
+    if out=$(gh api "$@"); then
+      [[ -z $out ]] || printf '%s\n' "$out"
+      return 0
+    fi
+    (( attempt == 3 )) || { echo "gh api ${1:-} failed (attempt $attempt)" >&2; sleep $((attempt * 5)); }
+  done
+  return 1
+}
+
 list() {  # -> "ID NAME" for every marked comment by the bot, oldest first
   [[ -n ${PR:-} ]] || return 0
-  gh api --paginate "repos/{owner}/{repo}/issues/$PR/comments" --jq '.[]
+  api --paginate "repos/{owner}/{repo}/issues/$PR/comments" --jq '.[]
     | select(.user.login == "github-actions[bot]" and (.body | test("^<!-- pr-proof:[a-z]+ -->")))
     | "\(.id) \(.body | capture("^<!-- pr-proof:(?<n>[a-z]+) -->").n)"' | sort -n
 }
@@ -27,19 +39,19 @@ id_of() {
 legacy() {
   local id
   [[ -n ${PR:-} ]] || return 0
-  id=$(gh api --paginate "repos/{owner}/{repo}/issues/$PR/comments" \
+  id=$(api --paginate "repos/{owner}/{repo}/issues/$PR/comments" \
     --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- pr-proof -->"))) | .id' | sed -n 1p)
   [[ -n $id ]] || return 0
   case $1 in
-    get) gh api "repos/{owner}/{repo}/issues/comments/$id" --jq .body ;;
-    delete) [[ ${DRY_RUN:-0} == 1 ]] && echo "would delete the old comment $id" || gh api -X DELETE "repos/{owner}/{repo}/issues/comments/$id" ;;
+    get) api "repos/{owner}/{repo}/issues/comments/$id" --jq .body ;;
+    delete) [[ ${DRY_RUN:-0} == 1 ]] && echo "would delete the old comment $id" || api -X DELETE "repos/{owner}/{repo}/issues/comments/$id" ;;
   esac
 }
 
 get() {
   local id
   id=$(id_of "${1:?name}")
-  [[ -z $id ]] || gh api "repos/{owner}/{repo}/issues/comments/$id" --jq .body
+  [[ -z $id ]] || api "repos/{owner}/{repo}/issues/comments/$id" --jq .body
 }
 
 placeholder() {
@@ -59,12 +71,12 @@ ensure() {
   for name in "${NAMES[@]}"; do
     awk -v n="$name" '$2 == n {f = 1} END {exit !f}' "$OUT/list" && continue
     placeholder "$name" > "$OUT/placeholder.md"
-    gh api "repos/{owner}/{repo}/issues/$PR/comments" -F body=@"$OUT/placeholder.md" --jq '"created the \(.body | capture("pr-proof:(?<n>[a-z]+)").n) comment \(.id)"'
+    api "repos/{owner}/{repo}/issues/$PR/comments" -F body=@"$OUT/placeholder.md" --jq '"created the \(.body | capture("pr-proof:(?<n>[a-z]+)").n) comment \(.id)"'
     created=1
   done
   (( created )) && { sleep 3; list > "$OUT/list"; }
   for id in $(awk 'seen[$2]++ {print $1}' "$OUT/list"); do
-    gh api -X DELETE "repos/{owner}/{repo}/issues/comments/$id" && echo "deleted the duplicate comment $id" \
+    api -X DELETE "repos/{owner}/{repo}/issues/comments/$id" && echo "deleted the duplicate comment $id" \
       || echo "::warning::could not delete the duplicate comment $id" >&2
   done
 }
@@ -82,7 +94,7 @@ put() {
   ensure
   id=$(id_of "$name")
   [[ -n $id ]] || { echo "::error::the $name comment is missing after creating it" >&2; exit 1; }
-  gh api -X PATCH "repos/{owner}/{repo}/issues/comments/$id" -F body=@"$OUT/comment.md" --jq '"updated \(.html_url)"'
+  api -X PATCH "repos/{owner}/{repo}/issues/comments/$id" -F body=@"$OUT/comment.md" --jq '"updated \(.html_url)"'
 }
 
 case ${1:-} in

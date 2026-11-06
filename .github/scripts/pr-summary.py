@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ICON = {'pass': '✅', 'fail': '❌', 'running': '⏳', 'wait': '⏳', 'skip': '⏭️'}
@@ -25,7 +26,14 @@ JOBS = {'verify': ('verify',), 'review': ('review', 'review-report'), 'explainer
 
 
 def gh(*args):
-    return subprocess.run(['gh', 'api', *args], check=True, capture_output=True, text=True).stdout
+    for attempt in range(3):
+        r = subprocess.run(['gh', 'api', *args], capture_output=True, text=True)
+        if r.returncode == 0 or attempt == 2:
+            break
+        print(f'gh api {args[0]} failed (attempt {attempt + 1}): {r.stderr.strip()}', file=sys.stderr)
+        time.sleep(5 * (attempt + 1))
+    r.check_returncode()
+    return r.stdout
 
 
 def lines_json(*args):
