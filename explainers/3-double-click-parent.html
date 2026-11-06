@@ -137,17 +137,17 @@
     <g data-k="2">
       <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
       <text x="286" y="90" class="t">View checks</text>
-      <text x="286" y="114" class="b">icon/compact: no item</text>
-      <text x="286" y="134" class="b">details: no row and</text>
-      <text x="286" y="154" class="b">not the header</text>
+      <text x="286" y="114" class="b">each left press:</text>
+      <text x="286" y="134" class="b">item or row under</text>
+      <text x="286" y="154" class="b">the pointer?</text>
       <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
     </g>
     <g data-k="3">
       <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
       <text x="536" y="90" class="t">Shared helper</text>
-      <text x="536" y="114" class="b">2nd press, button 1,</text>
-      <text x="536" y="134" class="b">no modifier,</text>
-      <text x="536" y="154" class="b">preference on?</text>
+      <text x="536" y="114" class="b">both presses blank,</text>
+      <text x="536" y="134" class="b">same folder, no</text>
+      <text x="536" y="154" class="b">modifier, pref on?</text>
       <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
     </g>
     <g data-k="4">
@@ -200,9 +200,9 @@
   <div class="panel">
   <div class="lane-h" style="color:var(--accent)">① Double-click — the folder goes up</div>
   <ol class="steps">
-    <li data-k="1"><b>Double-click.</b> GTK delivers a double-click as two ordinary presses followed by a "2-button press" event. Only that last event is used here, so a single click and the drag of a rubber-band selection work as before.</li>
-    <li data-k="2"><b>View checks.</b> The icon and compact views (<code>thunar-abstract-icon-view.c</code>) ask <code>exo_icon_view_get_item_at_pos</code> whether an item is under the pointer. The details view (<code>thunar-details-view.c</code>) uses the row lookup it already did, and clicks on the column headers never reach this code. If an item was hit, nothing new happens and the item opens as before.</li>
-    <li data-k="3"><b>Shared helper.</b> <code>_thunar_standard_view_open_parent_on_blank_double_click</code> in <code>thunar-standard-view.c</code> checks that this is a left-button double-click with no modifier keys and that the preference is on. It is shared, so the three views can't drift apart.</li>
+    <li data-k="1"><b>Double-click.</b> GTK delivers a double-click as two ordinary presses followed by a "2-button press" event. The ordinary presses are only noted, never consumed, so a single click and the drag of a rubber-band selection work as before.</li>
+    <li data-k="2"><b>View checks.</b> On every left press, the icon and compact views (<code>thunar-abstract-icon-view.c</code>) ask <code>exo_icon_view_get_item_at_pos</code> whether an item is under the pointer. The details view (<code>thunar-details-view.c</code>) uses the row lookup it already did, and clicks on the column headers never reach this code. The answer goes to the helper.</li>
+    <li data-k="3"><b>Shared helper.</b> <code>_thunar_standard_view_blank_button_press</code> in <code>thunar-standard-view.c</code> remembers the folder and how many presses in a row hit blank space. On the 2-button press it runs Open Parent only if both presses hit blank space in the same folder, with no modifier keys, the preference on and single-click mode off. So if the first click already opened a folder, the second can't send you back up. It is shared, so the three views can't drift apart.</li>
     <li data-k="4"><b>Open Parent.</b> The helper looks up <code>THUNAR_WINDOW_ACTION_OPEN_PARENT</code> and calls its callback, as the icon view's swipe-up gesture already does. At <code>/</code> that action finds no parent and returns quietly, without a dialog.</li>
   </ol>
   <div class="lane-h" style="color:var(--accent)">② Preferences — on or off, right away</div>
@@ -223,6 +223,7 @@
     <tr data-k="k3"><td>blank space at <code>/</code></td><td>nothing, and no error</td></tr>
     <tr data-k="k4"><td>blank space with the checkbox off</td><td>nothing</td></tr>
     <tr data-k="k5"><td>blank space with Ctrl, Shift or Alt held</td><td>nothing new</td></tr>
+    <tr data-k="k8"><td>blank space in single-click mode</td><td>nothing new: there, a click can open an item before the double-click completes</td></tr>
     <tr data-k="k6"><td>a file or folder</td><td>opens it, as before</td></tr>
     <tr data-k="k7"><td>a column header (details view)</td><td>unchanged</td></tr>
   </table>
@@ -234,7 +235,7 @@
 <pre data-k="tree">thunar/
 ├── thunar-abstract-icon-view.c   # icon + compact: blank double-click calls the helper
 ├── thunar-details-view.c         # details: blank double-click calls the helper
-├── thunar-standard-view.c        # the shared helper; runs Open Parent
+├── thunar-standard-view.c        # the shared helper: tracks blank presses, runs Open Parent
 ├── thunar-standard-view.h        # its declaration
 ├── thunar-preferences.c          # new misc-double-click-blank-go-up, default on
 └── thunar-preferences-dialog.c   # the checkbox on the Behavior tab
@@ -263,13 +264,15 @@ explainers/3-double-click-parent.html  # this page</pre>
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage -b -us -uc</code> on Ubuntu 24.04 in this session, with maintainer mode as <code>debian/rules</code> sets it</td><td class="ok">5 debs, no new warnings</td></tr>
+    <tr data-k="c1b"><td>CI build, verify and explainer on the first push</td><td>The PR's CI run on <code>ad5d5e1</code></td><td class="ok">3 of 3 green</td></tr>
     <tr data-k="c2"><td>Icon, compact, details views go up</td><td><code>verify/3.sh</code>: Ctrl+1, Ctrl+3, Ctrl+2, then an <code>xdotool</code> double-click on blank space; asserts the title changes from charlie to bravo</td><td class="ok">3 of 3, local run</td></tr>
-    <tr data-k="c3"><td>Both split-view panes</td><td>F3, two double-clicks in the right pane (title → alpha), then one in the left (title → bravo, not alpha)</td><td class="ok">2 of 2 panes</td></tr>
-    <tr data-k="c4"><td>Double-click on a folder still opens it</td><td>Double-click on the delta icon; title → delta</td><td class="ok">pass</td></tr>
+    <tr data-k="c3"><td>Both split-view panes</td><td>F3, two double-clicks in the right pane (title → alpha), then one in the left (title → bravo), then a click back in the right pane (title → alpha, so it didn't move)</td><td class="ok">2 of 2 panes</td></tr>
+    <tr data-k="c4"><td>Double-click on a folder still opens it, and stays there</td><td>Double-click on the delta icon (icon view) and on the delta row (details view); the title is delta, and still delta 1.5 s later</td><td class="ok">2 of 2 views</td></tr>
+    <tr data-k="c4b"><td>Single-click mode: a double-click on a folder doesn't bounce back</td><td><code>misc-single-click</code> on, double-click on delta; the title is still delta 2 s later</td><td class="ok">pass</td></tr>
     <tr data-k="c5"><td>Rubber-band selection still works</td><td>Drag from blank space over delta, folder unchanged, then Return opens delta</td><td class="ok">pass</td></tr>
     <tr data-k="c6"><td>Nothing happens at <code>/</code></td><td>Double-click at <code>/</code>; after 2 s the title is unchanged and Thunar has one window (no dialog)</td><td class="ok">pass</td></tr>
     <tr data-k="c7"><td>The checkbox turns it off at once</td><td>Opens Preferences, Behavior tab, Alt+P unticks the box; <code>xfconf-query</code> reads <code>false</code>; a blank double-click in the same running Thunar leaves it on charlie</td><td class="ok">pass</td></tr>
-    <tr data-k="c8"><td>The screenshots show what they claim</td><td><code>/visual-verify</code> on the 21 local shots (smoke + 20 from <code>verify/3.sh</code>), audited by the independent shot-auditor</td><td class="ok">PASS</td></tr>
+    <tr data-k="c8"><td>The screenshots show what they claim</td><td><code>/visual-verify</code> on the 25 local shots (smoke + 24 from <code>verify/3.sh</code>) after the review fixes, audited by the independent shot-auditor</td><td class="ok">PASS</td></tr>
     <tr data-k="c9"><td>The setting survives a Thunar restart</td><td>Not scripted: the value lives in xfconf, which the script reads back, but Thunar was not restarted in the test</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -278,11 +281,12 @@ explainers/3-double-click-parent.html  # this page</pre>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">After the last code change, a fresh <code>general-purpose</code> agent in this session reviewed only the diff and issue #3 for correctness: 0 high or medium findings, 3 low, none changed.</p>
+  <p data-k="summary">Two reviews ran. First, a fresh <code>general-purpose</code> agent in this session, given only the diff and issue #3: 0 high or medium findings, 3 low. Then CI's review of <code>ad5d5e1</code> (Opus at xhigh): 12 findings, 2 confirmed medium. Both mediums and the related ones are fixed in the next commit.</p>
   <ul class="tight">
-    <li data-k="b1"><b>Rubber band across the folder change:</b> the icon view's rubber band from the second press stays active until the button is released, so a drag in that instant could select an item in the parent folder. Kept: the release follows within milliseconds, and the change would need a synthetic event.</li>
-    <li data-k="b2"><b>Details view, right of the columns:</b> a row's empty area to the right of the last column counts as that row, so double-clicking there does nothing. Kept: the issue asks for the space below the last row.</li>
-    <li data-k="b3"><b>Callback cast:</b> the action callback is cast to a slightly different signature, exactly as the existing swipe-up gesture does. Cosmetic.</li>
+    <li data-k="b1"><b>Fixed, R1, R2, R5 (medium):</b> the blank-space check ran only at the 2-button press, so if the first click had already opened a folder (single-click mode, or the details view on the second press), the empty new view counted as blank and Open Parent sent you straight back. Now both presses must hit blank space in the same folder, and it is off in single-click mode.</li>
+    <li data-k="b2"><b>Fixed, R6 and R7 (low):</b> single-click mode is skipped, so a release can't activate a parent-folder row, and the never-taken <code>action_entry == NULL</code> branch was removed.</li>
+    <li data-k="b3"><b>Fixed, R3 and R4 (low, tests):</b> <code>verify/3.sh</code> now double-clicks a folder in details view and in single-click mode, and checks that the right pane stays on alpha after the left pane goes up.</li>
+    <li data-k="b4"><b>Kept, low:</b> the icon view's rubber band from the second press stays active until the release; the empty strip right of the details columns counts as a row (the issue asks for the space below the rows); the callback cast and comments follow existing Thunar code; the default is on, as the issue says. CI rated R9 to R12 not confirmed.</li>
   </ul>
   <p data-k="ci-review">CI's own review of every push is in the PR comment's review section.</p>
   </section>

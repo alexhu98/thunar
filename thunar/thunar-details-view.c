@@ -838,6 +838,9 @@ thunar_details_view_button_press_event (GtkTreeView       *tree_view,
   /* make sure that rubber banding is enabled */
   gtk_tree_view_set_rubber_banding (tree_view, TRUE);
 
+  if (_thunar_standard_view_blank_button_press (THUNAR_STANDARD_VIEW (details_view), event, path != NULL))
+    return TRUE;
+
   /* if the user clicked on a row with the left button */
   if (path != NULL && event->type == GDK_BUTTON_PRESS && event->button == 1)
     {
@@ -916,9 +919,6 @@ thunar_details_view_button_press_event (GtkTreeView       *tree_view,
           return FALSE;
         }
     }
-
-  if (path == NULL && _thunar_standard_view_open_parent_on_blank_double_click (THUNAR_STANDARD_VIEW (details_view), event))
-    return TRUE;
 
   /* open the context menu on right clicks */
   if (event->type == GDK_BUTTON_PRESS && event->button == 3)

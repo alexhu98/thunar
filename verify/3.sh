@@ -7,6 +7,7 @@ W=1000
 H=700
 ITEM_X=239
 ITEM_Y=130
+ROW_Y=$((103 + (EUID == 0 ? 34 : 0)))
 
 mkdir -p "$WORK/alpha/bravo/charlie/delta"
 for f in one two three; do echo "$f" > "$WORK/alpha/bravo/charlie/$f.txt"; done
@@ -58,6 +59,18 @@ blank_double_click $((W - 120)) $((H - 120))
 wait_title "$WID" bravo
 shot "$WID" after-details "Details view now shows folder bravo, the parent of charlie, after a double-click on the blank space below the rows"
 
+# A double-click on a folder row in details view opens it and stays there
+reopen "$WORK/alpha/bravo/charlie" 2
+shot "$WID" before-details-folder "Details view shows folder charlie with delta as its first row"
+focus "$WID"
+xdotool mousemove --window "$WID" "$ITEM_X" "$ROW_Y"
+sleep 1
+xdotool click --repeat 2 --delay 80 1
+wait_title "$WID" delta
+sleep 1.5
+[[ $(title) == *delta* ]] || fail "after opening delta in details view the window went on to '$(title)'"
+shot "$WID" after-details-folder "A double-click on the delta row opened delta (inside.txt shown) and did not go back up to charlie"
+
 # A double-click on a folder still opens that folder
 reopen "$WORK/alpha/bravo/charlie" 1
 shot "$WID" before-folder "Icon view shows folder charlie with the delta folder as its first item"
@@ -66,6 +79,8 @@ xdotool mousemove --window "$WID" "$ITEM_X" "$ITEM_Y"
 sleep 0.3
 xdotool click --repeat 2 --delay 80 1
 wait_title "$WID" delta
+sleep 1.5
+[[ $(title) == *delta* ]] || fail "after opening delta the window went on to '$(title)'"
 shot "$WID" after-folder "A double-click on the delta folder opened delta (inside.txt shown), not the parent folder"
 
 # Rubber-band selection still works
@@ -106,8 +121,11 @@ sleep 1
 shot "$WID" before-split-left "Split view with the left pane active on folder charlie (delta, one.txt, three.txt, two.txt)"
 blank_double_click $((W / 2 - 80)) $((H - 120))
 wait_title "$WID" bravo
-[[ $(title) != *alpha* ]] || fail "the title is on alpha after the left pane click"
 shot "$WID" after-split-left "A double-click in the left pane took only that pane up to bravo (it shows folder charlie)"
+xdotool mousemove --window "$WID" $((W - 80)) $((H - 120))
+sleep 1
+xdotool click 1
+wait_title "$WID" alpha
 xdotool key F3
 sleep 0.5
 
@@ -148,3 +166,17 @@ blank_double_click $((W - 120)) $((H - 120))
 sleep 2
 [[ $(title) == *charlie* ]] || fail "with the setting off, the title changed to '$(title)'"
 shot "$WID" after-off "With the setting off, a double-click on blank space left the window on folder charlie"
+
+# Single-click mode: a double-click on a folder opens it and does not go back up
+xfconf-query -c thunar -p /misc-double-click-blank-go-up -s true
+xfconf-query -c thunar -p /misc-single-click -n -t bool -s true
+reopen "$WORK/alpha/bravo/charlie" 1
+shot "$WID" before-single "Single-click mode, blank double-click turned back on: icon view shows folder charlie with delta first"
+focus "$WID"
+xdotool mousemove --window "$WID" "$ITEM_X" "$ITEM_Y"
+sleep 1
+xdotool click --repeat 2 --delay 80 1
+wait_title "$WID" delta
+sleep 2
+[[ $(title) == *delta* ]] || fail "in single-click mode a double-click on delta went on to '$(title)'"
+shot "$WID" after-single "In single-click mode a double-click on delta left the window on delta (inside.txt), not back on charlie"
