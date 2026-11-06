@@ -62,7 +62,7 @@ narration() {
 }
 
 chrome() {
-  timeout 180 "$CHROME" --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --force-dark-mode \
+  timeout -k 5 180 "$CHROME" --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --force-dark-mode \
     $( [[ -n ${CI:-} || $EUID == 0 ]] && echo --no-sandbox ) --user-data-dir="$OUT/profile" --virtual-time-budget=3000 "$@" </dev/null
 }
 
@@ -81,7 +81,6 @@ render() {
     issue=$(basename "$page" | cut -d- -f1)
     rm -f "$OUT/explainer-$issue.png"
     url="file://$(realpath "$page")"
-    height=
     read -r height width narrow < <(measure "$url") || true
     if [[ -z ${height:-} ]]; then
       cat "$OUT/chrome.log" >&2
@@ -129,7 +128,7 @@ section() {  # the explainer section of the comment, for each image URL in $OUT/
 publish() {
   [[ -n ${PR:-} || ${DRY_RUN:-0} == 1 ]] || { echo "publish needs PR" >&2; exit 1; }
   : "${GH_REPO:?}"
-  [[ -f $OUT/list ]] || render
+  [[ -f $OUT/list ]] || render || true
   if [[ ! -s $OUT/list && ! -s $OUT/narration.md ]]; then
     echo "no explainer in this PR; nothing to post"
     return

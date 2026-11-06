@@ -1,7 +1,7 @@
 {
   "title": "PR #26 · Narrated explainers",
   "voice": "af_heart",
-  "page_sha256": "c878675b90831d28d7ced1a6e2d8954f691688828c3c9ea487a8940df7be9682",
+  "page_sha256": "09fe91919cf2251df4cda42158d0f73e422597404a7a98c9d58b3640f9c54586",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 26, which gives every explainer a narration and renders all their videos on your machine.", "src": "4aa2402dcf4d"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "c53034a31770"},
@@ -44,7 +44,7 @@
     {"screen": "review", "keys": ["summary"], "caption": "A fresh local agent found eight issues, one high and four medium. Six are fixed and one is accepted.", "src": "cc7181c53fa5"},
     {"screen": "review", "keys": ["b1"], "caption": "The high one: pointed at your own checkout, the script could have thrown away uncommitted work. Now it refuses.", "src": "31e958a36c1c"},
     {"screen": "review", "keys": ["b2", "b3"], "caption": "Merged branches no longer override main, and an issue's own branch wins over others.", "src": "93e219d899b3"},
-    {"screen": "review", "keys": ["ci-review"], "caption": "CI's own review raised fifty-two findings over six rounds. All but ten are fixed, and those ten are accepted.", "src": "7ae402bc8cbc"},
+    {"screen": "review", "keys": ["ci-review"], "caption": "CI's own review raised sixty-two findings over seven rounds. All but fourteen are fixed, and those fourteen are accepted.", "src": "a2e1c2d56a08"},
     {"screen": "aftermerge", "keys": ["a1", "a2", "a3"], "caption": "Your first real run, the sound of the new lines, and the check on the next PR all come after the merge.", "src": "d48a0921cdb0"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later: your first local run.", "src": "450245c77bd3"},
     {"screen": "next", "keys": ["n1", "n2", "n3", "n4"], "caption": "Run the script once, listen, fix any word, and from then on each PR arrives narrated.", "src": "d31faa7f2fe2"},
@@ -121,7 +121,7 @@
     "review/b3": "fb55517d1605",
     "review/b4": "3f7cfa4060ba",
     "review/b5": "b283942ad9a6",
-    "review/ci-review": "7ae402bc8cbc",
+    "review/ci-review": "a2e1c2d56a08",
     "aftermerge/a1": "5cc47873674d",
     "aftermerge/a2": "2db320c46cb9",
     "aftermerge/a3": "0acc110d323e",

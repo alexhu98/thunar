@@ -108,11 +108,14 @@ main() {
   fi
 
   local -A claim=()
-  local base f n blob path
+  local base f n blob path history
   local -A on_main=()
-  while read -r blob path; do
-    on_main["$path $blob"]=1
-  done < <(git log --format= --raw --no-abbrev -m --full-history origin/main -- explainers/ | awk '{ print $4, $NF }')
+  if (( ${#branches[@]} )); then
+    history=$(git log --format= --raw --no-abbrev --diff-merges=separate --full-history origin/main -- explainers/)
+    while read -r blob path; do
+      on_main["$path $blob"]=1
+    done < <(awk 'NF { print $4, $NF }' <<<"$history")
+  fi
   for b in "${branches[@]}"; do
     base=$(git merge-base origin/main "origin/$b") || { echo "  $b: no common history with main, skipped"; continue; }
     while read -r f; do
