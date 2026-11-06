@@ -86,6 +86,9 @@ shot "$WID" after-folder "A double-click on the delta folder opened delta (insid
 # Rubber-band selection still works
 reopen "$WORK/alpha/bravo/charlie" 1
 focus "$WID"
+xdotool key ctrl+shift+a
+sleep 0.5
+shot "$WID" before-rubber-band "Icon view of folder charlie with nothing selected"
 xdotool mousemove --window "$WID" 300 260
 sleep 1
 xdotool mousedown 1
@@ -96,7 +99,7 @@ done
 xdotool mouseup 1
 sleep 0.5
 [[ $(title) == *charlie* ]] || fail "the drag changed the folder to '$(title)'"
-shot "$WID" rubber-band "A drag from blank space selected only the delta folder and left the window on charlie"
+shot "$WID" after-rubber-band "A drag from blank space selected only the delta folder and left the window on charlie"
 xdotool key Return
 wait_title "$WID" delta
 

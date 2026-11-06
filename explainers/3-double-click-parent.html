@@ -264,12 +264,12 @@ explainers/3-double-click-parent.html  # this page</pre>
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage -b -us -uc</code> on Ubuntu 24.04 in this session, with maintainer mode as <code>debian/rules</code> sets it</td><td class="ok">5 debs, no new warnings</td></tr>
-    <tr data-k="c1b"><td>CI build, verify and explainer on the first push</td><td>The PR's CI run on <code>ad5d5e1</code></td><td class="ok">3 of 3 green</td></tr>
+    <tr data-k="c1b"><td>CI build, verify, explainer and review-report</td><td>The PR's CI run on <code>de857eb</code>, then <code>/visual-verify pr:20</code> on its 24 shots</td><td class="ok">4 of 4 green; PASS</td></tr>
     <tr data-k="c2"><td>Icon, compact, details views go up</td><td><code>verify/3.sh</code>: Ctrl+1, Ctrl+3, Ctrl+2, then an <code>xdotool</code> double-click on blank space; asserts the title changes from charlie to bravo</td><td class="ok">3 of 3, local run</td></tr>
     <tr data-k="c3"><td>Both split-view panes</td><td>F3, two double-clicks in the right pane (title → alpha), then one in the left (title → bravo), then a click back in the right pane (title → alpha, so it didn't move)</td><td class="ok">2 of 2 panes</td></tr>
     <tr data-k="c4"><td>Double-click on a folder still opens it, and stays there</td><td>Double-click on the delta icon (icon view) and on the delta row (details view); the title is delta, and still delta 1.5 s later</td><td class="ok">2 of 2 views</td></tr>
     <tr data-k="c4b"><td>Single-click mode: a double-click on a folder doesn't bounce back</td><td><code>misc-single-click</code> on, double-click on delta; the title is still delta 2 s later</td><td class="ok">pass</td></tr>
-    <tr data-k="c5"><td>Rubber-band selection still works</td><td>Drag from blank space over delta, folder unchanged, then Return opens delta</td><td class="ok">pass</td></tr>
+    <tr data-k="c5"><td>Rubber-band selection still works</td><td>Selection cleared (Ctrl+Shift+A), drag from blank space over delta; the folder is unchanged, then Return opens delta, which only works if the drag selected it</td><td class="ok">pass</td></tr>
     <tr data-k="c6"><td>Nothing happens at <code>/</code></td><td>Double-click at <code>/</code>; after 2 s the title is unchanged and Thunar has one window (no dialog)</td><td class="ok">pass</td></tr>
     <tr data-k="c7"><td>The checkbox turns it off at once</td><td>Opens Preferences, Behavior tab, Alt+P unticks the box; <code>xfconf-query</code> reads <code>false</code>; a blank double-click in the same running Thunar leaves it on charlie</td><td class="ok">pass</td></tr>
     <tr data-k="c8"><td>The screenshots show what they claim</td><td><code>/visual-verify</code> on the 25 local shots (smoke + 24 from <code>verify/3.sh</code>) after the review fixes, audited by the independent shot-auditor</td><td class="ok">PASS</td></tr>
@@ -281,7 +281,7 @@ explainers/3-double-click-parent.html  # this page</pre>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">Two reviews ran. First, a fresh <code>general-purpose</code> agent in this session, given only the diff and issue #3: 0 high or medium findings, 3 low. Then CI's review of <code>ad5d5e1</code> (Opus at xhigh): 12 findings, 2 confirmed medium. Both mediums and the related ones are fixed in the next commit.</p>
+  <p data-k="summary">Two reviews ran. First, a fresh <code>general-purpose</code> agent in this session, given only the diff and issue #3: 0 high or medium findings, 3 low. Then CI's review of <code>ad5d5e1</code> (Opus at xhigh): 12 findings, 2 confirmed medium. Both mediums and the related ones are fixed in <code>4fb336d</code>. CI's review of that commit pushed one <code>claude[bot]</code> fix commit (<code>de857eb</code>) for two lows: in single-click mode the checkbox is now greyed out (R13), and the icon view no longer allocates a tree path only to free it (R14). Its re-review found 6 more lows (R22 to R27), none confirmed.</p>
   <ul class="tight">
     <li data-k="b1"><b>Fixed, R1, R2, R5 (medium):</b> the blank-space check ran only at the 2-button press, so if the first click had already opened a folder (single-click mode, or the details view on the second press), the empty new view counted as blank and Open Parent sent you straight back. Now both presses must hit blank space in the same folder, and it is off in single-click mode.</li>
     <li data-k="b2"><b>Fixed, R6 and R7 (low):</b> single-click mode is skipped, so a release can't activate a parent-folder row, and the never-taken <code>action_entry == NULL</code> branch was removed.</li>
