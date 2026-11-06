@@ -17,6 +17,7 @@ ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 TTS = os.path.expanduser(os.environ.get('TTS_DIR', '~/.claude/usage-data/rebuild/tts'))
 CACHE = os.path.expanduser(os.environ.get('EXPLAINER_CACHE', '~/.cache/explainer-video'))
 CHROME = os.environ.get('CHROME', 'google-chrome')
+NO_SANDBOX = ['--no-sandbox'] if os.geteuid() == 0 else []
 ESPEAK = dict(lib_path='/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1',
               data_path='/usr/lib/x86_64-linux-gnu/espeak-ng-data')
 RATE = 24000
@@ -292,7 +293,7 @@ def write_video_page(page, work, data):
 
 
 def chrome(args, prof):
-    return subprocess.run([CHROME, '--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1',
+    return subprocess.run([CHROME] + NO_SANDBOX + ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1',
                            f'--user-data-dir={prof}', '--window-size=1920,1080', '--virtual-time-budget=2000'] + args,
                           capture_output=True, text=True)
 
@@ -488,7 +489,7 @@ def render(n, force):
     shutil.rmtree(fdir, ignore_errors=True)
     os.makedirs(fdir)
     q = shlex.quote
-    cmd = (f'i=$0; {q(CHROME)} --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 '
+    cmd = (f'i=$0; {q(CHROME)} {" ".join(NO_SANDBOX)} --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 '
            f'--user-data-dir={q(work)}/prof/$i --window-size=1920,1080 --virtual-time-budget=2000 '
            f'--screenshot={q(fdir)}/f$(printf %03d $i).png {q(pathlib.Path(vp).as_uri())}"?i=$i" >/dev/null 2>&1')
     subprocess.run(['xargs', '-P', '12', '-I{}', 'bash', '-c', cmd, '{}'],

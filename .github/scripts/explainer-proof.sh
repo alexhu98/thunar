@@ -1,9 +1,12 @@
 #!/bin/bash
-# Requires, renders and posts a PR's explainer: explainer-proof.sh [check|render [page...]|publish] (no argument: all three).
-#   check    a PR from a <n>-<slug> branch must add or change explainers/<n>-*.html; other branches are exempt
+# Requires, renders and posts a PR's explainer: explainer-proof.sh [check|narration|render [page...]|publish] (no argument: all four).
+#   check     a PR from a <n>-<slug> branch must add or change explainers/<n>-*.html; other branches are exempt
+#   narration make-video.py status <n> for the branch's issue and for every explainer page or narration the PR adds
+#             or changes: fails when a narration is missing, stale, or names keys the page no longer has
 #   render   each explainers/<issue>-*.html the PR adds or changes (or each page given) -> 1200px full-page dark PNG
 #   publish  commits each PNG to the shots branch as pr-$PR/explainer-<issue>.png and puts it in the PR comment's
-#            explainer section, through pr-comment.sh. A failed upload is marked in the section, and publish then fails.
+#            explainer section, with the narration results, through pr-comment.sh. A failed upload is marked in the
+#            section, and publish then fails.
 # Env: PR (number), HEAD_REF (branch, default the current one), HEAD_SHA, BASE (default origin/main), OUT.
 # DRY_RUN=1 runs check and render, then prints the comment instead of uploading and posting.
 set -euo pipefail
@@ -29,6 +32,29 @@ check() {
   fi
   echo "explainers in this PR:"
   sed 's/^/  /' "$OUT/list"
+}
+
+narration() {
+  local branch=${HEAD_REF:-$(git rev-parse --abbrev-ref HEAD)} nums n out failed=0
+  nums=$( {
+    git diff --name-only --diff-filter=ACMR "$BASE...HEAD" -- 'explainers/*.html' 'explainers/*.narration.json' \
+      | sed -nE 's|^explainers/([0-9]+)-.*|\1|p'
+    if [[ $branch =~ ^([0-9]+)-[A-Za-z0-9] ]]; then echo "${BASH_REMATCH[1]}"; fi
+  } | sort -nu)
+  : > "$OUT/narration.md"
+  for n in $nums; do
+    if out=$(CHROME="$CHROME" EXPLAINER_CACHE="$OUT/narration-cache" python3 .claude/skills/explainer/make-video.py status "$n" 2>&1); then
+      printf -- '- Narration of #%s: current.\n' "$n" >> "$OUT/narration.md"
+      echo "narration of #$n: current"
+    else
+      printf -- '- Narration of #%s: **missing or stale**. Write or fix it, then `make-video.py stamp %s` (see `.claude/skills/explainer/SKILL.md`).\n\n  ```text\n%s\n  ```\n' \
+        "$n" "$n" "$(sed 's/^/  /' <<<"$out")" >> "$OUT/narration.md"
+      echo "::error::The narration of #$n is missing or stale; see .claude/skills/explainer/SKILL.md" >&2
+      failed=1
+    fi
+    sed 's/^/  /' <<<"$out"
+  done
+  return "$failed"
 }
 
 chrome() {
@@ -78,6 +104,11 @@ section() {  # the explainer section of the comment, for each image URL in $OUT/
         "$page" "$WIDTH" "${sha::12}" "$issue" "$url"
     fi
   done < "$OUT/urls"
+  if [[ -s $OUT/narration.md ]]; then
+    printf '### Narration\n\n'
+    cat "$OUT/narration.md"
+    echo
+  fi
   echo '<!-- explainer:end -->'
 }
 
@@ -109,8 +140,9 @@ publish() {
 
 case ${1:-all} in
   check) check ;;
+  narration) narration ;;
   render) shift; render "$@" ;;
   publish) publish ;;
-  all) check; render; publish ;;
-  *) echo "usage: $0 [check|render|publish]" >&2; exit 2 ;;
+  all) check; status=0; narration || status=1; render; publish || status=1; exit "$status" ;;
+  *) echo "usage: $0 [check|narration|render|publish]" >&2; exit 2 ;;
 esac
