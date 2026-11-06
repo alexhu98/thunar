@@ -170,7 +170,7 @@
   <section class="sub" id="bigpic">
   <h3 class="sec">The big picture</h3>
   <p data-k="why">Your own <code>~/.claude/CLAUDE.md</code> tells Claude how to report to you and how to pick a fix. A web session runs in a fresh cloud container and never sees that file, so it ignored those rules. Copying them into the repo's <code>CLAUDE.md</code> makes every session follow them.</p>
-  <div class="note" data-k="note">The wording is commit <code>64680b762</code> from closed PR #27, plus one bullet the issue added by hand: a change the issue doesn't cover becomes a new issue, not part of the PR.</div>
+  <div class="note" data-k="note">The wording is commit <code>64680b762</code> from closed PR #27, with two changes: one bullet the issue added by hand (a change the issue doesn't cover becomes a new issue, not part of the PR), and the several-decisions example corrected after CI's review (R16), at your request.</div>
   </section>
 
   <section class="sub" id="steps">
@@ -228,7 +228,7 @@ explainers/28-owner-rules.html    # this page, and its .narration.json</pre>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr data-k="c1"><td>Same wording as PR #27</td><td><code>git diff origin/owner-rules -- CLAUDE.md</code>, reading the lines that differ</td><td class="ok">identical, except the bullet the issue adds and the #23 changes</td></tr>
+    <tr data-k="c1"><td>Same wording as PR #27</td><td><code>git diff origin/owner-rules -- CLAUDE.md</code>, reading the lines that differ</td><td class="ok">identical, except the bullet the issue adds, R16's example and the #23 changes</td></tr>
     <tr data-k="c2"><td>Placed before Building</td><td>reading <code>CLAUDE.md</code></td><td class="ok">yes; no other section changed for #28</td></tr>
     <tr data-k="c3"><td>Sessions follow the rules</td><td>can only be seen in a later session</td><td class="no">not run</td></tr>
   </table>
