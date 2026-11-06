@@ -454,6 +454,13 @@ thunar_abstract_icon_view_button_press_event (ExoIconView            *view,
 
       return TRUE;
     }
+  else if ((event->type == GDK_BUTTON_PRESS || event->type == GDK_2BUTTON_PRESS) && event->button == 1)
+    {
+      gboolean on_item = exo_icon_view_get_item_at_pos (view, event->x, event->y, NULL, NULL);
+
+      if (_thunar_standard_view_blank_button_press (THUNAR_STANDARD_VIEW (abstract_icon_view), event, on_item))
+        return TRUE;
+    }
   else if (event->type == GDK_BUTTON_PRESS && event->button == 2)
     {
       /* unselect all currently selected items */

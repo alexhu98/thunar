@@ -207,6 +207,11 @@ _thunar_standard_view_open_on_middle_click (ThunarStandardView *standard_view,
                                             GtkTreePath        *tree_path,
                                             guint               event_state);
 
+gboolean
+_thunar_standard_view_blank_button_press (ThunarStandardView   *standard_view,
+                                          const GdkEventButton *event,
+                                          gboolean              on_item);
+
 void
 thunar_standard_view_set_searching (ThunarStandardView *standard_view,
                                     gchar              *search_query);

@@ -52,6 +52,7 @@
 #include "thunar/thunar-standard-view.h"
 #include "thunar/thunar-text-renderer.h"
 #include "thunar/thunar-util.h"
+#include "thunar/thunar-window.h"
 
 #include <gdk/gdkkeysyms.h>
 #include <libxfce4util/libxfce4util.h>
@@ -376,6 +377,9 @@ struct _ThunarStandardViewPrivate
 {
   /* current directory of the view */
   ThunarFile *current_directory;
+
+  ThunarFile *blank_press_directory;
+  guint       blank_press_count;
 
   /* history of the current view */
   ThunarHistory *history;
@@ -1135,6 +1139,8 @@ thunar_standard_view_finalize (GObject *object)
 
   if (standard_view->priv->selection_changed_timeout_source != 0)
     g_source_remove (standard_view->priv->selection_changed_timeout_source);
+
+  g_clear_object (&standard_view->priv->blank_press_directory);
 
   /* release the scroll_to_file reference (if any) */
   if (G_UNLIKELY (standard_view->priv->scroll_to_file != NULL))
@@ -4565,6 +4571,70 @@ thunar_standard_view_disconnect_accelerators (ThunarStandardView *standard_view)
   /* and release the accel group */
   g_object_unref (standard_view->accel_group);
   standard_view->accel_group = NULL;
+}
+
+
+
+gboolean
+_thunar_standard_view_blank_button_press (ThunarStandardView   *standard_view,
+                                          const GdkEventButton *event,
+                                          gboolean              on_item)
+{
+  const XfceGtkActionEntry *action_entry;
+  ThunarFile               *directory;
+  GtkWidget                *window;
+  gboolean                  blank;
+  gboolean                  enabled;
+  gboolean                  single_click;
+  gboolean                  double_blank;
+
+  _thunar_return_val_if_fail (THUNAR_IS_STANDARD_VIEW (standard_view), FALSE);
+
+  if (event->button != 1)
+    return FALSE;
+
+  directory = standard_view->priv->current_directory;
+  blank = !on_item && (event->state & gtk_accelerator_get_default_mod_mask ()) == 0;
+
+  if (event->type == GDK_BUTTON_PRESS)
+    {
+      if (!blank || directory != standard_view->priv->blank_press_directory)
+        standard_view->priv->blank_press_count = 0;
+      if (blank)
+        {
+          g_set_object (&standard_view->priv->blank_press_directory, directory);
+          standard_view->priv->blank_press_count++;
+        }
+      else
+        g_clear_object (&standard_view->priv->blank_press_directory);
+      return FALSE;
+    }
+
+  if (event->type != GDK_2BUTTON_PRESS)
+    return FALSE;
+
+  double_blank = blank && directory != NULL
+                 && directory == standard_view->priv->blank_press_directory
+                 && standard_view->priv->blank_press_count >= 2;
+  standard_view->priv->blank_press_count = 0;
+  g_clear_object (&standard_view->priv->blank_press_directory);
+  if (!double_blank)
+    return FALSE;
+
+  g_object_get (G_OBJECT (standard_view->preferences),
+                "misc-double-click-blank-go-up", &enabled,
+                "misc-single-click", &single_click,
+                NULL);
+  if (!enabled || single_click)
+    return FALSE;
+
+  window = gtk_widget_get_toplevel (GTK_WIDGET (standard_view));
+  if (!THUNAR_IS_WINDOW (window))
+    return FALSE;
+
+  action_entry = thunar_window_get_action_entry (THUNAR_WINDOW (window), THUNAR_WINDOW_ACTION_OPEN_PARENT);
+  ((void (*) (GtkWindow *)) action_entry->callback) (GTK_WINDOW (window));
+  return TRUE;
 }
 
 
