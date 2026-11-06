@@ -25,8 +25,8 @@ BOT_EMAIL='209825114+claude[bot]@users.noreply.github.com'
 NOT_IN_FIX=(':!explainers/' ':!.claude' ':!CLAUDE.md' ':!CLAUDE.local.md' ':!.mcp.json' ':!.claude.json' ':!.gitmodules' ':!.ripgreprc' ':!.husky' ':!.github/workflows/' ':!.github/scripts/')
 mkdir -p "$OUT"
 
-state() {  # the review state saved in the review comment -> stdout (JSON; {} when there is none)
-  "$HERE/pr-comment.sh" get review | python3 -c '
+state() {  # the review state saved in the review comment, or in the single comment from before -> stdout (JSON; {} when there is none)
+  { "$HERE/pr-comment.sh" get review; echo; "$HERE/pr-comment.sh" legacy get; } | python3 -c '
 import json, re, sys
 m = re.search(r"^<!-- review:state (.*?) -->", sys.stdin.read(), re.M)
 print(m.group(1) if m else "{}")'
@@ -312,6 +312,7 @@ EOF
   fi
   unresolved=$(python3 "$HERE/review-state.py" render "$OUT" "$GH_REPO" "$HEAD_SHA" "$result" "$note" "${failed[@]}")
   OUT="$OUT/comment" "$HERE/pr-comment.sh" put review "$OUT/section.md"
+  "$HERE/pr-comment.sh" legacy delete || echo "::warning::could not delete the old single PR comment" >&2
   OUT="$OUT/summary" python3 "$HERE/pr-summary.py" || echo "::warning::could not update the summary comment" >&2
   if (( unresolved > 0 )) || [[ $result == failure ]]; then
     echo "::error::$unresolved confirmed medium or high finding(s) unresolved${note:+; ${note%.}}. Don't re-run this job alone; push a fix or a Review-accept trailer." >&2

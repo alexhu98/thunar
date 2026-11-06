@@ -22,6 +22,10 @@ jobs:
     concurrency:
       group: build-${{ github.ref }}
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -78,6 +82,17 @@ jobs:
           name: debs
           path: dist/*.deb
           retention-days: 14
+
+      - name: Write the summary comment
+        if: failure() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BUILD_RESULT: failure
+        run: python3 .github/scripts/pr-summary.py
 
   verify:
     needs: build

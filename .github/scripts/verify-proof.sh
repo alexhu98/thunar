@@ -163,6 +163,9 @@ publish() {
   : "${GH_REPO:?}"
   : > "$OUT/urls.tsv"
   local file path sha url failed=0
+  if [[ -s $OUT/results.tsv && ! -s $OUT/numbered.json ]]; then
+    python3 "$HERE/verify-shots.py" build "$OUT" || echo "::warning::some pair images could not be made" >&2
+  fi
   if [[ -s $OUT/results.tsv && -s $OUT/numbered.json ]]; then
     while IFS=$'\t' read -r file path; do
       if [[ -s $OUT/$file ]] && sha=$(upload "$OUT/$file" "pr-${PR:-0}/$path"); then

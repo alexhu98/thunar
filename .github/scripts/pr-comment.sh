@@ -1,6 +1,8 @@
 #!/bin/bash
 # The four PR comments CI keeps, each starting with its marker <!-- pr-proof:NAME -->: pr-comment.sh ids | get NAME | put NAME FILE
 #   ids           prints "NAME ID" for each of the four that exists
+#   legacy get    prints the body of the single comment CI wrote before there were four (<!-- pr-proof -->)
+#   legacy delete deletes it
 #   get NAME      prints that comment's body (nothing if it doesn't exist yet)
 #   put NAME FILE makes sure all four exist, creating the missing ones as placeholders in the order summary, review,
 #                 verify, explainer, then replaces NAME's body with its marker and FILE.
@@ -27,6 +29,18 @@ ids() {
 
 id_of() {
   list | awk -v n="$1" '$2 == n {print $1; exit}'
+}
+
+legacy() {
+  local id
+  [[ -n ${PR:-} ]] || return 0
+  id=$(gh api --paginate "repos/{owner}/{repo}/issues/$PR/comments" \
+    --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- pr-proof -->"))) | .id' | sed -n 1p)
+  [[ -n $id ]] || return 0
+  case $1 in
+    get) gh api "repos/{owner}/{repo}/issues/comments/$id" --jq .body ;;
+    delete) [[ ${DRY_RUN:-0} == 1 ]] && echo "would delete the old comment $id" || gh api -X DELETE "repos/{owner}/{repo}/issues/comments/$id" ;;
+  esac
 }
 
 get() {
@@ -80,7 +94,8 @@ put() {
 
 case ${1:-} in
   ids) ids ;;
+  legacy) shift; legacy "${1:?get or delete}" ;;
   get) shift; get "$@" ;;
   put) shift; put "$@" ;;
-  *) echo "usage: $0 ids | get <name> | put <name> <file>" >&2; exit 2 ;;
+  *) echo "usage: $0 ids | legacy get|delete | get <name> | put <name> <file>" >&2; exit 2 ;;
 esac

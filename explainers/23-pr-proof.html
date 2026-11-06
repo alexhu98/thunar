@@ -306,6 +306,8 @@ explainers/23-pr-proof.html   # this page, and its .narration.json</pre>
     <tr data-k="c5"><td>Summary</td><td><code>pr-summary.py</code> with <code>DRY_RUN=1</code> and a stub <code>gh</code> returning comments, jobs and an audit comment</td><td class="ok">heading names Verify, the first failing check; links, key pair and shots table present</td></tr>
     <tr data-k="c6"><td>Comment order</td><td><code>pr-comment.sh put verify</code> against a fake GitHub holding a summary, a review and a duplicate summary</td><td class="ok">verify and explainer created, duplicate deleted, verify updated</td></tr>
     <tr data-k="c7"><td>Findings table</td><td><code>review-state.py render</code> on a state with fixed, unconfirmed, open and old shortened findings</td><td class="ok">all 4 listed; old one "(its text was not kept)"</td></tr>
+    <tr data-k="c12"><td>Comment size</td><td><code>review-state.py render</code> on 159 closed findings with the longest text kept</td><td class="ok">81,350 characters before the fix; 44,621 after, all 159 still listed</td></tr>
+    <tr data-k="c13"><td>Audit authors and old comment</td><td><code>pr-summary.py</code> with an outsider's FAIL verdict; <code>pr-comment.sh legacy get</code> and <code>delete</code> on a fake GitHub with an old single comment</td><td class="ok">outsider ignored; old state read, old comment deleted</td></tr>
     <tr data-k="c8"><td>Explainer comment</td><td><code>explainer-proof.sh publish</code> with <code>DRY_RUN=1</code>, explainer missing and not required</td><td class="ok">both bodies and status lines right; exit 1 when missing</td></tr>
     <tr data-k="c9"><td>Syntax</td><td><code>bash -n</code> on every script, <code>py_compile</code>, the workflow parsed as YAML</td><td class="ok">all pass</td></tr>
     <tr data-k="c10"><td><code>verify/3.sh</code> with its pair calls</td><td>needs the built debs, Xvfb and xfwm4; CI runs it</td><td class="no">not run</td></tr>
@@ -316,9 +318,12 @@ explainers/23-pr-proof.html   # this page, and its .narration.json</pre>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">REVIEW_SUMMARY</p>
+  <p data-k="summary">A fresh general-purpose agent, given only the diff and the issue, reviewed the change and checked each finding against the code: 1 high, 3 medium and 5 low. All 9 were fixed, and the tests above were run again after the fixes.</p>
   <ul class="tight">
-    <li data-k="b1">REVIEW_B1</li>
+    <li data-k="b1"><b>Comment size:</b> keeping every finding whole would pass GitHub's 65,536-character limit after about 45 findings. Closed findings now keep a short text, and the comment shortens them further, then drops the oldest rows, to stay under 60,000.</li>
+    <li data-k="b2"><b>Runs cut short:</b> a run that timed out published no shots. <code>publish</code> now numbers the shots itself when <code>run</code> didn't, and a missing numbering fails the Verify row.</li>
+    <li data-k="b3"><b>Summary freshness:</b> a failed build now writes the summary from the build job itself, and each writer reads everything again after writing and rewrites once if a result or the head changed.</li>
+    <li data-k="b4"><b>Smaller fixes:</b> only the owner and collaborators can post an audit verdict; the review state in the old single comment is carried over once and that comment deleted; one failed pair image no longer spoils the rest; a shot with no group gets its own heading; the explainer comment no longer stops early when there is no narration result.</li>
   </ul>
   <p data-k="ci">CI's own review of the PR goes in the code review comment, the second of the four.</p>
   </section>

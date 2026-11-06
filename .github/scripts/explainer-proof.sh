@@ -112,7 +112,8 @@ section() {  # the explainer comment, for each image URL in $OUT/urls; $1 is pas
   elif [[ ! -s $OUT/urls ]]; then
     text="not required"
   elif [[ $1 == pass ]]; then
-    text="rendered$( [[ -s $OUT/narration.md ]] && echo ', narration current')"
+    text=rendered
+    if [[ -s $OUT/narration.md ]]; then text+=', narration current'; fi
   else
     text="failed"
   fi

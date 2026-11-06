@@ -19,6 +19,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 HALF = 950
 GAP = 20
@@ -111,8 +112,11 @@ def pointsize(text):
 
 
 def pair_image(out, e):
-    tmp = os.path.join(out, 'pairs', 'tmp')
-    os.makedirs(tmp, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        compose(out, e, tmp)
+
+
+def compose(out, e, tmp):
     halves = []
     for s in e['shots']:
         half = os.path.join(tmp, f"{e['test']}-{s['name']}.png")
@@ -126,9 +130,6 @@ def pair_image(out, e):
     dest = os.path.join(out, e['image'])
     subprocess.run(['convert', halves[0], '(', '-size', f'{GAP}x1', f'xc:{BG}', ')', halves[1],
                     '-background', BG, '-gravity', 'north', '+append', '+repage', '-depth', '8', dest], check=True)
-    for h in halves:
-        os.remove(h)
-    os.rmdir(tmp)
 
 
 def manifest(out, entries, where, lost=()):
@@ -158,7 +159,7 @@ def build(out):
         if e['kind'] == 'pair':
             try:
                 pair_image(out, e)
-            except (subprocess.CalledProcessError, OSError) as err:
+            except Exception as err:
                 print(f"could not make the image of pair #{e['num']} ({e['test']}/{e['what']}): {err}", file=sys.stderr)
                 e['image'] = None
                 failed = 1
@@ -215,7 +216,8 @@ def comment(out):
     sha = os.environ.get('HEAD_SHA') or subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
     run_url = os.environ.get('RUN_URL', '')
     res = tests(out)
-    entries = json.load(open(os.path.join(out, 'numbered.json'))) if os.path.exists(os.path.join(out, 'numbered.json')) else []
+    numbered = os.path.join(out, 'numbered.json')
+    entries = json.load(open(numbered)) if os.path.exists(numbered) else []
     u = urls(out)
     lost = [k for k, v in u.items() if v == '-'] + [e['num'] for e in entries if not e['image']]
     lines = []
@@ -228,13 +230,17 @@ def comment(out):
     passed = sum(1 for r in res if r[1] == 'pass')
     complete = os.path.exists(os.path.join(out, 'complete'))
     head = f'{passed} of {total} passed' if complete else f'cut short, {passed} of {total} passed'
-    ok = complete and passed == total and not lost
+    unnumbered = not os.path.exists(numbered)
+    ok = complete and passed == total and not lost and not unnumbered
     text = head + (f'; {len(lost)} image(s) missing' if lost else '')
     status = {'sha': sha, 'state': 'pass' if ok else 'fail', 'text': text}
     theme = open(os.path.join(out, 'theme')).read().strip() if os.path.exists(os.path.join(out, 'theme')) else 'default'
     lines += [f'### Verify: {head}', '']
     if not complete:
         lines += ['The run step stopped before it finished, so later tests are missing.', '']
+    if unnumbered:
+        status['text'] += '; the shots could not be numbered'
+        lines += ["The shots could not be numbered, so none were published; see the run's `verify` artifact.", '']
     if lost:
         lines += [f"{len(lost)} image(s) could not be made or uploaded to the `shots` branch; see the run's `verify` artifact.", '']
     lines += [f'Xvfb, xfwm4 and the {theme} GTK theme, as of `{sha[:12]}`. [Logs]({run_url})', '',
@@ -254,9 +260,9 @@ def comment(out):
             lines += ['', 'No screenshots.']
         group = ''
         for e in mine:
-            if e['group'] and e['group'] != group:
-                lines += ['', f"##### {e['group']}"]
-            group = e['group'] or group
+            if e['group'] != group:
+                lines += ['', f"##### {e['group'] or 'Other shots'}"]
+            group = e['group']
             lines.append('')
             if e is key or (key and e['num'] == key['num']):
                 lines.append(f"[Shot #{e['num']}](#shot-{e['num']}) ({cell(names(e))}) is the key result, shown in the summary.")

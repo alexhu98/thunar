@@ -2,12 +2,14 @@
 """Writes the summary comment, the first of the four PR comments, from the other three: pr-summary.py
 
 Reads the status each of the review, verify and explainer comments carries (<!-- pr-proof:status {...} -->), the
-build job of this run, and the latest /visual-verify verdict posted for the PR's head (a comment or the PR description
-holding <!-- visual-verify <sha> --> and a VERDICT: line). Writes the heading (ready for review, or the first failing,
+build job of this run (or BUILD_RESULT, when the build job calls it), and the latest /visual-verify verdict posted
+for the PR's head by the owner or a collaborator (a comment or the PR description holding <!-- visual-verify <sha> -->
+and a VERDICT: line). Writes the heading (ready for review, or the first failing,
 running or awaited check), the checks table, the key result and the shots table from the verify comment's data, through
 pr-comment.sh. Does nothing when HEAD_SHA is no longer the PR's head, so an older run can't overwrite a newer summary.
-Every job that writes a comment calls it, and the summary job calls it last.
-Env: PR, GH_REPO, HEAD_SHA, RUN_ID, RUN_URL, OUT. DRY_RUN=1 prints the comment instead of writing it.
+Every job that writes a comment calls it, and the summary job calls it last. After writing it reads everything
+again and writes once more if a job's result or the head changed meanwhile.
+Env: PR, GH_REPO, HEAD_SHA, RUN_ID, RUN_URL, BUILD_RESULT, OUT. DRY_RUN=1 prints the comment instead of writing it.
 """
 import json
 import os
@@ -17,6 +19,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ICON = {'pass': '✅', 'fail': '❌', 'running': '⏳', 'wait': '⏳', 'skip': '⏭️'}
+TRUSTED = ('OWNER', 'MEMBER', 'COLLABORATOR')
 JOBS = {'verify': ('verify',), 'review': ('review', 'review-report'), 'explainer': ('explainer',)}
 
 
@@ -42,7 +45,9 @@ def job_states(run_id):
         return None
     jobs = {}
     for j in lines_json(f'repos/{{owner}}/{{repo}}/actions/runs/{run_id}/jobs', '--paginate', '--jq', '.jobs[] | tojson'):
-        if j['status'] != 'completed':
+        if j['name'] == 'build' and os.environ.get('BUILD_RESULT'):
+            state = {'success': 'pass', 'cancelled': 'cancelled'}.get(os.environ['BUILD_RESULT'], 'fail')
+        elif j['status'] != 'completed':
             state = 'running'
         else:
             state = {'success': 'pass', 'skipped': 'skip', 'cancelled': 'cancelled'}.get(j['conclusion'], 'fail')
@@ -86,18 +91,19 @@ def section_state(name, st, head, jobs):
 def summary():
     pr = os.environ['PR']
     head_env = os.environ.get('HEAD_SHA', '')
-    pull = json.loads(gh(f'repos/{{owner}}/{{repo}}/pulls/{pr}', '--jq', '{head: .head.sha, body: .body} | tojson'))
+    pull = json.loads(gh(f'repos/{{owner}}/{{repo}}/pulls/{pr}', '--jq',
+                         '{head: .head.sha, body: (if .author_association | IN("OWNER", "MEMBER", "COLLABORATOR") then .body else "" end)} | tojson'))
     head = pull['head']
     if head_env and head_env != head:
         print(f'skipping the summary: {head_env[:12]} is no longer the head of PR #{pr} ({head[:12]})')
         return None
     comments, mine = [], {}
     for c in lines_json(f'repos/{{owner}}/{{repo}}/issues/{pr}/comments', '--paginate', '--jq',
-                        '.[] | {id, user: .user.login, body, updated_at, html_url} | tojson'):
+                        '.[] | {id, user: .user.login, body, updated_at, html_url, author_association} | tojson'):
         m = re.match(r'<!-- pr-proof:([a-z]+) -->', c['body'] or '')
         if c['user'] == 'github-actions[bot]' and m:
             mine.setdefault(m.group(1), c)
-        else:
+        elif c['author_association'] in TRUSTED:
             comments.append(('comment', c['body'], c['updated_at'], c['html_url']))
     jobs = job_states(os.environ.get('RUN_ID'))
     link = lambda n, t: f"[{t}](#issuecomment-{mine[n]['id']})" if n in mine else t
@@ -143,15 +149,20 @@ def summary():
 
 
 def main():
-    body = summary()
-    if body is None:
-        return
     d = os.environ.get('OUT') or os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TMPDIR') or '/tmp', 'pr-summary')
     os.makedirs(d, exist_ok=True)
     path = os.path.join(d, 'summary.md')
-    open(path, 'w').write(body)
     env = dict(os.environ, OUT=os.path.join(d, 'comment'))
-    subprocess.run([os.path.join(HERE, 'pr-comment.sh'), 'put', 'summary', path], check=True, env=env)
+    written = None
+    for _ in range(3):
+        body = summary()
+        if body is None or body == written:
+            return
+        open(path, 'w').write(body)
+        subprocess.run([os.path.join(HERE, 'pr-comment.sh'), 'put', 'summary', path], check=True, env=env)
+        if os.environ.get('DRY_RUN') == '1':
+            return
+        written = body
 
 
 if __name__ == '__main__':

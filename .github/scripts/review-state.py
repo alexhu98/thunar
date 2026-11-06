@@ -20,6 +20,8 @@ import sys
 
 OPEN = ('suggested', 'not fixed')
 KEEP = 400
+LIMIT = 60000
+CLOSED = ('id', 'sha', 'file', 'line', 'severity', 'verdict', 'summary', 'status', 'detail', 'commit')
 
 
 def cap(s, n=KEEP):
@@ -54,6 +56,14 @@ def accepts(f, acc):
     s = f.get('sha')
     known = bool(s) and git('cat-file', '-e', f'{s}^{{commit}}')
     return any(c != s and (not known or git('merge-base', '--is-ancestor', s, c)) for c in acc.get(f['id'], ()))
+
+
+def short(f, n):
+    g = {k: f[k] for k in CLOSED if k in f}
+    for k in ('summary', 'detail'):
+        if k in g:
+            g[k] = cap(g[k], n) if n else ''
+    return g
 
 
 def unresolved(f):
@@ -142,7 +152,7 @@ def decide(state_p, inp, out, sha, commit, mins, run_url, result):
             findings.append(f)
         state.update(next=n, sha=sha, mode=plan['mode'], level=plan['level'], model=plan['model'],
                      reason=plan['reason'], minutes=int(mins) if mins else None, run=run_url)
-    state['findings'] = findings
+    state['findings'] = [f if f['status'] in OPEN + ('accepted',) or f.get('new') else short(f, 120) for f in findings]
     json.dump(state, open(os.path.join(out, 'state-new.json'), 'w'))
     json.dump({'commit_id': sha, 'event': 'COMMENT',
                'body': f'CI code review of {sha[:12]}: {len(comments)} suggested change(s).', 'comments': comments},
@@ -191,6 +201,27 @@ def render(out, repo, sha, result, note, failed):
         status = {'sha': sha, 'state': 'fail', 'text': f'{len(open_)} confirmed medium or high finding(s) unresolved'}
     else:
         status = {'sha': sha, 'state': 'pass', 'text': 'no confirmed medium or high findings unresolved'}
+    shown = [f for f in findings if f['status'] in OPEN or f.get('new')]
+    for n in (120, 60, 0, None, None):
+        text = body(state, status, shown, open_, repo, note)
+        if len(text) < LIMIT:
+            break
+        if n is None and state.get('rows_cut'):
+            state['rows'] = max(0, state.get('rows', len(findings)) // 2)
+        elif n is None:
+            state['rows_cut'] = True
+            findings = [f if f in shown else {'id': f['id'], 'status': f['status']} for f in findings]
+        else:
+            findings = [f if f in shown else short(f, n) for f in findings]
+        state['findings'] = findings
+    state.pop('rows_cut', None)
+    state.pop('rows', None)
+    open(os.path.join(out, 'section.md'), 'w').write(text)
+    print(len(open_))
+
+
+def body(state, status, shown, open_, repo, note):
+    findings = state.get('findings', [])
     lines = ['<!-- pr-proof:status ' + json.dumps(status, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
              '<!-- review:state ' + json.dumps(state, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
              '### Code review', '']
@@ -203,7 +234,6 @@ def render(out, repo, sha, result, note, failed):
     if note:
         lines += ['', note]
     lines.append('')
-    shown = [f for f in findings if f['status'] in OPEN or f.get('new')]
     if shown:
         lines += table(shown, repo)
     elif state.get('sha'):
@@ -212,9 +242,11 @@ def render(out, repo, sha, result, note, failed):
         lines.append('Not reviewed yet.')
     lines += ['', f"**{len(open_)} confirmed medium or high finding(s) unresolved.**" if open_ else 'No confirmed medium or high findings unresolved.']
     if findings and len(shown) < len(findings):
-        lines += ['', f'#### Every finding on this PR ({len(findings)})', ''] + table(findings, repo)
-    open(os.path.join(out, 'section.md'), 'w').write('\n'.join(lines) + '\n')
-    print(len(open_))
+        rows = state.get('rows', len(findings))
+        lines += ['', f'#### Every finding on this PR ({len(findings)})', ''] + table(findings[-rows:] if rows else [], repo)
+        if rows < len(findings):
+            lines += ['', f'The {len(findings) - rows} oldest are left out to fit the comment.']
+    return '\n'.join(lines) + '\n'
 
 
 if __name__ == '__main__':
