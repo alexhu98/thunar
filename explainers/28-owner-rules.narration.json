@@ -16,7 +16,7 @@
     {"screen": "rules", "keys": ["r7"], "caption": "And fixes follow existing code, preferring one shared fix over many small ones.", "src": "968ced20622d"},
     {"screen": "files", "keys": ["fold"], "caption": "At your request, this rides along in the pull request for issue 23.", "src": "de0aebef296a"},
     {"screen": "verified", "keys": [], "caption": "Part 2. How it was built and verified.", "src": "1acba3394b16"},
-    {"screen": "checks", "keys": ["c1"], "caption": "The text was compared with the commit it came from, and matches.", "src": "d2354c8accf8"},
+    {"screen": "checks", "keys": ["c1"], "caption": "The text was compared with the commit it came from; only the two intended changes differ.", "src": "d2354c8accf8"},
     {"screen": "checks", "keys": ["c3"], "caption": "Whether sessions follow it can only be seen in a later session.", "src": "d3696e7f271f"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later.", "src": "f61f5de96057"},
     {"screen": "next", "keys": ["1"], "caption": "The next web session after the merge is the first to start with these rules.", "src": "73393f30162a"},
