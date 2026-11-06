@@ -58,15 +58,15 @@ def job_states(run_id):
 
 def audit(comments, head):
     found = []
-    for src, body, when, url in comments:
+    for body, when, url in comments:
         m = re.search(r'<!-- visual-verify ([0-9a-f]{7,40}) -->', body or '')
         v = re.findall(r'^\s*`*VERDICT: ([^`\n]*)', body or '', re.M)
         if m and v:
-            found.append((m.group(1), v[-1].strip(), when, src, url))
+            found.append((m.group(1), v[-1].strip(), when, url))
     mine = sorted([f for f in found if head.startswith(f[0])], key=lambda f: f[2])
-    where = lambda f: f"[audit comment]({f[4]})"
+    where = lambda f: f"[audit comment]({f[3]})"
     if mine:
-        sha, verdict, _, src, url = mine[-1]
+        verdict = mine[-1][1]
         state = 'pass' if verdict.startswith('PASS') else 'fail'
         return state, f'{verdict} for `{head[:12]}`', where(mine[-1])
     if found:
@@ -105,13 +105,14 @@ def summary(runs):
         return None
     comments, mine = [], {}
     for c in lines_json(f'repos/{{owner}}/{{repo}}/issues/{pr}/comments', '--paginate', '--jq',
-                        '.[] | {id, user: .user.login, body, updated_at, html_url, author_association} | tojson'):
+                        '.[] | {id, user: .user.login, body, created_at, html_url, author_association} | tojson'):
         m = re.match(r'<!-- pr-proof:([a-z]+) -->', c['body'] or '')
         if c['user'] == 'github-actions[bot]' and m:
             mine.setdefault(m.group(1), c)
         elif c['author_association'] in TRUSTED or c['user'] == 'claude[bot]':
-            comments.append(('comment', c['body'], c['updated_at'], c['html_url']))
-    run_id = runs.setdefault(head, build_run(head))
+            comments.append((c['body'], c['created_at'], c['html_url']))
+    run_id = runs.get(head) or build_run(head)
+    runs[head] = run_id
     jobs = job_states(run_id)
     link = lambda n, t: f"[{t}](#issuecomment-{mine[n]['id']})" if n in mine else t
     checks = []

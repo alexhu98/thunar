@@ -35,10 +35,11 @@ jobs:
       - uses: actions/checkout@v4
         if: steps.pr.outputs.repo == github.repository
         with:
-          ref: ${{ steps.pr.outputs.sha }}
           sparse-checkout: .github/scripts
           persist-credentials: false
 
       - name: Write the summary comment
         if: steps.pr.outputs.repo == github.repository
+        env:
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: python3 .github/scripts/pr-summary.py
