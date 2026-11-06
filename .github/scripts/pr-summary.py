@@ -3,8 +3,8 @@
 
 Reads the status each of the review, verify and explainer comments carries (<!-- pr-proof:status {...} -->), the
 build job of this run (or BUILD_RESULT, when the build job calls it), and the latest /visual-verify verdict posted
-for the PR's head by the owner, a collaborator or claude[bot] (a comment or the PR description holding
-<!-- visual-verify <sha> --> and a VERDICT: line). Without RUN_ID it uses the latest build run of the head. Writes the heading (ready for review, or the first failing,
+for the PR's head by the owner, a collaborator or claude[bot] (a comment holding <!-- visual-verify <sha> --> and a
+VERDICT: line). Without RUN_ID it uses the latest build run of the head. Writes the heading (ready for review, or the first failing,
 running or awaited check), the checks table, the key result and the shots table from the verify comment's data, through
 pr-comment.sh. Does nothing when HEAD_SHA is no longer the PR's head, so an older run can't overwrite a newer summary.
 Every job that writes a comment calls it, the summary job calls it last, and the pr-summary workflow calls it when
@@ -56,15 +56,15 @@ def job_states(run_id):
     return jobs
 
 
-def audit(comments, pr_body, head):
+def audit(comments, head):
     found = []
-    for src, body, when, url in [('description', pr_body, '', '')] + comments:
+    for src, body, when, url in comments:
         m = re.search(r'<!-- visual-verify ([0-9a-f]{7,40}) -->', body or '')
         v = re.findall(r'^\s*`*VERDICT: ([^`\n]*)', body or '', re.M)
         if m and v:
             found.append((m.group(1), v[-1].strip(), when, src, url))
     mine = sorted([f for f in found if head.startswith(f[0])], key=lambda f: f[2])
-    where = lambda f: f"[{'PR description' if f[3] == 'description' else 'audit comment'}]({f[4] or '#'})"
+    where = lambda f: f"[audit comment]({f[4]})"
     if mine:
         sha, verdict, _, src, url = mine[-1]
         state = 'pass' if verdict.startswith('PASS') else 'fail'
@@ -89,12 +89,17 @@ def section_state(name, st, head, jobs):
     return 'fail', 'not run'
 
 
-def summary():
+def build_run(head):
+    if os.environ.get('RUN_ID'):
+        return os.environ['RUN_ID']
+    return gh(f'repos/{{owner}}/{{repo}}/actions/workflows/build.yml/runs?head_sha={head}&event=pull_request',
+              '--jq', '.workflow_runs[0].id // empty').strip()
+
+
+def summary(runs):
     pr = os.environ['PR']
     head_env = os.environ.get('HEAD_SHA', '')
-    pull = json.loads(gh(f'repos/{{owner}}/{{repo}}/pulls/{pr}', '--jq',
-                         '{head: .head.sha, body: (if .author_association | IN("OWNER", "MEMBER", "COLLABORATOR") then .body else "" end)} | tojson'))
-    head = pull['head']
+    head = gh(f'repos/{{owner}}/{{repo}}/pulls/{pr}', '--jq', '.head.sha').strip()
     if head_env and head_env != head:
         print(f'skipping the summary: {head_env[:12]} is no longer the head of PR #{pr} ({head[:12]})')
         return None
@@ -106,8 +111,7 @@ def summary():
             mine.setdefault(m.group(1), c)
         elif c['author_association'] in TRUSTED or c['user'] == 'claude[bot]':
             comments.append(('comment', c['body'], c['updated_at'], c['html_url']))
-    run_id = os.environ.get('RUN_ID') or gh(f'repos/{{owner}}/{{repo}}/actions/workflows/build.yml/runs?head_sha={head}&event=pull_request',
-                                            '--jq', '.workflow_runs[0].id // empty').strip()
+    run_id = runs.setdefault(head, build_run(head))
     jobs = job_states(run_id)
     link = lambda n, t: f"[{t}](#issuecomment-{mine[n]['id']})" if n in mine else t
     checks = []
@@ -122,7 +126,7 @@ def summary():
     status = {n: hidden(mine.get(n, {}).get('body'), 'status') for n in JOBS}
     v = section_state('verify', status['verify'], head, jobs)
     checks.append(('Verify', v[0], v[1], link('verify', 'Verify comment')))
-    a = audit(comments, pull['body'], head)
+    a = audit(comments, head)
     checks.append(('Screenshot audit', a[0], a[1], a[2]))
     r = section_state('review', status['review'], head, jobs)
     checks.append(('Code review', r[0], r[1], link('review', 'Code review comment')))
@@ -147,7 +151,12 @@ def summary():
     vsha = (status['verify'] or {}).get('sha', '')
     stale = f' (as of `{vsha[:12]}`, not the head)' if data and vsha and vsha != head else ''
     out += ['', '### The key result' + stale, '']
-    out.append(data.get('key') or "No key result: the PR's issue has no verify script with a before/after pair.")
+    if data.get('key'):
+        out.append(data['key'])
+    elif data and vsha == head:
+        out.append("No key result: the PR's issue has no verify script with a before/after pair.")
+    else:
+        out.append('No key result yet: verify has not published shots for this head.')
     out += ['', '### Shots' + stale, '']
     out.append(data.get('shots') or 'No screenshots yet.')
     return '\n'.join(out) + '\n'
@@ -159,8 +168,9 @@ def main():
     path = os.path.join(d, 'summary.md')
     env = dict(os.environ, OUT=os.path.join(d, 'comment'))
     written = None
+    runs = {}
     for _ in range(3):
-        body = summary()
+        body = summary(runs)
         if body is None or body == written:
             return
         open(path, 'w').write(body)

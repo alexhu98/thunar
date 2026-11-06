@@ -9,7 +9,10 @@ permissions:
 
 jobs:
   summary:
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '<!-- visual-verify ')
+    if: >-
+      github.event.issue.pull_request && contains(github.event.comment.body, '<!-- visual-verify ')
+      && (contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
+      || github.event.comment.user.login == 'claude[bot]')
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     concurrency:
@@ -24,10 +27,18 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       PR: ${{ github.event.issue.number }}
     steps:
+      - name: Find the PR's head
+        id: pr
+        run: |
+          gh api "repos/$GH_REPO/pulls/$PR" --jq '"repo=\(.head.repo.full_name)", "sha=\(.head.sha)"' >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
+        if: steps.pr.outputs.repo == github.repository
         with:
+          ref: ${{ steps.pr.outputs.sha }}
           sparse-checkout: .github/scripts
           persist-credentials: false
 
       - name: Write the summary comment
+        if: steps.pr.outputs.repo == github.repository
         run: python3 .github/scripts/pr-summary.py

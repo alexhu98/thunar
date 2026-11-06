@@ -259,6 +259,8 @@
 <pre data-k="tree">.github/
 ├── workflows/build.yml       # actions: read for the summary, CHECK/NARRATION outcomes,
 │                             # the explainer comment always posted, new summary job
+├── workflows/pr-summary.yml  # new: refreshes the summary when a trusted audit comment
+│                             # is posted (runs from main, so only after the merge)
 └── scripts/
     ├── pr-comment.sh         # rewritten: four comments by marker, made in order
     ├── pr-summary.py         # new: the summary comment
