@@ -917,6 +917,9 @@ thunar_details_view_button_press_event (GtkTreeView       *tree_view,
         }
     }
 
+  if (path == NULL && _thunar_standard_view_open_parent_on_blank_double_click (THUNAR_STANDARD_VIEW (details_view), event))
+    return TRUE;
+
   /* open the context menu on right clicks */
   if (event->type == GDK_BUTTON_PRESS && event->button == 3)
     {

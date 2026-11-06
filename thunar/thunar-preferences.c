@@ -106,6 +106,7 @@ enum
   PROP_MISC_SHOW_ABOUT_TEMPLATES,
   PROP_MISC_SHOW_DELETE_ACTION,
   PROP_MISC_SINGLE_CLICK,
+  PROP_MISC_DOUBLE_CLICK_BLANK_GO_UP,
   PROP_MISC_SINGLE_CLICK_TIMEOUT,
   PROP_MISC_SMALL_TOOLBAR_ICONS,
   PROP_MISC_TAB_CLOSE_MIDDLE_CLICK,
@@ -940,6 +941,18 @@ thunar_preferences_class_init (ThunarPreferencesClass *klass)
                         "MiscSingleClick",
                         NULL,
                         FALSE,
+                        EXO_PARAM_READWRITE);
+
+  /**
+   * ThunarPreferences:misc-double-click-blank-go-up:
+   *
+   * Whether a double-click on a blank area of the view opens the parent folder.
+   **/
+  preferences_props[PROP_MISC_DOUBLE_CLICK_BLANK_GO_UP] =
+  g_param_spec_boolean ("misc-double-click-blank-go-up",
+                        "MiscDoubleClickBlankGoUp",
+                        NULL,
+                        TRUE,
                         EXO_PARAM_READWRITE);
 
   /**

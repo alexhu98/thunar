@@ -52,6 +52,7 @@
 #include "thunar/thunar-standard-view.h"
 #include "thunar/thunar-text-renderer.h"
 #include "thunar/thunar-util.h"
+#include "thunar/thunar-window.h"
 
 #include <gdk/gdkkeysyms.h>
 #include <libxfce4util/libxfce4util.h>
@@ -4565,6 +4566,38 @@ thunar_standard_view_disconnect_accelerators (ThunarStandardView *standard_view)
   /* and release the accel group */
   g_object_unref (standard_view->accel_group);
   standard_view->accel_group = NULL;
+}
+
+
+
+gboolean
+_thunar_standard_view_open_parent_on_blank_double_click (ThunarStandardView   *standard_view,
+                                                         const GdkEventButton *event)
+{
+  const XfceGtkActionEntry *action_entry;
+  GtkWidget                *window;
+  gboolean                  enabled;
+
+  _thunar_return_val_if_fail (THUNAR_IS_STANDARD_VIEW (standard_view), FALSE);
+
+  if (event->type != GDK_2BUTTON_PRESS || event->button != 1
+      || (event->state & gtk_accelerator_get_default_mod_mask ()) != 0)
+    return FALSE;
+
+  g_object_get (G_OBJECT (standard_view->preferences), "misc-double-click-blank-go-up", &enabled, NULL);
+  if (!enabled)
+    return FALSE;
+
+  window = gtk_widget_get_toplevel (GTK_WIDGET (standard_view));
+  if (!THUNAR_IS_WINDOW (window))
+    return FALSE;
+
+  action_entry = thunar_window_get_action_entry (THUNAR_WINDOW (window), THUNAR_WINDOW_ACTION_OPEN_PARENT);
+  if (action_entry == NULL)
+    return FALSE;
+
+  ((void (*) (GtkWindow *)) action_entry->callback) (GTK_WINDOW (window));
+  return TRUE;
 }
 
 
