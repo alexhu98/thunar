@@ -1,0 +1,274 @@
+{
+  "title": "Issue #23 · PR proof comments",
+  "voice": "af_heart",
+  "lines": [
+    {
+      "screen": "title",
+      "keys": [],
+      "caption": "This is a tour of the change for issue 23, which turns CI's proof on every pull request into four comments."
+    },
+    {
+      "screen": "title",
+      "keys": [
+        "p1",
+        "p2",
+        "p3"
+      ],
+      "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later."
+    },
+    {
+      "screen": "adds",
+      "keys": [],
+      "caption": "Part 1. What this PR adds."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "1"
+      ],
+      "caption": "First, a verify script describes each before and after pair: what it did between the shots, and what they prove."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "2"
+      ],
+      "caption": "Then the verify job numbers every shot, and turns each pair into one wide image."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "3"
+      ],
+      "caption": "It uploads the shots and the pair images, and writes the verify comment."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "4"
+      ],
+      "caption": "You read the summary first, then each comment, with nothing hidden behind a click."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "5"
+      ],
+      "caption": "Every job writes into its own comment. The four are created once, in a fixed order."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "6"
+      ],
+      "caption": "After writing its comment, each job refreshes the summary from the others."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "7"
+      ],
+      "caption": "And a summary job runs after all the others, to write it one last time."
+    },
+    {
+      "screen": "bigpic",
+      "keys": [
+        "why"
+      ],
+      "caption": "Until now, all of the proof went into one comment, about twenty thousand pixels tall on pull request 20."
+    },
+    {
+      "screen": "bigpic",
+      "keys": [
+        "note"
+      ],
+      "caption": "Each comment is found by a hidden marker, and carries a hidden status line that the summary is built from."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "1"
+      ],
+      "caption": "A test that passes with a pair but no description of it now fails."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "2"
+      ],
+      "caption": "A pair counts as one number, and the smoke test always comes last."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "3"
+      ],
+      "caption": "The key result is left out of the verify comment, with a pointer to the summary instead."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "4"
+      ],
+      "caption": "The summary says whether the pull request is ready, or which check failed first."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "5"
+      ],
+      "caption": "If two jobs create the comments at once, the oldest of each is kept, so the order holds."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "6"
+      ],
+      "caption": "An older run never overwrites the summary of a newer commit."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "7"
+      ],
+      "caption": "The summary job also covers a failed build, after which the verify job never runs."
+    },
+    {
+      "screen": "comments",
+      "keys": [
+        "c1"
+      ],
+      "caption": "The summary has the checks table, the key pair, and the table of all shots."
+    },
+    {
+      "screen": "comments",
+      "keys": [
+        "c2"
+      ],
+      "caption": "The code review now keeps every finding the pull request has had, closed ones included."
+    },
+    {
+      "screen": "comments",
+      "keys": [
+        "c3"
+      ],
+      "caption": "The verify comment has the results, then every other shot in number order."
+    },
+    {
+      "screen": "comments",
+      "keys": [
+        "c4"
+      ],
+      "caption": "And the explainer comment shows this page, or why it is missing."
+    },
+    {
+      "screen": "pairfmt",
+      "keys": [
+        "pair"
+      ],
+      "caption": "Each pair gets a small table: the shot number, the action, what it proves, and both captions, then one image."
+    },
+    {
+      "screen": "pairfmt",
+      "keys": [
+        "anchor"
+      ],
+      "caption": "Every shot number is a link that jumps to that shot."
+    },
+    {
+      "screen": "files",
+      "keys": [
+        "tree"
+      ],
+      "caption": "Most of the work is in two new scripts, one for the shots and one for the summary."
+    },
+    {
+      "screen": "verified",
+      "keys": [],
+      "caption": "Part 2. How it was built and verified."
+    },
+    {
+      "screen": "refs",
+      "keys": [
+        "r1"
+      ],
+      "caption": "The pair images were built from the real screenshots of pull request 20."
+    },
+    {
+      "screen": "refs",
+      "keys": [
+        "r2"
+      ],
+      "caption": "The issue's mockup was never attached, so the comments follow the issue's text."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c1"
+      ],
+      "caption": "All twelve pair images came out nineteen twenty pixels wide, and looked right."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c5",
+        "c6"
+      ],
+      "caption": "The summary and the comment order were checked against a fake GitHub."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c10",
+        "c11"
+      ],
+      "caption": "The verify script itself, and posting to a real pull request, were not run here. CI does both."
+    },
+    {
+      "screen": "review",
+      "keys": [
+        "summary"
+      ],
+      "caption": "REVIEW_LINE"
+    },
+    {
+      "screen": "aftermerge",
+      "keys": [
+        "a1",
+        "a2"
+      ],
+      "caption": "The comment order and the shot links can only be checked on this pull request's first CI run."
+    },
+    {
+      "screen": "later",
+      "keys": [],
+      "caption": "Part 3. What comes later."
+    },
+    {
+      "screen": "next",
+      "keys": [
+        "n2"
+      ],
+      "caption": "Next is this pull request's first CI run: read the four comments, and click the shot links."
+    },
+    {
+      "screen": "next",
+      "keys": [
+        "n3"
+      ],
+      "caption": "Then the screenshot audit, which fills the summary's audit row."
+    },
+    {
+      "screen": "next",
+      "keys": [
+        "n4"
+      ],
+      "caption": "And last, a re-run of pull request 20's feature, to compare with the old comment."
+    },
+    {
+      "screen": "title",
+      "keys": [],
+      "caption": "In short: CI's proof now reads in the order you decide, with every pair side by side."
+    }
+  ]
+}

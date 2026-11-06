@@ -5,7 +5,7 @@ description: Write the explainer page and its stamped narration that every issue
 
 # Explainer
 
-Every PR for issue `<n>`, from branch `<n>-<slug>`, adds `explainers/<n>-<slug>.html` and its narration `explainers/<n>-<slug>.narration.json`, stamped from the final page. The page is one self-contained page that tells the owner what the PR adds, how it was built and verified, and what comes later. CI fails the PR without either, or when the narration is stale, renders the page as a 1200px dark full-page PNG, and posts that image in the PR comment, because GitHub shows HTML in a private repo as source. Write for the owner reading that image on a phone: plain words, no assumed context.
+Every PR for issue `<n>`, from branch `<n>-<slug>`, adds `explainers/<n>-<slug>.html` and its narration `explainers/<n>-<slug>.narration.json`, stamped from the final page. The page is one self-contained page that tells the owner what the PR adds, how it was built and verified, and what comes later. CI fails the PR without either, or when the narration is stale, renders the page as a 1200px dark full-page PNG, and posts that image in the explainer PR comment, because GitHub shows HTML in a private repo as source. Write for the owner reading that image on a phone: plain words, no assumed context.
 
 ## Inputs to gather first
 
@@ -31,7 +31,7 @@ Start from `template.html` in this folder: copy it to `explainers/<n>-<slug>.htm
 **Part 2: How it was built and verified** (`section.part#verified`)
 - The reference it was checked against: the known-good thing(s) the work was compared with or derived from (cards).
 - "What was checked": a table with Check | How | Result. "How" names the exact command or method and what it ran against. "Result" is what was measured (`1 of 1 pass`, `same`, `+local2`), not "OK".
-- "Code review": the local fresh-agent review: after the last code change, a `general-purpose` agent given only the diff (`git diff origin/main...HEAD`) and the issue. Give its level, how many findings, how many were fixed, and the findings grouped in plain words. Then link the PR comment's review section for CI's own review (see "CI review" below).
+- "Code review": the local fresh-agent review: after the last code change, a `general-purpose` agent given only the diff (`git diff origin/main...HEAD`) and the issue. Give its level, how many findings, how many were fixed, and the findings grouped in plain words. Then link the code review PR comment for CI's own review (see "CI review" below).
 - "Checked only after the merge": what can't run before the merge, why, and when it first runs (`td.open`).
 - "See it yourself": links to the PR, the CI runs and any outputs.
 
@@ -66,7 +66,7 @@ OUT=/tmp/explainer .github/scripts/explainer-proof.sh render explainers/<n>-<slu
 convert /tmp/explainer/explainer-<n>.png -crop 1200x1600 +repage /tmp/explainer/slice-%d.png   # the full image is too tall to read in one view
 ```
 
-`DRY_RUN=1 GH_REPO=alexhu98/thunar PR=<pr> .github/scripts/explainer-proof.sh` also prints the PR comment that CI would post.
+`DRY_RUN=1 GH_REPO=alexhu98/thunar PR=<pr> .github/scripts/explainer-proof.sh` also prints the explainer comment that CI would post.
 
 ## Narration (every PR)
 
@@ -78,7 +78,7 @@ Written and stamped in the session that builds the PR, from the final page. `sta
 4. After any later page edit, including a review fix: run `status`, rewrite the stale lines and add lines for new text, then `stamp` again. Leave unchanged lines byte-for-byte as they are, so their cached voice clips are reused.
 5. In the PR description, list any word you're unsure how Kokoro will say (names, abbreviations, numbers), so the owner checks it with `phonemes`.
 
-CI's explainer job runs `make-video.py status` for the branch's issue and for every explainer page or narration the PR adds or changes, and for every narration when the PR changes `make-video.py`. It fails when a narration is missing, stale (page text changed after the stamp), or names keys the page no longer has, and reports each result in the explainer section of the PR comment.
+CI's explainer job runs `make-video.py status` for the branch's issue and for every explainer page or narration the PR adds or changes, and for every narration when the PR changes `make-video.py`. It fails when a narration is missing, stale (page text changed after the stamp), or names keys the page no longer has, and reports each result in the explainer PR comment.
 
 All commands are `.claude/skills/explainer/make-video.py <cmd> <n>`. Chrome comes from `$CHROME`, default `google-chrome`. In the cloud container, full Chromium hangs on `--dump-dom`; use the Playwright headless shell:
 
@@ -118,7 +118,7 @@ How to write the lines:
 
 ## CI review
 
-CI's `review` job reviews every push that changes more than `explainers/` and reports in the PR comment's review section, beside the explainer. The head commit's `Review:` trailer picks the mode:
+CI's `review` job reviews every push that changes more than `explainers/` and reports in the code review PR comment, the second of CI's four comments. The head commit's `Review:` trailer picks the mode:
 - No trailer: auto-fix. Confirmed fixes come back as one `claude[bot]` commit, so `git pull --rebase` before pushing again.
 - `Review: suggest`: suggested changes on the PR instead of a commit.
 - `Review: auto-fix` or `Review: suggest` on an empty commit forces a re-review: `git commit --allow-empty -m "Re-review" --trailer "Review: auto-fix"`.

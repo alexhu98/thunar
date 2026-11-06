@@ -4,9 +4,15 @@
 #   focus WID               raises and focuses the window, so that xdotool key and type (without --window) reach it
 #   wait_title WID TEXT     waits until the window's title contains TEXT
 #   shot WID NAME PROVES    saves the window as $SHOTS/NAME.png and adds "NAME<tab>PROVES" to $SHOTS/shots.tsv
+#   pair WHAT ACTION PROVES BEFORE-STATE AFTER-STATE [GROUP]
+#                           describes the pair before-WHAT / after-WHAT for the PR comment: what the test did between
+#                           the two shots, what the pair proves, the short states (at most 48 characters) on the image's
+#                           BEFORE and AFTER bars, and the heading it is grouped under. Adds a row to $SHOTS/pairs.tsv.
+#                           Every pair needs exactly one; a test that passes without it fails.
 #   fail MESSAGE            prints MESSAGE and exits 1
 # verify-proof.sh run sets DISPLAY, HOME and the XDG folders, WORK (an empty folder for the test's files) and SHOTS.
 # Shot names are lowercase letters, digits and -; a pair is before-<what> and after-<what>.
+# Shots are numbered in the order they are saved, a pair as one number.
 
 fail() {
   echo "FAIL: $*" >&2
@@ -52,4 +58,17 @@ shot() {
   sleep 1
   import -window "$wid" "$SHOTS/$name.png" || fail "could not capture window $wid as $name"
   printf '%s\t%s\n' "$name" "$proves" >> "$SHOTS/shots.tsv"
+}
+
+pair() {
+  (( $# == 5 || $# == 6 )) || fail "pair needs WHAT ACTION PROVES BEFORE-STATE AFTER-STATE [GROUP]"
+  local what=$1 group=${6:-} field
+  [[ $what =~ ^[a-z0-9][a-z0-9-]*$ ]] || fail "pair name '$what' must be lowercase letters, digits and -"
+  for field in "$2" "$3" "$4" "$5"; do
+    [[ -n $field && $field != *[$'\t\n']* ]] || fail "pair $what: ACTION, PROVES and both states must each be one line"
+  done
+  [[ $group != *[$'\t\n']* ]] || fail "pair $what: GROUP must be one line"
+  (( ${#4} <= 48 && ${#5} <= 48 )) || fail "pair $what: the BEFORE and AFTER states must be at most 48 characters"
+  ! cut -f1 "$SHOTS/pairs.tsv" 2>/dev/null | grep -qx -- "$what" || fail "pair $what is described twice"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$what" "$2" "$3" "$4" "$5" "$group" >> "$SHOTS/pairs.tsv"
 }
