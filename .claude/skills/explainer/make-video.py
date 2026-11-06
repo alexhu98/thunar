@@ -18,7 +18,7 @@ ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 TTS = os.path.expanduser(os.environ.get('TTS_DIR', '~/.claude/usage-data/rebuild/tts'))
 CACHE = os.path.expanduser(os.environ.get('EXPLAINER_CACHE', '~/.cache/explainer-video'))
 CHROME = os.environ.get('CHROME', 'google-chrome')
-NO_SANDBOX = ['--no-sandbox'] if os.geteuid() == 0 or os.environ.get('CI') else []
+NO_SANDBOX = ['--no-sandbox'] if os.geteuid() == 0 or os.environ.get('CI', '').lower() in ('1', 'true') else []
 ESPEAK = dict(lib_path='/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1',
               data_path='/usr/lib/x86_64-linux-gnu/espeak-ng-data')
 RATE = 24000

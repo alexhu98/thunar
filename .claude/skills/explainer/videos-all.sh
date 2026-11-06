@@ -9,7 +9,8 @@
 #   --gallery <dir>  the gallery worktree, default $GALLERY or ~/thunar-explainers
 # Env: MAKE_VIDEO replaces the gallery's make-video.py (same arguments: status|render <n>); it must act on the
 #      gallery's explainers/, e.g. by calling the gallery's make-video.py.
-# The gallery is a linked git worktree detached at origin/main, never the checkout the script runs from. Pages and
+# The gallery is a linked git worktree detached at origin/main that this script created and marked, never the
+# checkout the script runs from. Pages and
 # narrations are copied into its explainers/ with git show. A branch provides the explainer files it changed since it
 # left main and that still differ from main's; for each issue it provides, its page and narration both come from that
 # branch. The issue's own <n>-<slug> branch wins over other branches; two <n>-<slug> branches, or two other branches
@@ -32,12 +33,13 @@ main() {
       --open-prs) open_prs=1 ;;
       --dry-run) dry=1 ;;
       --gallery) gallery=${2:?--gallery needs a folder}; shift ;;
-      -h|--help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; return 0 ;;
+      -h|--help) awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; return 0 ;;
       *) echo "videos-all: unknown option $1 (see --help)" >&2; return 2 ;;
     esac
     shift
   done
   [[ -z $only || $only =~ ^[0-9]+$ ]] || { echo "videos-all: --only takes an issue number" >&2; return 2; }
+  gallery=$(realpath -m "$gallery")
 
   local repo
   repo=$(git -C "$(dirname "$(realpath "$0")")" rev-parse --show-toplevel)
@@ -48,21 +50,25 @@ main() {
 
   echo "== gallery $gallery"
   if [[ -e $gallery ]]; then
-    gallery=$(realpath "$gallery")
     local top gitdir common
     top=$(git -C "$gallery" rev-parse --show-toplevel 2>/dev/null || true)
     gitdir=$(git -C "$gallery" rev-parse --path-format=absolute --git-dir 2>/dev/null || true)
     common=$(git -C "$gallery" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
     if [[ $top != "$gallery" || $common != "$(git rev-parse --path-format=absolute --git-common-dir)" || $gitdir == "$common" \
-          || $gallery == "$repo" ]] || git -C "$gallery" symbolic-ref -q HEAD >/dev/null; then
-      echo "videos-all: $gallery is not a detached linked worktree of $repo; refusing to reset it" >&2
+          || $gallery == "$repo" || ! -e $gitdir/videos-all-gallery ]] || git -C "$gallery" symbolic-ref -q HEAD >/dev/null; then
+      echo "videos-all: $gallery is not a gallery worktree this script made for $repo; refusing to reset it" >&2
       return 1
     fi
     git -C "$gallery" clean -fq -- 'explainers/*.html' 'explainers/*.narration.json'
     git -C "$gallery" checkout -fq --detach origin/main
   else
+    if [[ $gallery == "$repo" || $gallery == "$repo"/* ]]; then
+      echo "videos-all: the gallery $gallery would be inside the checkout $repo; pick a folder outside it" >&2
+      return 1
+    fi
     git worktree prune
     git worktree add --detach "$gallery" origin/main
+    touch "$(git -C "$gallery" rev-parse --path-format=absolute --git-dir)/videos-all-gallery"
   fi
   local dir=$gallery/explainers
   mkdir -p "$dir"
@@ -80,7 +86,7 @@ main() {
     command -v gh >/dev/null || { echo "videos-all: --open-prs needs gh" >&2; return 1; }
     local open
     local slug
-    slug=$(git remote get-url origin | sed -E 's#^(https://|git@)github\.com[:/]##; s#\.git$##')
+    slug=$(git remote get-url origin | sed -E 's#/+$##; s#^(https://|git@)github\.com[:/]##; s#\.git$##')
     open=$(gh pr list --repo "$slug" --state open --base main --limit 200 --json headRefName --jq '.[].headRefName')
     local -a kept=()
     for b in "${branches[@]}"; do grep -qxF "$b" <<<"$open" && kept+=("$b"); done
@@ -88,13 +94,14 @@ main() {
   fi
 
   local -A claim=()
-  local base f n
+  local base f n differs
   for b in "${branches[@]}"; do
     base=$(git merge-base origin/main "origin/$b") || { echo "  $b: no common history with main, skipped"; continue; }
+    differs=$(git diff --name-only --diff-filter=ACMR origin/main "origin/$b" -- 'explainers/*.html' 'explainers/*.narration.json')
     while read -r f; do
       n=${f#explainers/}; n=${n%%-*}
       [[ $n =~ ^[0-9]+$ ]] || continue
-      [[ $(git rev-parse "origin/$b:$f") != "$(git rev-parse -q --verify "origin/main:$f" || true)" ]] || continue
+      grep -qxF "$f" <<<"$differs" || continue
       [[ " ${claim[$n]:-} " == *" $b "* ]] || claim[$n]="${claim[$n]:-}${claim[$n]:+ }$b"
     done < <(git diff --name-only --diff-filter=ACMR "$base" "origin/$b" -- 'explainers/*.html' 'explainers/*.narration.json')
   done
@@ -128,7 +135,7 @@ main() {
   }
   local -a issues
   mapfile -t issues < <({ git ls-tree --name-only origin/main explainers/ | sed -nE 's|^explainers/([0-9]+)-.*\.html$|\1|p'
-                          printf '%s\n' "${!claim[@]}"; } | sort -nu)
+                          (( ${#claim[@]} == 0 )) || printf '%s\n' "${!claim[@]}"; } | sort -nu)
   for n in "${issues[@]}"; do
     if [[ -n ${source[$n]:-} ]]; then copy "origin/${source[$n]}" "${source[$n]}" "$n"; else copy origin/main main "$n"; fi
   done
@@ -176,6 +183,9 @@ main() {
     done
   done
 
+  if [[ -n $branch && ${#rows[@]} -eq 0 ]]; then
+    rows+=("-"$'\t'"$branch"$'\t'"$(git rev-parse --short=12 "origin/$branch")"$'\t'"no explainer on this branch differs from main's")
+  fi
   echo "== report"
   { printf 'page\tbranch\tcommit\tresult\n'; (( ${#rows[@]} == 0 )) || printf '%s\n' "${rows[@]}"; } > "$dir/REPORT.tsv"
   table "$dir/REPORT.tsv"
