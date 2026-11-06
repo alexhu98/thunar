@@ -8,8 +8,8 @@ VERDICT: line; the latest posted wins). Without RUN_ID it uses the latest build 
 (ready for review, or the first failing, running or awaited check), the checks table, the key result and the shots
 table from the verify comment's data, through pr-comment.sh. Does nothing when HEAD_SHA is no longer the PR's head, so
 an older run can't overwrite a newer summary. Every job that writes a comment calls it and the summary job calls it
-last; the pr-summary workflow re-runs that summary job when an audit comment is posted. After writing it reads
-everything again and writes once more if a job's result changed meanwhile.
+last; the pr-summary workflow re-runs that summary job when an audit comment is posted or edited. After writing it
+reads everything again and writes again, up to twice, if anything changed meanwhile.
 Env: PR, GH_REPO, HEAD_SHA, RUN_ID, RUN_URL, BUILD_RESULT, OUT. DRY_RUN=1 prints the comment instead of writing it.
 """
 import json
@@ -139,6 +139,8 @@ def summary(runs):
         title = f'❌ {failing[0][0]}: {failing[0][2]}'
     elif running:
         title = f'⏳ {running[0][0]} running'
+    elif a[0] == 'wait' and a[1].startswith('INCONCLUSIVE'):
+        title = '⚠️ Screenshot audit inconclusive: the owner decides'
     elif a[0] == 'wait':
         title = '⏳ waiting for the screenshot audit'
     else:
