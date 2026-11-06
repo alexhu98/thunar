@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #26 Narrated explainers</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #26: A narration for every explainer, and every video in one folder</h1>
+  <p class="lead" data-k="lead">Branch <code>25-narration-videos</code> → <code>main</code>, closes #25. From now on every issue PR carries a stamped narration that CI checks, every existing page has one, and one local script renders all their videos on your machine.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: your first local run</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">The explainer skill and CLAUDE.md now require a stamped narration, CI's explainer job checks it, pages 1, 3 and 7 get theirs, and videos-all.sh renders every video locally.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="In the cloud session a PR gets its page, narration and stamp, and CI checks the narration; on your machine videos-all.sh fetches, collects pages, decides by hash and renders">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Every issue PR — in the cloud session and CI</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Write the page</text>
+      <text x="36" y="114" class="m">&lt;n&gt;-&lt;slug&gt;.html</text>
+      <text x="36" y="134" class="b">the explainer skill,</text>
+      <text x="36" y="154" class="b">as before</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Write narration</text>
+      <text x="286" y="114" class="m">.narration.json</text>
+      <text x="286" y="134" class="b">one line per box,</text>
+      <text x="286" y="154" class="b">step and table row</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Stamp</text>
+      <text x="536" y="114" class="m">make-video.py stamp</text>
+      <text x="536" y="134" class="b">saves each line's</text>
+      <text x="536" y="154" class="b">page text + hash</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">CI checks it</text>
+      <text x="786" y="114" class="m">make-video.py status</text>
+      <text x="786" y="134" class="b">red if missing or</text>
+      <text x="786" y="154" class="b">stale; in the comment</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② Your machine — videos-all.sh, any time</text>
+    <g data-k="5">
+      <rect class="box-merge" x="770" y="260" width="210" height="130" rx="10"/>
+      <text x="786" y="290" class="t">Fetch, gallery</text>
+      <text x="786" y="314" class="m">videos-all.sh</text>
+      <text x="786" y="334" class="b">a worktree detached</text>
+      <text x="786" y="354" class="b">at origin/main</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="520" y="260" width="210" height="130" rx="10"/>
+      <text x="536" y="290" class="t">Collect pages</text>
+      <text x="536" y="314" class="m">git show</text>
+      <text x="536" y="334" class="b">main + &lt;n&gt;-&lt;slug&gt;</text>
+      <text x="536" y="354" class="b">branches, no checkout</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-merge" x="270" y="260" width="210" height="130" rx="10"/>
+      <text x="286" y="290" class="t">Decide by hash</text>
+      <text x="286" y="314" class="m">&lt;stem&gt;.mp4.sha</text>
+      <text x="286" y="334" class="b">skip if unchanged;</text>
+      <text x="286" y="354" class="b">stale → re-narrate</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <g data-k="8">
+      <rect class="box-merge" x="20" y="260" width="210" height="130" rx="10"/>
+      <text x="36" y="290" class="t">Render, report</text>
+      <text x="36" y="314" class="m">make-video.py render</text>
+      <text x="36" y="334" class="b">REPORT.tsv; exit 1</text>
+      <text x="36" y="354" class="b">if a render failed</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">8</text>
+    </g>
+
+    <path class="arrow" d="M770,325 H734" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M520,325 H484" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M270,325 H234" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>runs in the cloud session or in CI (Chrome only)</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>runs on your machine (needs Kokoro)</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Each PR's explainer page can become a narrated video, but only if it has a narration file: the spoken lines, and which part of the page each line shows. Until now the narration was optional, so only pages 9 and 11 had one. Work now happens in cloud sessions, which can write and check a narration but can't make the voice. This PR splits the job: the session that builds the PR writes and stamps the narration, CI checks it, and your machine only renders.</p>
+  <div class="note" data-k="note">A narration is tied to its page by content, never by file dates. <code>stamp</code> saves a hash of the text each line was written from and of the whole page, so <code>status</code> can tell which lines went stale with Chrome alone, without any audio.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Every issue PR — in the cloud session and CI</div>
+  <ol class="steps">
+    <li data-k="1"><b>Write the page.</b> <code>explainers/&lt;n&gt;-&lt;slug&gt;.html</code> with the explainer skill, unchanged.</li>
+    <li data-k="2"><b>Write narration.</b> <code>explainers/&lt;n&gt;-&lt;slug&gt;.narration.json</code>, written from the final page: one spoken line per diagram box, step and table row, with <code>say</code> respellings for numbers and versions. <code>SKILL.md</code> moves this from "Optional video" into the steps every PR follows, and <code>CLAUDE.md</code>'s Explainers rule now names both files.</li>
+    <li data-k="3"><b>Stamp.</b> <code>make-video.py stamp &lt;n&gt;</code>, then <code>status</code> must say "narration matches the page". After any later page edit, including a review fix: <code>status</code>, rewrite the stale lines, stamp again. In the cloud container, <code>CHROME</code> points at the Playwright headless shell, and <code>make-video.py</code> now adds <code>--no-sandbox</code> when it runs as root or under CI.</li>
+    <li data-k="4"><b>CI checks it.</b> A new step in the explainer job, <code>explainer-proof.sh narration</code>, runs <code>make-video.py status</code> for the branch's issue and for every explainer page or narration the PR adds or changes, and for every narration when the PR changes <code>make-video.py</code>. A missing narration, a stale line, or a key the page no longer has turns the step red. Rendering and the comment still run, and the explainer section of the PR comment gets a Narration list with each result. PRs from forks skip the job, as before.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② Your machine — videos-all.sh, any time</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Fetch, gallery.</b> <code>git fetch origin --prune</code>, then a worktree, by default <code>~/thunar-explainers</code>, detached at <code>origin/main</code>, so <code>make-video.py</code> and the pronunciation table are current. Your own checkout is never touched.</li>
+    <li data-k="6"><b>Collect pages.</b> From <code>main</code> and every <code>&lt;digits&gt;-&lt;slug&gt;</code> branch, with <code>git show</code>. A branch provides the explainer files it changed since it left <code>main</code>, in a version <code>main</code> has never had, and that issue's page and narration both come from it. Two branches changing one issue are a conflict, reported and not rendered. <code>SOURCES.tsv</code> lists each page's branch and commit.</li>
+    <li data-k="7"><b>Decide by hash.</b> No narration: "needs narration". <code>status</code> fails: "needs re-narration". Page and narration hashes, and one of <code>make-video.py</code> with the pronunciation table, equal to the last render's <code>&lt;stem&gt;.mp4.sha</code>: "skipped". Otherwise it renders.</li>
+    <li data-k="8"><b>Render, report.</b> <code>make-video.py render &lt;n&gt;</code>, then the new hashes are saved. A table of page, branch, commit and result is printed and saved as <code>REPORT.tsv</code>, and the script exits 1 if any render failed.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">What videos-all.sh does with each page</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>The page</th><th>Result</th><th>What to do</th></tr>
+    <tr data-k="d1"><td>has no narration</td><td>needs narration</td><td>write one in that PR's session</td></tr>
+    <tr data-k="d2"><td>changed after its stamp</td><td>needs re-narration</td><td>rewrite the stale lines, stamp</td></tr>
+    <tr data-k="d3"><td>same page and narration as the last render</td><td>skipped</td><td>nothing</td></tr>
+    <tr data-k="d4"><td>new, or its page or narration changed</td><td>rendered</td><td>watch it</td></tr>
+    <tr data-k="d5"><td>changed by two branches</td><td>conflict</td><td>close or rebase one of them</td></tr>
+    <tr data-k="d6"><td>render failed</td><td>failed, exit 1</td><td>read <code>&lt;stem&gt;.log</code> in the gallery</td></tr>
+  </table>
+  </div>
+  <div class="note" data-k="opts">Options: <code>--only &lt;n&gt;</code> for one explainer, <code>--branch &lt;name&gt;</code> for one branch, <code>--open-prs</code> for only the branches of open PRs (needs <code>gh</code>), <code>--dry-run</code> to report without rendering, <code>--gallery &lt;dir&gt;</code> for another folder.</div>
+  </section>
+
+  <section class="sub" id="catchup">
+  <h3 class="sec">The existing pages</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Page</th><th>Narration</th><th>Lines</th></tr>
+    <tr data-k="p1"><td><code>1-ci-build</code></td><td>new; the page first got the ids and keys a narration needs, markup only</td><td>39</td></tr>
+    <tr data-k="p3"><td><code>3-double-click-parent</code></td><td>new</td><td>36</td></tr>
+    <tr data-k="p7"><td><code>7-cloud-agents</code></td><td>new</td><td>41</td></tr>
+    <tr data-k="p9"><td><code>9-explainer</code>, <code>11-ci-review</code></td><td>unchanged; their stamps still match</td><td>—</td></tr>
+    <tr data-k="p25"><td><code>25-narration-videos</code></td><td>new, this page</td><td>see the file</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">CLAUDE.md                              # Explainers: page and stamped narration
+.claude/skills/explainer/
+├── SKILL.md                           # "Narration (every PR)"; video and videos-all.sh local
+├── make-video.py                      # --no-sandbox as root
+└── videos-all.sh                      # new: every video into one gallery
+.github/
+├── workflows/build.yml                # explainer job: "Check the narration" step, 15 min limit
+└── scripts/explainer-proof.sh         # new narration subcommand + comment list
+explainers/
+├── 1-ci-build.html                    # ids and data-k keys only
+├── 1-ci-build.narration.json          # new
+├── 3-double-click-parent.narration.json  # new
+├── 7-cloud-agents.narration.json      # new
+├── 25-narration-videos.html           # this page
+└── 25-narration-videos.narration.json # its narration</pre>
+  <div class="note" data-k="undo"><b>To undo the CI check:</b> delete the "Check the narration" step from <code>build.yml</code>. The rest of the explainer job runs as before. <code>videos-all.sh</code> only ever writes to the gallery folder; delete it with <code>git worktree remove ~/thunar-explainers</code>.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Everything that needs only Chrome was run in this cloud session and on the PR's CI. The real render needs Kokoro, which only your machine has, so it was not run: videos-all.sh's render step was tested with a stub.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Issue #25's spec</h3><p>Its five sections and "Done when" list; each check below maps to one of them.</p></div>
+    <div class="card" data-k="r2"><h3>Narrations 9 and 11</h3><p>The two that already rendered on your machine: the format, length and tone the new ones copy.</p></div>
+    <div class="card" data-k="r3"><h3><code>explainer-proof.sh</code></h3><p>The check, render, publish pattern of the explainer job (#9), which the narration step joins.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Chrome in the cloud container</td><td><code>--dump-dom</code> of a one-line page with full Chromium (<code>google-chrome</code>), and with the Playwright headless shell, in this session</td><td class="ok">Chromium hung (killed at 30 s); shell 0.4 s</td></tr>
+    <tr data-k="c2"><td>Stamps of 9 and 11 still match</td><td><code>make-video.py status 9</code> and <code>status 11</code>, in this session</td><td class="ok">2 of 2 match, exit 0</td></tr>
+    <tr data-k="c3"><td>New narrations are current and renderable</td><td><code>stamp</code>, then <code>status</code> for 1, 3, 7 and 25; video mode's own probe (the checks <code>render</code> runs first: keys on screen, captions at most 2 lines)</td><td class="ok">4 of 4 match; 0 problems</td></tr>
+    <tr data-k="c4"><td>Page 1 looks the same</td><td>CI-style render (<code>explainer-proof.sh render</code>) before and after adding the keys, <code>compare -metric AE</code></td><td class="ok">0 of 1200×6832 pixels differ</td></tr>
+    <tr data-k="c5"><td>Narration step, locally</td><td><code>explainer-proof.sh narration</code> with <code>HEAD_REF=9-explainer</code>, then <code>HEAD_REF=3-double-click-parent</code> before 3 had a narration</td><td class="ok">current, exit 0; missing, exit 1</td></tr>
+    <tr data-k="c6"><td>CI fails a missing narration</td><td>This PR's first push, before this page had a narration: <a href="https://github.com/alexhu98/thunar/actions/runs/42185287362/job/127784055691">CI run 42185287362</a>, explainer job</td><td class="ok">step red: 1, 3, 7 current, #25 missing; image and comment still posted</td></tr>
+    <tr data-k="c7"><td>CI passes a current narration</td><td>The push that added this page's narration (d3812cf): <a href="https://github.com/alexhu98/thunar/actions/runs/42185576139/job/127784979418">CI run 42185576139</a>, explainer job</td><td class="ok">step green: 1, 3, 7 and 25 current</td></tr>
+    <tr data-k="c8"><td>videos-all.sh collects pages</td><td><code>--dry-run</code> in a test clone whose origin is a local bare repo with <code>main</code>, this branch, <code>9-explainer-review-fixes</code>, <code>30-a</code> + <code>30-b</code> (both add page 30), <code>40-solo</code> (no narration) and <code>claude/x</code></td><td class="ok">6 pages from 4 refs; 30 conflict; 40 needs narration; claude/x ignored</td></tr>
+    <tr data-k="c8b"><td>After the review fixes</td><td>The same test clone, plus <code>3-other</code> changing page 3; <code>--gallery</code> pointed at the clone itself, at its <code>explainers/</code>, and at a plain folder, with an uncommitted edit in the clone</td><td class="ok">3 of 3 refused, edit and branch kept; 3 from its own branch; 9 from main</td></tr>
+    <tr data-k="c9"><td><code>--open-prs</code></td><td>The same, with a fake <code>gh</code> listing this branch and <code>40-solo</code></td><td class="ok">9 comes from main, not the stale branch</td></tr>
+    <tr data-k="c10"><td>Render, skip, re-render</td><td>A stub in place of <code>make-video.py render</code> (<code>MAKE_VIDEO</code>); run twice; then one narration line of 3 changed and stamped, and page 7 edited without a stamp</td><td class="ok">5 rendered; then 5 skipped; then only 3 rendered, 7 needs re-narration</td></tr>
+    <tr data-k="c11"><td>Failures and options</td><td>Stub render failing for 11 with <code>--only 11</code>; <code>--branch 40-solo</code>; <code>--branch nope</code>; gallery deleted by hand and rebuilt</td><td class="ok">failed, exit 1, log kept; each as intended</td></tr>
+    <tr data-k="c15"><td>After CI's review fixes</td><td>Locally: <code>explainer-proof.sh narration</code> against <code>main</code> with <code>make-video.py</code> changed; a narration-only commit on a non-issue branch through <code>narration</code>, <code>render</code> and <code>DRY_RUN=1 publish</code>. In the test clone: run twice, then a pronunciation row added on its <code>main</code></td><td class="ok">all 6 narrations checked; Narration section posted with no image; skipped, then all re-rendered</td></tr>
+    <tr data-k="c12"><td>Lint</td><td><code>shellcheck</code> on <code>videos-all.sh</code> and <code>explainer-proof.sh</code></td><td class="ok">videos-all clean; style notes only</td></tr>
+    <tr data-k="c13"><td>A real render</td><td><code>make-video.py render</code> or <code>videos-all.sh</code> with Kokoro: Kokoro is only on your machine</td><td class="no">not run</td></tr>
+    <tr data-k="c14"><td>How Kokoro says the new lines</td><td><code>make-video.py phonemes</code> needs Kokoro too; the PR lists the words to check</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh general-purpose agent, given only the diff and issue #25, reviewed it at high level and ran <code>videos-all.sh</code> on its own scratch clone: 8 findings, 1 high, 4 medium and 3 low. 6 are fixed, 1 was already handled, and 1 is accepted.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed, high:</b> a <code>--gallery</code> pointing at your own checkout, or a folder in it, passed the worktree check, and the reset would have thrown away uncommitted work. The gallery must now be a detached linked worktree other than the checkout.</li>
+    <li data-k="b2"><b>Fixed, medium:</b> a branch that was squash-merged and never deleted still overrode <code>main</code>. A branch now provides only files that still differ from <code>main</code>'s.</li>
+    <li data-k="b3"><b>Fixed, medium:</b> any two branches touching one page counted as a conflict. Now the issue's own <code>&lt;n&gt;-&lt;slug&gt;</code> branch wins, and only two of those conflict.</li>
+    <li data-k="b4"><b>Fixed, medium:</b> <code>make-video.py</code> now passes <code>--no-sandbox</code> under CI too, as <code>explainer-proof.sh</code> does. <b>Already handled:</b> the missing page was in the pushed commit, and the narration was held back on purpose for the failing run.</li>
+    <li data-k="b5"><b>Fixed, low:</b> <code>--open-prs</code> asks <code>origin</code>'s repo, not <code>upstream</code>; stale doc lines updated. <b>Accepted, low:</b> a non-issue branch that changes only a narration reports a failure in the log, not in the comment.</li>
+  </ul>
+  <p data-k="ci-review">CI's own review of the first push (Opus at xhigh) found 13: 1 high, 5 medium and 7 low. R1, R3, R8 and R9 were the same as local findings, already fixed. R2, R4 to R7 and R10 to R12 are fixed: publish waits for a good render, two pages for one issue are reported plainly, a change to <code>make-video.py</code> checks every narration, a narration-only PR still gets its comment, the render hash covers the tool and the pronunciation table, Chrome gets a time limit. R13, the usage headers in the scripts, is accepted: the existing scripts have the same. Its review of the next push raised R14 to R23, all but two of them low or plausible. R14 to R20 and R22 are fixed: the help text, a report row when <code>--branch</code> has nothing new, relative and nested gallery paths, a marker so only the script's own gallery is ever reset, and <code>CI=false</code>. R21 and R23 are accepted. The test clone also found a bug of the script's own, a crash when no branch changes any explainer, which is fixed. The review after that confirmed R2 and R5 to R7. It raised R24, that a failed render posted nothing, and the comment now says Chrome made no image. R3 got a stronger fix: a branch's version counts only if <code>main</code> never had it, so a branch merged by squash and edited since on <code>main</code> no longer wins. R4 is accepted: one page per issue is <code>make-video.py</code>'s own rule, and the failure says so. The fourth round raised R25 to R35. Fixed: the <code>--branch</code> row shows only when the branch provides nothing; the <code>git worktree prune</code> that could drop other worktrees' records is gone; the refusal says how to fix it; and <code>CI</code> is read as in <code>explainer-proof.sh</code> again. R29, R30 and R33 are accepted. The fifth round found that the R3 check could pass by accident: under <code>pipefail</code>, a killed <code>awk</code> made a page look new. It now reads main's history once, merges included. Render now goes on past a failing page, Chrome gets a time limit there too, and an old image is never reposted. R42 and R43 are accepted. The sixth round put back the guard against the gallery's own copy resetting itself, shows the remove hint only for a real old gallery, lets <code>git worktree add --force</code> replace only a marked gallery's record, explains every empty <code>--branch</code> report, and gives <code>explainer-proof.sh</code> the same sandbox rule as <code>make-video.py</code>. R52 is accepted. The seventh round made Chrome's time limit end in a kill, kept publish going when its own fallback render fails, and made the history read fail loudly and ignore your <code>log.diffMerges</code> setting. R57 to R60 are accepted. Later pushes are in the PR comment's review section.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td><code>videos-all.sh</code> rendering real videos into <code>~/thunar-explainers</code>, then skipping them on a second run</td><td>Needs Kokoro, on your machine only</td><td class="open">your first run</td></tr>
+    <tr data-k="a2"><td>The new lines sound right</td><td>Only you can listen</td><td class="open">your first run</td></tr>
+    <tr data-k="a3"><td>The narration check on the next issue PR</td><td>Runs from <code>main</code>'s workflow once this is merged</td><td class="open">the next issue PR</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/26">PR #26</a> → “Files changed”</li>
+    <li data-k="l2">The spec: <a href="https://github.com/alexhu98/thunar/issues/25">issue #25</a></li>
+    <li data-k="l3">CI runs on this branch: <a href="https://github.com/alexhu98/thunar/actions?query=branch%3A25-narration-videos">Actions</a>; the failing narration check is <a href="https://github.com/alexhu98/thunar/actions/runs/42185287362/job/127784055691">run 42185287362</a>, the passing one <a href="https://github.com/alexhu98/thunar/actions/runs/42185576139/job/127784979418">run 42185576139</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: your first local run</h2>
+  <p class="intro" data-k="intro">No open issue says "Depends on #25". What remains is yours: render the gallery once, listen, and correct any word Kokoro gets wrong.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR, then you run videos-all.sh, then you listen and fix words, then each later PR arrives with its narration">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">#25 After the merge</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">narrations required,</text>
+      <text x="36" y="134" class="b">checked by CI, and</text>
+      <text x="36" y="154" class="b">videos-all.sh</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">First local run</text>
+      <text x="286" y="114" class="m">videos-all.sh</text>
+      <text x="286" y="134" class="b">renders all 6 videos</text>
+      <text x="286" y="154" class="b">into the gallery</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-you" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Listen, fix words</text>
+      <text x="536" y="114" class="m">phonemes</text>
+      <text x="536" y="134" class="b">add rows to the</text>
+      <text x="536" y="154" class="b">pronunciation table</text>
+    </g>
+    <g data-k="n4">
+      <rect class="box-future" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Each later PR</text>
+      <text x="786" y="114" class="b">arrives narrated;</text>
+      <text x="786" y="134" class="b">the next run renders</text>
+      <text x="786" y="154" class="b">only what changed</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-next)"/>
+    <path class="arrow-future" d="M730,120 H766" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-a">
+  <h3 class="sec">After the merge (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Run it.</b> <code>.claude/skills/explainer/videos-all.sh</code> from your checkout. Expect "rendered" for every narrated page, then run it again and expect "skipped". Add <code>--open-prs</code> if old branches such as <code>9-explainer-review-fixes</code> would otherwise override <code>main</code>'s page.</li>
+    <li data-k="2"><b>Listen and correct.</b> Words to check are listed in the PR description. A wrong one gets a row in the pronunciation table in <code>SKILL.md</code>, or a <code>say</code> in that narration, through a PR. The next run re-renders the pages whose narration changed, and every page after a table row changes; the voice of unchanged lines comes from the cache.</li>
+  </ol>
+  </div>
+  <div class="note" data-k="note23">Issue #23 will reshape the PR comment. Its explainer comment should keep this PR's Narration list.</div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="narration"><dt>Narration</dt><dd>The <code>.narration.json</code> beside a page: each spoken line, its caption, and which part of the page it shows.</dd></div>
+    <div data-k="stamp"><dt>Stamp</dt><dd>Hashes of the page text each line was written from, and of the whole page, saved in the narration.</dd></div>
+    <div data-k="stale"><dt>Stale</dt><dd>A line whose page text changed after the stamp.</dd></div>
+    <div data-k="kokoro"><dt>Kokoro</dt><dd>The text-to-speech model on your machine that voices the lines.</dd></div>
+    <div data-k="phonemes"><dt>Phonemes</dt><dd>The sounds Kokoro will say for a line, printed by <code>make-video.py phonemes</code>.</dd></div>
+    <div data-k="shell"><dt>Headless shell</dt><dd>A cut-down Chrome with no window, which Playwright installs in the cloud container.</dd></div>
+    <div data-k="worktree"><dt>Worktree</dt><dd>A second working folder of the same git repo, on its own commit, so your checkout stays as it is.</dd></div>
+    <div data-k="gallery"><dt>Gallery</dt><dd><code>~/thunar-explainers</code>: the worktree whose <code>explainers/</code> holds every page and video.</dd></div>
+    <div data-k="mergebase"><dt>Merge-base</dt><dd>The commit where a branch left <code>main</code>; what changed since then is the branch's own.</dd></div>
+    <div data-k="stub"><dt>Stub</dt><dd>A stand-in for a command, used to test the steps around it.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>

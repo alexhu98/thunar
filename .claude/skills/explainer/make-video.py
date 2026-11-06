@@ -6,7 +6,8 @@
   make-video.py phonemes <n> [--all] Kokoro phonemes for lines not voiced yet (or all)
   make-video.py render <n>          voice, screenshot and join into explainers/<n>-<slug>.mp4
 
-Local only. Voice: Kokoro af_heart in $TTS_DIR (default ~/.claude/usage-data/rebuild/tts).
+status and stamp need only Chrome ($CHROME, default google-chrome), so they also run in the cloud and in CI.
+phonemes and render are local only. Voice: Kokoro af_heart in $TTS_DIR (default ~/.claude/usage-data/rebuild/tts).
 Work files and the voice cache live in $EXPLAINER_CACHE (default ~/.cache/explainer-video).
 The committed page is never modified: video mode is added to a copy in the work dir.
 """
@@ -17,6 +18,7 @@ ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 TTS = os.path.expanduser(os.environ.get('TTS_DIR', '~/.claude/usage-data/rebuild/tts'))
 CACHE = os.path.expanduser(os.environ.get('EXPLAINER_CACHE', '~/.cache/explainer-video'))
 CHROME = os.environ.get('CHROME', 'google-chrome')
+NO_SANDBOX = ['--no-sandbox'] if os.geteuid() == 0 or os.environ.get('CI') else []
 ESPEAK = dict(lib_path='/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1',
               data_path='/usr/lib/x86_64-linux-gnu/espeak-ng-data')
 RATE = 24000
@@ -292,9 +294,12 @@ def write_video_page(page, work, data):
 
 
 def chrome(args, prof):
-    return subprocess.run([CHROME, '--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1',
-                           f'--user-data-dir={prof}', '--window-size=1920,1080', '--virtual-time-budget=2000'] + args,
-                          capture_output=True, text=True)
+    try:
+        return subprocess.run([CHROME] + NO_SANDBOX + ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1',
+                               f'--user-data-dir={prof}', '--window-size=1920,1080', '--virtual-time-budget=2000'] + args,
+                              capture_output=True, text=True, timeout=180)
+    except subprocess.TimeoutExpired:
+        die(f'{CHROME} did not finish within 180 s (see SKILL.md for the Chrome to use in the cloud container)')
 
 
 def probe(page, work, nar, subs):
@@ -488,7 +493,7 @@ def render(n, force):
     shutil.rmtree(fdir, ignore_errors=True)
     os.makedirs(fdir)
     q = shlex.quote
-    cmd = (f'i=$0; {q(CHROME)} --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 '
+    cmd = (f'i=$0; {q(CHROME)} {" ".join(NO_SANDBOX)} --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 '
            f'--user-data-dir={q(work)}/prof/$i --window-size=1920,1080 --virtual-time-budget=2000 '
            f'--screenshot={q(fdir)}/f$(printf %03d $i).png {q(pathlib.Path(vp).as_uri())}"?i=$i" >/dev/null 2>&1')
     subprocess.run(['xargs', '-P', '12', '-I{}', 'bash', '-c', cmd, '{}'],

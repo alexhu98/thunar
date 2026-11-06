@@ -95,21 +95,24 @@
 </head>
 <body>
 <main>
-  <h1>PR #8: CI-built Thunar .debs</h1>
-  <p class="lead">Branch <code>1-ci-build</code> → <code>main</code>, closes #1. GitHub builds Thunar's <code>.deb</code>s on every PR and publishes them as a release on every merge.</p>
+  <header id="title">
+  <h1 data-k="title">PR #8: CI-built Thunar .debs</h1>
+  <p class="lead" data-k="lead">Branch <code>1-ci-build</code> → <code>main</code>, closes #1. GitHub builds Thunar's <code>.deb</code>s on every PR and publishes them as a release on every merge.</p>
 
   <nav class="parts" aria-label="Parts of this page">
-    <a href="#adds"><span>Part 1</span>What this PR adds</a>
-    <a href="#verified"><span>Part 2</span>How it was built and verified</a>
-    <a href="#later"><span>Part 3</span>What comes later: #7, then #2</a>
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: #7, then #2</a>
   </nav>
+  </header>
 
   <!-- ============================== PART 1 ============================== -->
   <section class="part" id="adds">
-  <p class="part-label">Part 1</p>
-  <h2>What this PR adds</h2>
-  <p class="intro">The workflow that runs from now on, on every PR and every merge, and the files that make it.</p>
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">The workflow that runs from now on, on every PR and every merge, and the files that make it.</p>
 
+  <section class="sub" id="flow">
   <div class="diagram" role="img" aria-label="Flow: a PR builds only; a merge to main builds, versions and publishes a release">
   <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -120,30 +123,42 @@
 
     <!-- Lane 1: PR -->
     <text class="lane" x="20" y="44" style="fill:var(--accent)">① Pull request into main — build only</text>
-    <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
-    <text x="36" y="90" class="t">Open / update PR</text>
-    <text x="36" y="114" class="m">&lt;issue&gt;-&lt;slug&gt; → main</text>
-    <text x="36" y="134" class="b">every push reruns it;</text>
-    <text x="36" y="154" class="b">the older run is cancelled</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Open / update PR</text>
+      <text x="36" y="114" class="m">&lt;issue&gt;-&lt;slug&gt; → main</text>
+      <text x="36" y="134" class="b">every push reruns it;</text>
+      <text x="36" y="154" class="b">the older run is cancelled</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
 
-    <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
-    <text x="286" y="90" class="t">build job</text>
-    <text x="286" y="114" class="b">ubuntu-24.04 + Zorin PPA</text>
-    <text x="286" y="134" class="m">apt-get build-dep ./</text>
-    <text x="286" y="154" class="m">dpkg-buildpackage -b</text>
-    <text x="286" y="171" class="b">+ dry-run release scripts</text>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">build job</text>
+      <text x="286" y="114" class="b">ubuntu-24.04 + Zorin PPA</text>
+      <text x="286" y="134" class="m">apt-get build-dep ./</text>
+      <text x="286" y="154" class="m">dpkg-buildpackage -b</text>
+      <text x="286" y="171" class="b">+ dry-run release scripts</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
 
-    <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
-    <text x="536" y="90" class="t">Artifact “debs”</text>
-    <text x="536" y="114" class="b">5 .debs, version +local0</text>
-    <text x="536" y="134" class="b">kept 14 days</text>
-    <text x="536" y="154" class="b">PR gets a green check</text>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Artifact “debs”</text>
+      <text x="536" y="114" class="b">5 .debs, version +local0</text>
+      <text x="536" y="134" class="b">kept 14 days</text>
+      <text x="536" y="154" class="b">PR gets a green check</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
 
-    <rect class="box-you" x="770" y="60" width="210" height="120" rx="10"/>
-    <text x="786" y="90" class="t">You review &amp; merge</text>
-    <text x="786" y="114" class="b">“Files changed” tab</text>
-    <text x="786" y="134" class="b">the only gate before</text>
-    <text x="786" y="154" class="b">a release exists</text>
+    <g data-k="4">
+      <rect class="box-you" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">You review &amp; merge</text>
+      <text x="786" y="114" class="b">“Files changed” tab</text>
+      <text x="786" y="134" class="b">the only gate before</text>
+      <text x="786" y="154" class="b">a release exists</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
 
     <path class="arrow" d="M230,120 H266" marker-end="url(#ah)"/>
     <path class="arrow" d="M480,120 H516" marker-end="url(#ah)"/>
@@ -152,95 +167,108 @@
 
     <!-- Lane 2: push to main -->
     <text class="lane" x="20" y="244" style="fill:var(--merge)">② Push to main — build, version, publish</text>
-    <rect class="box-merge" x="770" y="260" width="210" height="130" rx="10"/>
-    <text x="786" y="290" class="t">Push to main</text>
-    <text x="786" y="314" class="b">the merge commit</text>
-    <text x="786" y="334" class="b">runs one at a time;</text>
-    <text x="786" y="354" class="b">only the newest waits</text>
+    <g data-k="5">
+      <rect class="box-merge" x="770" y="260" width="210" height="130" rx="10"/>
+      <text x="786" y="290" class="t">Push to main</text>
+      <text x="786" y="314" class="b">the merge commit</text>
+      <text x="786" y="334" class="b">runs one at a time;</text>
+      <text x="786" y="354" class="b">only the newest waits</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
 
-    <rect class="box-merge" x="520" y="260" width="210" height="130" rx="10"/>
-    <text x="536" y="290" class="t">Stamp version</text>
-    <text x="536" y="314" class="m">next-version.sh</text>
-    <text x="536" y="334" class="b">highest +localN + 1, min 2</text>
-    <text x="536" y="358" class="m">→ 4.20.10-1~bpo24.04</text>
-    <text x="536" y="376" class="m">      +local2</text>
+    <g data-k="6">
+      <rect class="box-merge" x="520" y="260" width="210" height="130" rx="10"/>
+      <text x="536" y="290" class="t">Stamp version</text>
+      <text x="536" y="314" class="m">next-version.sh</text>
+      <text x="536" y="334" class="b">highest +localN + 1, min 2</text>
+      <text x="536" y="358" class="m">→ 4.20.10-1~bpo24.04</text>
+      <text x="536" y="376" class="m">      +local2</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
 
-    <rect class="box-merge" x="270" y="260" width="210" height="130" rx="10"/>
-    <text x="286" y="290" class="t">build job</text>
-    <text x="286" y="314" class="b">same steps as the PR,</text>
-    <text x="286" y="334" class="b">changelog now says +local2</text>
-    <text x="286" y="354" class="b">→ 5 .debs</text>
+    <g data-k="7">
+      <rect class="box-merge" x="270" y="260" width="210" height="130" rx="10"/>
+      <text x="286" y="290" class="t">build job</text>
+      <text x="286" y="314" class="b">same steps as the PR,</text>
+      <text x="286" y="334" class="b">changelog now says +local2</text>
+      <text x="286" y="354" class="b">→ 5 .debs</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
+    </g>
 
-    <rect class="box-merge" x="20" y="260" width="210" height="130" rx="10"/>
-    <text x="36" y="290" class="t">release job</text>
-    <text x="36" y="314" class="m">publish-release.sh</text>
-    <text x="36" y="334" class="m">v4.20.10+local2</text>
-    <text x="36" y="354" class="b">with 3 of the 5 .debs</text>
-    <text x="36" y="376" class="m">prune-releases.sh → 10</text>
+    <g data-k="8">
+      <rect class="box-merge" x="20" y="260" width="210" height="130" rx="10"/>
+      <text x="36" y="290" class="t">release job</text>
+      <text x="36" y="314" class="m">publish-release.sh</text>
+      <text x="36" y="334" class="m">v4.20.10+local2</text>
+      <text x="36" y="354" class="b">with 3 of the 5 .debs</text>
+      <text x="36" y="376" class="m">prune-releases.sh → 10</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">8</text>
+    </g>
 
     <path class="arrow" d="M770,325 H734" marker-end="url(#ah)"/>
     <path class="arrow" d="M520,325 H484" marker-end="url(#ah)"/>
     <path class="arrow" d="M270,325 H234" marker-end="url(#ah)"/>
 
-    <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
-    <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
-    <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
-    <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
-    <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
-    <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
-    <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
-    <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">8</text>
   </svg>
   </div>
   <div class="legend">
     <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>runs on every PR</span>
     <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>runs only after a merge</span>
   </div>
+  </section>
 
+  <section class="sub" id="bigpic">
   <h3 class="sec">The big picture</h3>
-  <p>You change Thunar's <em>source code</em>, but your machines don't run source code: they run installed <em>packages</em> (<code>.deb</code> files, Ubuntu's installer format). Turning source into <code>.deb</code>s means about 3 minutes of compiling on a machine that has the right libraries. This PR makes GitHub do that on its own servers every time the code changes, and, once you approve a change, publish the <code>.deb</code>s where your machines can download them.</p>
-  <div class="note">One file, <code>.github/workflows/build.yml</code>, drives everything below. It runs on two different events: a <b>pull request</b> (lane ①) and a <b>push to <code>main</code></b> (lane ②). Some steps check which event it is and run only for one of them.</div>
+  <p data-k="why">You change Thunar's <em>source code</em>, but your machines don't run source code: they run installed <em>packages</em> (<code>.deb</code> files, Ubuntu's installer format). Turning source into <code>.deb</code>s means about 3 minutes of compiling on a machine that has the right libraries. This PR makes GitHub do that on its own servers every time the code changes, and, once you approve a change, publish the <code>.deb</code>s where your machines can download them.</p>
+  <div class="note" data-k="note">One file, <code>.github/workflows/build.yml</code>, drives everything below. It runs on two different events: a <b>pull request</b> (lane ①) and a <b>push to <code>main</code></b> (lane ②). Some steps check which event it is and run only for one of them.</div>
+  </section>
 
+  <section class="sub" id="steps">
   <h3 class="sec">Step by step (numbers match the diagram)</h3>
   <div class="panel">
   <div class="lane-h" style="color:var(--accent)">① Pull request: prove it builds</div>
   <ol class="steps">
-    <li><b>Open or update a PR.</b> Someone pushes commits to a branch (this one is <code>1-ci-build</code>) and opens a pull request asking to merge it into <code>main</code>. GitHub sees the <code>on: pull_request</code> trigger in <code>build.yml</code> and starts the workflow. Every new push to the branch starts it again; the older run is cancelled.</li>
-    <li><b>build job.</b> GitHub lends a fresh, empty Ubuntu 24.04 virtual machine (a <em>runner</em>). It adds Zorin's PPA, so it gets the same Xfce 4.20 libraries your machines have, and installs everything <code>debian/control</code> lists under <code>Build-Depends</code> (<code>apt-get build-dep ./</code>). On a PR it also dry-runs the three release scripts against the real repo, so a bug in them fails here instead of after the merge. Then <code>dpkg-buildpackage -b</code> compiles Thunar, runs its test, and wraps the result into <code>.deb</code>s, following the recipe in <code>debian/</code>. The machine is thrown away afterwards.</li>
-    <li><b>Artifact.</b> The 5 <code>.deb</code>s are saved as a zip on the run's page for 14 days, and the PR gets a green check. Nothing is published. The version is the placeholder <code>+local0</code>, so if anyone installed it by accident, apt would treat it as <em>older</em> than your <code>+local1</code> and refuse to replace it without asking.</li>
-    <li><b>You review and merge.</b> The only human step and the only gate: read “Files changed”, confirm the check is green, click Merge. Before this click, no release can exist.</li>
+    <li data-k="1"><b>Open or update a PR.</b> Someone pushes commits to a branch (this one is <code>1-ci-build</code>) and opens a pull request asking to merge it into <code>main</code>. GitHub sees the <code>on: pull_request</code> trigger in <code>build.yml</code> and starts the workflow. Every new push to the branch starts it again; the older run is cancelled.</li>
+    <li data-k="2"><b>build job.</b> GitHub lends a fresh, empty Ubuntu 24.04 virtual machine (a <em>runner</em>). It adds Zorin's PPA, so it gets the same Xfce 4.20 libraries your machines have, and installs everything <code>debian/control</code> lists under <code>Build-Depends</code> (<code>apt-get build-dep ./</code>). On a PR it also dry-runs the three release scripts against the real repo, so a bug in them fails here instead of after the merge. Then <code>dpkg-buildpackage -b</code> compiles Thunar, runs its test, and wraps the result into <code>.deb</code>s, following the recipe in <code>debian/</code>. The machine is thrown away afterwards.</li>
+    <li data-k="3"><b>Artifact.</b> The 5 <code>.deb</code>s are saved as a zip on the run's page for 14 days, and the PR gets a green check. Nothing is published. The version is the placeholder <code>+local0</code>, so if anyone installed it by accident, apt would treat it as <em>older</em> than your <code>+local1</code> and refuse to replace it without asking.</li>
+    <li data-k="4"><b>You review and merge.</b> The only human step and the only gate: read “Files changed”, confirm the check is green, click Merge. Before this click, no release can exist.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Push to main: version and publish</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li><b>Push to <code>main</code>.</b> Merging adds a commit to <code>main</code>, which is a <em>push</em>, a different trigger (<code>on: push</code>). The same workflow runs again, and now the steps marked <code>if: github.event_name == 'push'</code> run too. <code>concurrency</code> makes two quick merges wait in line instead of running together, so they can't pick the same version number. Only one run waits at a time: if a third merge lands meanwhile, GitHub cancels the waiting run and queues the newest one, whose build already includes the skipped merge.</li>
-    <li><b>Stamp the version.</b> <code>next-version.sh</code> asks GitHub for the existing releases and <code>v*</code> tags, takes the highest <code>+localN</code> and adds 1 (never below 2). It writes that version as a new top entry in <code>debian/changelog</code>, only on the throwaway machine; it's never committed. This matters because apt decides “is this newer?” by comparing version strings, so each build must sort higher than the last.</li>
-    <li><b>build job.</b> The same compile as step 2, now producing <code>.deb</code>s with the real version, <code>4.20.10-1~bpo24.04+local2</code>.</li>
-    <li><b>release job.</b> A second job that starts only after the build succeeds (<code>needs: build</code>) and is the only one allowed to write to the repo. It downloads the build's <code>.deb</code>s and <code>publish-release.sh</code> creates a <em>GitHub Release</em> called <code>v4.20.10+local2</code>: a download page tied to a git tag. It attaches the 3 packages your machines need; the other 2 (<code>-dev</code>, <code>gir1.2</code>) are only for building plugins. It publishes only a commit newer than the one the highest <code>+localN</code> tag points at, so re-running an old run can't put older code on top; re-running a failed release job re-uploads to the same release. Then <code>prune-releases.sh</code> deletes everything except the newest 10 releases.</li>
+    <li data-k="5"><b>Push to <code>main</code>.</b> Merging adds a commit to <code>main</code>, which is a <em>push</em>, a different trigger (<code>on: push</code>). The same workflow runs again, and now the steps marked <code>if: github.event_name == 'push'</code> run too. <code>concurrency</code> makes two quick merges wait in line instead of running together, so they can't pick the same version number. Only one run waits at a time: if a third merge lands meanwhile, GitHub cancels the waiting run and queues the newest one, whose build already includes the skipped merge.</li>
+    <li data-k="6"><b>Stamp the version.</b> <code>next-version.sh</code> asks GitHub for the existing releases and <code>v*</code> tags, takes the highest <code>+localN</code> and adds 1 (never below 2). It writes that version as a new top entry in <code>debian/changelog</code>, only on the throwaway machine; it's never committed. This matters because apt decides “is this newer?” by comparing version strings, so each build must sort higher than the last.</li>
+    <li data-k="7"><b>build job.</b> The same compile as step 2, now producing <code>.deb</code>s with the real version, <code>4.20.10-1~bpo24.04+local2</code>.</li>
+    <li data-k="8"><b>release job.</b> A second job that starts only after the build succeeds (<code>needs: build</code>) and is the only one allowed to write to the repo. It downloads the build's <code>.deb</code>s and <code>publish-release.sh</code> creates a <em>GitHub Release</em> called <code>v4.20.10+local2</code>: a download page tied to a git tag. It attaches the 3 packages your machines need; the other 2 (<code>-dev</code>, <code>gir1.2</code>) are only for building plugins. It publishes only a commit newer than the one the highest <code>+localN</code> tag points at, so re-running an old run can't put older code on top; re-running a failed release job re-uploads to the same release. Then <code>prune-releases.sh</code> deletes everything except the newest 10 releases.</li>
   </ol>
   </div>
-  <div class="note"><b>Rollback:</b> delete the bad release on GitHub. Once the updater from #2 exists, its next hourly check finds the previous release as the newest one and installs it, even though it's a lower version. Leave its tag in place (with <code>gh release delete</code>, omit <code>--cleanup-tag</code>): the next build counts it and takes a higher number, so the fix never reuses the bad version.</div>
+  <div class="note" data-k="rollback"><b>Rollback:</b> delete the bad release on GitHub. Once the updater from #2 exists, its next hourly check finds the previous release as the newest one and installs it, even though it's a lower version. Leave its tag in place (with <code>gh release delete</code>, omit <code>--cleanup-tag</code>): the next build counts it and takes a higher number, so the fix never reuses the bad version.</div>
+  </section>
 
+  <section class="sub" id="debian">
   <h3 class="sec">What's in <code>debian/</code>: Zorin's packaging with 4 edits</h3>
   <div class="grid">
-    <div class="card">
+    <div class="card" data-k="e1">
       <h3>1. Bootstrap from git</h3>
       <p>A git checkout has no <code>configure</code> or generated files. Run Thunar's own <code>autogen.sh</code>, then configure with <code>--enable-maintainer-mode</code> so generated files like <code>thunar-marshal.c</code> are built.</p>
     </div>
-    <div class="card">
+    <div class="card" data-k="e2">
       <h3>2. Plugin path without a patch</h3>
       <p>Zorin patched the source to also load plugins from <code>/usr/lib/thunarx-3</code>. Thunar's own <code>--with-thunarx-dirs</code> option does the same, so the patch and <code>debian/patches/</code> are gone. So is <code>gbp.conf</code>, which named branches this repo doesn't have.</p>
     </div>
-    <div class="card">
+    <div class="card" data-k="e3">
       <h3>3. Changelog at <code>+local0</code></h3>
       <p>A placeholder below your installed <code>+local1</code>. CI swaps in the real number at build time and never commits it.</p>
     </div>
-    <div class="card">
+    <div class="card" data-k="e4">
       <h3>4. Tests run again</h3>
       <p>The only test, <code>abicheck.sh</code>, failed in every build, Zorin's included, on 4 exported <code>thunarx_provider_module_*</code> symbols missing from <code>thunarx/thunarx.symbols</code>. They're listed now, so it passes.</p>
     </div>
   </div>
+  </section>
+
+  <section class="sub" id="rules">
   <h3 class="sec">The <code>debian/rules</code> edits</h3>
-<pre> %:
+<pre data-k="diff"> %:
  	dh $@ --with gir
 <span class="add">+override_dh_autoreconf:
 +	NOCONFIGURE=1 dh_autoreconf ./autogen.sh</span>
@@ -250,9 +278,11 @@
  		--docdir=\$${prefix}/share/doc/thunar-data \
  		…
 <span class="add">+		--with-thunarx-dirs=/usr/lib/$(DEB_HOST_MULTIARCH)/thunarx-3:/usr/lib/thunarx-3</span></pre>
+  </section>
 
+  <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
-<pre>debian/                        # 22 files from Zorin's thunar_4.20.2-1~bpo24.04
+<pre data-k="tree">debian/                        # 22 files from Zorin's thunar_4.20.2-1~bpo24.04
 ├── rules                      # edits 1 + 2
 └── changelog                  # edit 3: new top entry, +local0
 thunarx/thunarx.symbols        # edit 4: 4 missing symbols
@@ -263,88 +293,102 @@ thunarx/thunarx.symbols        # edit 4: 4 missing symbols
     ├── publish-release.sh     # creates the release, skips stale commits
     └── prune-releases.sh      # keeps the newest 10
 explainers/1-ci-build.html     # this page</pre>
+  </section>
 
+  <section class="sub" id="localn">
   <h3 class="sec">How <code>+localN</code> is picked</h3>
   <div class="table-wrap">
   <table>
     <tr><th>Existing releases and tags</th><th>Next version</th><th>Why</th></tr>
-    <tr><td>none (today)</td><td><code>+local2</code></td><td>minimum 2: your hand build is <code>+local1</code></td></tr>
-    <tr><td><code>+local2 … +local13</code></td><td><code>+local14</code></td><td>highest + 1; gaps are fine</td></tr>
-    <tr><td>upstream moves to 4.20.11</td><td><code>4.20.11-1~bpo24.04+local15</code></td><td>N keeps counting; read from <code>configure.ac</code></td></tr>
+    <tr data-k="v1"><td>none (today)</td><td><code>+local2</code></td><td>minimum 2: your hand build is <code>+local1</code></td></tr>
+    <tr data-k="v2"><td><code>+local2 … +local13</code></td><td><code>+local14</code></td><td>highest + 1; gaps are fine</td></tr>
+    <tr data-k="v3"><td>upstream moves to 4.20.11</td><td><code>4.20.11-1~bpo24.04+local15</code></td><td>N keeps counting; read from <code>configure.ac</code></td></tr>
   </table>
   </div>
+  </section>
   </section>
 
   <!-- ============================== PART 2 ============================== -->
   <section class="part" id="verified">
-  <p class="part-label">Part 2</p>
-  <h2>How it was built and verified</h2>
-  <p class="intro">Where the packaging came from, what was checked and how, and what can only be checked after the merge.</p>
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Where the packaging came from, what was checked and how, and what can only be checked after the merge.</p>
 
+  <section class="sub" id="refs">
   <h3 class="sec">Built on two known-good references</h3>
   <div class="grid">
-    <div class="card">
+    <div class="card" data-k="r1">
       <h3>Zorin's packaging</h3>
       <p><code>debian/</code> is copied from Zorin's <code>thunar_4.20.2-1~bpo24.04</code>, the package your machines ran before, so package names, file lists and dependencies start out the same as Zorin's.</p>
     </div>
-    <div class="card">
+    <div class="card" data-k="r2">
       <h3>Your hand build, <code>+local1</code></h3>
       <p>The 5 <code>.deb</code>s in <code>Thunar-debs/local-4.20.10/</code>, already installed on the desktop. Each build in the table below was compared against them: same files, same dependencies.</p>
     </div>
-    <div class="card">
+    <div class="card" data-k="r3">
       <h3>Build from git, not the tarball</h3>
       <p>The release tarball's pre-generated gdbus files need GLib 2.84; Ubuntu 24.04 has 2.80. A git checkout regenerates them, which is why edit 1 bootstraps with <code>autogen.sh</code> and maintainer mode.</p>
     </div>
   </div>
+  </section>
 
+  <section class="sub" id="checks">
   <h3 class="sec">What was checked</h3>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr><td>Packages match the hand build</td><td>Local <code>dpkg-buildpackage -b</code>; all 5 <code>.deb</code>s compared with <code>+local1</code>: file lists and Depends, Recommends, Provides, Breaks, Replaces</td><td class="ok">same</td></tr>
-    <tr><td>Plugins still load from both dirs</td><td>Plugin search path compiled into <code>libthunarx-3.so</code>, compared with <code>+local1</code>'s</td><td class="ok">same</td></tr>
-    <tr><td>Thunar's test</td><td><code>make check</code> during the local build (<code>abicheck.sh</code>)</td><td class="ok">1 of 1 pass</td></tr>
-    <tr><td>CI builds it</td><td>The PR's <code>build</code> job on GitHub, before the review fixes; its <code>debs</code> artifact compared with <code>+local1</code> as above. It reruns on the next push.</td><td class="ok">green, same</td></tr>
-    <tr><td>Version picking</td><td><code>next-version.sh</code> against the real repo, and against a mocked list of 13 releases with a gap and an upstream bump</td><td class="ok">+local2, +local15</td></tr>
-    <tr><td>Pruning</td><td><code>prune-releases.sh</code> with <code>DRY_RUN=1</code> against the same 13 mocked releases</td><td class="ok">deletes the 3 oldest</td></tr>
-    <tr><td>Publishing decisions</td><td><code>publish-release.sh</code> against a fake <code>gh</code>: no tags, newer, older, diverged, full re-run, release-job re-run, leftover draft, dry run</td><td class="ok">8 of 8 as intended</td></tr>
+    <tr data-k="c1"><td>Packages match the hand build</td><td>Local <code>dpkg-buildpackage -b</code>; all 5 <code>.deb</code>s compared with <code>+local1</code>: file lists and Depends, Recommends, Provides, Breaks, Replaces</td><td class="ok">same</td></tr>
+    <tr data-k="c2"><td>Plugins still load from both dirs</td><td>Plugin search path compiled into <code>libthunarx-3.so</code>, compared with <code>+local1</code>'s</td><td class="ok">same</td></tr>
+    <tr data-k="c3"><td>Thunar's test</td><td><code>make check</code> during the local build (<code>abicheck.sh</code>)</td><td class="ok">1 of 1 pass</td></tr>
+    <tr data-k="c4"><td>CI builds it</td><td>The PR's <code>build</code> job on GitHub, before the review fixes; its <code>debs</code> artifact compared with <code>+local1</code> as above. It reruns on the next push.</td><td class="ok">green, same</td></tr>
+    <tr data-k="c5"><td>Version picking</td><td><code>next-version.sh</code> against the real repo, and against a mocked list of 13 releases with a gap and an upstream bump</td><td class="ok">+local2, +local15</td></tr>
+    <tr data-k="c6"><td>Pruning</td><td><code>prune-releases.sh</code> with <code>DRY_RUN=1</code> against the same 13 mocked releases</td><td class="ok">deletes the 3 oldest</td></tr>
+    <tr data-k="c7"><td>Publishing decisions</td><td><code>publish-release.sh</code> against a fake <code>gh</code>: no tags, newer, older, diverged, full re-run, release-job re-run, leftover draft, dry run</td><td class="ok">8 of 8 as intended</td></tr>
   </table>
   </div>
-  <p>Nothing was installed on the desktop during any of this.</p>
+  <p data-k="desk">Nothing was installed on the desktop during any of this.</p>
+  </section>
 
+  <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p>An <code>xhigh</code> code review of the whole diff found 11 issues. All are fixed in this PR:</p>
+  <p data-k="summary">An <code>xhigh</code> code review of the whole diff found 11 issues. All are fixed in this PR:</p>
   <ul class="tight">
-    <li><b>Releases:</b> a rollback could reuse the deleted version number; re-running an old run could publish older code as the newest release; re-running a failed release job always failed.</li>
-    <li><b>Safety:</b> the GitHub token was visible to the build scripts of every PR; now only the steps that call GitHub get it.</li>
-    <li><b>Coverage:</b> PRs never ran the release scripts (now dry-run on every PR); the test step was switched off instead of fixed (edit 4).</li>
-    <li><b>Packaging:</b> Zorin's plugin-path patch ignored <code>THUNARX_DIRS</code> (replaced by a configure option); <code>gbp.conf</code> was dead config.</li>
-    <li><b>Docs:</b> this page misdescribed queued runs; the changelog said CI replaces <code>+local0</code> instead of adding an entry above it; a script needed an undocumented variable.</li>
+    <li data-k="b1"><b>Releases:</b> a rollback could reuse the deleted version number; re-running an old run could publish older code as the newest release; re-running a failed release job always failed.</li>
+    <li data-k="b2"><b>Safety:</b> the GitHub token was visible to the build scripts of every PR; now only the steps that call GitHub get it.</li>
+    <li data-k="b3"><b>Coverage:</b> PRs never ran the release scripts (now dry-run on every PR); the test step was switched off instead of fixed (edit 4).</li>
+    <li data-k="b4"><b>Packaging:</b> Zorin's plugin-path patch ignored <code>THUNARX_DIRS</code> (replaced by a configure option); <code>gbp.conf</code> was dead config.</li>
+    <li data-k="b5"><b>Docs:</b> this page misdescribed queued runs; the changelog said CI replaces <code>+local0</code> instead of adding an entry above it; a script needed an undocumented variable.</li>
   </ul>
+  </section>
 
+  <section class="sub" id="aftermerge">
   <h3 class="sec">Checked only after the merge</h3>
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr><td>The release job: creating the release, uploading the 3 <code>.deb</code>s, pruning</td><td>It runs only on a push to <code>main</code>, and only it may write to the repo</td><td class="open">first merge</td></tr>
-    <tr><td>The “is this commit newer?” check against a real <code>+localN</code> tag</td><td>No <code>+localN</code> tag exists until the first release</td><td class="open">second merge</td></tr>
+    <tr data-k="a1"><td>The release job: creating the release, uploading the 3 <code>.deb</code>s, pruning</td><td>It runs only on a push to <code>main</code>, and only it may write to the repo</td><td class="open">first merge</td></tr>
+    <tr data-k="a2"><td>The “is this commit newer?” check against a real <code>+localN</code> tag</td><td>No <code>+localN</code> tag exists until the first release</td><td class="open">second merge</td></tr>
   </table>
   </div>
+  </section>
 
+  <section class="sub" id="see">
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
-    <li>The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/8">PR #8</a> → “Files changed”</li>
-    <li>CI runs on this branch: <a href="https://github.com/alexhu98/thunar/actions?query=branch%3A1-ci-build">Actions</a> (artifact “debs” at the bottom of each run)</li>
-    <li>After the merge: <a href="https://github.com/alexhu98/thunar/releases">Releases</a>, where <code>v4.20.10+local2</code> will appear</li>
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/8">PR #8</a> → “Files changed”</li>
+    <li data-k="l2">CI runs on this branch: <a href="https://github.com/alexhu98/thunar/actions?query=branch%3A1-ci-build">Actions</a> (artifact “debs” at the bottom of each run)</li>
+    <li data-k="l3">After the merge: <a href="https://github.com/alexhu98/thunar/releases">Releases</a>, where <code>v4.20.10+local2</code> will appear</li>
   </ul>
+  </section>
   </section>
 
   <!-- ============================== PART 3 ============================== -->
   <section class="part" id="later">
-  <p class="part-label">Part 3</p>
-  <h2>What comes later: #7, then #2</h2>
-  <p class="intro">Two open issues build on these releases. #7 comes first, so features reach your machines only through PRs that CI has proven.</p>
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: #7, then #2</h2>
+  <p class="intro" data-k="intro">Two open issues build on these releases. #7 comes first, so features reach your machines only through PRs that CI has proven.</p>
 
+  <section class="sub" id="next">
   <div class="diagram" role="img" aria-label="Future flow: a cloud agent opens a PR, CI builds and verifies it, you merge, a release is published, and the updater installs it on both machines">
   <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -357,28 +401,36 @@ explainers/1-ci-build.html     # this page</pre>
     </defs>
 
     <text class="lane" x="20" y="44" style="fill:var(--future)">#7 Agents open PRs, CI proves them</text>
-    <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
-    <text x="36" y="90" class="t">Issue</text>
-    <text x="36" y="114" class="b">you write what you want</text>
-    <text x="36" y="134" class="b">and the decisions</text>
+    <g data-k="n1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Issue</text>
+      <text x="36" y="114" class="b">you write what you want</text>
+      <text x="36" y="134" class="b">and the decisions</text>
+    </g>
 
-    <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
-    <text x="286" y="90" class="t">Cloud agent</text>
-    <text x="286" y="114" class="b">Claude Code on the web</text>
-    <text x="286" y="134" class="b">writes the code and</text>
-    <text x="286" y="154" class="b">opens a PR into main</text>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Cloud agent</text>
+      <text x="286" y="114" class="b">Claude Code on the web</text>
+      <text x="286" y="134" class="b">writes the code and</text>
+      <text x="286" y="154" class="b">opens a PR into main</text>
+    </g>
 
-    <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
-    <text x="536" y="90" class="t">CI: build + verify</text>
-    <text x="536" y="114" class="b">build: this PR's job</text>
-    <text x="536" y="134" class="b">verify: run Thunar under</text>
-    <text x="536" y="154" class="b">Xvfb, test, screenshot</text>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">CI: build + verify</text>
+      <text x="536" y="114" class="b">build: this PR's job</text>
+      <text x="536" y="134" class="b">verify: run Thunar under</text>
+      <text x="536" y="154" class="b">Xvfb, test, screenshot</text>
+    </g>
 
-    <rect class="box-you" x="770" y="60" width="210" height="120" rx="10"/>
-    <text x="786" y="90" class="t">You review &amp; merge</text>
-    <text x="786" y="114" class="b">only when build and</text>
-    <text x="786" y="134" class="b">verify are green and the</text>
-    <text x="786" y="154" class="b">screenshots look right</text>
+    <g data-k="n4">
+      <rect class="box-you" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">You review &amp; merge</text>
+      <text x="786" y="114" class="b">only when build and</text>
+      <text x="786" y="134" class="b">verify are green and the</text>
+      <text x="786" y="154" class="b">screenshots look right</text>
+    </g>
 
     <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf3)"/>
     <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf3)"/>
@@ -386,29 +438,37 @@ explainers/1-ci-build.html     # this page</pre>
     <path class="arrow" d="M875,180 V256" marker-end="url(#ah3)"/>
 
     <text class="lane" x="20" y="244" style="fill:var(--future)">#2 Your machines install each release</text>
-    <rect class="box-merge" x="770" y="260" width="210" height="130" rx="10"/>
-    <text x="786" y="290" class="t">GitHub Release</text>
-    <text x="786" y="314" class="b">published by this PR's</text>
-    <text x="786" y="334" class="b">release job</text>
-    <text x="786" y="354" class="b">delete one = rollback</text>
+    <g data-k="n5">
+      <rect class="box-merge" x="770" y="260" width="210" height="130" rx="10"/>
+      <text x="786" y="290" class="t">GitHub Release</text>
+      <text x="786" y="314" class="b">published by this PR's</text>
+      <text x="786" y="334" class="b">release job</text>
+      <text x="786" y="354" class="b">delete one = rollback</text>
+    </g>
 
-    <rect class="box-future" x="520" y="260" width="210" height="130" rx="10"/>
-    <text x="536" y="290" class="t">thunar-update</text>
-    <text x="536" y="314" class="b">timer: 2 min after boot,</text>
-    <text x="536" y="334" class="b">then hourly</text>
-    <text x="536" y="354" class="b">read-only token</text>
+    <g data-k="n6">
+      <rect class="box-future" x="520" y="260" width="210" height="130" rx="10"/>
+      <text x="536" y="290" class="t">thunar-update</text>
+      <text x="536" y="314" class="b">timer: 2 min after boot,</text>
+      <text x="536" y="334" class="b">then hourly</text>
+      <text x="536" y="354" class="b">read-only token</text>
+    </g>
 
-    <rect class="box-future" x="270" y="260" width="210" height="130" rx="10"/>
-    <text x="286" y="290" class="t">apt installs 3 .debs</text>
-    <text x="286" y="314" class="b">desktop + laptop</text>
-    <text x="286" y="334" class="b">running Thunar keeps</text>
-    <text x="286" y="354" class="b">the old version</text>
+    <g data-k="n7">
+      <rect class="box-future" x="270" y="260" width="210" height="130" rx="10"/>
+      <text x="286" y="290" class="t">apt installs 3 .debs</text>
+      <text x="286" y="314" class="b">desktop + laptop</text>
+      <text x="286" y="334" class="b">running Thunar keeps</text>
+      <text x="286" y="354" class="b">the old version</text>
+    </g>
 
-    <rect class="box-future" x="20" y="260" width="210" height="130" rx="10"/>
-    <text x="36" y="290" class="t">Notification</text>
-    <text x="36" y="314" class="b">“restart Thunar</text>
-    <text x="36" y="334" class="b">to load it”</text>
-    <text x="36" y="354" class="b">never auto-restarts</text>
+    <g data-k="n8">
+      <rect class="box-future" x="20" y="260" width="210" height="130" rx="10"/>
+      <text x="36" y="290" class="t">Notification</text>
+      <text x="36" y="314" class="b">“restart Thunar</text>
+      <text x="36" y="334" class="b">to load it”</text>
+      <text x="36" y="354" class="b">never auto-restarts</text>
+    </g>
 
     <path class="arrow-future" d="M770,325 H734" marker-end="url(#ahf3)"/>
     <path class="arrow-future" d="M520,325 H484" marker-end="url(#ahf3)"/>
@@ -420,26 +480,31 @@ explainers/1-ci-build.html     # this page</pre>
     <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
     <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
   </div>
+  </section>
 
+  <section class="sub" id="issue-7">
   <h3 class="sec">#7 Cloud agents open PRs, CI proves them (next)</h3>
   <div class="panel">
   <ol class="steps">
-    <li><b>Repo <code>CLAUDE.md</code>.</b> Cloud sessions can't see your personal instructions, so the repo carries them: branch and PR naming, the build lessons from Part 2, a <code>verify/&lt;issue&gt;.sh</code> in every feature PR, and explainers like this page in <code>explainers/</code>.</li>
-    <li><b>Ported skills.</b> The screenshot audit and visual-verify skills from your other project, with Storybook swapped for Xvfb, <code>xdotool</code> and <code>import</code>.</li>
-    <li><b><code>verify</code> job.</b> Added to this PR's <code>build.yml</code>, after the build: install the 3 <code>.deb</code>s, start Thunar under Xvfb and check it stays up, run each <code>verify/*.sh</code>, and post the results and before/after screenshots as a PR comment.</li>
-    <li><b>Sandbox check.</b> One cloud session first checks that it can build and run Thunar itself. If it can't, the agent still writes the code and only CI builds and verifies.</li>
+    <li data-k="1"><b>Repo <code>CLAUDE.md</code>.</b> Cloud sessions can't see your personal instructions, so the repo carries them: branch and PR naming, the build lessons from Part 2, a <code>verify/&lt;issue&gt;.sh</code> in every feature PR, and explainers like this page in <code>explainers/</code>.</li>
+    <li data-k="2"><b>Ported skills.</b> The screenshot audit and visual-verify skills from your other project, with Storybook swapped for Xvfb, <code>xdotool</code> and <code>import</code>.</li>
+    <li data-k="3"><b><code>verify</code> job.</b> Added to this PR's <code>build.yml</code>, after the build: install the 3 <code>.deb</code>s, start Thunar under Xvfb and check it stays up, run each <code>verify/*.sh</code>, and post the results and before/after screenshots as a PR comment.</li>
+    <li data-k="4"><b>Sandbox check.</b> One cloud session first checks that it can build and run Thunar itself. If it can't, the agent still writes the code and only CI builds and verifies.</li>
   </ol>
   </div>
+  </section>
 
+  <section class="sub" id="issue-2">
   <h3 class="sec">#2 Auto-deploy to the desktop and laptop (after #7)</h3>
   <div class="panel">
   <ol class="steps">
-    <li><b>GitHub Releases.</b> The shelf the machines take from. Because the repo is private, they need a token to read it.</li>
-    <li><b>thunar-update.</b> A small script on each machine, run by a systemd timer: 2 minutes after boot, then every hour. It asks GitHub for the newest release using a read-only token.</li>
-    <li><b>apt installs the 3 <code>.deb</code>s.</b> Only if that release's version differs from what's installed, so a rollback to a lower version installs too. A Thunar that is already running keeps the old code in memory until it restarts.</li>
-    <li><b>Notification.</b> “Restart Thunar to load it.” It never restarts Thunar for you, because that would close all your windows.</li>
+    <li data-k="1"><b>GitHub Releases.</b> The shelf the machines take from. Because the repo is private, they need a token to read it.</li>
+    <li data-k="2"><b>thunar-update.</b> A small script on each machine, run by a systemd timer: 2 minutes after boot, then every hour. It asks GitHub for the newest release using a read-only token.</li>
+    <li data-k="3"><b>apt installs the 3 <code>.deb</code>s.</b> Only if that release's version differs from what's installed, so a rollback to a lower version installs too. A Thunar that is already running keeps the old code in memory until it restarts.</li>
+    <li data-k="4"><b>Notification.</b> “Restart Thunar to load it.” It never restarts Thunar for you, because that would close all your windows.</li>
   </ol>
   </div>
+  </section>
   </section>
 
   <h2>Glossary</h2>
