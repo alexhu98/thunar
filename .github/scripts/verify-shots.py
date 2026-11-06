@@ -207,9 +207,8 @@ def block(e, u, anchor):
 
 def key_entry(entries):
     m = re.match(r'([0-9]+)-', os.environ.get('HEAD_REF', ''))
-    pairs = [e for e in entries if e['kind'] == 'pair' and e['test'] != 'smoke']
-    own = [e for e in pairs if m and e['test'] == m.group(1)]
-    return (own or pairs or [None])[0]
+    own = [e for e in entries if e['kind'] == 'pair' and m and e['test'] == m.group(1)]
+    return (own or [None])[0]
 
 
 def comment(out):
@@ -258,13 +257,13 @@ def comment(out):
         mine = [e for e in entries if e['test'] == name]
         if not mine:
             lines += ['', 'No screenshots.']
-        group = ''
+        group = None if any(e['group'] for e in mine) else ''
         for e in mine:
             if e['group'] != group:
                 lines += ['', f"##### {e['group'] or 'Other shots'}"]
             group = e['group']
             lines.append('')
-            if e is key or (key and e['num'] == key['num']):
+            if e is key:
                 lines.append(f"[Shot #{e['num']}](#shot-{e['num']}) ({cell(names(e))}) is the key result, shown in the summary.")
             else:
                 lines.append(block(e, u, True))

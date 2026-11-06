@@ -201,27 +201,30 @@ def render(out, repo, sha, result, note, failed):
         status = {'sha': sha, 'state': 'fail', 'text': f'{len(open_)} confirmed medium or high finding(s) unresolved'}
     else:
         status = {'sha': sha, 'state': 'pass', 'text': 'no confirmed medium or high findings unresolved'}
-    shown = [f for f in findings if f['status'] in OPEN or f.get('new')]
-    for n in (120, 60, 0, None, None):
-        text = body(state, status, shown, open_, repo, note)
+    ids = {f['id'] for f in findings if f['status'] in OPEN or f.get('new')}
+    rows = len(findings)
+    text = body(state, status, ids, open_, repo, note, rows)
+    for step in (120, 60, 0, 'ids', 'rows', 'open'):
         if len(text) < LIMIT:
             break
-        if n is None and state.get('rows_cut'):
-            state['rows'] = max(0, state.get('rows', len(findings)) // 2)
-        elif n is None:
-            state['rows_cut'] = True
-            findings = [f if f in shown else {'id': f['id'], 'status': f['status']} for f in findings]
+        if step == 'ids':
+            state['findings'] = [f if f['id'] in ids else {'id': f['id'], 'status': f['status']} for f in state['findings']]
+        elif step == 'rows':
+            while rows and len(body(state, status, ids, open_, repo, note, rows)) >= LIMIT:
+                rows //= 2
+        elif step == 'open':
+            state['findings'] = [short(f, 80) | {k: f[k] for k in f if k not in CLOSED} if f['id'] in ids else f
+                                 for f in state['findings']]
         else:
-            findings = [f if f in shown else short(f, n) for f in findings]
-        state['findings'] = findings
-    state.pop('rows_cut', None)
-    state.pop('rows', None)
+            state['findings'] = [f if f['id'] in ids else short(f, step) for f in state['findings']]
+        text = body(state, status, ids, open_, repo, note, rows)
     open(os.path.join(out, 'section.md'), 'w').write(text)
     print(len(open_))
 
 
-def body(state, status, shown, open_, repo, note):
+def body(state, status, ids, open_, repo, note, rows):
     findings = state.get('findings', [])
+    shown = [f for f in findings if f['id'] in ids]
     lines = ['<!-- pr-proof:status ' + json.dumps(status, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
              '<!-- review:state ' + json.dumps(state, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
              '### Code review', '']
@@ -242,7 +245,6 @@ def body(state, status, shown, open_, repo, note):
         lines.append('Not reviewed yet.')
     lines += ['', f"**{len(open_)} confirmed medium or high finding(s) unresolved.**" if open_ else 'No confirmed medium or high findings unresolved.']
     if findings and len(shown) < len(findings):
-        rows = state.get('rows', len(findings))
         lines += ['', f'#### Every finding on this PR ({len(findings)})', ''] + table(findings[-rows:] if rows else [], repo)
         if rows < len(findings):
             lines += ['', f'The {len(findings) - rows} oldest are left out to fit the comment.']

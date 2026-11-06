@@ -111,11 +111,11 @@ section() {  # the explainer comment, for each image URL in $OUT/urls; $1 is pas
     text="missing"
   elif [[ ! -s $OUT/urls ]]; then
     text="not required"
-  elif [[ $1 == pass ]]; then
-    text=rendered
-    if [[ -s $OUT/narration.md ]]; then text+=', narration current'; fi
-  else
+  elif grep -qv ' https://' "$OUT/urls"; then
     text="failed"
+  else
+    text=rendered
+    if [[ -s $OUT/narration.md && ${NARRATION:-success} != failure ]]; then text+=', narration current'; fi
   fi
   [[ ${NARRATION:-success} != failure ]] || text+="; narration fails"
   jq -cn --arg sha "$sha" --arg state "$1" --arg text "$text" '{sha: $sha, state: $state, text: $text}' \

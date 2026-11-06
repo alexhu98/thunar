@@ -3,11 +3,12 @@
 
 Reads the status each of the review, verify and explainer comments carries (<!-- pr-proof:status {...} -->), the
 build job of this run (or BUILD_RESULT, when the build job calls it), and the latest /visual-verify verdict posted
-for the PR's head by the owner or a collaborator (a comment or the PR description holding <!-- visual-verify <sha> -->
-and a VERDICT: line). Writes the heading (ready for review, or the first failing,
+for the PR's head by the owner, a collaborator or claude[bot] (a comment or the PR description holding
+<!-- visual-verify <sha> --> and a VERDICT: line). Without RUN_ID it uses the latest build run of the head. Writes the heading (ready for review, or the first failing,
 running or awaited check), the checks table, the key result and the shots table from the verify comment's data, through
 pr-comment.sh. Does nothing when HEAD_SHA is no longer the PR's head, so an older run can't overwrite a newer summary.
-Every job that writes a comment calls it, and the summary job calls it last. After writing it reads everything
+Every job that writes a comment calls it, the summary job calls it last, and the pr-summary workflow calls it when
+an audit comment is posted. After writing it reads everything
 again and writes once more if a job's result or the head changed meanwhile.
 Env: PR, GH_REPO, HEAD_SHA, RUN_ID, RUN_URL, BUILD_RESULT, OUT. DRY_RUN=1 prints the comment instead of writing it.
 """
@@ -103,16 +104,19 @@ def summary():
         m = re.match(r'<!-- pr-proof:([a-z]+) -->', c['body'] or '')
         if c['user'] == 'github-actions[bot]' and m:
             mine.setdefault(m.group(1), c)
-        elif c['author_association'] in TRUSTED:
+        elif c['author_association'] in TRUSTED or c['user'] == 'claude[bot]':
             comments.append(('comment', c['body'], c['updated_at'], c['html_url']))
-    jobs = job_states(os.environ.get('RUN_ID'))
+    run_id = os.environ.get('RUN_ID') or gh(f'repos/{{owner}}/{{repo}}/actions/workflows/build.yml/runs?head_sha={head}&event=pull_request',
+                                            '--jq', '.workflow_runs[0].id // empty').strip()
+    jobs = job_states(run_id)
     link = lambda n, t: f"[{t}](#issuecomment-{mine[n]['id']})" if n in mine else t
     checks = []
     if jobs is None:
         build = ('running', 'unknown', '')
     else:
         b = jobs.get('build', ('running', ''))
-        build = (b[0], {'pass': 'passed', 'fail': 'failed', 'running': 'running', 'skip': 'skipped'}.get(b[0], b[0]),
+        build = ('fail' if b[0] == 'cancelled' else b[0],
+                 {'pass': 'passed', 'fail': 'failed', 'running': 'running', 'skip': 'skipped'}.get(b[0], b[0]),
                  f'[build job]({b[1]})' if b[1] else '')
     checks.append(('Build', build[0], build[1], build[2]))
     status = {n: hidden(mine.get(n, {}).get('body'), 'status') for n in JOBS}
@@ -134,7 +138,8 @@ def summary():
         title = '⏳ waiting for the screenshot audit'
     else:
         title = '✅ ready for review'
-    run_url = os.environ.get('RUN_URL', '')
+    run_url = os.environ.get('RUN_URL') or (f"https://github.com/{os.environ['GH_REPO']}/actions/runs/{run_id}"
+                                            if run_id and os.environ.get('GH_REPO') else '')
     out = [f'## PR proof: {title}', '', f"Head `{head[:12]}`" + (f' · [workflow run]({run_url})' if run_url else ''), '',
            '| Check | Result | Where |', '|---|---|---|']
     out += [f'| {n} | {ICON.get(s, "⚠️")} {cell(t)} | {w} |' for n, s, t, w in checks]
@@ -142,7 +147,7 @@ def summary():
     vsha = (status['verify'] or {}).get('sha', '')
     stale = f' (as of `{vsha[:12]}`, not the head)' if data and vsha and vsha != head else ''
     out += ['', '### The key result' + stale, '']
-    out.append(data.get('key') or 'No before/after pair in the verify scripts yet.')
+    out.append(data.get('key') or "No key result: the PR's issue has no verify script with a before/after pair.")
     out += ['', '### Shots' + stale, '']
     out.append(data.get('shots') or 'No screenshots yet.')
     return '\n'.join(out) + '\n'

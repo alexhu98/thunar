@@ -242,8 +242,8 @@
   <h3 class="sec">One pair, as it appears</h3>
 <pre data-k="pair">| Shot #6       | before-rubber-band / after-rubber-band |
 |---------------|----------------------------------------|
-| Action        | Cleared the selection, then dragged    |
-|               | from blank space over the delta icon   |
+| Action        | Dragged from blank space up and left   |
+|               | over the delta icon                    |
 | Proves        | A drag that starts on blank space      |
 |               | still selects, and never goes up       |
 | Before        | the before shot's caption              |
@@ -302,6 +302,7 @@ explainers/23-pr-proof.html   # this page, and its .narration.json</pre>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>Pair images</td><td><code>verify-shots.py build</code> on PR #20's 25 shots, with a test <code>pairs.tsv</code>; the images were opened and looked at</td><td class="ok">12 images, 1920 px wide, 8-bit; bars and halves right, small dialogs centred</td></tr>
     <tr data-k="c2"><td>Bar text fits</td><td>a 48-character state of wide capitals, measured with ImageMagick</td><td class="ok">shrinks from 22 to 16 pt</td></tr>
+    <tr data-k="c14"><td>Comment size, extreme</td><td><code>review-state.py render</code> on 900 closed findings and 1 open one, after CI's review</td><td class="ok">55,843 characters; the oldest rows left out with a note</td></tr>
     <tr data-k="c3"><td>Pair check</td><td><code>verify-shots.py check</code> on the same shots</td><td class="ok">passes with every pair described</td></tr>
     <tr data-k="c4"><td>Verify comment</td><td><code>verify-shots.py comment</code> with made-up URLs and one failed upload</td><td class="ok">key pointer, groups, smoke shot last as #13, failed image named, status "fail"</td></tr>
     <tr data-k="c5"><td>Summary</td><td><code>pr-summary.py</code> with <code>DRY_RUN=1</code> and a stub <code>gh</code> returning comments, jobs and an audit comment</td><td class="ok">heading names Verify, the first failing check; links, key pair and shots table present</td></tr>
@@ -326,7 +327,7 @@ explainers/23-pr-proof.html   # this page, and its .narration.json</pre>
     <li data-k="b3"><b>Summary freshness:</b> a failed build now writes the summary from the build job itself, and each writer reads everything again after writing and rewrites once if a result or the head changed.</li>
     <li data-k="b4"><b>Smaller fixes:</b> only the owner and collaborators can post an audit verdict; the review state in the old single comment is carried over once and that comment deleted; one failed pair image no longer spoils the rest; a shot with no group gets its own heading; the explainer comment no longer stops early when there is no narration result.</li>
   </ul>
-  <p data-k="ci">CI's own review of the PR goes in the code review comment, the second of the four.</p>
+  <p data-k="ci">CI's own review of the PR's third commit found 15 more, in the code review comment. Its fixes can't touch <code>.github/</code>, so they were made by hand: all 4 medium ones (no summary refresh after an audit comment, a size loop that could still overshoot, pair Actions that described setup, another issue's pair shown as the key result) and 6 small ones. The 5 left are speed-ups and refactors.</p>
   </section>
 
   <section class="sub" id="aftermerge">

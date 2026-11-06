@@ -175,7 +175,7 @@ publish() {
         url=- failed=1
       fi
       printf '%s\t%s\n' "$file" "$url" >> "$OUT/urls.tsv"
-    done < <(jq -r '.[] | (.shots[] | [.file, "verify-\(.file | split("/")[1])-\(.name).png"]), (select(.kind == "pair" and .image) | [.image, "pair-\(.test)-\(.what).png"]) | @tsv' "$OUT/numbered.json")
+    done < <(jq -r '.[] | (.test as $t | .shots[] | [.file, "verify-\($t)-\(.name).png"]), (select(.kind == "pair" and .image) | [.image, "pair-\(.test)-\(.what).png"]) | @tsv' "$OUT/numbered.json")
     python3 "$HERE/verify-shots.py" manifest "$OUT" > "$OUT/verify-shots.tsv"
     if ! upload "$OUT/verify-shots.tsv" "pr-${PR:-0}/verify.tsv" >/dev/null; then
       echo "::error::could not upload pr-${PR:-0}/verify.tsv" >&2

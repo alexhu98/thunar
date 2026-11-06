@@ -1,0 +1,33 @@
+name: pr-summary
+
+on:
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  summary:
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '<!-- visual-verify ')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    concurrency:
+      group: pr-summary-${{ github.event.issue.number }}
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.issue.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Write the summary comment
+        run: python3 .github/scripts/pr-summary.py

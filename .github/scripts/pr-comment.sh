@@ -1,14 +1,11 @@
 #!/bin/bash
-# The four PR comments CI keeps, each starting with its marker <!-- pr-proof:NAME -->: pr-comment.sh ids | get NAME | put NAME FILE
-#   ids           prints "NAME ID" for each of the four that exists
+# The four PR comments CI keeps, each starting with its marker <!-- pr-proof:NAME -->: pr-comment.sh legacy get|delete | get NAME | put NAME FILE
 #   legacy get    prints the body of the single comment CI wrote before there were four (<!-- pr-proof -->)
 #   legacy delete deletes it
 #   get NAME      prints that comment's body (nothing if it doesn't exist yet)
 #   put NAME FILE makes sure all four exist, creating the missing ones as placeholders in the order summary, review,
 #                 verify, explainer, then replaces NAME's body with its marker and FILE.
-# A name's comment is its oldest comment by github-actions[bot] with that marker. When two jobs create the comments at
-# once, every comment of a name is created after a comment of the name before it exists, so the oldest of each name are
-# still in order; the newer duplicates are deleted.
+# A name's comment is its oldest comment by github-actions[bot] with that marker; the newer duplicates are deleted.
 # Env: PR (number), GH_REPO, OUT. DRY_RUN=1 prints the new comment instead of writing it.
 set -euo pipefail
 
@@ -21,10 +18,6 @@ list() {  # -> "ID NAME" for every marked comment by the bot, oldest first
   gh api --paginate "repos/{owner}/{repo}/issues/$PR/comments" --jq '.[]
     | select(.user.login == "github-actions[bot]" and (.body | test("^<!-- pr-proof:[a-z]+ -->")))
     | "\(.id) \(.body | capture("^<!-- pr-proof:(?<n>[a-z]+) -->").n)"' | sort -n
-}
-
-ids() {
-  list | awk '!seen[$2]++ {print $2, $1}'
 }
 
 id_of() {
@@ -93,9 +86,8 @@ put() {
 }
 
 case ${1:-} in
-  ids) ids ;;
   legacy) shift; legacy "${1:?get or delete}" ;;
   get) shift; get "$@" ;;
   put) shift; put "$@" ;;
-  *) echo "usage: $0 ids | legacy get|delete | get <name> | put <name> <file>" >&2; exit 2 ;;
+  *) echo "usage: $0 legacy get|delete | get <name> | put <name> <file>" >&2; exit 2 ;;
 esac
