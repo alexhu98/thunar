@@ -9,7 +9,7 @@
 ## Working with the owner
 - When a turn is blocked on the owner or its next step needs them, end it with a short multiple-choice "**What I need from you**" section they can answer with one number or letter. Otherwise omit it entirely, with no "Nothing needed from you" line.
   - One decision: numbered options; the owner replies with the number. "1. Fix the tile check (recommended) 2. Leave it as is" → "1".
-  - Several independent decisions: numbered decisions, lettered options. "1. Tile padding: A. 12px B. Keep 8px" → "1A 2B". A bare number means that decision's recommended option.
+  - Several independent decisions: numbered decisions, lettered options. "1. Tile padding: A. 12px (recommended) B. Keep 8px  2. Bar color: A. Blue (recommended) B. Grey" → "1A 2B". A bare number means that decision's recommended option.
   - Each option: one concrete outcome, at most 20 words; recommended first and marked.
   - An action only the owner can do: the exact what and where, plus a one-key reply like "1. Done".
   - Several items: quickest or most blocking first; say what you'll get on with meanwhile.
