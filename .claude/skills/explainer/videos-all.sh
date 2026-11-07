@@ -207,7 +207,7 @@ main() {
           result="needs re-narration (status: $({ grep -m1 -E '^  |make-video:' "$log" || head -1 "$log"; } | sed 's/^ *//' | cut -c1-80))"
         elif (( dry )); then
           result='would render'
-        elif echo "== $(date -Is) render $n" >> "$log" && "$mv" render "$n" >> "$log" 2>&1 && [[ -s $stem.mp4 ]]; then
+        elif echo "== $(date -Is) render $n" >> "$log" && CHROME=${CHROME:-google-chrome} "$mv" render "$n" >> "$log" 2>&1 && [[ -s $stem.mp4 ]]; then
           echo "$want" > "$stem.mp4.sha"
           result=rendered
         else
@@ -215,8 +215,7 @@ main() {
           failed=1
         fi
         if (( copy )) && [[ $result == skipped || $result == rendered ]] && ! cmp -s "$stem.mp4" "$repo/${page%.html}.mp4"; then
-          cp -p "$stem.mp4" "$repo/${page%.html}.mp4"
-          copied=yes
+          if cp -p "$stem.mp4" "$repo/${page%.html}.mp4"; then copied=yes; else copied=failed; failed=1; fi
         fi
       fi
       echo "  $page: $result"
