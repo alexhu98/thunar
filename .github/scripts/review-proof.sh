@@ -142,7 +142,7 @@ plan() {
   fi
   if [[ -n $release ]]; then
     fork_side "$mb" "$release" > "$OUT/fork.patch"
-    if (( ! skip )) && [[ ! -s $OUT/fork.patch ]]; then
+    if (( ! skip && full )) && [[ ! -s $OUT/fork.patch ]]; then
       skip=1 reason="the fork's side of the release merge ${release::12} changes nothing but explainers/"
     fi
     [[ -n $reason ]] || reason="the fork's side of the release merge ${release::12}"
