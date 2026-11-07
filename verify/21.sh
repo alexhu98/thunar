@@ -109,6 +109,20 @@ shot "$WID" after-reopen "A new search in top comes back with the toggle release
 pair reopen "Left top for other, came back and searched for match again" "top remembers its saved choice: subfolders stay off there" "top, no search" "toggle off again, only match-top.txt" "$R"
 results_are reopen match-top.txt
 
+if metadata_on_disk; then
+  kill "$THUNAR_PID"
+  wait "$THUNAR_PID" 2>/dev/null || true
+  unset THUNAR_PID
+  open_thunar "$WORK/top"
+  xdotool windowsize --sync "$WID" "$W" "$H"
+  wait_title "$WID" top
+  focus "$WID"
+  xdotool key ctrl+2
+  sleep 0.5
+  search match
+  results_are restart match-top.txt
+fi
+
 go "$WORK/top"
 focus "$WID"
 xdotool key alt+v
