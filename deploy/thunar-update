@@ -1,0 +1,109 @@
+#!/bin/bash
+# Installs the latest alexhu98/thunar release's debs when its version differs from the installed one.
+# Run as root by thunar-update.service. THUNAR_UPDATE_API and THUNAR_UPDATE_ETC override the defaults for testing.
+set -uo pipefail
+
+API=${THUNAR_UPDATE_API:-https://api.github.com/repos/alexhu98/thunar}
+ETC=${THUNAR_UPDATE_ETC:-/etc/thunar-update}
+STATE=${THUNAR_UPDATE_STATE:-/var/lib/thunar-update}
+PACKAGES=(thunar thunar-data libthunarx-3-0)
+
+log() { echo "thunar-update: $*"; }
+
+notify() {
+  local only_thunar=$1 urgency=$2 body=$3 uid user
+  local -A seen=()
+  mapfile -t uids < <(ps -C thunar -o uid= | tr -d ' ')
+  [[ $only_thunar == 1 ]] || mapfile -t -O "${#uids[@]}" uids < <(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $2}')
+  for uid in "${uids[@]}"; do
+    [[ -n $uid && -z ${seen[$uid]:-} && -S /run/user/$uid/bus ]] || continue
+    seen[$uid]=1
+    user=$(id -nu "$uid") || continue
+    runuser -u "$user" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+      notify-send -u "$urgency" -i system-file-manager -a "Thunar update" "Thunar update" "$body" \
+      || log "could not notify $user"
+  done
+}
+
+fail() {
+  log "$1"
+  notify 0 critical "$1 See: journalctl -u thunar-update"
+  exit 1
+}
+
+exec 9>/run/thunar-update.lock
+flock -n 9 || { log "another update is running"; exit 0; }
+
+[[ -r $ETC/token ]] || fail "No token in $ETC/token."
+token=$(<"$ETC/token")
+auth=(-H "Authorization: Bearer $token" -H "X-GitHub-Api-Version: 2022-11-28")
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+
+code=$(curl -sS -o "$work/release.json" -w '%{http_code}' --retry 3 --retry-connrefused --max-time 60 \
+  "${auth[@]}" -H "Accept: application/vnd.github+json" "$API/releases/latest") || code=000
+case $code in
+  200) ;;
+  401|403) fail "GitHub rejected the token in $ETC/token (HTTP $code); it may have expired." ;;
+  000) log "GitHub is unreachable; trying again at the next check"; exit 0 ;;
+  *) fail "Could not read the latest release (HTTP $code)." ;;
+esac
+
+arch=$(dpkg --print-architecture)
+mapfile -t assets < <(python3 - "$work/release.json" "$arch" "${PACKAGES[@]}" <<'PY'
+import json, sys
+release = json.load(open(sys.argv[1]))
+arch, packages = sys.argv[2], sys.argv[3:]
+print(release["tag_name"])
+for package in packages:
+    found = [a for a in release.get("assets", [])
+             if a["name"].startswith(package + "_") and a["name"].endswith(f"_{arch}.deb")]
+    print(f'{found[0]["id"]} {found[0]["url"]}' if len(found) == 1 else "")
+PY
+) || fail "Could not parse the latest release."
+
+tag=${assets[0]:-}
+[[ -n $tag ]] || fail "Could not parse the latest release."
+for i in "${!PACKAGES[@]}"; do
+  [[ -n ${assets[i + 1]:-} ]] || fail "Release $tag has no single ${PACKAGES[i]} $arch deb."
+done
+
+installed=$(dpkg-query -W -f='${Version}' thunar 2>/dev/null || true)
+read -r thunar_id _ <<<"${assets[1]}"
+if [[ -r $STATE/last ]] && [[ "$(<"$STATE/last")" == "$thunar_id $installed" ]]; then
+  exit 0
+fi
+
+download() {
+  curl -fsSL --retry 3 --max-time 600 "${auth[@]}" -H "Accept: application/octet-stream" -o "$2" "$1"
+}
+
+debs=()
+for i in "${!PACKAGES[@]}"; do
+  read -r _ url <<<"${assets[i + 1]}"
+  deb=$work/${PACKAGES[i]}.deb
+  download "$url" "$deb" || fail "Could not download ${PACKAGES[i]} from $tag."
+  [[ $(dpkg-deb -f "$deb" Package) == "${PACKAGES[i]}" ]] || fail "The ${PACKAGES[i]} asset of $tag is another package."
+  debs+=("$deb")
+  if (( i == 0 )); then
+    version=$(dpkg-deb -f "$deb" Version)
+    if [[ $version == "$installed" ]]; then
+      mkdir -p "$STATE" && echo "$thunar_id $installed" >"$STATE/last"
+      log "Thunar $installed is already the latest release ($tag)"
+      exit 0
+    fi
+  elif [[ $(dpkg-deb -f "$deb" Version) != "$version" ]]; then
+    fail "The debs of $tag have different versions."
+  fi
+done
+
+log "installing Thunar $version from $tag over ${installed:-nothing}"
+DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades \
+  -o DPkg::Lock::Timeout=600 -o Dpkg::Options::=--force-confold "${debs[@]}" \
+  || fail "Installing Thunar $version failed."
+
+[[ $(dpkg-query -W -f='${Version}' thunar) == "$version" ]] || fail "Thunar $version did not install."
+mkdir -p "$STATE" && echo "$thunar_id $version" >"$STATE/last"
+log "installed Thunar $version"
+notify 1 normal "Thunar updated to $version; restart Thunar to load it."
