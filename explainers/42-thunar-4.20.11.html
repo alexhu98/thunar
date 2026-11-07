@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #43 Test release</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #43: [test] merge the fake release thunar-4.20.11</h1>
+  <p class="lead" data-k="lead">Branch <code>42-thunar-4.20.11</code> → <code>main</code>, closes #42. A test run of the upstream watcher (#30): this draft PR is closed after its checks and never merged.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: closing the test</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">One merge of the fake upstream tag <code>thunar-4.20.11</code>, made by <code>/upstream-merge --test</code> exactly as a weekly run would merge a real release.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="fake-upstream.sh makes a fake 4.20.11 tag, the watcher merges it on its own branch, and CI checks the PR, which is then closed.">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① The test run</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Fake release</text>
+      <text x="36" y="114" class="m">fake-upstream.sh</text>
+      <text x="36" y="134" class="b">4.20.10 plus a</text>
+      <text x="36" y="154" class="b">version bump</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Check</text>
+      <text x="286" y="114" class="m">check.sh</text>
+      <text x="286" y="134" class="b">new thunar-4.20.11</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Merge the tag</text>
+      <text x="536" y="114" class="b">clean merge,</text>
+      <text x="536" y="134" class="b">fork changes kept</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-merge" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">CI checks</text>
+      <text x="786" y="114" class="b">build, verify,</text>
+      <text x="786" y="134" class="b">review, explainer</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>the test run, in this session</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>CI, as on every PR</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">The watcher from #30 turns each new Xfce release into an issue and a PR. Xfce has no release newer than <code>main</code>'s 4.20.10 yet, so this test gives it a fake one and checks that the whole path, from tag to green PR, works.</p>
+  <div class="note warn" data-k="note">Nothing here is from Xfce: <code>thunar-4.20.11</code> exists only in a local fake repo. This PR is a draft and is closed after its checks.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Fake release.</b> <code>fake-upstream.sh</code> made a local bare repo with upstream's real <code>thunar-4.20.10</code> and a fake <code>thunar-4.20.11</code>: one commit that raises <code>XDT_VERSION_INIT</code> and adds a <code>NEWS</code> line.</li>
+    <li data-k="2"><b>Check.</b> <code>check.sh</code>, pointed at that repo, printed <code>new thunar-4.20.11 (main has 4.20.10)</code>. Step 2 found no release issue or PR in flight, so the run opened #42.</li>
+    <li data-k="3"><b>Merge the tag.</b> On <code>42-thunar-4.20.11</code> from <code>main</code>, the tag merged with no conflicts, in a commit marked <code>Review: suggest</code>. The file-list check matched: every fork change survived.</li>
+    <li data-k="4"><b>CI checks.</b> CI builds the debs as 4.20.11, runs the smoke test and every <code>verify/*.sh</code>, and reviews the PR, as for a real release.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="release">
+  <h3 class="sec">What the release changes</h3>
+<pre data-k="news">4.20.11 (test release, not from Xfce)
+=======
+- Test release for the upstream watcher (#30)</pre>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">NEWS                                    # the fake release's entry, from the merge
+configure.ac                            # XDT_VERSION_INIT 4.20.10 → 4.20.11, from the merge
+explainers/42-thunar-4.20.11.html            # this page
+explainers/42-thunar-4.20.11.narration.json  # its narration</pre>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The run followed the merged <code>upstream-merge</code> skill in this session; CI's results come after the push.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>main</h3><p><code>main</code> after PR #37: upstream's <code>thunar-4.20.10</code> plus the fork's commits.</p></div>
+    <div class="card" data-k="r2"><h3>Upstream's thunar-4.20.10</h3><p>Fetched from <code>gitlab.xfce.org</code> by <code>fake-upstream.sh</code>; the fake tag is built on it.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>A newer release is found</td><td><code>check.sh</code> with <code>UPSTREAM</code> set to the fake repo</td><td class="ok">new thunar-4.20.11</td></tr>
+    <tr data-k="c2"><td>Nothing already in flight</td><td>Step 2's issue and PR searches</td><td class="ok">no release issue or PR</td></tr>
+    <tr data-k="c3"><td>The merge</td><td><code>git merge --no-ff</code> of the fake tag into a branch from <code>main</code></td><td class="ok">clean, no conflicts</td></tr>
+    <tr data-k="c4"><td>Fork changes kept</td><td>Step 4's file-list diff</td><td class="ok">lists match</td></tr>
+    <tr data-k="c5"><td>A build here</td><td>No conflict touched C code, so the skill doesn't ask for one; CI builds it</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>CI's build, verify and review of this PR</td><td>They run on the pushed branch</td><td class="open">on the push</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR: <a href="https://github.com/alexhu98/thunar/pull/43">PR #43</a>; its issue: <a href="https://github.com/alexhu98/thunar/issues/42">#42</a></li>
+    <li data-k="l2">The watcher: <a href="https://github.com/alexhu98/thunar/issues/30">#30</a> and <code>.claude/skills/upstream-merge/</code></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: closing the test</h2>
+  <p class="intro" data-k="intro">When CI has finished, step 8 of the skill closes this test; from then on, the weekly task watches for real releases.</p>
+
+  <section class="sub" id="close">
+  <h3 class="sec">Step 8 (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Close.</b> Close this PR and #42 as completed.</li>
+    <li data-k="2"><b>Clean up.</b> Delete <code>42-thunar-4.20.11</code>, the fake repo and the local ref to the fake tag.</li>
+    <li data-k="3"><b>Report.</b> Post CI's results in #30, which then closes.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="fake"><dt>Fake release</dt><dd>A tag made only for this test; Xfce never released it.</dd></div>
+    <div data-k="draft"><dt>Draft PR</dt><dd>A PR GitHub won't merge until it is marked ready.</dd></div>
+    <div data-k="watcher"><dt>Upstream watcher</dt><dd>The weekly task from #30 that turns new Xfce releases into PRs.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
