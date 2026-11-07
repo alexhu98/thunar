@@ -69,6 +69,7 @@ case $code in
     case $repo in
       200) log "the repo has no published release yet"; exit 0 ;;
       000|429|5??) code=$repo ;;
+      403) code=429 ;;
     esac ;;
   403) grep -qiE '^(x-ratelimit-remaining: 0[[:space:]]|retry-after:)' "$work/headers" && code=429 ;;
 esac
@@ -106,6 +107,12 @@ if [[ -r $STATE/last ]] && [[ "$(<"$STATE/last")" == "$thunar_id $installed" ]];
   exit 0
 fi
 
+held=$(apt-mark showhold "${PACKAGES[@]}")
+if [[ -n $held ]]; then
+  log "not installing $tag: held: ${held//$'\n'/ }"
+  exit 0
+fi
+
 download() {
   curl -fsSL --retry 3 --max-time 600 "${auth[@]}" -H "Accept: application/octet-stream" -o "$2" "$1"
 }
@@ -131,7 +138,7 @@ for i in "${!PACKAGES[@]}"; do
 done
 
 log "installing Thunar $version from $tag over ${installed:-nothing}"
-DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades --allow-change-held-packages \
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-remove --allow-downgrades \
   -o DPkg::Lock::Timeout=600 -o Dpkg::Options::=--force-confold "${debs[@]}" \
   || fail "Installing Thunar $version failed."
 
