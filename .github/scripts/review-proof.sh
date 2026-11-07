@@ -122,8 +122,8 @@ plan() {
   local s
   local -a since=()
   while read -r s; do
-    if [[ -n $s ]] && git cat-file -e "$s^{commit}" 2>/dev/null; then
-      since+=("$(git log --format=%h "$s..$HEAD_SHA" | paste -sd' ')")
+    if [[ -n $s ]] && git cat-file -e "$s^{commit}" 2>/dev/null && git merge-base --is-ancestor "$s" "$HEAD_SHA"; then
+      since+=("$(git log --no-merges --format=%h "$s..$HEAD_SHA" ^"$mb" | paste -sd' ')")
     else
       since+=(-)
     fi
