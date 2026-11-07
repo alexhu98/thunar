@@ -110,6 +110,7 @@ fi
 held=$(apt-mark showhold "${PACKAGES[@]}")
 if [[ -n $held ]]; then
   log "not installing $tag: held: ${held//$'\n'/ }"
+  rm -f "$STATE/failed"
   exit 0
 fi
 
