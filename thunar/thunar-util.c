@@ -1115,8 +1115,10 @@ thunar_util_split_search_query (const gchar *search_query_normalized,
  * @str: The string which the search terms might be found in.
  *
  * All search terms must match. Thunar uses simple substring matching
- * for the broadest multilingual support. @str must be normalized before
- * passing to this function.
+ * for the broadest multilingual support. A term that starts with '!'
+ * and has more after it matches when @str does not contain the rest of
+ * the term. A lone '!' is literal, and a leading '\!' stands for a
+ * literal '!'. @str must be normalized before passing to this function.
  *
  * See also: thunar_g_utf8_normalize_for_search().
  *
@@ -1127,9 +1129,21 @@ gboolean
 thunar_util_search_terms_match (gchar **terms,
                                 gchar  *str)
 {
+  const gchar *term;
+  gboolean     exclude;
+
   for (gint i = 0; terms[i] != NULL; i++)
-    if (g_strrstr (str, terms[i]) == NULL)
-      return FALSE;
+    {
+      term = terms[i];
+      exclude = (term[0] == '!' && term[1] != '\0');
+      if (exclude)
+        term++;
+      else if (term[0] == '\\' && term[1] == '!')
+        term++;
+
+      if ((g_strrstr (str, term) != NULL) == exclude)
+        return FALSE;
+    }
   return TRUE;
 }
 
