@@ -19,7 +19,16 @@ One run handles at most one tag: the newest in `main`'s own series. A run that f
 ## Arguments
 
 - none: the weekly run.
-- `--base <ref> --issue <n>`: a test run. Start from `<ref>` instead of `origin/main`, use the existing issue `<n>` instead of opening one, and title the PR `[test] Merge upstream <tag>`. The test PR is closed after its checks, never merged.
+- `--base <ref> --issue <n>`: a test run. Start from `<ref>` instead of `origin/main`, skip steps 2 and 3 and use the existing issue `<n>`, and title the PR `[test] Merge upstream <tag>`. The test PR is closed after its checks, never merged.
+
+  `<ref>` must be a copy of `main` rebuilt on an older tag, never a plain upstream tag: an upstream tag has none of the fork's files (`.github/`, `.claude/`, `debian/`), so CI and the explainer scripts would be missing and the merge would prove nothing. Build and push one like this:
+
+  ```sh
+  git fetch --no-tags https://gitlab.xfce.org/xfce/thunar.git refs/tags/thunar-4.20.9:refs/upstream-tags/thunar-4.20.9 refs/tags/thunar-4.20.10:refs/upstream-tags/thunar-4.20.10
+  git checkout -b test-base-4.20.9 origin/main
+  git rebase --onto refs/upstream-tags/thunar-4.20.9 refs/upstream-tags/thunar-4.20.10
+  git push -u origin test-base-4.20.9
+  ```
 
 ## 1. Check
 
@@ -39,10 +48,18 @@ A `; upstream also has thunar-4.22.0, a newer stable series` note is reported, n
 ## 2. Already in hand?
 
 ```sh
-gh api -X GET search/issues -f q='repo:alexhu98/thunar in:title "Merge upstream <tag>"' --jq '.items[] | "\(.number) \(.state) \(.pull_request != null) \(.title)"'
+gh api -X GET search/issues -f q='repo:alexhu98/thunar is:issue in:title "Merge upstream <tag>"' \
+  --jq '.items[] | select(.title == "Merge upstream <tag>") | "#\(.number) \(.state)"'
 ```
 
-If an issue or PR for the tag exists, open or closed, report its number and stop. Closing the issue without a PR is how the owner skips a release.
+- A closed issue: report it and stop. Closing the issue is how the owner skips a release.
+- An open issue with a PR titled `Merge upstream <tag>`: report both and stop.
+- An open issue without a PR: an earlier run stopped partway. Report it, then take up the work from step 4 with that issue's number, reusing the branch `<n>-<tag>` if it was pushed.
+
+```sh
+gh api -X GET search/issues -f q='repo:alexhu98/thunar is:pull-request in:title "Merge upstream <tag>"' \
+  --jq '.items[] | select(.title == "Merge upstream <tag>") | "#\(.number) \(.state)"'
+```
 
 ## 3. Open the issue
 
@@ -67,7 +84,7 @@ On conflicts, resolve each file by hand, never with `-X ours` or `-X theirs` for
 - Record every conflict and its resolution for the PR description and the explainer.
 - If a conflict touched C code, build before pushing, as `CLAUDE.md` (Building) says.
 
-Then check that the merge kept the fork's changes and nothing else moved. The two file lists must match, apart from files upstream also changed:
+Then check that the merge kept the fork's changes and nothing else moved: list the files the fork changes before and after the merge.
 
 ```sh
 old=thunar-$(git show <base>:configure.ac | sed -n 's/^XDT_VERSION_INIT(\[\([0-9.]*\)\].*/\1/p')
@@ -75,9 +92,11 @@ git fetch --no-tags https://gitlab.xfce.org/xfce/thunar.git "refs/tags/$old:refs
 diff <(git diff --name-only "refs/upstream-tags/$old" <base>) <(git diff --name-only "refs/upstream-tags/<tag>" HEAD)
 ```
 
+No output means every fork change survived and nothing else moved. A file only on the left is a fork change upstream adopted, or one the merge lost: compare it with `git diff "refs/upstream-tags/<tag>" HEAD -- <file>` and say which in the PR. A file only on the right is a change the merge made outside the fork's work, which is a mistake to fix.
+
 ## 5. Explainer
 
-Write `explainers/<n>-<tag>.html` and its stamped narration with the `explainer` skill. Part 1 is what the release changes for the owner, from `NEWS` and `git log --oneline <old>..<tag>`, and what the merge did with each conflict. Part 2 is the checks run here: `check.sh`, the merge, the file-list diff, a build if there was one. CI's build, verify and review go under "Checked only after the merge" until they run. Part 3 is the next release, found by next week's run.
+Write `explainers/<n>-<tag>.html` and its stamped narration with the `explainer` skill. Part 1 is what the release changes for the owner, from `NEWS` and `git log --oneline "refs/upstream-tags/$old..refs/upstream-tags/<tag>"`, and what the merge did with each conflict. Part 2 is the checks run here: `check.sh`, the merge, the file-list diff, a build if there was one. CI's build, verify and review go under "Checked only after the merge" until they run. Part 3 is the next release, found by next week's run.
 
 ## 6. Push and open the PR
 
