@@ -76,7 +76,8 @@ saved() {  # folder
 ON_DISK=0
 SKIPPED=
 [[ $(gio info -w "$WORK" 2>/dev/null) == *metadata* ]] && ON_DISK=1
-(( ON_DISK )) || SKIPPED=" (GIO metadata is not writable here, so the on-disk and restart checks were skipped)"
+(( ON_DISK )) || SKIPPED="GIO metadata is not writable here (no gvfs)"
+skipped() { [[ -z $SKIPPED ]] || echo " ($SKIPPED, so the $1 was skipped)"; }
 
 start_thunar() {
   open_thunar "$WORK/top"
@@ -101,7 +102,7 @@ if (( ON_DISK )); then
 fi
 shot "$WID" after-off "With the Include subfolders toggle released, the same search in top lists only match-top.txt"
 results_are off match-top.txt
-pair off "Clicked the Include subfolders toggle beside the search field" "Turning the toggle off re-runs the search in top without its subfolders$SKIPPED" "toggle on, both files" "toggle off, only match-top.txt" "$S"
+pair off "Clicked the Include subfolders toggle beside the search field" "Turning the toggle off re-runs the search in top without its subfolders$(skipped 'on-disk check')" "toggle on, both files" "toggle off, only match-top.txt" "$S"
 
 go "$WORK/other"
 search match
@@ -112,7 +113,7 @@ go "$WORK/top"
 shot "$WID" before-reopen "Back in folder top with no search running (match-top.txt and the sub folder)"
 search match
 shot "$WID" after-reopen "A new search in top comes back with the toggle released and lists only match-top.txt"
-pair reopen "Left top for other, came back and searched for match again" "top remembers its saved choice: subfolders stay off there$SKIPPED" "top, no search" "toggle off again, only match-top.txt" "$R"
+pair reopen "Left top for other, came back and searched for match again" "top remembers its saved choice: subfolders stay off there$(skipped 'restart check')" "top, no search" "toggle off again, only match-top.txt" "$R"
 results_are reopen match-top.txt
 
 if (( ON_DISK )); then
@@ -136,7 +137,7 @@ if (( ON_DISK )); then
 fi
 search match
 shot "$WID" after-clear "After Clear Saved Folder View Settings, a search in top follows the global default again: the toggle is pressed and both files are listed"
-pair clear "Chose View > Clear Saved Folder View Settings, then searched top for match" "Clearing the folder's saved view settings also clears its Include subfolders choice$SKIPPED" "top saved off, View menu open" "default again: toggle on, both files" "$R"
+pair clear "Chose View > Clear Saved Folder View Settings, then searched top for match" "Clearing the folder's saved view settings also clears its Include subfolders choice$(skipped 'on-disk check')" "top saved off, View menu open" "default again: toggle on, both files" "$R"
 results_are clear match-sub.txt match-top.txt
 
 go "$WORK/top"
@@ -150,4 +151,4 @@ shot "$WID" after-typed "Clicking the toggle re-runs the hand-typed search in to
 pair typed "Clicked the Include subfolders toggle with the hand-typed search showing" "The toggle also re-runs a search typed by hand into the location bar" "typed search, toggle on, both files" "toggle off, only match-top.txt" "$T"
 results_are typed match-top.txt
 
-[[ -z $SKIPPED ]] || echo "note:$SKIPPED" >&2
+(( ON_DISK )) || echo "note: $SKIPPED, so the on-disk and restart checks were skipped" >&2
