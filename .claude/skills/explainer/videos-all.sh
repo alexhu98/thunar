@@ -1,22 +1,28 @@
 #!/bin/bash
 # Renders the video of every narrated explainer on main and on every <digits>-<slug> branch into one gallery folder.
 # Local only, never in CI: make-video.py render needs Kokoro.
-#   videos-all.sh [--only <n>] [--branch <name>] [--open-prs] [--dry-run] [--gallery <dir>]
+#   videos-all.sh [--only <n>] [--branch <name>] [--open-prs] [--dry-run] [--no-copy] [--gallery <dir>]
 #   --only <n>       decide and render only explainer <n>
 #   --branch <name>  take pages only from main and that branch, and render only that branch's
 #   --open-prs       take pages only from main and the branches of open PRs into main (needs gh)
-#   --dry-run        report what would be rendered, render nothing
+#   --dry-run        report what would be rendered, render nothing, copy nothing
+#   --no-copy        don't copy the current videos into the checkout's explainers/
 #   --gallery <dir>  the gallery worktree, default $GALLERY or ~/thunar-explainers
 # Env: MAKE_VIDEO replaces the gallery's make-video.py (same arguments: status|render <n>); it must act on the
 #      gallery's explainers/, e.g. by calling the gallery's make-video.py.
+#      CHROME is passed to make-video.py; when unset, status uses the newest Playwright headless shell, if any, and
+#      render uses google-chrome.
 # The gallery is a linked git worktree detached at origin/main that this script created and marked, never the checkout
 # the script runs from. Pages and narrations are copied into its explainers/ with git show. A branch provides the
 # explainer files it changed since it left main, in a version main has never had; for each issue it provides, its page
 # and narration both come from that branch. The issue's own <n>-<slug> branch wins over other branches; two <n>-<slug>
-# branches, or two other branches and no own one, are a conflict: reported, not rendered. A page is rendered only when
-# its page and narration hashes differ from <stem>.mp4.sha, which also holds a hash of make-video.py and the
-# pronunciation table.
-# Writes SOURCES.tsv (page, branch, commit) and REPORT.tsv (page, branch, commit, result) in the gallery's explainers/.
+# branches, or two other branches and no own one, are a conflict: reported, not rendered. A page whose <stem>.mp4 exists
+# and whose page and narration hashes equal those in <stem>.mp4.sha, which also holds a hash of make-video.py and the
+# pronunciation table, is skipped without running status. Any other narrated page runs status (retried with
+# google-chrome if make-video.py stopped with an error on the headless shell) and, if it passes and not under
+# --dry-run, render.
+# Writes SOURCES.tsv (page, branch, commit) and REPORT.tsv (page, branch, commit, result, copied) in the gallery's
+# explainers/, and copies each skipped or rendered video that differs into the checkout's explainers/.
 set -euo pipefail
 
 table() {
@@ -25,13 +31,14 @@ table() {
 }
 
 main() {
-  local only='' branch='' open_prs=0 dry=0 gallery=${GALLERY:-$HOME/thunar-explainers}
+  local only='' branch='' open_prs=0 dry=0 to_checkout=1 gallery=${GALLERY:-$HOME/thunar-explainers}
   while (( $# )); do
     case $1 in
       --only) only=${2:?--only needs an issue number}; shift ;;
       --branch) branch=${2:?--branch needs a branch name}; shift ;;
       --open-prs) open_prs=1 ;;
       --dry-run) dry=1 ;;
+      --no-copy) to_checkout=0 ;;
       --gallery) gallery=${2:?--gallery needs a folder}; shift ;;
       -h|--help) awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; return 0 ;;
       *) echo "videos-all: unknown option $1 (see --help)" >&2; return 2 ;;
@@ -164,19 +171,25 @@ main() {
   echo "== decide"
   local mv=${MAKE_VIDEO:-$gallery/.claude/skills/explainer/make-video.py}
   local -a rows=()
-  local failed=0 page stem want have result log tool
+  local failed=0 copies=0 out page stem want have result log tool copied probe=${CHROME:-}
+  if [[ -z $probe ]]; then
+    probe=$(printf '%s\n' "${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell \
+              | sort -V | tail -1)
+    [[ -x $probe ]] || probe=google-chrome
+  fi
+  (( dry )) && to_checkout=0
   tool=$(cat "$gallery/.claude/skills/explainer/make-video.py" <(sed -n '/<!-- say:start -->/,/<!-- say:end -->/p' "$gallery/.claude/skills/explainer/SKILL.md") \
            | sha256sum | cut -d' ' -f1)
   for n in "${issues[@]}"; do
     [[ -z $only || $n == "$only" ]] || continue
     if [[ -n $branch && ${source[$n]:-} != "$branch" ]]; then continue; fi
     if [[ -n ${conflict[$n]:-} ]]; then
-      rows+=("explainers/$n-*"$'\t'"${conflict[$n]// /, }"$'\t'"-"$'\t'"conflict: more than one branch changes it, not rendered")
+      rows+=("explainers/$n-*"$'\t'"${conflict[$n]// /, }"$'\t'"-"$'\t'"conflict: more than one branch changes it, not rendered"$'\t'"-")
       continue
     fi
     if ! compgen -G "$dir/$n-*.html" >/dev/null; then
       if compgen -G "$dir/$n-*.narration.json" >/dev/null; then
-        rows+=("explainers/$n-*"$'\t'"${source[$n]:-main}"$'\t'"-"$'\t'"a narration but no page, not rendered")
+        rows+=("explainers/$n-*"$'\t'"${source[$n]:-main}"$'\t'"-"$'\t'"a narration but no page, not rendered"$'\t'"-")
       fi
       continue
     fi
@@ -184,27 +197,39 @@ main() {
       stem=${page%.html}
       page=explainers/$(basename "$page")
       log=$stem.log
+      copied=-
       if [[ ! -e $stem.narration.json ]]; then
         result='needs narration'
-      elif ! "$mv" status "$n" > "$log" 2>&1; then
-        result="needs re-narration (status: $({ grep -m1 -E '^  |make-video:' "$log" || head -1 "$log"; } | sed 's/^ *//' | cut -c1-80))"
       else
         want="$(sha256sum < "$stem.html" | cut -d' ' -f1) $(sha256sum < "$stem.narration.json" | cut -d' ' -f1) $tool"
         have=$(cat "$stem.mp4.sha" 2>/dev/null || true)
         if [[ -e $stem.mp4 && $have == "$want" ]]; then
           result=skipped
+        elif ! CHROME=$probe "$mv" status "$n" > "$log" 2>&1 \
+             && ! { [[ $probe != "${CHROME:-google-chrome}" ]] && grep -q '^make-video:' "$log" \
+                    && echo "== retry with ${CHROME:-google-chrome}" >> "$log" \
+                    && CHROME=${CHROME:-google-chrome} "$mv" status "$n" >> "$log" 2>&1 && probe=${CHROME:-google-chrome}; }; then
+          out=$(awk '/^== retry/ { b = ""; next } { b = b $0 "\n" } END { printf "%s", b }' "$log")
+          result="needs re-narration (status: $({ grep -m1 -E '^  |make-video:' <<<"$out" || head -1 <<<"$out"; } | sed 's/^ *//' | cut -c1-80))"
         elif (( dry )); then
           result='would render'
-        elif echo "== $(date -Is) render $n" >> "$log" && "$mv" render "$n" >> "$log" 2>&1 && [[ -s $stem.mp4 ]]; then
+        elif rm -f "$stem.mp4.sha" && echo "== $(date -Is) render $n" >> "$log" && CHROME=${CHROME:-google-chrome} "$mv" render "$n" >> "$log" 2>&1 && [[ -s $stem.mp4 ]]; then
           echo "$want" > "$stem.mp4.sha"
           result=rendered
         else
           result="failed (log: $log)"
           failed=1
         fi
+        if (( to_checkout )) && [[ $result == skipped || $result == rendered ]] && ! cmp -s "$stem.mp4" "$repo/${page%.html}.mp4"; then
+          if cp -p "$stem.mp4" "$repo/${page%.html}.mp4.tmp" && mv "$repo/${page%.html}.mp4.tmp" "$repo/${page%.html}.mp4"; then
+            copied=yes; copies=$((copies + 1))
+          else
+            rm -f "$repo/${page%.html}.mp4.tmp"; copied=failed; failed=1
+          fi
+        fi
       fi
       echo "  $page: $result"
-      rows+=("$page"$'\t'"${page_ref[$page]:-main}"$'\t'"${page_sha[$page]:-$main_sha}"$'\t'"$result")
+      rows+=("$page"$'\t'"${page_ref[$page]:-main}"$'\t'"${page_sha[$page]:-$main_sha}"$'\t'"$result"$'\t'"$copied")
     done
   done
 
@@ -214,12 +239,13 @@ main() {
     else
       result="provides #$(printf '%s\n' "${!claim[@]}" | sort -n | paste -sd' ' | sed 's/ /, #/g'), not #$only"
     fi
-    rows+=("-"$'\t'"$branch"$'\t'"$(git rev-parse --short=12 "origin/$branch")"$'\t'"$result")
+    rows+=("-"$'\t'"$branch"$'\t'"$(git rev-parse --short=12 "origin/$branch")"$'\t'"$result"$'\t'"-")
   fi
   echo "== report"
-  { printf 'page\tbranch\tcommit\tresult\n'; (( ${#rows[@]} == 0 )) || printf '%s\n' "${rows[@]}"; } > "$dir/REPORT.tsv"
+  { printf 'page\tbranch\tcommit\tresult\tcopied\n'; (( ${#rows[@]} == 0 )) || printf '%s\n' "${rows[@]}"; } > "$dir/REPORT.tsv"
   table "$dir/REPORT.tsv"
   echo "videos and reports: $dir"
+  (( copies == 0 )) || echo "videos copied to: $repo/explainers"
   return "$failed"
 }
 

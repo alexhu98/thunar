@@ -130,6 +130,8 @@ def decide(state_p, inp, out, sha, commit, mins, run_url, result):
             elif p.get('resolved'):
                 f['status'], f['new'] = 'resolved', True
                 f['detail'] = f"resolved by {sha[:12]}" + (f": {cap(p['note'])}" if p.get('note') else '')
+            elif p.get('note'):
+                f['detail'] = f"still open at {sha[:12]}: {cap(p['note'])}"
         for f in findings:
             if f['status'] in OPEN and f['verdict'] != 'CONFIRMED' and not f.get('new'):
                 f['status'] = 'unconfirmed'

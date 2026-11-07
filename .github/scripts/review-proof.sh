@@ -3,7 +3,7 @@
 #   plan     before the review: picks the mode from the head commit's Review: trailer, waits (up to 30 min) until
 #            earlier runs on the branch have written their review state, skips when the head was already reviewed
 #            or only explainers/ changed since the last reviewed commit, and writes the diff, the issue, the open
-#            and accepted findings and the prompt to $OUT. Prints its decisions as key=value lines for $GITHUB_OUTPUT.
+#            findings with the commits since each was found, the accepted findings and the prompt to $OUT. Prints its decisions as key=value lines for $GITHUB_OUTPUT.
 #   collect  after the review: saves the findings ($FINDINGS, the action's structured_output) and the working-tree
 #            fix as a patch, for the report job.
 #   report   in a separate job holding the push token: commits and pushes the fix as claude[bot], posts the other
@@ -119,6 +119,18 @@ plan() {
   git diff "$from" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/diff.patch"
   (( full )) || git diff "$mb" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/pr.patch"
   open_findings
+  local s
+  local -a since=()
+  while read -r s; do
+    if [[ -n $s ]] && git cat-file -e "$s^{commit}" 2>/dev/null && git merge-base --is-ancestor "$s" "$HEAD_SHA"; then
+      since+=("$(git log --no-merges --format=%h "$s..$HEAD_SHA" ^"$mb" | paste -sd' ')")
+    else
+      since+=(-)
+    fi
+  done < <(jq -r '.[] | .sha // ""' "$OUT/open.json")
+  printf '%s\n' "${since[@]}" | jq -R 'if . == "-" then null else split(" ") - [""] end' > "$OUT/since.json"
+  jq --slurpfile c "$OUT/since.json" '[to_entries[] | .value + {commits_since: $c[.key]}]' "$OUT/open.json" > "$OUT/open.tmp"
+  mv "$OUT/open.tmp" "$OUT/open.json"
   if (( skip )); then
     : > "$OUT/issue.md"
   elif [[ ${HEAD_REF:-} =~ ^([0-9]+)- ]]; then
@@ -179,8 +191,8 @@ history from the session that wrote it.
 EOF
   if [[ $1 == auto-fix ]]; then
     cat <<EOF
-3. Fix each CONFIRMED finding in the working tree, and each finding in $OUT/open.json that a fresh agent, as in step 2,
-   confirms is still there at HEAD. Change no code for a PLAUSIBLE one or one in $OUT/accepted.json. Don't stage,
+3. Fix each CONFIRMED finding in the working tree, and each finding in $OUT/open.json that its step 4 agent, run
+   before this step, finds still there at HEAD. Change no code for a PLAUSIBLE one or one in $OUT/accepted.json. Don't stage,
    commit, push or switch branches. The fix leaves out every change under ${skip%, },
    so check that before making any edit for a finding. Set fixed to false for one whose fix needs it, make none of its
    edits and create no file for it, and undo any of its edits already made. Set fixed to true only if
@@ -195,9 +207,15 @@ EOF
 EOF
   fi
   cat <<EOF
-4. $OUT/open.json lists findings from earlier reviews that are still open. For each, check the code at HEAD and report
-   in previous whether it is resolved, by its id. If you fixed it in step 3, set fixed to true, resolved to false, and
-   give its file, files if the fix changed more, and its line, start_line and suggestion as in step 3.
+4. $OUT/open.json lists findings from earlier reviews that are still open, each with commits_since: the branch's own
+   commits since it was found, without merges, or null when its commit is no longer in the history. This step is not
+   limited to the diff under review: give each open finding to one fresh general-purpose Agent (all at once, in
+   parallel), as in step 2, that reads with \`git show HEAD:<path>\` the finding's file and the code its claim
+   depends on, looks at the commits in commits_since, which may have fixed it in another file, and decides from the
+   code at HEAD alone whether it is resolved. "Not changed in this diff" is never a reason to keep a finding open.
+   Report in previous whether each is resolved, by its id, with a note naming the code at HEAD that resolves it or
+   still shows it. If you fixed it in step 3, set fixed to true, resolved to false, and give its file, files if the
+   fix changed more, and its line, start_line and suggestion as in step 3.
 5. Return the findings and previous in the output schema. Report every finding the skill reported, except one
    already listed in open.json: report that one only in previous. Leave out any finding that matches one in
    $OUT/accepted.json: the PR's author kept those on purpose.

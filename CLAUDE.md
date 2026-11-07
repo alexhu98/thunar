@@ -5,6 +5,7 @@
 - In a cloud session, ignore the `claude/…` branch the session is assigned. Once the issue is known, create `<issue>-<short-slug>` from `origin/main`, and push and open the PR from it.
 - Never push to the `upstream` remote. Never touch `master` or `xfce-4.20`: they mirror upstream.
 - The owner merges, and only when the build and verify jobs are green and the screenshots are reviewed.
+- After opening a PR or pushing to one, watch it without asking (subscribe to its activity where the session can), and act on its CI results and reviews.
 
 ## Working with the owner
 - When a turn is blocked on the owner or its next step needs them, end it with a short multiple-choice "**What I need from you**" section they can answer with one number or letter. Otherwise omit it entirely, with no "Nothing needed from you" line.
