@@ -280,6 +280,7 @@ explainers/30-upstream-watcher.narration.json  # its narration</pre>
     <tr data-k="c3"><td>Newer series reported, dev tags ignored</td><td><code>check.sh</code> against a local fake upstream with <code>thunar-4.22.0</code> and <code>thunar-4.23.1</code></td><td class="ok">reports 4.22.0 only</td></tr>
     <tr data-k="c4"><td>Upstream unreachable</td><td><code>check.sh</code> with a URL that doesn't exist</td><td class="ok">exit 128, error shown</td></tr>
     <tr data-k="c5"><td>The merge step works</td><td>Step 4 by hand on the 4.20.9-based copy: merge <code>thunar-4.20.10</code>, then the file-list check</td><td class="ok">clean merge, lists match, tree same as main</td></tr>
+    <tr data-k="c8"><td>The test path works</td><td>Pushed <code>test-upstream-4.20.11</code>, then step 4 by hand: merge it into <code>main</code> with <code>Review: suggest</code>, the file-list check, and the diff from <code>main</code></td><td class="ok">lists match; diff is NEWS and configure.ac only</td></tr>
     <tr data-k="c6"><td>The duplicate search works</td><td>Step 2's <code>gh api search/issues</code> query, run for an existing title</td><td class="ok">finds #30</td></tr>
     <tr data-k="c7"><td>A full run: issue, branch, explainer, PR</td><td>It opens a real issue and PR, so it is the test run after the merge (Part 3)</td><td class="no">not run</td></tr>
   </table>
@@ -295,7 +296,7 @@ explainers/30-upstream-watcher.narration.json  # its narration</pre>
     <li data-k="b3"><b>Release notes (low):</b> the <code>git log</code> range named tags that aren't fetched under those names; it now uses the fetched refs.</li>
     <li data-k="b4"><b>File-list check (low):</b> the step now says how to read a difference, since upstream adopting a fork change is normal.</li>
     <li data-k="b5"><b>Duplicate search (found here):</b> GitHub refused the query without <code>is:issue</code>, with HTTP 422; it now passes and filters on the exact title.</li>
-    <li data-k="b6"><b>CI's review (12 findings):</b> four rounds, 40 findings. The release merge now carries <code>Review: suggest</code> and accepts findings in upstream's code, only one release is in flight at a time, both tags are fetched in step 1, and pulls keep the merge. The test-run layout is still open with you.</li>
+    <li data-k="b6"><b>CI's review (12 findings):</b> four rounds, 40 findings. The release merge now carries <code>Review: suggest</code> and accepts findings in upstream's code, only one release is in flight at a time, both tags are fetched in step 1, and pulls keep the merge. The test now merges a fake 4.20.11 release into <code>main</code>, so its PR shows two small changes rather than the whole fork.</li>
   </ul>
   </section>
 
@@ -305,7 +306,7 @@ explainers/30-upstream-watcher.narration.json  # its narration</pre>
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
     <tr data-k="a1"><td>The weekly scheduled task, first reporting "none"</td><td>A scheduled session starts from <code>main</code>, which has no skill until this merges</td><td class="open">first weekly run</td></tr>
-    <tr data-k="a2"><td>A test PR that merges <code>thunar-4.20.10</code> into a 4.20.9-based copy of <code>main</code>, with green checks</td><td>The copy must include this skill, so it is built from <code>main</code> after the merge</td><td class="open">after the merge</td></tr>
+    <tr data-k="a2"><td>A test PR that merges the fake release <code>test-upstream-4.20.11</code> into <code>main</code>, with green checks</td><td>The run follows the skill from <code>main</code>, which has it only after this merge</td><td class="open">after the merge</td></tr>
   </table>
   </div>
   </section>
@@ -353,7 +354,7 @@ explainers/30-upstream-watcher.narration.json  # its narration</pre>
       <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
       <text x="536" y="90" class="t">Schedule, test</text>
       <text x="536" y="114" class="b">weekly task; a test</text>
-      <text x="536" y="134" class="b">PR for 4.20.10</text>
+      <text x="536" y="134" class="b">PR for a fake 4.20.11</text>
     </g>
     <g data-k="n4">
       <rect class="box-future" x="770" y="60" width="210" height="120" rx="10"/>
@@ -378,7 +379,7 @@ explainers/30-upstream-watcher.narration.json  # its narration</pre>
   <div class="panel">
   <ol class="steps">
     <li data-k="1"><b>The weekly schedule.</b> A scheduled task on claude.ai starts a fresh cloud session each week in this environment, which already allows <code>gitlab.xfce.org</code>, and runs <code>/upstream-merge</code>. Its first run should report "none".</li>
-    <li data-k="2"><b>A test run.</b> <code>/upstream-merge --base &lt;branch&gt;</code> from a pushed copy of <code>main</code> rebuilt on an older release. It opens a <code>[test]</code> issue and PR, which should get green checks and are then closed, never merged.</li>
+    <li data-k="2"><b>A test run.</b> <code>/upstream-merge --test test-upstream-4.20.11</code> merges a fake release into <code>main</code>: the branch is <code>thunar-4.20.10</code> plus one commit that only raises the version to 4.20.11 and adds a <code>NEWS</code> line. Its <code>[test]</code> issue and PR should get green checks, then are closed, never merged.</li>
     <li data-k="3"><b>Writing it down.</b> How to pause or remove the schedule goes into #30, which then closes.</li>
     <li data-k="4"><b>Each real release.</b> From then on, a new 4.20 tag arrives within a week as an issue and a PR, for you to check and merge.</li>
   </ol>

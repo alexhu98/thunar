@@ -1,6 +1,6 @@
 ---
 name: upstream-merge
-description: The weekly upstream watcher (#30). Checks gitlab.xfce.org for a Thunar release tag newer than main's; when there is one, opens an issue for it and a PR that merges the tag into main, with its explainer. Run by the weekly scheduled task, or by hand as "/upstream-merge", or "/upstream-merge --base <branch>" for a test run from an older base.
+description: The weekly upstream watcher (#30). Checks gitlab.xfce.org for a Thunar release tag newer than main's; when there is one, opens an issue for it and a PR that merges the tag into main, with its explainer. Run by the weekly scheduled task, or by hand as "/upstream-merge", or "/upstream-merge --test <branch>" for a test run that merges a fake release from a branch.
 ---
 
 # Upstream merge
@@ -9,7 +9,7 @@ Thunar's upstream tags each release as `thunar-<major>.<minor>.<n>` at `https://
 
 One run handles at most one tag: the newest in `main`'s own series. A run that finds nothing new says so in one line and ends.
 
-Below, `<base>` is `origin/main` (or `origin/<branch>` in a test run), `<tag>` is the new tag (`thunar-4.20.11`), `<old>` is the base's release (`thunar-4.20.10`), `<n>` is the release's issue, and `<title>` is `Merge upstream <tag>`, or `[test] Merge upstream <tag>` in a test run. Write them out literally in every command: shell variables don't survive between commands.
+Below, `<base>` is `origin/main`, `<tag>` is the new tag (`thunar-4.20.11`), `<old>` is the base's release (`thunar-4.20.10`), `<n>` is the release's issue, and `<title>` is `Merge upstream <tag>`, or `[test] Merge upstream <tag>` in a test run. Write them out literally in every command: shell variables don't survive between commands.
 
 ## Rules
 
@@ -24,11 +24,16 @@ Below, `<base>` is `origin/main` (or `origin/<branch>` in a test run), `<tag>` i
 ## Arguments
 
 - none: the weekly run.
-- `--base <branch>`: a test run from a pushed branch of this repo that is `main` rebuilt on an older release, never a plain upstream tag (an upstream tag has none of the fork's files, so CI and the explainer scripts would be missing). Its issue and PR are titled with the `[test]` prefix, and both are closed after the checks, never merged.
+- `--test <branch>`: a test run. `<branch>` is a pushed branch of this repo holding a fake release: upstream's newest tag plus one commit that only raises `XDT_VERSION_INIT` and adds a `NEWS` entry, such as `test-upstream-4.20.11`. The run merges it into `main` like a real release, so the PR shows only that commit and the explainer, and CI builds and checks it. Its issue and PR are titled with the `[test]` prefix, and both are closed after the checks, never merged; the branch is deleted then. To make a fake release:
+
+  ```sh
+  git fetch --no-tags https://gitlab.xfce.org/xfce/thunar.git refs/tags/<old>:refs/upstream-tags/<old>
+  git checkout --detach refs/upstream-tags/<old>
+  ```
+
+  Raise the version in `configure.ac`, add a `<tag> (test release, not from Xfce)` section at the top of `NEWS`, commit, and `git push origin HEAD:refs/heads/test-upstream-<version>`.
 
 ## 1. Check
-
-A test run first fetches its branch: `git fetch origin <branch>`.
 
 ```sh
 git fetch origin main
@@ -41,9 +46,11 @@ git fetch origin main
 - `new thunar-4.20.11 (main has 4.20.10)`: go on, with `<tag>` = `thunar-4.20.11` and `<old>` = `thunar-4.20.10`.
 - a non-zero exit: report the error and stop. `CONNECT tunnel failed, response 403` means `gitlab.xfce.org` is missing from the environment's allowed domains; say so.
 
+A test run skips `check.sh`: `<tag>` is `thunar-` plus the version in `git show origin/<branch>:configure.ac`, after `git fetch origin <branch>`, and `<old>` is `main`'s release.
+
 A `; upstream also has thunar-4.22.0, a newer stable series` note is reported, never acted on: a new series needs new Xfce libraries from the PPA, which is the owner's decision.
 
-Then fetch both releases, outside `refs/tags`:
+Then fetch both releases, outside `refs/tags`. A test run fetches only `<old>` that way, and `<tag>` from its branch: `git fetch origin "<branch>:refs/upstream-tags/<tag>"`.
 
 ```sh
 git fetch --no-tags https://gitlab.xfce.org/xfce/thunar.git "refs/tags/<old>:refs/upstream-tags/<old>" "refs/tags/<tag>:refs/upstream-tags/<tag>"
@@ -58,7 +65,7 @@ gh api --paginate -X GET search/issues -f per_page=100 -f q='repo:alexhu98/thuna
   --jq '.items[] | select(.title | test("^(\\[test\\] )?Merge upstream thunar-")) | "#\(.number) \(.title)"'
 ```
 
-Look only at titles of this run's kind, with `[test] ` in a test run and without it otherwise:
+Look only at titles of this run's kind, with `[test] ` in a test run and without it otherwise. A test run looks only at open ones:
 - Any open issue or PR, for any tag: report `waiting: #<n> is open` and stop. One release is in flight at a time, and a run never takes over another run's issue or branch. The owner merges it, or closes it.
 - An issue titled `<title>` closed as not planned (weekly runs only): report `skipped: #<n> was closed as not planned` and stop. That is how the owner skips a release.
 - Otherwise go on. An issue closed any other way without a merged PR, such as one a failed run left behind, doesn't block: the release gets a new issue and branch.
