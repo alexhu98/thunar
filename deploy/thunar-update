@@ -27,8 +27,16 @@ notify() {
 
 fail() {
   log "$1"
-  notify 0 critical "$1 See: journalctl -u thunar-update"
+  if [[ $(cat "$STATE/failed" 2>/dev/null) != "$1" ]]; then
+    notify 0 critical "$1 See: journalctl -u thunar-update"
+    mkdir -p "$STATE" && echo "$1" >"$STATE/failed"
+  fi
   exit 1
+}
+
+succeed() {
+  mkdir -p "$STATE" && echo "$1" >"$STATE/last"
+  rm -f "$STATE/failed"
 }
 
 exec 9>/run/thunar-update.lock
@@ -45,7 +53,7 @@ code=$(curl -sS -o "$work/release.json" -w '%{http_code}' --retry 3 --retry-conn
   "${auth[@]}" -H "Accept: application/vnd.github+json" "$API/releases/latest") || code=000
 case $code in
   200) ;;
-  401|403) fail "GitHub rejected the token in $ETC/token (HTTP $code); it may have expired." ;;
+  401|403|404) fail "GitHub rejected the token in $ETC/token or it has no access to the repo (HTTP $code); it may have expired." ;;
   000) log "GitHub is unreachable; trying again at the next check"; exit 0 ;;
   *) fail "Could not read the latest release (HTTP $code)." ;;
 esac
@@ -72,6 +80,7 @@ done
 installed=$(dpkg-query -W -f='${Version}' thunar 2>/dev/null || true)
 read -r thunar_id _ <<<"${assets[1]}"
 if [[ -r $STATE/last ]] && [[ "$(<"$STATE/last")" == "$thunar_id $installed" ]]; then
+  rm -f "$STATE/failed"
   exit 0
 fi
 
@@ -89,7 +98,7 @@ for i in "${!PACKAGES[@]}"; do
   if (( i == 0 )); then
     version=$(dpkg-deb -f "$deb" Version)
     if [[ $version == "$installed" ]]; then
-      mkdir -p "$STATE" && echo "$thunar_id $installed" >"$STATE/last"
+      succeed "$thunar_id $installed"
       log "Thunar $installed is already the latest release ($tag)"
       exit 0
     fi
@@ -104,6 +113,6 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades \
   || fail "Installing Thunar $version failed."
 
 [[ $(dpkg-query -W -f='${Version}' thunar) == "$version" ]] || fail "Thunar $version did not install."
-mkdir -p "$STATE" && echo "$thunar_id $version" >"$STATE/last"
+succeed "$thunar_id $version"
 log "installed Thunar $version"
 notify 1 normal "Thunar updated to $version; restart Thunar to load it."
