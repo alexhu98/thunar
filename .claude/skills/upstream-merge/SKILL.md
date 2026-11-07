@@ -16,9 +16,9 @@ Below, `<base>` is `origin/main` (or `origin/<branch>` in a test run), `<tag>` i
 - Merge the git tag, never a release tarball.
 - Never push to the `upstream` remote, `master` or `xfce-4.20`, and never push tags. Push only the release's branch.
 - Never edit `debian/changelog` or the version: CI stamps `<new>-1~bpo24.04+local<N>` from `configure.ac`.
-- The last commit of every push that changes more than `explainers/` carries the trailer `Review: suggest`, so CI's review suggests changes instead of committing edits to upstream's code. A push of explainer commits alone carries no trailer, so it doesn't force a re-review.
-- Before each push, `git pull --rebase=merges`, never a plain `--rebase`, which would flatten the merge.
-- CI's findings in upstream's own code aren't fixed in the fork. Close each one with a `Review-accept: R<n>` trailer on the next commit, and list them in the PR description.
+- The last commit of every push carries the trailer `Review: suggest`, so CI's review suggests changes instead of committing edits to upstream's code.
+- Before every push after the first, `git pull --rebase=merges`, never a plain `--rebase`, which would flatten the merge.
+- CI's findings in upstream's own code aren't fixed in the fork. Close each one with a `Review-accept: R<n>` trailer on the next commit (an empty commit with `--allow-empty` if nothing else changes), and list them in the PR description.
 - The PR goes into `main`. The owner merges it.
 
 ## Arguments
@@ -28,13 +28,13 @@ Below, `<base>` is `origin/main` (or `origin/<branch>` in a test run), `<tag>` i
 
 ## 1. Check
 
+A test run first fetches its branch: `git fetch origin <branch>`.
+
 ```sh
 git fetch origin main
 [[ $(git rev-parse --is-shallow-repository) == true ]] && git fetch --unshallow origin
 .claude/skills/upstream-merge/check.sh <base>
 ```
-
-A test run also fetches its branch: `git fetch origin main <branch>`.
 
 `check.sh` prints one line:
 - `none (main has 4.20.10, newest upstream thunar-4.20.10)`: report that line and stop.
@@ -52,14 +52,15 @@ git fetch --no-tags https://gitlab.xfce.org/xfce/thunar.git "refs/tags/<old>:ref
 ## 2. Already in hand?
 
 ```sh
-gh api -X GET search/issues -f per_page=100 -f q='repo:alexhu98/thunar is:issue in:title "Merge upstream"' \
+gh api --paginate -X GET search/issues -f per_page=100 -f q='repo:alexhu98/thunar is:issue in:title "Merge upstream"' \
   --jq '.items[] | select(.title | test("^(\\[test\\] )?Merge upstream thunar-")) | "#\(.number) \(.state) \(.title)"'
-gh api -X GET search/issues -f per_page=100 -f q='repo:alexhu98/thunar is:pull-request is:open in:title "Merge upstream"' \
-  --jq '.items[] | "#\(.number) \(.title)"'
+gh api --paginate -X GET search/issues -f per_page=100 -f q='repo:alexhu98/thunar is:pull-request is:open in:title "Merge upstream"' \
+  --jq '.items[] | select(.title | test("^(\\[test\\] )?Merge upstream thunar-")) | "#\(.number) \(.title)"'
 ```
 
 Look only at titles of this run's kind, with `[test] ` in a test run and without it otherwise:
-- Any open issue or PR, for any tag: report `waiting: #<n> is open` and stop. One release is in flight at a time, including one an earlier run left half done: the owner merges it, or closes its issue and PR to drop it.
+- An open PR, or an open issue for another tag: report `waiting: #<n> is open` and stop. One release is in flight at a time: the owner merges it, or closes its issue and PR to drop it.
+- An open issue titled `<title>` and no open PR: an earlier run stopped partway. Report it, skip step 3 and redo the release from step 4 with that issue as `<n>`; if that run pushed `<n>-<tag>`, `git fetch origin <n>-<tag>` and make step 6's push `git push --force-with-lease -u origin <n>-<tag>`, since the branch is the watcher's own and has no PR.
 - A closed issue titled `<title>` (weekly runs only): report `skipped: #<n> was closed` and stop. Closing a release's issue and PR is how the owner skips it.
 - Nothing: go on.
 
@@ -92,7 +93,7 @@ No output means every fork change survived and nothing else moved. A file only o
 
 ## 5. Explainer
 
-Write `explainers/<n>-<tag>.html` and its stamped narration with the `explainer` skill, and commit them with the trailer `Review: suggest`. Part 1 is what the release changes for the owner, from `NEWS` and `git log --oneline refs/upstream-tags/<old>..refs/upstream-tags/<tag>`, and what the merge did with each conflict. Part 2 is the checks run here: `check.sh`, the merge, the file-list diff, a build if there was one. CI's build, verify and review go under "Checked only after the merge" until they run. Part 3 is the next release, found by next week's run.
+Write `explainers/<n>-<tag>.html` and its stamped narration with the `explainer` skill, and commit them with the trailer `Review: suggest`, as the Rules say for the last commit of a push. Part 1 is what the release changes for the owner, from `NEWS` and `git log --oneline refs/upstream-tags/<old>..refs/upstream-tags/<tag>`, and what the merge did with each conflict. Part 2 is the checks run here: `check.sh`, the merge, the file-list diff, a build if there was one. CI's build, verify and review go under "Checked only after the merge" until they run. Part 3 is the next release, found by next week's run.
 
 ## 6. Push and open the PR
 
