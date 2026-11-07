@@ -53,16 +53,15 @@ git fetch --no-tags https://gitlab.xfce.org/xfce/thunar.git "refs/tags/<old>:ref
 
 ```sh
 gh api --paginate -X GET search/issues -f per_page=100 -f q='repo:alexhu98/thunar is:issue in:title "Merge upstream"' \
-  --jq '.items[] | select(.title | test("^(\\[test\\] )?Merge upstream thunar-")) | "#\(.number) \(.state) \(.title)"'
+  --jq '.items[] | select(.title | test("^(\\[test\\] )?Merge upstream thunar-")) | "#\(.number) \(.state) \(.state_reason) \(.title)"'
 gh api --paginate -X GET search/issues -f per_page=100 -f q='repo:alexhu98/thunar is:pull-request is:open in:title "Merge upstream"' \
   --jq '.items[] | select(.title | test("^(\\[test\\] )?Merge upstream thunar-")) | "#\(.number) \(.title)"'
 ```
 
 Look only at titles of this run's kind, with `[test] ` in a test run and without it otherwise:
-- An open PR, or an open issue for another tag: report `waiting: #<n> is open` and stop. One release is in flight at a time: the owner merges it, or closes its issue and PR to drop it.
-- An open issue titled `<title>` and no open PR: an earlier run stopped partway. Report it, skip step 3 and redo the release from step 4 with that issue as `<n>`; if that run pushed `<n>-<tag>`, `git fetch origin <n>-<tag>` and make step 6's push `git push --force-with-lease -u origin <n>-<tag>`, since the branch is the watcher's own and has no PR.
-- A closed issue titled `<title>` (weekly runs only): report `skipped: #<n> was closed` and stop. Closing a release's issue and PR is how the owner skips it.
-- Nothing: go on.
+- Any open issue or PR, for any tag: report `waiting: #<n> is open` and stop. One release is in flight at a time, and a run never takes over another run's issue or branch. The owner merges it, or closes it.
+- An issue titled `<title>` closed as not planned (weekly runs only): report `skipped: #<n> was closed as not planned` and stop. That is how the owner skips a release.
+- Otherwise go on. An issue closed any other way without a merged PR, such as one a failed run left behind, doesn't block: the release gets a new issue and branch.
 
 ## 3. Open the issue
 
@@ -111,4 +110,4 @@ Subscribe to the PR's activity with `subscribe_pr_activity` and follow the rules
 
 ## Report
 
-End with one line: `none (…)`, `waiting: #<n> is open`, `skipped: #<n> was closed`, or `opened #<n> and PR #<pr> for <tag>`, then anything the owner must do in a "**What I need from you**" section.
+End with one line: `none (…)`, `waiting: #<n> is open`, `skipped: #<n> was closed as not planned`, or `opened #<n> and PR #<pr> for <tag>`, then anything the owner must do in a "**What I need from you**" section.
