@@ -14,7 +14,7 @@ Below, `<base>` is `origin/main`, `<tag>` is the new tag (`thunar-4.20.11`), `<o
 ## Rules
 
 - Merge the git tag, never a release tarball.
-- Never push to the `upstream` remote, `master` or `xfce-4.20`, and never push tags. Push only the release's branch.
+- Never push to the `upstream` remote, `master` or `xfce-4.20`, and never push tags. Push only the release's branch, and in a test run its fake-release branch.
 - Never edit `debian/changelog` or the version: CI stamps `<new>-1~bpo24.04+local<N>` from `configure.ac`.
 - The last commit of every push carries the trailer `Review: suggest`, so CI's review suggests changes instead of committing edits to upstream's code.
 - Before every push after the first, `git pull --rebase=merges`, never a plain `--rebase`, which would flatten the merge.
@@ -24,16 +24,18 @@ Below, `<base>` is `origin/main`, `<tag>` is the new tag (`thunar-4.20.11`), `<o
 ## Arguments
 
 - none: the weekly run.
-- `--test <branch>`: a test run. `<branch>` is a pushed branch of this repo holding a fake release: upstream's newest tag plus one commit that only raises `XDT_VERSION_INIT` and adds a `NEWS` entry, such as `test-upstream-4.20.11`. The run merges it into `main` like a real release, so the PR shows only that commit and the explainer, and CI builds and checks it. Its issue and PR are titled with the `[test]` prefix, and both are closed after the checks, never merged; the branch is deleted then. To make a fake release:
+- `--test <branch>`: a test run. `<branch>` is a pushed branch of this repo holding a fake release: `main`'s release tag plus one commit that only raises `XDT_VERSION_INIT` and adds a `NEWS` entry, such as `test-upstream-4.20.11`. The run merges it into `main` like a real release, so the PR shows only that commit and the explainer, and CI builds and checks it. Its issue and PR are titled with the `[test]` prefix, the PR is a draft so it can't be merged by mistake, and step 8 closes both. To make a fake release, in a separate worktree so the session's own checkout stays on `main`:
 
   ```sh
   git fetch --no-tags https://gitlab.xfce.org/xfce/thunar.git refs/tags/<old>:refs/upstream-tags/<old>
-  git checkout --detach refs/upstream-tags/<old>
+  git worktree add --detach ../fake-release refs/upstream-tags/<old>
   ```
 
-  Raise the version in `configure.ac`, add a `<tag> (test release, not from Xfce)` section at the top of `NEWS`, commit, and `git push origin HEAD:refs/heads/test-upstream-<version>`.
+  There, raise the version in `configure.ac`, add a `<version> (test release, not from Xfce)` section at the top of `NEWS`, commit, `git push origin HEAD:refs/heads/test-upstream-<version>`, and remove the worktree.
 
 ## 1. Check
+
+A test run skips `check.sh`: after `git fetch origin main <branch>`, `<tag>` is `thunar-` plus the version in `git show origin/<branch>:configure.ac`, and `<old>` is `main`'s release. It checks that the branch is built on `<old>` (`git merge-base --is-ancestor refs/upstream-tags/<old> origin/<branch>`, after the fetch below) and that `<tag>`'s version is newer, and stops if not.
 
 ```sh
 git fetch origin main
@@ -45,8 +47,6 @@ git fetch origin main
 - `none (main has 4.20.10, newest upstream thunar-4.20.10)`: report that line and stop.
 - `new thunar-4.20.11 (main has 4.20.10)`: go on, with `<tag>` = `thunar-4.20.11` and `<old>` = `thunar-4.20.10`.
 - a non-zero exit: report the error and stop. `CONNECT tunnel failed, response 403` means `gitlab.xfce.org` is missing from the environment's allowed domains; say so.
-
-A test run skips `check.sh`: `<tag>` is `thunar-` plus the version in `git show origin/<branch>:configure.ac`, after `git fetch origin <branch>`, and `<old>` is `main`'s release.
 
 A `; upstream also has thunar-4.22.0, a newer stable series` note is reported, never acted on: a new series needs new Xfce libraries from the PPA, which is the owner's decision.
 
@@ -75,7 +75,7 @@ Look only at titles of this run's kind, with `[test] ` in a test run and without
 
 With the GitHub MCP `issue_write` tool, in `alexhu98/thunar`:
 - Title: `<title>`.
-- Body: the tag and its link, `https://gitlab.xfce.org/xfce/thunar/-/tags/<tag>`; the tag's section of upstream's `NEWS`, from `git show refs/upstream-tags/<tag>:NEWS`; `Refs #30`; and a Done-when list: merged with green checks, screenshots reviewed, the split-view crash check done by hand after installing (`CLAUDE.md`).
+- Body: the tag and its link, `https://gitlab.xfce.org/xfce/thunar/-/tags/<tag>` (in a test run, the fake-release branch's link instead); the tag's section of upstream's `NEWS`, from `git show refs/upstream-tags/<tag>:NEWS`; `Refs #30`; and a Done-when list: merged with green checks, screenshots reviewed, the split-view crash check done by hand after installing (`CLAUDE.md`).
 
 ## 4. Merge
 
@@ -100,7 +100,7 @@ No output means every fork change survived and nothing else moved. A file only o
 
 ## 5. Explainer
 
-Write `explainers/<n>-<tag>.html` and its stamped narration with the `explainer` skill, and commit them with the trailer `Review: suggest`, as the Rules say for the last commit of a push. Part 1 is what the release changes for the owner, from `NEWS` and `git log --oneline refs/upstream-tags/<old>..refs/upstream-tags/<tag>`, and what the merge did with each conflict. Part 2 is the checks run here: `check.sh`, the merge, the file-list diff, a build if there was one. CI's build, verify and review go under "Checked only after the merge" until they run. Part 3 is the next release, found by next week's run.
+Write `explainers/<n>-<tag>.html` and its stamped narration with the `explainer` skill, and commit them with the trailer `Review: suggest`, as the Rules say for the last commit of a push. Part 1 is what the release changes for the owner, from `NEWS` and `git log --oneline refs/upstream-tags/<old>..refs/upstream-tags/<tag>`, and what the merge did with each conflict. Part 2 is the checks run here: `check.sh` (in a test run, "skipped: a fake release"), the merge, the file-list diff, a build if there was one. CI's build, verify and review go under "Checked only after the merge" until they run. Part 3 is the next release, found by next week's run.
 
 ## 6. Push and open the PR
 
@@ -108,13 +108,17 @@ Write `explainers/<n>-<tag>.html` and its stamped narration with the `explainer`
 git push -u origin <n>-<tag>
 ```
 
-With the GitHub MCP `create_pull_request` tool, from `<n>-<tag>` into `main`:
+With the GitHub MCP `create_pull_request` tool, from `<n>-<tag>` into `main`, as a draft in a test run:
 - Title: `<title>`.
 - Body: `Closes #<n>` and `Refs #30`; upstream's `NEWS` section; the conflicts and their resolutions, or "merged cleanly"; that no `verify/<n>.sh` is added because the existing `verify/*.sh` run as the regression suite, with the `# | Shot | Proves` table filled from CI's verify comment once it runs; the split-view crash check left to the owner; and any word in the narration Kokoro may mispronounce.
 
 ## 7. Follow CI
 
 Subscribe to the PR's activity with `subscribe_pr_activity` and follow the rules in its first event. After each verify run, run `/visual-verify pr:<pr>` and post its comment, as `CLAUDE.md` says. Fix only failures the merge caused, following the Rules above. A failure that was already on `main` goes in the report, not in this PR.
+
+## 8. Close a test run
+
+In a test run only, once CI has finished on the PR: close the PR and close its issue as completed, then delete both branches, `git push origin --delete <n>-<tag> <branch>`. Report the PR's check results.
 
 ## For the owner
 

@@ -296,7 +296,7 @@ explainers/30-upstream-watcher.narration.json  # its narration</pre>
     <li data-k="b3"><b>Release notes (low):</b> the <code>git log</code> range named tags that aren't fetched under those names; it now uses the fetched refs.</li>
     <li data-k="b4"><b>File-list check (low):</b> the step now says how to read a difference, since upstream adopting a fork change is normal.</li>
     <li data-k="b5"><b>Duplicate search (found here):</b> GitHub refused the query without <code>is:issue</code>, with HTTP 422; it now passes and filters on the exact title.</li>
-    <li data-k="b6"><b>CI's review (12 findings):</b> five rounds, 48 findings. The release merge now carries <code>Review: suggest</code> and accepts findings in upstream's code, only one release is in flight at a time, both tags are fetched in step 1, and pulls keep the merge. The test now merges a fake 4.20.11 release into <code>main</code>, so its PR shows two small changes rather than the whole fork.</li>
+    <li data-k="b6"><b>CI's review (12 findings):</b> six rounds, 60 findings. The release merge now carries <code>Review: suggest</code> and accepts findings in upstream's code, only one release is in flight at a time, both tags are fetched in step 1, and pulls keep the merge. The test now merges a fake 4.20.11 release into <code>main</code>, so its PR shows two small changes rather than the whole fork.</li>
   </ul>
   </section>
 
@@ -379,7 +379,7 @@ explainers/30-upstream-watcher.narration.json  # its narration</pre>
   <div class="panel">
   <ol class="steps">
     <li data-k="1"><b>The weekly schedule.</b> A scheduled task on claude.ai starts a fresh cloud session each week in this environment, which already allows <code>gitlab.xfce.org</code>, and runs <code>/upstream-merge</code>. Its first run should report "none".</li>
-    <li data-k="2"><b>A test run.</b> <code>/upstream-merge --test test-upstream-4.20.11</code> merges a fake release into <code>main</code>: the branch is <code>thunar-4.20.10</code> plus one commit that only raises the version to 4.20.11 and adds a <code>NEWS</code> line. Its <code>[test]</code> issue and PR should get green checks, then are closed, never merged.</li>
+    <li data-k="2"><b>A test run.</b> <code>/upstream-merge --test test-upstream-4.20.11</code> merges a fake release into <code>main</code>: the branch is <code>thunar-4.20.10</code> plus one commit that only raises the version to 4.20.11 and adds a <code>NEWS</code> line. Its <code>[test]</code> issue and draft PR should get green checks; then the run closes them and deletes both branches.</li>
     <li data-k="3"><b>Writing it down.</b> How to pause or remove the schedule goes into #30, which then closes.</li>
     <li data-k="4"><b>Each real release.</b> From then on, a new 4.20 tag arrives within a week as an issue and a PR, for you to check and merge.</li>
   </ol>
