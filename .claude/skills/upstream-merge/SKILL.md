@@ -44,7 +44,7 @@ A `; upstream also has thunar-4.22.0, a newer stable series` note is reported, n
 Then fetch both releases, outside `refs/tags`:
 
 ```sh
-git fetch --no-tags <upstream> "refs/tags/<old>:refs/upstream-tags/<old>" "+refs/tags/<tag>:refs/upstream-tags/<tag>"
+git fetch --no-tags <upstream> "+refs/tags/<old>:refs/upstream-tags/<old>" "+refs/tags/<tag>:refs/upstream-tags/<tag>"
 ```
 
 ## 2. Already in hand?

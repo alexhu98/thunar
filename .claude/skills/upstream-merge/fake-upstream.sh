@@ -11,8 +11,8 @@ next=${BASH_REMATCH[1]}.$((BASH_REMATCH[2] + 1))
 old=thunar-$have
 tag=thunar-$next
 
-git fetch -q --no-tags "$UPSTREAM" "refs/tags/$old:refs/upstream-tags/$old"
 [[ ! -e $dir || ( -f $dir/HEAD && -d $dir/objects ) ]] || { echo "fake-upstream: $dir exists and is not a bare repo" >&2; exit 1; }
+git fetch -q --no-tags "$UPSTREAM" "+refs/tags/$old:refs/upstream-tags/$old"
 rm -rf "$dir"
 git init -q --bare "$dir"
 wt=$(mktemp -d)
