@@ -21,8 +21,7 @@
 # pronunciation table, is skipped without running status. Any other narrated page runs status (retried with
 # google-chrome if it crashed on the headless shell) and, if it passes and not under --dry-run, render.
 # Writes SOURCES.tsv (page, branch, commit) and REPORT.tsv (page, branch, commit, result, copied) in the gallery's
-# explainers/, and copies each skipped or rendered video into the checkout's explainers/ when the checkout has none
-# or an older, different one; a newer, different one is kept and reported.
+# explainers/, and copies each skipped or rendered video that differs into the checkout's explainers/.
 set -euo pipefail
 
 table() {
@@ -220,9 +219,7 @@ main() {
           failed=1
         fi
         if (( to_checkout )) && [[ $result == skipped || $result == rendered ]] && ! cmp -s "$stem.mp4" "$repo/${page%.html}.mp4"; then
-          if [[ -e $repo/${page%.html}.mp4 && ! $stem.mp4 -nt $repo/${page%.html}.mp4 ]]; then
-            copied='kept: newer'
-          elif cp -p "$stem.mp4" "$repo/${page%.html}.mp4"; then
+          if cp -p "$stem.mp4" "$repo/${page%.html}.mp4"; then
             copied=yes; copies=$((copies + 1))
           else
             copied=failed; failed=1
