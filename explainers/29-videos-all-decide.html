@@ -100,8 +100,8 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">PR #35: faster video runs, videos in your checkout, a clean gallery</h1>
-  <p class="lead" data-k="lead">Branch <code>29-videos-all-decide</code> → <code>main</code>, closes #29, #31 and #32. <code>videos-all.sh</code> skips unchanged pages without starting Chrome, copies every current video into your checkout's <code>explainers/</code>, and its gallery output no longer shows up as changes.</p>
+  <h1 data-k="title">PR #35: faster video runs, videos in your checkout, a clean gallery, fair re-checks in CI review</h1>
+  <p class="lead" data-k="lead">Branch <code>29-videos-all-decide</code> → <code>main</code>, closes #29, #31, #32 and #34. <code>videos-all.sh</code> skips unchanged pages without starting Chrome, copies every current video into your checkout's <code>explainers/</code>, and its gallery output no longer shows up as changes. CI's review now re-checks each open finding against the code at HEAD, so a fix in an earlier commit closes it.</p>
 
   <nav class="parts" aria-label="Parts of this page">
     <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
@@ -114,11 +114,11 @@
   <section class="part" id="adds">
   <p class="part-label" data-k="label">Part 1</p>
   <h2 data-k="heading">What this PR adds</h2>
-  <p class="intro" data-k="intro">Each page is now checked against its last render before anything else runs, finished videos land in your checkout, and the gallery's own files are ignored by git.</p>
+  <p class="intro" data-k="intro">Each page is now checked against its last render before anything else runs, finished videos land in your checkout, the gallery's own files are ignored by git, and CI's review judges open findings by the code at HEAD.</p>
 
   <section class="sub" id="flow">
-  <div class="diagram" role="img" aria-label="Per page: compare hashes; if changed run status with the headless shell, then render; copy current videos to the checkout. Separately, the gitignore hides the gallery's output.">
-  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+  <div class="diagram" role="img" aria-label="Per page: compare hashes; if changed run status with the headless shell, then render; copy current videos to the checkout. Separately, the gitignore hides the gallery's output, and CI's review re-checks each open finding at HEAD.">
+  <svg viewBox="0 0 1000 570" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
         <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
@@ -173,17 +173,37 @@
       <text x="36" y="380" class="b">SOURCES.tsv</text>
       <circle class="badge" cx="210" cy="308" r="12"/><text class="badge-n" x="210" y="312.5" text-anchor="middle">5</text>
     </g>
+
+    <text class="lane" x="20" y="440" style="fill:var(--accent)">③ review-proof.sh — CI review, open findings</text>
+    <g data-k="6">
+      <rect class="box-pr" x="20" y="456" width="210" height="110" rx="10"/>
+      <text x="36" y="486" class="t">List the fixes</text>
+      <text x="36" y="510" class="m">commits_since</text>
+      <text x="36" y="530" class="b">commits that changed</text>
+      <text x="36" y="550" class="b">the finding's file</text>
+      <circle class="badge" cx="210" cy="478" r="12"/><text class="badge-n" x="210" y="482.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-pr" x="270" y="456" width="210" height="110" rx="10"/>
+      <text x="286" y="486" class="t">Check at HEAD</text>
+      <text x="286" y="510" class="b">one fresh agent per</text>
+      <text x="286" y="530" class="b">open finding, not</text>
+      <text x="286" y="550" class="b">just the new diff</text>
+      <circle class="badge" cx="460" cy="478" r="12"/><text class="badge-n" x="460" y="482.5" text-anchor="middle">7</text>
+    </g>
+    <path class="arrow" d="M230,511 H266" marker-end="url(#ah-flow)"/>
   </svg>
   </div>
   <div class="legend">
-    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>happens in the gallery</span>
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>a step the script runs</span>
     <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>what you see in your checkout and in git</span>
   </div>
   </section>
 
   <section class="sub" id="bigpic">
   <h3 class="sec">The big picture</h3>
-  <p data-k="why"><code>videos-all.sh</code> renders every explainer's narrated video into a gallery folder, <code>~/thunar-explainers</code>, a separate git worktree. Three things got in the way: a run with nothing to render still took about 12 s, because every page started Chrome; the videos never reached the checkout you look in; and the gallery's logs and hash files showed up in VS Code as 14 uncommitted changes.</p>
+  <p data-k="why">Most of this PR is about <code>videos-all.sh</code>, which renders every explainer's narrated video into a gallery folder, <code>~/thunar-explainers</code>, a separate git worktree. Three things got in the way: a run with nothing to render still took about 12 s, because every page started Chrome; the videos never reached the checkout you look in; and the gallery's logs and hash files showed up in VS Code as 14 uncommitted changes.</p>
+  <p data-k="why34">Separately, on PR #33 CI's review kept two fixed findings open through two reviews, because it judged them by the latest commits only, and the fix was in an earlier one.</p>
   <div class="note" data-k="note">The <code>.mp4.sha</code> written after a render already hashes everything <code>status</code> reads: the page, the narration, <code>make-video.py</code> and the pronunciation table. So when it matches, <code>status</code> has already passed for exactly these inputs, and running it again tells nothing new.</div>
   </section>
 
@@ -200,6 +220,11 @@
   <div class="lane-h" style="color:var(--merge)">② The gallery stays clean</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
     <li data-k="5"><b>Ignore output.</b> <code>explainers/.gitignore</code> now ignores <code>*.mp4.sha</code>, <code>*.log</code>, <code>REPORT.tsv</code> and <code>SOURCES.tsv</code> next to <code>*.mp4</code>. The two TSVs are named, so a future tracked TSV isn't hidden. The gallery's <code>git clean</code> runs without <code>-x</code>, so ignored files survive its reset, as the videos already did.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--accent)">③ CI review, open findings</div>
+  <ol class="steps" start="6" style="counter-reset: s 5">
+    <li data-k="6"><b>List the fixes.</b> When <code>plan</code> writes <code>open.json</code>, each open finding gets <code>commits_since</code>: the commits that changed its file after it was found. That points the reviewer at the fix.</li>
+    <li data-k="7"><b>Check at HEAD.</b> Step 4 of the review prompt now gives each open finding to a fresh agent, as step 2 does for new ones. It reads the file at HEAD, and "not changed in this diff" is no longer a reason to keep it open. Its note names the code at HEAD that resolves the finding or still shows it.</li>
   </ol>
   </div>
   </section>
@@ -220,7 +245,9 @@
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
-<pre data-k="tree">.claude/skills/explainer/
+<pre data-k="tree">.github/scripts/
+└── review-proof.sh   # commits_since in open.json, step 4 checks at HEAD
+.claude/skills/explainer/
 ├── videos-all.sh     # hash check before status, headless shell for status,
 │                     #   copy into the checkout, --no-copy, copied column
 └── SKILL.md          # decide order, the copy step, --no-copy (say table untouched)
@@ -240,13 +267,14 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Every check ran in the cloud container on a scratch gallery, with the render step replaced by a stub, because rendering needs Kokoro, which is only on your machine.</p>
+  <p class="intro" data-k="intro">Every check ran in the cloud container: the video script on a scratch gallery with rendering stubbed, since it needs Kokoro, and the review change on a scratch repo.</p>
 
   <section class="sub" id="refs">
-  <h3 class="sec">Built on 2 known-good references</h3>
+  <h3 class="sec">Built on 3 known-good references</h3>
   <div class="grid">
     <div class="card" data-k="r1"><h3>The old script on main</h3><p><code>videos-all.sh</code> from <code>origin/main</code>, run on the same gallery, gave the "before" decide time.</p></div>
     <div class="card" data-k="r2"><h3>Your measurements in #29</h3><p>About 1.75 s per unchanged page on your machine, nearly all of it one Chrome start in <code>status</code>.</p></div>
+    <div class="card" data-k="r3"><h3>The PR #33 case in #34</h3><p>R2 and R6 stayed open with "not changed in this diff"; the test repo rebuilds that order of commits.</p></div>
   </div>
   </section>
 
@@ -265,6 +293,8 @@ explainers/
     <tr data-k="c6b"><td>A failed copy is reported</td><td>The checkout's video for #3 made a dangling link, after the review fix</td><td class="ok">copied: failed, the other 7 copied, exit 1</td></tr>
     <tr data-k="c7"><td>Gallery output is ignored</td><td>New <code>.gitignore</code> in the gallery, <code>git status --short --ignored</code></td><td class="ok">8 .log, 8 .mp4.sha, 8 .mp4 and 2 TSVs ignored; tracked files still 17</td></tr>
     <tr data-k="c8"><td>Shell lint</td><td><code>shellcheck</code> 0.11.0 on <code>videos-all.sh</code></td><td class="ok">clean</td></tr>
+    <tr data-k="c10"><td><code>commits_since</code> finds the fix</td><td>The new <code>plan</code> lines, unchanged, on a scratch repo: a finding in A, a fix to A, an unrelated commit to B</td><td class="ok">only the fix to A; [] for a missing file, unknown sha or no open findings</td></tr>
+    <tr data-k="c11"><td>Review prompt</td><td>Rendered <code>prompt()</code> and read step 4; <code>shellcheck</code> on <code>review-proof.sh</code></td><td class="ok">as written; same 7 old warnings as on main, none new</td></tr>
     <tr data-k="c9"><td>A real render</td><td>Needs Kokoro and <code>google-chrome</code>, not in the cloud container</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -287,6 +317,7 @@ explainers/
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
     <tr data-k="a1"><td>The gallery's VS Code changes disappear</td><td>The gallery sits at <code>origin/main</code>, so it gets the new <code>.gitignore</code> only from main</td><td class="open">your first run after the merge</td></tr>
+    <tr data-k="a3"><td>A fixed finding closes in a later incremental review</td><td>Needs CI's real reviewer on a PR whose finding is fixed in an earlier commit than the one reviewed</td><td class="open">the next such PR; this PR's own reviews already use the new prompt</td></tr>
     <tr data-k="a2"><td>Decide time on your machine</td><td>Your <code>google-chrome</code> and Playwright cache aren't in the cloud</td><td class="open">your first run after the merge</td></tr>
   </table>
   </div>
@@ -296,7 +327,7 @@ explainers/
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/35">PR #35</a> → “Files changed”</li>
-    <li data-k="l2">The issues: <a href="https://github.com/alexhu98/thunar/issues/29">#29</a>, <a href="https://github.com/alexhu98/thunar/issues/31">#31</a>, <a href="https://github.com/alexhu98/thunar/issues/32">#32</a></li>
+    <li data-k="l2">The issues: <a href="https://github.com/alexhu98/thunar/issues/29">#29</a>, <a href="https://github.com/alexhu98/thunar/issues/31">#31</a>, <a href="https://github.com/alexhu98/thunar/issues/32">#32</a>, <a href="https://github.com/alexhu98/thunar/issues/34">#34</a></li>
   </ul>
   </section>
   </section>
@@ -368,6 +399,8 @@ explainers/
     <div data-k="status"><dt>status</dt><dd><code>make-video.py status</code>: loads the page in Chrome to check the narration still matches it.</dd></div>
     <div data-k="shell"><dt>Headless shell</dt><dd>Playwright's stripped-down Chrome, which starts faster than full Chrome.</dd></div>
     <div data-k="worktree"><dt>Worktree</dt><dd>A second folder checked out from the same git repo.</dd></div>
+    <div data-k="finding"><dt>Open finding</dt><dd>A problem CI's review reported that isn't fixed or accepted yet; medium or high ones fail the job.</dd></div>
+    <div data-k="incr"><dt>Incremental review</dt><dd>A CI review of only the commits since the last reviewed one.</dd></div>
     <div data-k="cmp"><dt>cmp</dt><dd>A command that tells whether two files are byte-for-byte the same.</dd></div>
   </dl>
   </section>
