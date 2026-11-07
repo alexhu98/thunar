@@ -217,7 +217,7 @@
   <div class="lane-h" style="color:var(--accent)">① Every week — the scheduled cloud session</div>
   <ol class="steps">
     <li data-k="1"><b>Check upstream.</b> <code>check.sh</code> reads <code>main</code>'s version from <code>configure.ac</code>, lists upstream's tags with <code>git ls-remote</code>, and prints the newest tag in <code>main</code>'s series that <code>main</code> lacks. With several new tags it picks only the newest. With none, the session reports the one line and ends.</li>
-    <li data-k="2"><b>Already in hand?</b> It searches the repo's <code>Merge upstream</code> issues and PRs. Any open one, for any release, means a release is in flight, so it reports <code>waiting</code> and stops; a run never takes over another run's work. An issue for this tag closed as <i>not planned</i> means you skipped the release. An issue a failed run left behind blocks until you close it; closed any other way, the release gets a new issue and branch next time.</li>
+    <li data-k="2"><b>Already in hand?</b> It searches the repo's <code>Merge upstream</code> issues and PRs. An open PR means a release is in review, so it reports <code>waiting</code> and stops. An open issue with no PR was left by a failed run, so it reports <code>stuck</code> and asks you to clear it; a run never takes over another run's work. An issue for this tag closed as <i>not planned</i> means you skipped the release.</li>
     <li data-k="3"><b>Open an issue.</b> Titled <code>Merge upstream &lt;tag&gt;</code>, with the tag's link, its section of upstream's <code>NEWS</code>, <code>Refs #30</code> and a Done-when list.</li>
     <li data-k="4"><b>Merge the tag.</b> On a new branch <code>&lt;n&gt;-thunar-4.20.x</code> from <code>main</code>, it merges the git tag, never the tarball, in a commit marked <code>Review: suggest</code> so CI's review suggests changes rather than editing upstream's code. Conflicts are resolved file by file, keeping both upstream's fix and the fork's feature, then a file-list check confirms the fork's changes all survived.</li>
     <li data-k="5"><b>Write the explainer.</b> With the <code>explainer</code> skill: what the release changes, how each conflict was resolved, and its stamped narration, which CI requires on every <code>&lt;n&gt;-…</code> branch.</li>
@@ -252,7 +252,7 @@
 └── check.sh      # prints the newest upstream tag main lacks, or none
 explainers/30-upstream-watcher.html            # this page
 explainers/30-upstream-watcher.narration.json  # its narration</pre>
-  <div class="note warn" data-k="undo">To pause the watcher, turn its scheduled task off on claude.ai under Scheduled; to stop it for good, delete the task. To skip one release, close its issue as <i>not planned</i>: the next runs see it and stop. Nothing in <code>main</code>'s code changes, so reverting this PR removes the watcher completely.</div>
+  <div class="note warn" data-k="undo">To pause the watcher, turn its scheduled task off on claude.ai under Scheduled; to stop it for good, delete the task. To skip one release, close its PR and close its issue as <i>not planned</i>. To clear a failed run, close its issue as <i>completed</i>, the default, and the next run starts the release again. Nothing in <code>main</code>'s code changes, so reverting this PR removes the watcher completely.</div>
   </section>
   </section>
 
@@ -292,11 +292,11 @@ explainers/30-upstream-watcher.narration.json  # its narration</pre>
   <p data-k="summary">A fresh <code>general-purpose</code> agent, given only the diff and #30, reviewed the skill and <code>check.sh</code> and ran the script against upstream. It found no bugs in <code>check.sh</code> and 4 problems in <code>SKILL.md</code>, all fixed. A fifth, found while testing here, was fixed first.</p>
   <ul class="tight">
     <li data-k="b1"><b>Test runs (high):</b> a plain upstream tag as the test base has none of the fork's files, so CI would break. The skill now builds a copy of <code>main</code> rebuilt on the older tag.</li>
-    <li data-k="b2"><b>Half-done runs (medium):</b> a run that opened an issue and then failed was treated like a skip. Now only an issue closed as <i>not planned</i> skips a release; any other closed issue lets the next run start the release again.</li>
+    <li data-k="b2"><b>Half-done runs (medium):</b> a run that opened an issue and then failed was treated like a skip. Now it is reported as <code>stuck</code>, the skill says how you clear, skip or un-skip a release, and only an issue closed as <i>not planned</i> skips one.</li>
     <li data-k="b3"><b>Release notes (low):</b> the <code>git log</code> range named tags that aren't fetched under those names; it now uses the fetched refs.</li>
     <li data-k="b4"><b>File-list check (low):</b> the step now says how to read a difference, since upstream adopting a fork change is normal.</li>
     <li data-k="b5"><b>Duplicate search (found here):</b> GitHub refused the query without <code>is:issue</code>, with HTTP 422; it now passes and filters on the exact title.</li>
-    <li data-k="b6"><b>CI's review (12 findings):</b> four rounds, 40 findings. The release merge now carries <code>Review: suggest</code> and accepts findings in upstream's code, only one release is in flight at a time, both tags are fetched in step 1, and pulls keep the merge. The test now merges a fake 4.20.11 release into <code>main</code>, so its PR shows two small changes rather than the whole fork.</li>
+    <li data-k="b6"><b>CI's review (12 findings):</b> five rounds, 48 findings. The release merge now carries <code>Review: suggest</code> and accepts findings in upstream's code, only one release is in flight at a time, both tags are fetched in step 1, and pulls keep the merge. The test now merges a fake 4.20.11 release into <code>main</code>, so its PR shows two small changes rather than the whole fork.</li>
   </ul>
   </section>
 

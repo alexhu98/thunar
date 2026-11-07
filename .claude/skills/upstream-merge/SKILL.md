@@ -66,9 +66,10 @@ gh api --paginate -X GET search/issues -f per_page=100 -f q='repo:alexhu98/thuna
 ```
 
 Look only at titles of this run's kind, with `[test] ` in a test run and without it otherwise. A test run looks only at open ones:
-- Any open issue or PR, for any tag: report `waiting: #<n> is open` and stop. One release is in flight at a time, and a run never takes over another run's issue or branch. The owner merges it, or closes it.
-- An issue titled `<title>` closed as not planned (weekly runs only): report `skipped: #<n> was closed as not planned` and stop. That is how the owner skips a release.
-- Otherwise go on. An issue closed any other way without a merged PR, such as one a failed run left behind, doesn't block: the release gets a new issue and branch.
+- An open PR: report `waiting: PR #<pr> for <its tag> is in review` and stop.
+- An open issue and no open PR: report `stuck: #<n> has no PR`, name its branch if `git ls-remote --heads origin '<n>-*'` shows one, and stop. A failed run left it; ask the owner under "What I need from you" to clear it, as "For the owner" below says. A run never takes over another run's issue or branch, so one release is in flight at a time.
+- An issue titled `<title>` closed as not planned (weekly runs only): report `skipped: #<n> was closed as not planned` and stop.
+- Otherwise go on: a new issue and branch for the release.
 
 ## 3. Open the issue
 
@@ -115,6 +116,12 @@ With the GitHub MCP `create_pull_request` tool, from `<n>-<tag>` into `main`:
 
 Subscribe to the PR's activity with `subscribe_pr_activity` and follow the rules in its first event. After each verify run, run `/visual-verify pr:<pr>` and post its comment, as `CLAUDE.md` says. Fix only failures the merge caused, following the Rules above. A failure that was already on `main` goes in the report, not in this PR.
 
+## For the owner
+
+- **Skip a release:** close its PR, then close its issue as *not planned*. Every later run reports it as skipped.
+- **Clear a failed run:** close its issue as *completed*, the default, and delete its branch if the report named one. The next run starts the release again under a new issue.
+- **Un-skip a release:** reopen its issue, then close it as *completed*.
+
 ## Report
 
-End with one line: `none (…)`, `waiting: #<n> is open`, `skipped: #<n> was closed as not planned`, or `opened #<n> and PR #<pr> for <tag>`, then anything the owner must do in a "**What I need from you**" section.
+End with one line: `none (…)`, `waiting: PR #<pr> …`, `stuck: #<n> has no PR`, `skipped: #<n> was closed as not planned`, or `opened #<n> and PR #<pr> for <tag>`, then anything the owner must do in a "**What I need from you**" section.
