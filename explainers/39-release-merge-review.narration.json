@@ -1,7 +1,7 @@
 {
   "title": "PR #46 · Release review",
   "voice": "af_heart",
-  "page_sha256": "0d72aa544284ca2f85e1ae0ed823d3ff60403b353ecff4bb5ee9e007b759a394",
+  "page_sha256": "8ec92a48c192c45bc6328c8ef73fb8e9b7fa7e4ee7e26f40775eef5ffe29b699",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 46, which makes CI review an upstream release merge by the fork's own changes only.", "src": "4886eef35eb5"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "37ccb64d8961"},
@@ -26,6 +26,7 @@
     {"screen": "checks", "keys": ["c2"], "caption": "With a conflict, the diff held the resolution and a hidden edit, but not upstream's change.", "src": "4000ede47bc9"},
     {"screen": "checks", "keys": ["c3"], "caption": "An explainer-only push on the release branch was skipped, where the old planner reviewed it again.", "src": "9104ce0299b3"},
     {"screen": "checks", "keys": ["c7"], "caption": "When main was merged into the release branch later, the diff still held only the fork's change.", "src": "d5911fd6b689"},
+    {"screen": "checks", "keys": ["c8"], "caption": "When a revert emptied the fork's side, open findings were still re-checked, and with none the push was skipped.", "src": "56c3ff13ff9a"},
     {"screen": "checks", "keys": ["c4"], "caption": "A normal feature branch planned exactly as before in all four cases tried.", "src": "c03a45244ff3"},
     {"screen": "checks", "keys": ["c5"], "caption": "Inline comment lines stayed the same for normal PRs, and only the fork's for a release.", "src": "4c20db21ffaf"},
     {"screen": "checks", "keys": ["c6"], "caption": "A real review of a release PR was not run here, because it needs CI.", "src": "8242e7b3d3d7"},
@@ -60,7 +61,7 @@
     "bigpic/note": "f70b442e0d29",
     "steps/1": "e7624a8fcbf3",
     "steps/2": "573156623d38",
-    "steps/3": "dc098e258919",
+    "steps/3": "36d3b2f85aef",
     "steps/4": "bcacf8016739",
     "steps/5": "7530510c61af",
     "steps/6": "f314e08ac552",
@@ -79,6 +80,7 @@
     "checks/c2": "4000ede47bc9",
     "checks/c3": "9104ce0299b3",
     "checks/c7": "d5911fd6b689",
+    "checks/c8": "56c3ff13ff9a",
     "checks/c4": "c03a45244ff3",
     "checks/c5": "4c20db21ffaf",
     "checks/c6": "8242e7b3d3d7",

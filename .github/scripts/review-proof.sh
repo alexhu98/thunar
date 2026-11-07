@@ -142,8 +142,13 @@ plan() {
   fi
   if [[ -n $release ]]; then
     fork_side "$mb" "$release" > "$OUT/fork.patch"
-    if (( ! skip && full )) && [[ ! -s $OUT/fork.patch ]]; then
-      skip=1 reason="the fork's side of the release merge ${release::12} changes nothing but explainers/"
+    if (( ! skip )) && [[ ! -s $OUT/fork.patch ]]; then
+      open_findings
+      if [[ $(jq length "$OUT/open.json") == 0 ]]; then
+        skip=1 reason="the fork's side of the release merge ${release::12} changes nothing but explainers/"
+      else
+        from=$release full=1 reason="the fork's side of the release merge ${release::12} is empty, so only its open findings"
+      fi
     fi
     [[ -n $reason ]] || reason="the fork's side of the release merge ${release::12}"
     if (( full )); then
