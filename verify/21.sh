@@ -146,7 +146,10 @@ xdotool key ctrl+l
 sleep 0.3
 xdotool type --delay 20 "Search: match"
 sleep 2
+shot "$WID" before-typed "Search: match typed by hand into the location bar of top runs the search with the Include subfolders toggle pressed, listing both match-top.txt and sub/match-sub.txt"
 toggle_subfolders
+shot "$WID" after-typed "Clicking the toggle re-runs the hand-typed search in top without subfolders: only match-top.txt is listed"
+pair typed "Typed Search: match into the location bar, then clicked the Include subfolders toggle" "The toggle also re-runs a search typed by hand into the location bar" "typed search, toggle on, both files" "toggle off, only match-top.txt" "$S"
 results_are typed match-top.txt
 
 if ! metadata_on_disk; then
