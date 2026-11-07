@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #46 Release review</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #46: CI reviews an upstream release merge by the fork's own changes</h1>
+  <p class="lead" data-k="lead">Branch <code>39-release-merge-review</code> → <code>main</code>, closes #39. Once merged, a PR that merges a new Thunar release gets suggested changes on the fork's own work only, instead of a review of upstream's whole release, and the watcher skill needs no trailer tricks.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: the next release PR</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">CI's review planner, <code>.github/scripts/review-proof.sh</code>, now spots a release merge and plans its review differently. The upstream watcher's skill drops the rules that worked around the old behaviour.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="The planner finds the release merge, defaults to suggested changes, skips explainer-only pushes and reviews only the fork's side; inline comments go only on those lines">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Plan — every push to a PR</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Find the merge</text>
+      <text x="36" y="114" class="m">Merge upstream</text>
+      <text x="36" y="134" class="m">thunar-4.20.11</text>
+      <text x="36" y="154" class="b">tag not on main</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Suggest mode</text>
+      <text x="286" y="114" class="b">the default when the</text>
+      <text x="286" y="134" class="b">head has no trailer;</text>
+      <text x="286" y="154" class="b">no edits to upstream</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Skip idle pushes</text>
+      <text x="536" y="114" class="b">explainer-only or</text>
+      <text x="536" y="134" class="b">empty: skipped, even</text>
+      <text x="536" y="154" class="b">with a trailer</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">The fork's side</text>
+      <text x="786" y="114" class="m">--remerge-diff</text>
+      <text x="786" y="134" class="b">plus the commits</text>
+      <text x="786" y="154" class="b">after the merge</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② Report — and the watcher</text>
+    <g data-k="5">
+      <rect class="box-pr" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Comments placed</text>
+      <text x="786" y="314" class="b">only on lines the</text>
+      <text x="786" y="334" class="b">fork itself changed</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Simpler skill</text>
+      <text x="536" y="314" class="b">no Review: suggest</text>
+      <text x="536" y="334" class="b">on every push, no</text>
+      <text x="536" y="354" class="b">Review-accept</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>review-proof.sh</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>the upstream-merge skill</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Every week a skill checks for a new Thunar release and opens a PR that merges it into <code>main</code>. CI reviews every PR, but its review compared the branch with the point where it left <code>main</code>. For a release merge that means every upstream commit in the release, so the review flagged upstream's code, and in its default mode it would even commit edits to it.</p>
+  <div class="note" data-k="note">What the fork actually decides in a release merge is small: how each conflict was resolved, and anything committed after the merge. Git can show the first exactly: <code>git show --remerge-diff</code> compares the merge with the merge git would have made on its own.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Plan, every push to a PR</div>
+  <ol class="steps">
+    <li data-k="1"><b>Find the merge.</b> <code>review-proof.sh plan</code> looks along the branch's own line of commits for a merge titled <code>Merge upstream thunar-&lt;version&gt;</code> whose second parent, the release tag, is not already on <code>main</code>. The branch name plays no part, so a normal PR can't be mistaken for one.</li>
+    <li data-k="2"><b>Suggest mode.</b> With no <code>Review:</code> trailer on the head commit, a release PR gets suggested changes instead of a fix commit. An explicit trailer still wins.</li>
+    <li data-k="3"><b>Skip idle pushes.</b> A push that changes only <code>explainers/</code>, or nothing, since the last review is skipped, even if its head carries <code>Review: suggest</code>. So is a release PR whose own side is empty, such as a clean merge plus its explainer.</li>
+    <li data-k="4"><b>The fork's side.</b> The review's <code>diff.patch</code> holds the branch's commits before the merge (usually none), <code>git show --remerge-diff</code> of the merge, and <code>git diff</code> from the merge to the head. The prompt tells the reviewer that upstream's release is not under review.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② Report, and the watcher</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Comments placed.</b> <code>hunks()</code> lists where inline suggestions may go. For a release PR it keeps only lines that are both in the PR's diff on GitHub and in the fork's side, found by diffing git's own automatic merge (<code>git merge-tree</code>) against the head.</li>
+    <li data-k="6"><b>Simpler skill.</b> <code>.claude/skills/upstream-merge/SKILL.md</code> no longer ends every push with a <code>Review: suggest</code> commit or closes findings in upstream's code with <code>Review-accept</code>. It only asks to keep the merge's title, which is how CI finds it.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="parts">
+  <h3 class="sec">What a release PR's review sees</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Change in the PR</th><th>Before</th><th>Now</th></tr>
+    <tr data-k="r1"><td>Upstream's commits in the release</td><td>reviewed</td><td>left out</td></tr>
+    <tr data-k="r2"><td>How each conflict was resolved</td><td>buried in the release</td><td>reviewed, as a remerge diff</td></tr>
+    <tr data-k="r3"><td>A hand edit hidden in the merge commit</td><td>buried in the release</td><td>reviewed: remerge diff shows it</td></tr>
+    <tr data-k="r4"><td>Commits after the merge</td><td>reviewed</td><td>reviewed</td></tr>
+    <tr data-k="r5"><td>Mode with no trailer</td><td>auto-fix</td><td>suggest</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">.github/scripts/
+└── review-proof.sh                   # release_merge, fork_side; plan, prompt and hunks use them
+.claude/skills/upstream-merge/
+└── SKILL.md                          # drops the Review: suggest and Review-accept rules
+explainers/
+├── 39-release-merge-review.html      # this page
+└── 39-release-merge-review.narration.json  # its narration</pre>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Tested in the cloud session by running the old and the new <code>plan</code> side by side on test branches built with the watcher's own fake release.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>The planner on main</h3><p>The old <code>review-proof.sh</code> ran beside the new one on every test branch, so each difference in its output is a deliberate one.</p></div>
+    <div class="card" data-k="r2"><h3>fake-upstream.sh</h3><p>The watcher's own test tool made <code>thunar-4.20.11</code>: the real 4.20.10 plus one commit to <code>configure.ac</code> and <code>NEWS</code>.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>A release merge plans as suggest, fork's side only</td><td>A branch from <code>main</code> merging the fake release, plus one fork commit after it; no trailer</td><td class="ok">suggest; diff 3 files → 1, upstream's 2 gone</td></tr>
+    <tr data-k="c2"><td>Conflict resolutions are reviewed</td><td>A base with a fork edit to <code>NEWS</code>, so the merge conflicts; resolved by hand, plus an extra edit hidden in the merge commit</td><td class="ok">diff holds the NEWS resolution and the hidden edit, not configure.ac</td></tr>
+    <tr data-k="c3"><td>An explainer-only push is skipped</td><td>An explainer commit with <code>Review: suggest</code> on the release branch, its parent already reviewed (stubbed review state)</td><td class="ok">skipped; the old planner re-reviewed it</td></tr>
+    <tr data-k="c4"><td>Normal PRs plan exactly as before</td><td>A feature branch in 4 cases: whole PR, commits since a review, explainer-only, forced re-review; every output file compared</td><td class="ok">same, but the new release: null key</td></tr>
+    <tr data-k="c5"><td>Inline comment lines</td><td><code>hunks()</code> old and new on all three branches</td><td class="ok">normal same; release keeps only fork lines</td></tr>
+    <tr data-k="c6"><td>A real review of a release PR</td><td>Needs CI's review job on a real release-merge PR; this PR is a normal one</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh agent given only the diff and issue #39 was still reviewing it when this page was first pushed; its result replaces this line.</p>
+  <p data-k="ci">CI's own review of this PR is in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/46">PR #46</a>.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>The reviewer reading a release PR's <code>diff.patch</code></td><td>CI runs the PR's own planner only on that PR; a release PR needs this one merged first</td><td class="open">next release PR, or a watcher --test run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/46">PR #46</a> → “Files changed”</li>
+    <li data-k="l2">Where the problem was found: the review findings R32, R33 and R40 on <a href="https://github.com/alexhu98/thunar/pull/37">PR #37</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: the next release PR</h2>
+  <p class="intro" data-k="intro">No open issue builds on this one. The first real use is the watcher's next release PR, or a test run you start by hand.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR, then a watcher test run, then the next real release PR reviewed by the fork's side">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">#30 The upstream watcher</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Fork-side review</text>
+      <text x="36" y="114" class="b">this PR</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Optional test run</text>
+      <text x="286" y="114" class="m">/upstream-merge</text>
+      <text x="286" y="134" class="m">--test</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Next release PR</text>
+      <text x="536" y="114" class="b">reviewed by the</text>
+      <text x="536" y="134" class="b">fork's side only</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not run yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="nextpr">
+  <h3 class="sec">The next release PR (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>The watcher merges the tag.</b> Its merge keeps the title <code>Merge upstream &lt;tag&gt;</code>, with no trailer.</li>
+    <li data-k="2"><b>CI reviews the fork's side.</b> Suggested changes on conflict resolutions and later commits only; explainer pushes are skipped.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="release"><dt>Release merge</dt><dd>A commit that merges an upstream Thunar release tag into the fork.</dd></div>
+    <div data-k="remerge"><dt>Remerge diff</dt><dd>The difference between a merge as committed and the merge git would make by itself.</dd></div>
+    <div data-k="trailer"><dt>Review: trailer</dt><dd>A last line in a commit message that picks CI's review mode.</dd></div>
+    <div data-k="accept"><dt>Review-accept</dt><dd>A trailer that closes CI findings kept on purpose.</dd></div>
+    <div data-k="suggest"><dt>Suggest mode</dt><dd>CI posts suggested changes on the PR instead of pushing a fix commit.</dd></div>
+    <div data-k="hunk"><dt>Hunk</dt><dd>One block of changed lines in a diff; inline comments must sit inside one.</dd></div>
+    <div data-k="firstparent"><dt>First-parent line</dt><dd>The branch's own commits, not the ones a merge brought in.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
