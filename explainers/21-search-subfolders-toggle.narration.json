@@ -1,7 +1,7 @@
 {
   "title": "PR #47 · Search subfolders toggle",
   "voice": "af_heart",
-  "page_sha256": "d00cf2f54e340936306c9fc375188f37df6da843c4710207fce1ea719ab8354d",
+  "page_sha256": "4395b4a433d2685769ca7171d3f7440da5fbdcc5954712560b9d09df106217e2",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 47, which adds an Include subfolders toggle to the search bar, saved for each folder.", "src": "94c1676f2347"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "ee432a211a83"},
@@ -30,6 +30,7 @@
     {"screen": "checks", "keys": ["c1"], "caption": "After the review fixes, the Debian package built in this session with no new compiler warnings.", "src": "8ad76b3ff75c"},
     {"screen": "checks", "keys": ["c2", "c3"], "caption": "Turning the toggle off left only the top folder's match, and another folder kept the default.", "src": "6915f486cb46"},
     {"screen": "checks", "keys": ["c4", "c5"], "caption": "The choice came back on return to the folder, and Clear removed it; each result was asserted.", "src": "cc336424e871"},
+    {"screen": "checks", "keys": ["c5b"], "caption": "A search typed by hand into the location bar also re-ran when the toggle was clicked.", "src": "a56192436935"},
     {"screen": "checks", "keys": ["c6", "c7"], "caption": "The sandbox has no gvfs, so saving to disk and surviving a restart were not tested here.", "src": "5d1cbcf941c6"},
     {"screen": "checks", "keys": ["c8"], "caption": "After the fixes, each screenshot was read and matched to its description.", "src": "965ec68acf79"},
     {"screen": "checks", "keys": ["ci"], "caption": "The script copies each search's results into a scratch folder and checks exactly which files arrive.", "src": "b38063f8d232"},
@@ -90,6 +91,7 @@
     "checks/c3": "becb9b6eaf20",
     "checks/c4": "fc154b661351",
     "checks/c5": "89e2ab0213d2",
+    "checks/c5b": "a56192436935",
     "checks/c6": "7974a426a6ed",
     "checks/c7": "4764e1393c0b",
     "checks/c8": "965ec68acf79",

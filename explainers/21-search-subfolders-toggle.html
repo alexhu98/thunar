@@ -273,6 +273,7 @@ explainers/21-search-subfolders-toggle.narration.json  # its narration</pre>
     <tr data-k="c3"><td>Another folder keeps the default</td><td>The same search in <code>other</code></td><td class="ok">exactly the 2 match files</td></tr>
     <tr data-k="c4"><td>The choice comes back</td><td>Leave <code>top</code>, return, search again</td><td class="ok">toggle released, exactly match-top.txt</td></tr>
     <tr data-k="c5"><td>Clear removes the choice</td><td>View, Clear Saved Folder View Settings, search <code>top</code> again</td><td class="ok">toggle pressed, exactly the 2 files</td></tr>
+    <tr data-k="c5b"><td>A search typed by hand re-runs on toggle</td><td>Ctrl+L, type <code>Search: match</code> in <code>top</code>, click the toggle</td><td class="ok">exactly match-top.txt</td></tr>
     <tr data-k="c6"><td>Saved on disk, and cleared on disk</td><td><code>gio info</code> on the folder; the script runs it only where GIO metadata is writable. The sandbox has no gvfs, so the choice lived only in Thunar's memory there</td><td class="no">not run here</td></tr>
     <tr data-k="c7"><td>The choice survives a Thunar restart</td><td>Needs gvfs's metadata store, absent in the sandbox</td><td class="no">not run</td></tr>
     <tr data-k="c8"><td>The screenshots show what they claim</td><td>Each local shot read and compared with its description in this session, after the review fixes</td><td class="ok">7 of 7</td></tr>

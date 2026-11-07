@@ -140,6 +140,15 @@ shot "$WID" after-clear "After Clear Saved Folder View Settings, a search in top
 pair clear "Chose View > Clear Saved Folder View Settings, then searched top for match" "Clearing the folder's saved view settings also clears its Include subfolders choice" "top saved off, View menu open" "default again: toggle on, both files" "$R"
 results_are clear match-sub.txt match-top.txt
 
+go "$WORK/top"
+focus "$WID"
+xdotool key ctrl+l
+sleep 0.3
+xdotool type --delay 20 "Search: match"
+sleep 2
+toggle_subfolders
+results_are typed match-top.txt
+
 if ! metadata_on_disk; then
   echo "note: GIO metadata is not writable here (no gvfs), so the on-disk checks were skipped" >&2
 fi
