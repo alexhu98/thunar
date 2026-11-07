@@ -201,7 +201,7 @@
     <li data-k="1"><b>Find the merge.</b> <code>review-proof.sh plan</code> looks along the branch's own line of commits for a merge titled <code>Merge upstream thunar-&lt;version&gt;</code> whose second parent, the release tag, is not already on <code>main</code>. The branch name plays no part, so a normal PR can't be mistaken for one.</li>
     <li data-k="2"><b>Suggest mode.</b> With no <code>Review:</code> trailer on the head commit, a release PR gets suggested changes instead of a fix commit. An explicit trailer still wins.</li>
     <li data-k="3"><b>Skip idle pushes.</b> A push that changes only <code>explainers/</code>, or nothing, since the last review is skipped, even if its head carries <code>Review: suggest</code>. So is a release PR whose own side is empty, such as a clean merge plus its explainer.</li>
-    <li data-k="4"><b>The fork's side.</b> The review's <code>diff.patch</code> holds the branch's commits before the merge (usually none), <code>git show --remerge-diff</code> of the merge, and <code>git diff</code> from the merge to the head. The prompt tells the reviewer that upstream's release is not under review.</li>
+    <li data-k="4"><b>The fork's side.</b> The review's <code>diff.patch</code> holds <code>git show --remerge-diff</code> of the merge and <code>git diff</code> from the merge to the head. If the branch has other commits around the merge, such as a later merge of <code>main</code>, it is instead the diff from git's own merge of the release (<code>git merge-tree</code>) to the head. The prompt tells the reviewer that upstream's release is not under review.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Report, and the watcher</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
@@ -228,7 +228,7 @@
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">.github/scripts/
-└── review-proof.sh                   # release_merge, fork_side; plan, prompt and hunks use them
+└── review-proof.sh                   # release_merge, auto_merge, fork_side; used by plan, prompt, hunks
 .claude/skills/upstream-merge/
 └── SKILL.md                          # drops the Review: suggest and Review-accept rules
 explainers/
@@ -259,8 +259,9 @@ explainers/
     <tr data-k="c1"><td>A release merge plans as suggest, fork's side only</td><td>A branch from <code>main</code> merging the fake release, plus one fork commit after it; no trailer</td><td class="ok">suggest; diff 3 files → 1, upstream's 2 gone</td></tr>
     <tr data-k="c2"><td>Conflict resolutions are reviewed</td><td>A base with a fork edit to <code>NEWS</code>, so the merge conflicts; resolved by hand, plus an extra edit hidden in the merge commit</td><td class="ok">diff holds the NEWS resolution and the hidden edit, not configure.ac</td></tr>
     <tr data-k="c3"><td>An explainer-only push is skipped</td><td>An explainer commit with <code>Review: suggest</code> on the release branch, its parent already reviewed (stubbed review state)</td><td class="ok">skipped; the old planner re-reviewed it</td></tr>
+    <tr data-k="c7"><td>main merged into the release PR later</td><td>The release branch with a later merge of a <code>main</code> that gained another PR's file</td><td class="ok">diff holds only the fork's file, not the other PR's</td></tr>
     <tr data-k="c4"><td>Normal PRs plan exactly as before</td><td>A feature branch in 4 cases: whole PR, commits since a review, explainer-only, forced re-review; every output file compared</td><td class="ok">same, but the new release: null key</td></tr>
-    <tr data-k="c5"><td>Inline comment lines</td><td><code>hunks()</code> old and new on all three branches</td><td class="ok">normal same; release keeps only fork lines</td></tr>
+    <tr data-k="c5"><td>Inline comment lines</td><td><code>hunks()</code> old and new on all four branches</td><td class="ok">normal same; release keeps only fork lines</td></tr>
     <tr data-k="c6"><td>A real review of a release PR</td><td>Needs CI's review job on a real release-merge PR; this PR is a normal one</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -268,7 +269,12 @@ explainers/
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">A fresh agent given only the diff and issue #39 was still reviewing it when this page was first pushed; its result replaces this line.</p>
+  <p data-k="summary">After the first code commit, a fresh agent given only the diff and issue #39 reviewed it, running its functions on a scratch repo: 2 medium and 4 low findings. Both mediums were fixed, and every test above was re-run after the fix.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>main merged in later (fixed):</b> the fork's diff then showed other PRs' code twice, once reversed. It now uses git's own merge of the release in that case, as the comment positions already did.</li>
+    <li data-k="b2"><b>How the review skill reads a path (fixed):</b> it might have reviewed the patch file as a file. Its arguments now say it is a diff whose changes are reported at their lines at HEAD.</li>
+    <li data-k="b3"><b>Low, left as is:</b> a failed diff inside the comment-line list goes unreported; a shallow clone could misdetect a merge (CI fetches full history); context lines next to a resolution can take comments; very large diffs may refuse inline comments.</li>
+  </ul>
   <p data-k="ci">CI's own review of this PR is in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/46">PR #46</a>.</p>
   </section>
 

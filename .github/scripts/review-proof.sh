@@ -88,12 +88,19 @@ release_merge() {  # merge base -> the newest "Merge upstream thunar-<version>" 
   done < <(git log --first-parent --merges --format=$'%H\t%s' "$1..$HEAD_SHA")
 }
 
-fork_side() {  # merge base, release merge -> the fork's side of the PR: its commits before the merge, the merge's conflict resolutions and its commits after it
-  if [[ $(git rev-parse "$2^1") != "$1" ]]; then
-    git diff "$1" "$2^1" -- . ':!explainers/'
+auto_merge() {  # merge base, release merge -> the tree git's own merge of the release into the merge base makes
+  local tree
+  tree=$(git merge-tree --write-tree --no-messages "$1" "$2^2") || (( $? == 1 )) || return 1
+  echo "${tree%%$'\n'*}"
+}
+
+fork_side() {  # merge base, release merge -> the fork's side of the PR: the merge's conflict resolutions and its commits after it
+  if [[ $(git rev-parse "$2^1") == "$1" ]]; then
+    git show --remerge-diff --format= "$2" -- . ':!explainers/'
+    git diff "$2" "$HEAD_SHA" -- . ':!explainers/'
+  else
+    git diff "$(auto_merge "$1" "$2")" "$HEAD_SHA" -- . ':!explainers/'
   fi
-  git show --remerge-diff --format= "$2" -- . ':!explainers/'
-  git diff "$2" "$HEAD_SHA" -- . ':!explainers/'
 }
 
 open_findings() {
@@ -208,8 +215,8 @@ prompt() {  # mode, from sha, full (1|0), release merge (or empty)
   local scope skip target="$2..$HEAD_SHA"
   printf -v skip '%s, ' "${NOT_IN_FIX[@]#:!}"
   if [[ -n $4 && $3 == 1 ]]; then
-    target=$OUT/diff.patch
-    scope="only the fork's side of the upstream release merge ${4::12}, saved in $OUT/diff.patch: the PR's commits before the merge, if any, the merge's conflict resolutions (\`git show --remerge-diff $4\`) and the PR's commits after it (\`git diff $4 $HEAD_SHA\`). The commits of upstream's release are not under review: report nothing in code the release brought in unchanged"
+    target="the unified diff in $OUT/diff.patch: review the changes it shows, reporting each at its file and line at HEAD, not at lines of the patch file"
+    scope="only the fork's side of the upstream release merge ${4::12}, saved in $OUT/diff.patch: the merge's conflict resolutions (\`git show --remerge-diff $4\`) and the PR's commits after it (\`git diff $4 $HEAD_SHA\`); when the branch has other commits around the merge, the diff from git's own merge of the release (\`git merge-tree\`) to HEAD instead. The commits of upstream's release are not under review: report nothing in code the release brought in unchanged"
   elif [[ -n $4 ]]; then
     scope="only the commits since the last review, \`git diff $2 $HEAD_SHA\`, saved in $OUT/diff.patch. The fork's whole side of the upstream release merge ${4::12}, $OUT/pr.patch, is context, not the target; upstream's release is neither"
   elif [[ $3 == 1 ]]; then
@@ -292,7 +299,7 @@ hunks() {  # the lines at HEAD_SHA where inline comments can go: the PR's diff, 
     right_hunks "$mb" "$HEAD_SHA"
     return 0
   fi
-  tree=$(git merge-tree --write-tree --no-messages "$mb" "$release^2") || (( $? == 1 )) || return 1
+  tree=$(auto_merge "$mb" "$release")
   python3 -c '
 import sys
 def ranges(path):
@@ -306,7 +313,7 @@ for f, rs in fork.items():
     for s, e in rs:
         for a, b in pr.get(f, []):
             if max(s, a) <= min(e, b):
-                print(f"{f}\t{max(s, a)}\t{min(e, b)}")' <(right_hunks "$mb" "$HEAD_SHA") <(right_hunks "${tree%%$'\n'*}" "$HEAD_SHA")
+                print(f"{f}\t{max(s, a)}\t{min(e, b)}")' <(right_hunks "$mb" "$HEAD_SHA") <(right_hunks "$tree" "$HEAD_SHA")
 }
 
 report() {
