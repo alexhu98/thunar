@@ -153,9 +153,8 @@
     <g data-k="4">
       <rect class="box-merge" x="770" y="60" width="210" height="120" rx="10"/>
       <text x="786" y="90" class="t">Search re-runs</text>
-      <text x="786" y="114" class="b">existing update-</text>
-      <text x="786" y="134" class="b">search path, same</text>
-      <text x="786" y="154" class="b">query</text>
+      <text x="786" y="114" class="b">existing search</text>
+      <text x="786" y="134" class="b">path, same query</text>
       <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
     </g>
     <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
@@ -204,7 +203,7 @@
     <li data-k="1"><b>Ctrl+F.</b> The location bar becomes the search field ("Search: …"). <code>thunar-location-entry.c</code> watches the field's text, and as soon as it holds a search query it shows the new toggle to the right of the field. When the search ends, the toggle hides again.</li>
     <li data-k="2"><b>Toggle shows.</b> When it appears, and when the folder changes, the toggle is set from the folder: pressed if the folder's saved choice is on, released if it is off. With no saved choice it shows what the preference means for this folder, so "Local Files Only" shows pressed on a local disk and released on a network share.</li>
     <li data-k="3"><b>Click saves.</b> A click writes <code>true</code> or <code>false</code> as the folder's <code>metadata::thunar-search-subfolders</code>, through the same <code>thunar_file_set_metadata_setting</code> that saves a folder's sort order and zoom level.</li>
-    <li data-k="4"><b>Search re-runs.</b> The toggle then calls the existing <code>thunar_window_update_search</code>, which restarts the search with the same query, so the results change at once.</li>
+    <li data-k="4"><b>Search re-runs.</b> The toggle then calls the new <code>thunar_window_restart_search</code>, which hands the same query to the existing <code>thunar_window_update_search</code>, so the results change at once.</li>
   </ol>
   <div class="lane-h" style="color:var(--accent)">② The search job decides</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
@@ -240,7 +239,8 @@
 ├── thunar-file.c             # helper: saved choice, else the preference; Clear removes it
 ├── thunar-file.h             # its declarations
 ├── thunar-io-jobs.c          # the search job asks the helper, not the preference
-└── thunar-window.c           # Clear item also shows for a folder with saved settings
+├── thunar-window.c           # restart_search; Clear also shows for a folder with saved settings
+└── thunar-window.h           # its declaration
 verify/21.sh                  # the Xvfb test CI runs on every PR
 explainers/21-search-subfolders-toggle.html            # this page
 explainers/21-search-subfolders-toggle.narration.json  # its narration</pre>
@@ -267,22 +267,28 @@ explainers/21-search-subfolders-toggle.narration.json  # its narration</pre>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage -b -us -uc</code> on Ubuntu 24.04 in this session</td><td class="ok">5 debs, no new compiler warnings</td></tr>
-    <tr data-k="c2"><td>Turning the toggle off drops subfolders</td><td><code>verify/21.sh</code>: Ctrl+F in <code>top</code>, type <code>match</code>, click the toggle</td><td class="ok">2 files found, then 1</td></tr>
-    <tr data-k="c3"><td>Another folder keeps the default</td><td>The same search in <code>other</code></td><td class="ok">2 files, toggle pressed</td></tr>
-    <tr data-k="c4"><td>The choice comes back</td><td>Leave <code>top</code>, return, search again</td><td class="ok">toggle released, 1 file</td></tr>
-    <tr data-k="c5"><td>Clear removes the choice</td><td>View, Clear Saved Folder View Settings, search <code>top</code> again</td><td class="ok">toggle pressed, 2 files</td></tr>
+    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage -b -us -uc</code> on Ubuntu 24.04 in this session, after the review fixes</td><td class="ok">5 debs, no new compiler warnings</td></tr>
+    <tr data-k="c2"><td>Turning the toggle off drops subfolders</td><td><code>verify/21.sh</code>: Ctrl+F in <code>top</code>, type <code>match</code>, click the toggle</td><td class="ok">2 files, then exactly match-top.txt</td></tr>
+    <tr data-k="c3"><td>Another folder keeps the default</td><td>The same search in <code>other</code></td><td class="ok">exactly the 2 match files</td></tr>
+    <tr data-k="c4"><td>The choice comes back</td><td>Leave <code>top</code>, return, search again</td><td class="ok">toggle released, exactly match-top.txt</td></tr>
+    <tr data-k="c5"><td>Clear removes the choice</td><td>View, Clear Saved Folder View Settings, search <code>top</code> again</td><td class="ok">toggle pressed, exactly the 2 files</td></tr>
     <tr data-k="c6"><td>Saved on disk, and cleared on disk</td><td><code>gio info</code> on the folder; the script runs it only where GIO metadata is writable. The sandbox has no gvfs, so the choice lived only in Thunar's memory there</td><td class="no">not run here</td></tr>
     <tr data-k="c7"><td>The choice survives a Thunar restart</td><td>Needs gvfs's metadata store, absent in the sandbox</td><td class="no">not run</td></tr>
-    <tr data-k="c8"><td>The screenshots show what they claim</td><td>Each local shot read and compared with its description in this session</td><td class="ok">7 of 7</td></tr>
+    <tr data-k="c8"><td>The screenshots show what they claim</td><td>Each local shot read and compared with its description in this session, after the review fixes</td><td class="ok">7 of 7</td></tr>
   </table>
   </div>
-  <p data-k="ci">The file counts come from the status bar in the screenshots, since the script cannot read it. CI repeats the build and <code>verify/21.sh</code> on the PR and posts its own screenshots in the PR comment; those, not this table, are the proof the owner reviews.</p>
+  <p data-k="ci">Each result row is asserted: the script selects the results, copies them, pastes them into a scratch folder and compares the files that arrive. CI repeats the build and <code>verify/21.sh</code> on the PR and posts its own screenshots in the PR comment; those, not this table, are the proof the owner reviews.</p>
   </section>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">A fresh <code>general-purpose</code> agent in this session, given only the diff and issue #21, reviewed the change. Its findings are listed below once it reports.</p>
+  <p data-k="summary">A fresh <code>general-purpose</code> agent in this session, given only the diff and issue #21, reviewed the first commit: 1 high and 2 medium findings (one high and one medium in the test), plus 5 low. The high, one medium and one low are fixed; the rest are kept, for the reasons below.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed (high, test):</b> the test's only checks needed gvfs, so in CI it asserted nothing about the results. Each search's results are now copied and pasted into a scratch folder, and the script checks which files arrive.</li>
+    <li data-k="b2"><b>Fixed (medium):</b> in split view a stale "ignore the next search update" flag could swallow the toggle's re-run. The toggle now calls a new <code>thunar_window_restart_search</code> that clears the flag first.</li>
+    <li data-k="b3"><b>Fixed (low):</b> the choice is now written asynchronously, as the sort order is, so a network folder can't stall the window.</li>
+    <li data-k="b4"><b>Kept:</b> the fixed click position for the toggle (Tab, the suggested alternative, moved focus to the side pane when tried), and two Clear cases that can't happen because Clear already ends any running search.</li>
+  </ul>
   <p data-k="ci-review">CI's own review of every push is in the code review PR comment.</p>
   </section>
 

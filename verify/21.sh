@@ -48,6 +48,27 @@ toggle_subfolders() {
   sleep 2
 }
 
+results_are() {  # check name, the files the search must list
+  local dest="$WORK/check-$1" got want i
+  shift
+  mkdir -p "$dest"
+  focus "$WID"
+  xdotool mousemove --window "$WID" $((W / 2)) $((H - 100)) click 1
+  sleep 0.5
+  xdotool key ctrl+a ctrl+c
+  sleep 0.5
+  cancel_search
+  go "$dest"
+  xdotool key ctrl+v
+  want=$(printf '%s\n' "$@" | sort | tr '\n' ' ')
+  for ((i = 0; i < 25; i++)); do
+    got=$(ls -A "$dest" | sort | tr '\n' ' ')
+    [[ $got == "$want" ]] && return 0
+    sleep 0.2
+  done
+  fail "the search listed '$got', expected '$want'"
+}
+
 saved() {  # folder
   gio info -a metadata::thunar-search-subfolders "$1" 2>/dev/null | sed -n 's/^ *metadata::thunar-search-subfolders: //p'
 }
@@ -73,21 +94,22 @@ if metadata_on_disk; then
   [[ $(saved "$WORK/top") == false ]] || fail "toggling off did not save false for top (got '$(saved "$WORK/top")')"
 fi
 shot "$WID" after-off "With the Include subfolders toggle released, the same search in top lists only match-top.txt"
+results_are off match-top.txt
 pair off "Clicked the Include subfolders toggle beside the search field" "Turning the toggle off re-runs the search in top without its subfolders" "toggle on, both files" "toggle off, only match-top.txt" "$S"
 
-cancel_search
 go "$WORK/other"
 search match
 shot "$WID" other-default "Searching another folder, other, still follows the global default: the toggle is pressed and match-other.txt and deep/match-deep.txt are both listed"
-cancel_search
+results_are other match-deep.txt match-other.txt
 
 go "$WORK/top"
 shot "$WID" before-reopen "Back in folder top with no search running (match-top.txt and the sub folder)"
 search match
 shot "$WID" after-reopen "A new search in top comes back with the toggle released and lists only match-top.txt"
 pair reopen "Left top for other, came back and searched for match again" "top remembers its saved choice: subfolders stay off there" "top, no search" "toggle off again, only match-top.txt" "$R"
+results_are reopen match-top.txt
 
-cancel_search
+go "$WORK/top"
 focus "$WID"
 xdotool key alt+v
 sleep 1
@@ -100,6 +122,7 @@ fi
 search match
 shot "$WID" after-clear "After Clear Saved Folder View Settings, a search in top follows the global default again: the toggle is pressed and both files are listed"
 pair clear "Chose View > Clear Saved Folder View Settings, then searched top for match" "Clearing the folder's saved view settings also clears its Include subfolders choice" "top saved off, View menu open" "default again: toggle on, both files" "$R"
+results_are clear match-sub.txt match-top.txt
 
 if ! metadata_on_disk; then
   echo "note: GIO metadata is not writable here (no gvfs), so the on-disk checks were skipped" >&2

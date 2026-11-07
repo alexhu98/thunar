@@ -359,7 +359,7 @@ thunar_location_entry_subfolders_toggled (ThunarLocationEntry *location_entry)
 
   window = gtk_widget_get_toplevel (GTK_WIDGET (location_entry));
   if (THUNAR_IS_WINDOW (window))
-    thunar_window_update_search (THUNAR_WINDOW (window));
+    thunar_window_restart_search (THUNAR_WINDOW (window));
 }
 
 

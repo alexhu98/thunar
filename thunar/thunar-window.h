@@ -176,6 +176,8 @@ thunar_window_show_and_select_files (ThunarWindow *window,
                                      GList        *files_to_select);
 void
 thunar_window_update_search (ThunarWindow *window);
+void
+thunar_window_restart_search (ThunarWindow *window);
 gboolean
 thunar_window_action_cancel_search (ThunarWindow *window);
 gboolean
