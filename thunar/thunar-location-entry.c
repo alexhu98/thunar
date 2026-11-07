@@ -206,6 +206,8 @@ thunar_location_entry_init (ThunarLocationEntry *location_entry)
   atk_object_set_name (gtk_widget_get_accessible (location_entry->subfolders_button), _("Include subfolders"));
   gtk_widget_set_focus_on_click (location_entry->subfolders_button, FALSE);
   gtk_widget_set_no_show_all (location_entry->subfolders_button, TRUE);
+  g_signal_connect (G_OBJECT (location_entry->subfolders_button), "destroy",
+                    G_CALLBACK (gtk_widget_destroyed), &location_entry->subfolders_button);
   g_signal_connect_swapped (G_OBJECT (location_entry->subfolders_button), "toggled",
                             G_CALLBACK (thunar_location_entry_subfolders_toggled), location_entry);
   gtk_box_pack_start (GTK_BOX (location_entry), location_entry->subfolders_button, FALSE, FALSE, 0);
@@ -300,7 +302,7 @@ thunar_location_entry_set_current_directory (ThunarNavigator *navigator,
   if (G_LIKELY (current_directory != NULL))
     g_object_ref (G_OBJECT (current_directory));
 
-  if (gtk_widget_get_visible (location_entry->subfolders_button))
+  if (location_entry->subfolders_button != NULL && gtk_widget_get_visible (location_entry->subfolders_button))
     thunar_location_entry_sync_subfolders_button (location_entry);
 
   /* notify listeners */
@@ -312,16 +314,11 @@ thunar_location_entry_set_current_directory (ThunarNavigator *navigator,
 static void
 thunar_location_entry_sync_subfolders_button (ThunarLocationEntry *location_entry)
 {
-  ThunarRecursiveSearchMode mode;
-  gboolean                  active = FALSE;
+  gboolean active = FALSE;
 
   if (location_entry->current_directory != NULL)
-    {
-      mode = thunar_file_get_recursive_search_mode (location_entry->current_directory);
-      active = mode == THUNAR_RECURSIVE_SEARCH_ALWAYS
-               || (mode == THUNAR_RECURSIVE_SEARCH_LOCAL
-                   && thunar_g_file_is_on_local_device (thunar_file_get_file (location_entry->current_directory)));
-    }
+    active = thunar_file_search_includes_subfolders (location_entry->current_directory,
+                                                     thunar_file_get_recursive_search_mode (location_entry->current_directory));
 
   g_signal_handlers_block_by_func (G_OBJECT (location_entry->subfolders_button), thunar_location_entry_subfolders_toggled, location_entry);
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (location_entry->subfolders_button), active);

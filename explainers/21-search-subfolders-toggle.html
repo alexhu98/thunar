@@ -207,7 +207,7 @@
   </ol>
   <div class="lane-h" style="color:var(--accent)">② The search job decides</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>One helper.</b> The new <code>thunar_file_get_recursive_search_mode</code> in <code>thunar-file.c</code> returns Always or Never from the folder's saved choice, or the <code>misc-recursive-search</code> preference when there is none.</li>
+    <li data-k="5"><b>One helper.</b> The new <code>thunar_file_get_recursive_search_mode</code> in <code>thunar-file.c</code> returns Always or Never from the folder's saved choice, or the <code>misc-recursive-search</code> preference when there is none. A second helper, <code>thunar_file_search_includes_subfolders</code>, turns that mode into yes or no for the folder, for both the toggle and the job.</li>
     <li data-k="6"><b>Search job.</b> <code>thunar_io_jobs_search_directory</code> used to read the preference itself; now it asks the helper. The rest of the job is unchanged: Always walks every subfolder, Never stays in the folder, and Local Files Only checks the disk as before.</li>
   </ol>
   </div>
@@ -236,11 +236,12 @@
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">thunar/
 ├── thunar-location-entry.c   # the toggle: shown while searching, saves, re-runs
-├── thunar-file.c             # helper: saved choice, else the preference; Clear removes it
+├── thunar-file.c             # helpers: saved choice, else the preference; Clear removes it
 ├── thunar-file.h             # its declarations
 ├── thunar-io-jobs.c          # the search job asks the helper, not the preference
 ├── thunar-window.c           # restart_search; Clear also shows for a folder with saved settings
 └── thunar-window.h           # its declaration
+thunarx/thunarx-file-info.h   # the new key joins the metadata Thunar loads with each folder
 verify/21.sh                  # the Xvfb test CI runs on every PR
 explainers/21-search-subfolders-toggle.html            # this page
 explainers/21-search-subfolders-toggle.narration.json  # its narration</pre>
@@ -289,7 +290,13 @@ explainers/21-search-subfolders-toggle.narration.json  # its narration</pre>
     <li data-k="b3"><b>Fixed (low):</b> the choice is now written asynchronously, as the sort order is, so a network folder can't stall the window.</li>
     <li data-k="b4"><b>Kept:</b> the fixed click position for the toggle (Tab, the suggested alternative, moved focus to the side pane when tried), and two Clear cases that can't happen because Clear already ends any running search.</li>
   </ul>
-  <p data-k="ci-review">CI's own review of every push is in the code review PR comment.</p>
+  <p data-k="ci-review">CI's review of the first commit (Opus at xhigh) found 10: 2 high, 1 medium, 7 low. The medium and two lows matched the fixes above. Both highs are fixed in a later commit.</p>
+  <ul class="tight">
+    <li data-k="r1"><b>Fixed, R1 (high):</b> Thunar loads only a listed set of metadata keys with each folder, and the new key wasn't on that list (<code>THUNARX_FILE_INFO_NAMESPACE</code>), so a saved choice would never come back after a restart.</li>
+    <li data-k="r2"><b>Fixed, R2 (high):</b> when a window closed, the location entry touched the toggle after GTK had already destroyed it. The entry now forgets the toggle when it is destroyed.</li>
+    <li data-k="r5"><b>Fixed, R5 (low):</b> the toggle and the search job now share one rule for "does this search include subfolders", <code>thunar_file_search_includes_subfolders</code>.</li>
+    <li data-k="r4"><b>Kept, R4 and R8 to R10 (low):</b> the toggle checks whether the folder is on a local disk on the main thread, as the Local Files Only rule needs; saving the choice without the per-folder preference, and the wider Clear item, are deliberate.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">

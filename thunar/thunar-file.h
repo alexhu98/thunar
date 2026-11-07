@@ -415,6 +415,10 @@ thunar_file_has_directory_specific_settings (ThunarFile *file);
 ThunarRecursiveSearchMode
 thunar_file_get_recursive_search_mode (ThunarFile *file);
 
+gboolean
+thunar_file_search_includes_subfolders (ThunarFile               *file,
+                                        ThunarRecursiveSearchMode mode);
+
 void
 thunar_file_set_search_subfolders (ThunarFile *file,
                                    gboolean    search_subfolders);

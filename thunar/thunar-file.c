@@ -4991,6 +4991,18 @@ thunar_file_get_recursive_search_mode (ThunarFile *file)
 
 
 
+gboolean
+thunar_file_search_includes_subfolders (ThunarFile               *file,
+                                        ThunarRecursiveSearchMode mode)
+{
+  _thunar_return_val_if_fail (THUNAR_IS_FILE (file), FALSE);
+
+  return mode == THUNAR_RECURSIVE_SEARCH_ALWAYS
+         || (mode == THUNAR_RECURSIVE_SEARCH_LOCAL && thunar_g_file_is_on_local_device (file->gfile));
+}
+
+
+
 void
 thunar_file_set_search_subfolders (ThunarFile *file,
                                    gboolean    search_subfolders)
