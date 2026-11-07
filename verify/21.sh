@@ -73,19 +73,26 @@ saved() {  # folder
   gio info -a metadata::thunar-search-subfolders "$1" 2>/dev/null | sed -n 's/^ *metadata::thunar-search-subfolders: //p'
 }
 
+ON_DISK=0
+gio info -w "$WORK" 2>/dev/null | grep -q 'metadata' && ON_DISK=1
+
 metadata_on_disk() {
-  gio info -w "$WORK" 2>/dev/null | grep -q 'metadata'
+  (( ON_DISK ))
+}
+
+start_thunar() {
+  open_thunar "$WORK/top"
+  xdotool windowsize --sync "$WID" "$W" "$H"
+  wait_title "$WID" top
+  focus "$WID"
+  xdotool key ctrl+2
+  sleep 0.5
 }
 
 S='The toggle searches subfolders or not'
 R='The choice is saved for the folder'
 
-open_thunar "$WORK/top"
-xdotool windowsize --sync "$WID" "$W" "$H"
-wait_title "$WID" top
-focus "$WID"
-xdotool key ctrl+2
-sleep 0.5
+start_thunar
 
 search match
 shot "$WID" before-off "Searching top for match with the global default (Always): the Include subfolders toggle is pressed and both match-top.txt and sub/match-sub.txt are listed"
@@ -113,12 +120,7 @@ if metadata_on_disk; then
   kill "$THUNAR_PID"
   wait "$THUNAR_PID" 2>/dev/null || true
   unset THUNAR_PID
-  open_thunar "$WORK/top"
-  xdotool windowsize --sync "$WID" "$W" "$H"
-  wait_title "$WID" top
-  focus "$WID"
-  xdotool key ctrl+2
-  sleep 0.5
+  start_thunar
   search match
   results_are restart match-top.txt
 fi
