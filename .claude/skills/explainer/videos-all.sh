@@ -208,10 +208,11 @@ main() {
              && ! { [[ $probe != "${CHROME:-google-chrome}" ]] && grep -q '^make-video:' "$log" \
                     && echo "== retry with ${CHROME:-google-chrome}" >> "$log" \
                     && CHROME=${CHROME:-google-chrome} "$mv" status "$n" >> "$log" 2>&1 && probe=${CHROME:-google-chrome}; }; then
-          result="needs re-narration (status: $({ grep -m1 -E '^  |make-video:' "$log" || head -1 "$log"; } | sed 's/^ *//' | cut -c1-80))"
+          result="needs re-narration (status: $(awk '/^== retry/ { b = ""; next } { b = b $0 "\n" } END { printf "%s", b }' "$log" \
+                    | { grep -m1 -E '^  |make-video:' || head -1; } | sed 's/^ *//' | cut -c1-80))"
         elif (( dry )); then
           result='would render'
-        elif echo "== $(date -Is) render $n" >> "$log" && CHROME=${CHROME:-google-chrome} "$mv" render "$n" >> "$log" 2>&1 && [[ -s $stem.mp4 ]]; then
+        elif rm -f "$stem.mp4.sha" && echo "== $(date -Is) render $n" >> "$log" && CHROME=${CHROME:-google-chrome} "$mv" render "$n" >> "$log" 2>&1 && [[ -s $stem.mp4 ]]; then
           echo "$want" > "$stem.mp4.sha"
           result=rendered
         else
@@ -219,10 +220,10 @@ main() {
           failed=1
         fi
         if (( to_checkout )) && [[ $result == skipped || $result == rendered ]] && ! cmp -s "$stem.mp4" "$repo/${page%.html}.mp4"; then
-          if cp -p "$stem.mp4" "$repo/${page%.html}.mp4"; then
+          if cp -p "$stem.mp4" "$repo/${page%.html}.mp4.tmp" && mv "$repo/${page%.html}.mp4.tmp" "$repo/${page%.html}.mp4"; then
             copied=yes; copies=$((copies + 1))
           else
-            copied=failed; failed=1
+            rm -f "$repo/${page%.html}.mp4.tmp"; copied=failed; failed=1
           fi
         fi
       fi
