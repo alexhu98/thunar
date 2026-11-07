@@ -24,7 +24,7 @@ Below, `<upstream>` is `https://gitlab.xfce.org/xfce/thunar.git` (in a test run,
 ## Arguments
 
 - none: the weekly run.
-- `--test`: a test run, the same steps against a fake upstream. First, `.claude/skills/upstream-merge/fake-upstream.sh <scratch>/fake-upstream.git` makes a local bare repo holding `main`'s release tag and a fake next tag, such as `thunar-4.20.11`: that release plus one commit that only raises `XDT_VERSION_INIT` and adds a `NEWS` entry. That repo is `<upstream>`, and every step runs with `UPSTREAM=<upstream>` for `check.sh`. The PR then shows only that commit and the explainer, and CI builds and checks it. The issue and PR are titled with the `[test]` prefix, the PR is a draft so it can't be merged by mistake, and step 8 closes both.
+- `--test`: a test run, the same steps against a fake upstream. After step 1's `git fetch` and unshallow lines, `.claude/skills/upstream-merge/fake-upstream.sh <fake>` makes a local bare repo holding `main`'s release tag and a fake next tag, such as `thunar-4.20.11`: that release plus one commit that only raises `XDT_VERSION_INIT` and adds a `NEWS` entry. `<fake>` is `fake-upstream.git` in the session's scratch directory, or `/tmp` if it has none. That repo is `<upstream>`, and every step runs with `UPSTREAM=<upstream>` for `check.sh`. The PR then shows only that commit and the explainer, and CI builds and checks it. The issue and PR are titled with the `[test]` prefix, the PR is a draft so it can't be merged by mistake, and step 8 closes both.
 
 ## 1. Check
 
@@ -44,7 +44,7 @@ A `; upstream also has thunar-4.22.0, a newer stable series` note is reported, n
 Then fetch both releases, outside `refs/tags`:
 
 ```sh
-git fetch --no-tags <upstream> "refs/tags/<old>:refs/upstream-tags/<old>" "refs/tags/<tag>:refs/upstream-tags/<tag>"
+git fetch --no-tags <upstream> "refs/tags/<old>:refs/upstream-tags/<old>" "+refs/tags/<tag>:refs/upstream-tags/<tag>"
 ```
 
 ## 2. Already in hand?
@@ -109,7 +109,7 @@ Subscribe to the PR's activity with `subscribe_pr_activity` and follow the rules
 
 ## 8. Close a test run
 
-In a test run only, once CI has finished on the PR and step 7 is done: close the PR, close its issue as completed, delete its branch with `git push origin --delete <n>-<tag>`, and remove the fake repo and `refs/upstream-tags/<tag>` (`git update-ref -d refs/upstream-tags/<tag>`), which names a release that doesn't exist yet.
+In a test run only, once CI has finished on the PR and step 7 is done: close the PR, close its issue as completed, delete its branch with `git push origin --delete <n>-<tag>`, and remove `<fake>` and `refs/upstream-tags/<tag>` (`git update-ref -d refs/upstream-tags/<tag>`), which names a release that doesn't exist yet.
 
 ## For the owner
 
