@@ -1,8 +1,9 @@
 #!/bin/bash
 # CI code review of a PR: review-proof.sh plan | collect | report
-#   plan     before the review: picks the mode from the head commit's Review: trailer, waits (up to 30 min) until
-#            earlier runs on the branch have written their review state, skips when the head was already reviewed
-#            or only explainers/ changed since the last reviewed commit, and writes the diff, the issue, the open
+#   plan     before the review: picks the mode from the head commit's Review: trailer (default auto-fix, or suggest
+#            for an upstream release merge), waits (up to 30 min) until earlier runs on the branch have written their
+#            review state, skips when the head was already reviewed or only explainers/ changed since the last
+#            reviewed commit, and writes the diff (for a release merge, only the fork's side), the issue, the open
 #            findings with the commits since each was found, the accepted findings and the prompt to $OUT. Prints its decisions as key=value lines for $GITHUB_OUTPUT.
 #   collect  after the review: saves the findings ($FINDINGS, the action's structured_output) and the working-tree
 #            fix as a patch, for the report job.
@@ -77,6 +78,31 @@ accepted() {
     | awk -F '[^A-Za-z0-9]+' '{ for (i = 2; i <= NF; i++) if (toupper($i) ~ /^R[0-9]+$/) print toupper($i), $1 }' | sort -u
 }
 
+release_merge() {  # merge base -> the newest "Merge upstream thunar-<version>" merge on the PR's first-parent line whose second parent isn't on BASE
+  local sha subject
+  while IFS=$'\t' read -r sha subject; do
+    if [[ $subject =~ ^Merge\ upstream\ thunar-[0-9]+(\.[0-9]+)+$ ]] && ! git merge-base --is-ancestor "$sha^2" "$BASE"; then
+      echo "$sha"
+      return 0
+    fi
+  done < <(git log --first-parent --merges --format=$'%H\t%s' "$1..$HEAD_SHA")
+}
+
+auto_merge() {  # merge base, release merge -> the tree git's own merge of the release into the merge base makes
+  local tree
+  tree=$(git merge-tree --write-tree --no-messages "$1" "$2^2") || (( $? == 1 )) || return 1
+  echo "${tree%%$'\n'*}"
+}
+
+fork_side() {  # merge base, release merge -> the fork's side of the PR: the merge's conflict resolutions and its commits after it
+  if [[ $(git rev-parse "$2^1") == "$1" ]]; then
+    git show --remerge-diff --format= "$2" -- . ':!explainers/'
+    git diff "$2" "$HEAD_SHA" -- . ':!explainers/'
+  else
+    git diff "$(auto_merge "$1" "$2")" "$HEAD_SHA" -- . ':!explainers/'
+  fi
+}
+
 open_findings() {
   accepted > "$OUT/accepted.txt"
   python3 "$HERE/review-state.py" open "$OUT/state.json" "$OUT"
@@ -84,26 +110,28 @@ open_findings() {
 
 plan() {
   : "${HEAD_SHA:?}"
-  local trailer mode forced=0 last skip=0 reason= from full=1 mb issue= trusted
+  local trailer mode default=auto-fix forced=0 last skip=0 reason= from full=1 mb release issue= trusted
   trailer=$(git log -1 --format='%(trailers:key=Review,valueonly,separator=%x2C)' "$HEAD_SHA" | tr -d ' \n' | tr '[:upper:]' '[:lower:]')
+  mb=$(git merge-base "$BASE" "$HEAD_SHA")
+  release=$(release_merge "$mb")
+  [[ -z $release ]] || default=suggest
   case $trailer in
     suggest|auto-fix) mode=$trailer; forced=1 ;;
-    '') mode=auto-fix ;;
-    *) echo "::warning::unknown Review: trailer \"$trailer\"; using auto-fix" >&2; mode=auto-fix ;;
+    '') mode=$default ;;
+    *) echo "::warning::unknown Review: trailer \"$trailer\"; using $default" >&2; mode=$default ;;
   esac
   wait_for_earlier_runs
   state > "$OUT/state.json"
   last=$(jq -r '.sha // empty' "$OUT/state.json")
-  mb=$(git merge-base "$BASE" "$HEAD_SHA")
-  from=$mb
+  from=${release:-$mb}
   if [[ $last == "$HEAD_SHA" ]]; then
     skip=1 reason="${last::12} was already reviewed"
   elif [[ -n $last ]] && git merge-base --is-ancestor "$HEAD_SHA" "$last" 2>/dev/null; then
     skip=1 reason="${HEAD_SHA::12} is already part of the reviewed ${last::12}"
   elif [[ -n $last ]] && git cat-file -e "$last^{commit}" 2>/dev/null && git merge-base --is-ancestor "$last" "$HEAD_SHA" \
-    && git merge-base --is-ancestor "$mb" "$last"; then
+    && git merge-base --is-ancestor "$mb" "$last" && { [[ -z $release ]] || git merge-base --is-ancestor "$release" "$last"; }; then
     if git diff --quiet "$last" "$HEAD_SHA" -- . ':!explainers/'; then
-      if (( forced )); then
+      if (( forced )) && [[ -z $release ]]; then
         reason="forced by the head commit's Review: $mode trailer; nothing changed since ${last::12}, so the whole PR"
       else
         skip=1 reason="nothing but explainers/ changed since ${last::12}"
@@ -112,18 +140,38 @@ plan() {
       from=$last full=0 reason="the commits since ${last::12}"
     fi
   fi
-  if (( ! skip )) && git diff --quiet "$mb" "$HEAD_SHA" -- . ':!explainers/'; then
-    skip=1 reason="the PR changes nothing but explainers/"
+  if [[ -n $release ]]; then
+    fork_side "$mb" "$release" > "$OUT/fork.patch"
+    if (( ! skip )) && [[ ! -s $OUT/fork.patch ]]; then
+      open_findings
+      if [[ $(jq length "$OUT/open.json") == 0 ]]; then
+        skip=1 reason="the fork's side of the release merge ${release::12} changes nothing but explainers/"
+      else
+        from=$release full=1 reason="the fork's side of the release merge ${release::12} is empty, so only its open findings"
+      fi
+    fi
+    [[ -n $reason ]] || reason="the fork's side of the release merge ${release::12}"
+    if (( full )); then
+      mv "$OUT/fork.patch" "$OUT/diff.patch"
+    else
+      git diff "$from" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/diff.patch"
+      mv "$OUT/fork.patch" "$OUT/pr.patch"
+    fi
+  else
+    if (( ! skip )) && git diff --quiet "$mb" "$HEAD_SHA" -- . ':!explainers/'; then
+      skip=1 reason="the PR changes nothing but explainers/"
+    fi
+    [[ -n $reason ]] || reason="the whole PR"
+    git diff "$from" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/diff.patch"
+    (( full )) || git diff "$mb" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/pr.patch"
   fi
-  [[ -n $reason ]] || reason="the whole PR"
-  git diff "$from" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/diff.patch"
-  (( full )) || git diff "$mb" "$HEAD_SHA" -- . ':!explainers/' > "$OUT/pr.patch"
   open_findings
   local s
-  local -a since=()
+  local -a since=() not=(^"$mb")
+  [[ -z $release ]] || not+=(^"$release^2")
   while read -r s; do
     if [[ -n $s ]] && git cat-file -e "$s^{commit}" 2>/dev/null && git merge-base --is-ancestor "$s" "$HEAD_SHA"; then
-      since+=("$(git log --no-merges --format=%h "$s..$HEAD_SHA" ^"$mb" | paste -sd' ')")
+      since+=("$(git log --no-merges --format=%h "$s..$HEAD_SHA" "${not[@]}" | paste -sd' ')")
     else
       since+=(-)
     fi
@@ -157,20 +205,26 @@ plan() {
     echo "This branch is not named after an issue." > "$OUT/issue.md"
   fi
   schema | jq -c . > "$OUT/schema.json"
-  prompt "$mode" "$from" "$full" > "$OUT/prompt.md"
+  prompt "$mode" "$from" "$full" "$release" > "$OUT/prompt.md"
   jq -n --arg sha "$HEAD_SHA" --arg mode "$mode" --arg from "$from" --arg reason "$reason" --arg level "$LEVEL" \
-    --arg model "$MODEL" --argjson skip "$skip" --argjson full "$full" --argjson forced "$forced" \
-    '{sha: $sha, mode: $mode, from: $from, full: ($full == 1), forced: ($forced == 1), skip: ($skip == 1), reason: $reason, level: $level, model: $model}' \
+    --arg model "$MODEL" --arg release "$release" --argjson skip "$skip" --argjson full "$full" --argjson forced "$forced" \
+    '{sha: $sha, mode: $mode, from: $from, full: ($full == 1), forced: ($forced == 1), skip: ($skip == 1), reason: $reason, level: $level, model: $model,
+      release: (if $release == "" then null else $release end)}' \
     > "$OUT/plan.json"
   echo "review of ${HEAD_SHA::12}: $([[ $skip == 1 ]] && echo skipped || echo "$mode"), $reason" >&2
   echo "skip=$skip"
   echo "mode=$mode"
 }
 
-prompt() {  # mode, from sha, full (1|0)
-  local scope skip
+prompt() {  # mode, from sha, full (1|0), release merge (or empty)
+  local scope skip target="$2..$HEAD_SHA"
   printf -v skip '%s, ' "${NOT_IN_FIX[@]#:!}"
-  if [[ $3 == 1 ]]; then
+  if [[ -n $4 && $3 == 1 ]]; then
+    target="the unified diff in $OUT/diff.patch: review the changes it shows, reporting each at its file and line at HEAD, not at lines of the patch file"
+    scope="only the fork's side of the upstream release merge ${4::12}, saved in $OUT/diff.patch: the merge's conflict resolutions (\`git show --remerge-diff $4\`) and the PR's commits after it (\`git diff $4 $HEAD_SHA\`); when the branch has other commits around the merge, the diff from git's own merge of the release (\`git merge-tree\`) to HEAD instead. The commits of upstream's release are not under review: report nothing in code the release brought in unchanged"
+  elif [[ -n $4 ]]; then
+    scope="only the commits since the last review, \`git diff $2 $HEAD_SHA\`, saved in $OUT/diff.patch. The fork's whole side of the upstream release merge ${4::12}, $OUT/pr.patch, is context, not the target; upstream's release is neither"
+  elif [[ $3 == 1 ]]; then
     scope="the whole PR, \`git diff $2 $HEAD_SHA\`, saved in $OUT/diff.patch"
   else
     scope="only the commits since the last review, \`git diff $2 $HEAD_SHA\`, saved in $OUT/diff.patch. The whole PR's diff, $OUT/pr.patch, is context, not the target"
@@ -183,7 +237,7 @@ history from the session that wrote it.
 - The repo rules in CLAUDE.md apply to the review and to every fix. In particular, add no new explanatory comments.
 - Review $scope. Leave explainers/ out: those pages are checked by another job.
 
-1. Use the Skill tool to run the code-review skill with args "$LEVEL $2..$HEAD_SHA".
+1. Use the Skill tool to run the code-review skill with args "$LEVEL $target".
 2. Verify every finding it reports: give each, with its file, line, claim and failure scenario, to a fresh
    general-purpose Agent (all at once, in parallel) that tries to disprove it against the code at HEAD, read with
    \`git show HEAD:<path>\` because the working tree's CLAUDE.md and .claude/ are the base branch's, and that changes
@@ -231,8 +285,8 @@ collect() {
   echo "$(jq '.findings | length' "$OUT/findings.json") findings; fix patch: $([[ -s $OUT/fix.patch ]] && git apply --numstat "$OUT/fix.patch" | wc -l || echo 0) files" >&2
 }
 
-hunks() {  # the PR's diff at HEAD_SHA -> "file<TAB>start<TAB>end" for each hunk on the right side, where inline comments can go
-  git -c core.quotePath=false diff --no-ext-diff --no-color --no-relative --src-prefix=a/ --dst-prefix=b/ "$(git merge-base "$BASE" "$HEAD_SHA")" "$HEAD_SHA" | awk '
+right_hunks() {  # from, to -> "file<TAB>start<TAB>end" for each hunk on the right side of their diff
+  git -c core.quotePath=false diff --no-ext-diff --no-color --no-relative --src-prefix=a/ --dst-prefix=b/ "$1" "$2" | awk '
     /^diff --git / { h = 1 }
     h && /^\+\+\+ / {
       h = 0; f = substr($0, 5); sub(/\t$/, "", f)
@@ -240,6 +294,31 @@ hunks() {  # the PR's diff at HEAD_SHA -> "file<TAB>start<TAB>end" for each hunk
       f = substr(f, 3)
     }
     /^@@/ { split($3, r, ","); s = substr(r[1], 2); n = (r[2] == "" ? 1 : r[2]); if (n > 0) print f "\t" s "\t" s + n - 1 }'
+}
+
+hunks() {  # the lines at HEAD_SHA where inline comments can go: the PR's diff, or for a release merge only the fork's side of it
+  local mb release tree
+  mb=$(git merge-base "$BASE" "$HEAD_SHA")
+  release=$(release_merge "$mb")
+  if [[ -z $release ]]; then
+    right_hunks "$mb" "$HEAD_SHA"
+    return 0
+  fi
+  tree=$(auto_merge "$mb" "$release")
+  python3 -c '
+import sys
+def ranges(path):
+    out = {}
+    for ln in open(path):
+        f, s, e = ln.rstrip("\n").split("\t")
+        out.setdefault(f, []).append((int(s), int(e)))
+    return out
+pr, fork = ranges(sys.argv[1]), ranges(sys.argv[2])
+for f, rs in fork.items():
+    for s, e in rs:
+        for a, b in pr.get(f, []):
+            if max(s, a) <= min(e, b):
+                print(f"{f}\t{max(s, a)}\t{min(e, b)}")' <(right_hunks "$mb" "$HEAD_SHA") <(right_hunks "$tree" "$HEAD_SHA")
 }
 
 report() {

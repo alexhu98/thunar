@@ -16,9 +16,8 @@ Below, `<upstream>` is `https://gitlab.xfce.org/xfce/thunar.git` (in a test run,
 - Merge the git tag, never a release tarball.
 - Never push to the `upstream` remote, `master` or `xfce-4.20`, and never push tags. Push only the release's branch.
 - Never edit `debian/changelog` or the version: CI stamps `<new>-1~bpo24.04+local<N>` from `configure.ac`.
-- The last commit of every push carries the trailer `Review: suggest`, so CI's review suggests changes instead of committing edits to upstream's code.
+- Keep the merge's message `Merge upstream <tag>`: CI's review finds the release merge by it, suggests changes instead of committing them, and reviews only the fork's side (the conflict resolutions and the commits after the merge).
 - Before every push after the first, `git pull --rebase=merges`, never a plain `--rebase`, which would flatten the merge.
-- CI's findings in upstream's own code aren't fixed in the fork. Close each one with a `Review-accept: R<n>` trailer on the next commit (an empty commit with `--allow-empty` if nothing else changes), and list them in the PR description.
 - The PR goes into `main`. The owner merges it.
 
 ## Arguments
@@ -72,7 +71,7 @@ With the GitHub MCP `issue_write` tool, in `alexhu98/thunar`:
 
 ```sh
 git checkout --no-track -b <n>-<tag> <base>          # e.g. 57-thunar-4.20.11 from origin/main
-git merge --no-ff -m "Merge upstream <tag>" -m "Review: suggest" refs/upstream-tags/<tag>
+git merge --no-ff -m "Merge upstream <tag>" refs/upstream-tags/<tag>
 ```
 
 On conflicts, resolve each file by hand, never with `-X ours` or `-X theirs` for the whole merge, then `git commit --no-edit --cleanup=strip`:
@@ -91,7 +90,7 @@ No output means every fork change survived and nothing else moved. A file only o
 
 ## 5. Explainer
 
-Write `explainers/<n>-<tag>.html` and its stamped narration with the `explainer` skill, and commit them with the trailer `Review: suggest`, as the Rules say for the last commit of a push. Part 1 is what the release changes for the owner, from `NEWS` and `git log --oneline refs/upstream-tags/<old>..refs/upstream-tags/<tag>`, and what the merge did with each conflict. Part 2 is the checks run here: `check.sh`, the merge, the file-list diff, a build if there was one. CI's build, verify and review go under "Checked only after the merge" until they run. Part 3 is the next release, found by next week's run; in a test run, the rest of the test (step 8).
+Write `explainers/<n>-<tag>.html` and its stamped narration with the `explainer` skill, and commit them. Part 1 is what the release changes for the owner, from `NEWS` and `git log --oneline refs/upstream-tags/<old>..refs/upstream-tags/<tag>`, and what the merge did with each conflict. Part 2 is the checks run here: `check.sh`, the merge, the file-list diff, a build if there was one. CI's build, verify and review go under "Checked only after the merge" until they run. Part 3 is the next release, found by next week's run; in a test run, the rest of the test (step 8).
 
 ## 6. Push and open the PR
 
