@@ -4903,6 +4903,7 @@ thunar_file_clear_directory_specific_settings (ThunarFile *file)
   g_file_info_remove_attribute (file->info, "metadata::thunar-zoom-level-ThunarDetailsView");
   g_file_info_remove_attribute (file->info, "metadata::thunar-zoom-level-ThunarIconView");
   g_file_info_remove_attribute (file->info, "metadata::thunar-zoom-level-ThunarCompactView");
+  g_file_info_remove_attribute (file->info, "metadata::thunar-search-subfolders");
 
   g_file_set_attribute (file->gfile, "metadata::thunar-view-type", G_FILE_ATTRIBUTE_TYPE_INVALID,
                         NULL, G_FILE_QUERY_INFO_NONE, NULL, NULL);
@@ -4917,6 +4918,8 @@ thunar_file_clear_directory_specific_settings (ThunarFile *file)
   g_file_set_attribute (file->gfile, "metadata::thunar-zoom-level-ThunarIconView", G_FILE_ATTRIBUTE_TYPE_INVALID,
                         NULL, G_FILE_QUERY_INFO_NONE, NULL, NULL);
   g_file_set_attribute (file->gfile, "metadata::thunar-zoom-level-ThunarCompactView", G_FILE_ATTRIBUTE_TYPE_INVALID,
+                        NULL, G_FILE_QUERY_INFO_NONE, NULL, NULL);
+  g_file_set_attribute (file->gfile, "metadata::thunar-search-subfolders", G_FILE_ATTRIBUTE_TYPE_INVALID,
                         NULL, G_FILE_QUERY_INFO_NONE, NULL, NULL);
 
   thunar_file_changed (file);
@@ -4954,8 +4957,50 @@ thunar_file_has_directory_specific_settings (ThunarFile *file)
     return TRUE;
   if (g_file_info_has_attribute (file->info, "metadata::thunar-zoom-level-ThunarCompactView"))
     return TRUE;
+  if (g_file_info_has_attribute (file->info, "metadata::thunar-search-subfolders"))
+    return TRUE;
 
   return FALSE;
+}
+
+
+
+ThunarRecursiveSearchMode
+thunar_file_get_recursive_search_mode (ThunarFile *file)
+{
+  ThunarPreferences        *preferences;
+  ThunarRecursiveSearchMode mode;
+  gchar                    *saved;
+
+  _thunar_return_val_if_fail (THUNAR_IS_FILE (file), THUNAR_RECURSIVE_SEARCH_ALWAYS);
+
+  saved = thunar_file_get_metadata_setting (file, "thunar-search-subfolders");
+  if (saved != NULL)
+    {
+      mode = g_strcmp0 (saved, "true") == 0 ? THUNAR_RECURSIVE_SEARCH_ALWAYS : THUNAR_RECURSIVE_SEARCH_NEVER;
+      g_free (saved);
+      return mode;
+    }
+
+  preferences = thunar_preferences_get ();
+  g_object_get (G_OBJECT (preferences), "misc-recursive-search", &mode, NULL);
+  g_object_unref (preferences);
+
+  return mode;
+}
+
+
+
+void
+thunar_file_set_search_subfolders (ThunarFile *file,
+                                   gboolean    search_subfolders)
+{
+  _thunar_return_if_fail (THUNAR_IS_FILE (file));
+
+  if (file->info == NULL)
+    return;
+
+  thunar_file_set_metadata_setting (file, "thunar-search-subfolders", search_subfolders ? "true" : "false", FALSE);
 }
 
 

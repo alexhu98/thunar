@@ -1629,7 +1629,8 @@ thunar_window_update_view_menu (ThunarWindow *window,
                                                    window->menubar_visible, GTK_MENU_SHELL (menu));
   xfce_gtk_menu_item_new_from_action_entry (get_action_entry (THUNAR_WINDOW_ACTION_CONFIGURE_TOOLBAR), G_OBJECT (window), GTK_MENU_SHELL (menu));
   xfce_gtk_menu_append_separator (GTK_MENU_SHELL (menu));
-  if (window->directory_specific_settings)
+  if (window->directory_specific_settings
+      || (window->current_directory != NULL && thunar_file_has_directory_specific_settings (window->current_directory)))
     {
       item = xfce_gtk_menu_item_new_from_action_entry (get_action_entry (THUNAR_WINDOW_ACTION_CLEAR_DIRECTORY_SPECIFIC_SETTINGS),
                                                        G_OBJECT (window), GTK_MENU_SHELL (menu));

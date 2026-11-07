@@ -1672,10 +1672,9 @@ thunar_io_jobs_search_directory (ThunarStandardViewModel *model,
   ThunarRecursiveSearchMode mode;
   gboolean                  show_hidden;
 
-  preferences = thunar_preferences_get ();
+  mode = thunar_file_get_recursive_search_mode (directory);
 
-  /* grab a reference of preferences determine the current recursive search mode */
-  g_object_get (G_OBJECT (preferences), "misc-recursive-search", &mode, NULL);
+  preferences = thunar_preferences_get ();
   g_object_get (G_OBJECT (preferences), "last-show-hidden", &show_hidden, NULL);
 
   g_object_unref (preferences);
