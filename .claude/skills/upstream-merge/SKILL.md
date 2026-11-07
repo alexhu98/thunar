@@ -16,8 +16,9 @@ Below, `<base>` is `origin/main` (or `origin/<branch>` in a test run), `<tag>` i
 - Merge the git tag, never a release tarball.
 - Never push to the `upstream` remote, `master` or `xfce-4.20`, and never push tags. Push only the release's branch.
 - Never edit `debian/changelog` or the version: CI stamps `<new>-1~bpo24.04+local<N>` from `configure.ac`.
-- Every commit pushed on the release's branch carries the trailer `Review: suggest`, so CI's review suggests changes instead of committing edits to upstream's code.
-- Never `git pull --rebase` on the release's branch: it would flatten the merge. Use `git pull --no-rebase`.
+- The last commit of every push that changes more than `explainers/` carries the trailer `Review: suggest`, so CI's review suggests changes instead of committing edits to upstream's code. A push of explainer commits alone carries no trailer, so it doesn't force a re-review.
+- Before each push, `git pull --rebase=merges`, never a plain `--rebase`, which would flatten the merge.
+- CI's findings in upstream's own code aren't fixed in the fork. Close each one with a `Review-accept: R<n>` trailer on the next commit, and list them in the PR description.
 - The PR goes into `main`. The owner merges it.
 
 ## Arguments
@@ -28,10 +29,12 @@ Below, `<base>` is `origin/main` (or `origin/<branch>` in a test run), `<tag>` i
 ## 1. Check
 
 ```sh
-git fetch origin main                     # test run: git fetch origin main <branch>
+git fetch origin main
 [[ $(git rev-parse --is-shallow-repository) == true ]] && git fetch --unshallow origin
 .claude/skills/upstream-merge/check.sh <base>
 ```
+
+A test run also fetches its branch: `git fetch origin main <branch>`.
 
 `check.sh` prints one line:
 - `none (main has 4.20.10, newest upstream thunar-4.20.10)`: report that line and stop.
@@ -49,17 +52,15 @@ git fetch --no-tags https://gitlab.xfce.org/xfce/thunar.git "refs/tags/<old>:ref
 ## 2. Already in hand?
 
 ```sh
-gh api -X GET search/issues -f q='repo:alexhu98/thunar is:issue in:title "Merge upstream"' \
+gh api -X GET search/issues -f per_page=100 -f q='repo:alexhu98/thunar is:issue in:title "Merge upstream"' \
   --jq '.items[] | select(.title | test("^(\\[test\\] )?Merge upstream thunar-")) | "#\(.number) \(.state) \(.title)"'
-gh api -X GET search/issues -f q='repo:alexhu98/thunar is:pull-request is:open in:title "Merge upstream"' \
+gh api -X GET search/issues -f per_page=100 -f q='repo:alexhu98/thunar is:pull-request is:open in:title "Merge upstream"' \
   --jq '.items[] | "#\(.number) \(.title)"'
 ```
 
 Look only at titles of this run's kind, with `[test] ` in a test run and without it otherwise:
-- A closed issue titled `<title>`: report it and stop. Closing the issue is how the owner skips a release.
-- An open issue or PR for another tag: report it and stop. The newer tag waits until that one is merged or closed, so two release PRs never overlap.
-- An open PR titled `<title>`: report it and stop.
-- An open issue titled `<title>` and no PR: an earlier run stopped partway. Report it, then resume with that issue as `<n>`: skip step 3, and in step 4 take the branch `<n>-<tag>` from `origin` if it was pushed.
+- Any open issue or PR, for any tag: report `waiting: #<n> is open` and stop. One release is in flight at a time, including one an earlier run left half done: the owner merges it, or closes its issue and PR to drop it.
+- A closed issue titled `<title>` (weekly runs only): report `skipped: #<n> was closed` and stop. Closing a release's issue and PR is how the owner skips it.
 - Nothing: go on.
 
 ## 3. Open the issue
@@ -70,14 +71,12 @@ With the GitHub MCP `issue_write` tool, in `alexhu98/thunar`:
 
 ## 4. Merge
 
-If `git ls-remote --heads origin <n>-<tag>` shows the branch, an earlier run pushed it: `git fetch origin <n>-<tag>`, `git checkout --no-track -b <n>-<tag> origin/<n>-<tag>`, and skip the merge if `git merge-base --is-ancestor refs/upstream-tags/<tag> HEAD` succeeds. Otherwise:
-
 ```sh
 git checkout --no-track -b <n>-<tag> <base>          # e.g. 57-thunar-4.20.11 from origin/main
 git merge --no-ff -m "Merge upstream <tag>" -m "Review: suggest" refs/upstream-tags/<tag>
 ```
 
-On conflicts, resolve each file by hand, never with `-X ours` or `-X theirs` for the whole merge, then `git commit --no-edit`:
+On conflicts, resolve each file by hand, never with `-X ours` or `-X theirs` for the whole merge, then `git commit --no-edit --cleanup=strip`:
 - Files only the fork has (`.github/`, `.claude/`, `debian/`, `explainers/`, `verify/`, `CLAUDE.md`): keep the fork's.
 - Thunar's source: keep both upstream's change and the fork's feature. If they can't both stay, keep upstream's code and re-apply the fork's change on top.
 - Record every conflict and its resolution for the PR description and the explainer.
@@ -107,7 +106,7 @@ With the GitHub MCP `create_pull_request` tool, from `<n>-<tag>` into `main`:
 
 ## 7. Follow CI
 
-Subscribe to the PR's activity with `subscribe_pr_activity` and follow the rules in its first event. After each verify run, run `/visual-verify pr:<pr>` and post its comment, as `CLAUDE.md` says. Fix only failures the merge caused, in commits with the trailer `Review: suggest`, after `git pull --no-rebase`. A failure that was already on `main` goes in the report, not in this PR.
+Subscribe to the PR's activity with `subscribe_pr_activity` and follow the rules in its first event. After each verify run, run `/visual-verify pr:<pr>` and post its comment, as `CLAUDE.md` says. Fix only failures the merge caused, following the Rules above. A failure that was already on `main` goes in the report, not in this PR.
 
 ## Report
 

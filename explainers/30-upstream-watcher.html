@@ -137,9 +137,9 @@
     <g data-k="2">
       <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
       <text x="286" y="90" class="t">Already in hand?</text>
-      <text x="286" y="114" class="b">skipped, or another</text>
-      <text x="286" y="134" class="b">release open: stop;</text>
-      <text x="286" y="154" class="b">no PR yet: resume</text>
+      <text x="286" y="114" class="b">a release in flight</text>
+      <text x="286" y="134" class="b">or this one skipped:</text>
+      <text x="286" y="154" class="b">report, stop</text>
       <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
     </g>
     <g data-k="3">
@@ -217,7 +217,7 @@
   <div class="lane-h" style="color:var(--accent)">① Every week — the scheduled cloud session</div>
   <ol class="steps">
     <li data-k="1"><b>Check upstream.</b> <code>check.sh</code> reads <code>main</code>'s version from <code>configure.ac</code>, lists upstream's tags with <code>git ls-remote</code>, and prints the newest tag in <code>main</code>'s series that <code>main</code> lacks. With several new tags it picks only the newest. With none, the session reports the one line and ends.</li>
-    <li data-k="2"><b>Already in hand?</b> It searches the repo's <code>Merge upstream</code> issues and PRs. A closed issue for this tag means you skipped the release; an open PR for it, or any open one for another release, means it waits, so two release PRs never overlap. An open issue for this tag with no PR means an earlier run stopped partway, so it carries on from where that run stopped.</li>
+    <li data-k="2"><b>Already in hand?</b> It searches the repo's <code>Merge upstream</code> issues and PRs. Any open one, for any release, means one is already in flight, even one an earlier run left half done, so it reports <code>waiting</code> and stops. A closed issue for this tag means you skipped the release. Only one release PR is ever open, and closing its issue and PR is how you drop or skip it.</li>
     <li data-k="3"><b>Open an issue.</b> Titled <code>Merge upstream &lt;tag&gt;</code>, with the tag's link, its section of upstream's <code>NEWS</code>, <code>Refs #30</code> and a Done-when list.</li>
     <li data-k="4"><b>Merge the tag.</b> On a new branch <code>&lt;n&gt;-thunar-4.20.x</code> from <code>main</code>, it merges the git tag, never the tarball, in a commit marked <code>Review: suggest</code> so CI's review suggests changes rather than editing upstream's code. Conflicts are resolved file by file, keeping both upstream's fix and the fork's feature, then a file-list check confirms the fork's changes all survived.</li>
     <li data-k="5"><b>Write the explainer.</b> With the <code>explainer</code> skill: what the release changes, how each conflict was resolved, and its stamped narration, which CI requires on every <code>&lt;n&gt;-…</code> branch.</li>
@@ -291,11 +291,11 @@ explainers/30-upstream-watcher.narration.json  # its narration</pre>
   <p data-k="summary">A fresh <code>general-purpose</code> agent, given only the diff and #30, reviewed the skill and <code>check.sh</code> and ran the script against upstream. It found no bugs in <code>check.sh</code> and 4 problems in <code>SKILL.md</code>, all fixed. A fifth, found while testing here, was fixed first.</p>
   <ul class="tight">
     <li data-k="b1"><b>Test runs (high):</b> a plain upstream tag as the test base has none of the fork's files, so CI would break. The skill now builds a copy of <code>main</code> rebuilt on the older tag.</li>
-    <li data-k="b2"><b>Half-done runs (medium):</b> a run that opened an issue and then failed would block that release for good. An open issue without a PR is now picked up again.</li>
+    <li data-k="b2"><b>Half-done runs (medium):</b> a run that opened an issue and then failed was treated like a skip. It is now reported every week as waiting, until you merge or close it.</li>
     <li data-k="b3"><b>Release notes (low):</b> the <code>git log</code> range named tags that aren't fetched under those names; it now uses the fetched refs.</li>
     <li data-k="b4"><b>File-list check (low):</b> the step now says how to read a difference, since upstream adopting a fork change is normal.</li>
     <li data-k="b5"><b>Duplicate search (found here):</b> GitHub refused the query without <code>is:issue</code>, with HTTP 422; it now passes and filters on the exact title.</li>
-    <li data-k="b6"><b>CI's review (12 findings):</b> the release merge now carries <code>Review: suggest</code>, an open release blocks a newer one, a resumed run reuses its pushed branch, both tags are fetched in step 1, and the branch never tracks <code>main</code>. The test-run layout is still open with you.</li>
+    <li data-k="b6"><b>CI's review (12 findings):</b> two rounds, 24 findings. The release merge now carries <code>Review: suggest</code> and accepts findings in upstream's code, only one release is in flight at a time, both tags are fetched in step 1, and pulls keep the merge. The test-run layout is still open with you.</li>
   </ul>
   </section>
 
