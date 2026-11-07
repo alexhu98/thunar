@@ -207,15 +207,15 @@ EOF
 EOF
   fi
   cat <<EOF
-4. $OUT/open.json lists findings from earlier reviews that are still open, each with commits_since: the commits since
-   it was found, or null when its commit is no longer in the history. This step is not limited to the diff under
-   review: give each open finding to one fresh general-purpose Agent (all at once, in parallel), as in step 2, that
-   reads with \`git show HEAD:<path>\` the finding's file and the code its claim depends on, looks at the commits in
-   commits_since, which may have fixed it in another file, and decides from the code at HEAD alone whether it is
-   resolved. "Not changed in this diff" is never a reason to keep a finding open. Report in previous whether each is
-   resolved, by its id, with a note naming the code at HEAD that resolves it or still shows it. If you fixed it in
-   step 3, set fixed to true, resolved to false, and give its file, files if the fix changed more, and its line,
-   start_line and suggestion as in step 3.
+4. $OUT/open.json lists findings from earlier reviews that are still open, each with commits_since: the branch's own
+   commits since it was found, without merges, or null when its commit is no longer in the history. This step is not
+   limited to the diff under review: give each open finding to one fresh general-purpose Agent (all at once, in
+   parallel), as in step 2, that reads with \`git show HEAD:<path>\` the finding's file and the code its claim
+   depends on, looks at the commits in commits_since, which may have fixed it in another file, and decides from the
+   code at HEAD alone whether it is resolved. "Not changed in this diff" is never a reason to keep a finding open.
+   Report in previous whether each is resolved, by its id, with a note naming the code at HEAD that resolves it or
+   still shows it. If you fixed it in step 3, set fixed to true, resolved to false, and give its file, files if the
+   fix changed more, and its line, start_line and suggestion as in step 3.
 5. Return the findings and previous in the output schema. Report every finding the skill reported, except one
    already listed in open.json: report that one only in previous. Leave out any finding that matches one in
    $OUT/accepted.json: the PR's author kept those on purpose.

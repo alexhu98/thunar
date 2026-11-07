@@ -214,9 +214,9 @@
   <div class="lane-h" style="color:var(--accent)">① Decide, for each page</div>
   <ol class="steps">
     <li data-k="1"><b>Compare hashes.</b> The page, narration and tool hashes are computed first. If <code>&lt;stem&gt;.mp4</code> exists and <code>&lt;stem&gt;.mp4.sha</code> holds the same hashes, the page is "skipped" right away: no Chrome, and its render log is no longer overwritten by status output.</li>
-    <li data-k="2"><b>Run status.</b> Only for a changed page. With <code>CHROME</code> unset, <code>status</code> uses the newest Playwright headless shell under <code>${PLAYWRIGHT_BROWSERS_PATH:-~/.cache/ms-playwright}</code>, and <code>google-chrome</code> when there is none. A failure on the shell is retried once with <code>google-chrome</code>, so only a real failure means "needs re-narration".</li>
+    <li data-k="2"><b>Run status.</b> Only for a changed page. With <code>CHROME</code> unset, <code>status</code> uses the newest Playwright headless shell under <code>${PLAYWRIGHT_BROWSERS_PATH:-~/.cache/ms-playwright}</code>, and <code>google-chrome</code> when there is none. A crash on the shell is retried once with <code>google-chrome</code>, which then checks the rest of the pages; a stale narration fails once, without a retry.</li>
     <li data-k="3"><b>Render.</b> Unchanged: <code>make-video.py render</code> with your <code>CHROME</code>, by default <code>google-chrome</code>, so frames look the same as before. The new hashes go into <code>.mp4.sha</code>.</li>
-    <li data-k="4"><b>Copy to checkout.</b> A skipped or rendered video is copied with <code>cp -p</code> into the <code>explainers/</code> of the checkout the script lives in, only when the checkout has none, or an older one that <code>cmp</code> says differs; a newer video you rendered in the checkout is kept. A failed, partial or conflicting page is never copied. <code>--no-copy</code> and <code>--dry-run</code> copy nothing; <code>REPORT.tsv</code> gains a <code>copied</code> column, and a run that copied any ends with "videos copied to:" and the folder.</li>
+    <li data-k="4"><b>Copy to checkout.</b> A skipped or rendered video is copied with <code>cp -p</code> into the <code>explainers/</code> of the checkout the script lives in, only when the checkout has none, or an older one that <code>cmp</code> says differs; a newer, different video in the checkout is kept and shown as <code>kept: newer</code>, so you can delete it if it's a broken one. A failed, partial or conflicting page is never copied. <code>--no-copy</code> and <code>--dry-run</code> copy nothing; <code>REPORT.tsv</code> gains a <code>copied</code> column, and a run that copied any ends with "videos copied to:" and the folder.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② The gallery stays clean</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
@@ -235,7 +235,7 @@
   <div class="table-wrap">
   <table>
     <tr><th>Page state</th><th>status runs?</th><th>render runs?</th><th>copied?</th></tr>
-    <tr data-k="k1"><td>video and hashes current</td><td>no (new)</td><td>no</td><td class="ok">if yours is older and differs</td></tr>
+    <tr data-k="k1"><td>video and hashes current</td><td>no (new)</td><td>no</td><td class="ok">if yours is older and differs; a newer one is kept and shown</td></tr>
     <tr data-k="k2"><td>page or narration changed, narration still matches</td><td>yes, headless shell</td><td>yes</td><td class="ok">if it rendered</td></tr>
     <tr data-k="k3"><td>narration stale</td><td>yes, fails</td><td>no</td><td class="no">no</td></tr>
     <tr data-k="k4"><td>render fails, partial video left</td><td>yes</td><td>yes, fails</td><td class="no">no</td></tr>
@@ -314,7 +314,7 @@ explainers/
     <li data-k="b5"><b>Fixed, small ones:</b> null instead of an empty list when the finding's commit is gone; one agent per open finding, not one in step 3 and another in step 4; a <code>jq</code> error now fails the step.</li>
     <li data-k="b3"><b>Left as is:</b> a tab inside a status error would add a column to <code>REPORT.tsv</code>. That predates this PR.</li>
   </ul>
-  <p data-k="ci2">CI's first review of the whole PR then confirmed 3 medium findings, all fixed: a newer video in your checkout was overwritten, a broken headless shell made pages look stale, and the reviewer's note on a still-open finding was dropped by <code>review-state.py</code>. Seven of its low ones were fixed too.</p>
+  <p data-k="ci2">CI's first review of the whole PR then confirmed 3 medium findings, all fixed: a newer video in your checkout was overwritten, a broken headless shell made pages look stale, and the reviewer's note on a still-open finding was dropped by <code>review-state.py</code>. Seven of its low ones were fixed too. Its next review confirmed those fixes and raised one more medium: a broken, newer video in your checkout would be kept without a word. It is now shown as <code>kept: newer</code>.</p>
   <p data-k="ci">CI's own review is in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/35">PR #35</a>.</p>
   </section>
 

@@ -19,10 +19,10 @@
 # branches, or two other branches and no own one, are a conflict: reported, not rendered. A page whose <stem>.mp4 exists
 # and whose page and narration hashes equal those in <stem>.mp4.sha, which also holds a hash of make-video.py and the
 # pronunciation table, is skipped without running status. Any other narrated page runs status (retried with
-# google-chrome if the headless shell fails) and, if it passes and not under --dry-run, render.
+# google-chrome if it crashed on the headless shell) and, if it passes and not under --dry-run, render.
 # Writes SOURCES.tsv (page, branch, commit) and REPORT.tsv (page, branch, commit, result, copied) in the gallery's
 # explainers/, and copies each skipped or rendered video into the checkout's explainers/ when the checkout has none
-# or an older, different one.
+# or an older, different one; a newer, different one is kept and reported.
 set -euo pipefail
 
 table() {
@@ -171,7 +171,7 @@ main() {
   echo "== decide"
   local mv=${MAKE_VIDEO:-$gallery/.claude/skills/explainer/make-video.py}
   local -a rows=()
-  local failed=0 page stem want have result log tool copied probe=${CHROME:-}
+  local failed=0 copies=0 page stem want have result log tool copied probe=${CHROME:-}
   if [[ -z $probe ]]; then
     probe=$(printf '%s\n' "${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell \
               | sort -V | tail -1)
@@ -205,8 +205,10 @@ main() {
         have=$(cat "$stem.mp4.sha" 2>/dev/null || true)
         if [[ -e $stem.mp4 && $have == "$want" ]]; then
           result=skipped
-        elif ! { CHROME=$probe "$mv" status "$n" > "$log" 2>&1 \
-                 || { [[ $probe != "${CHROME:-google-chrome}" ]] && CHROME=${CHROME:-google-chrome} "$mv" status "$n" > "$log" 2>&1; }; }; then
+        elif ! CHROME=$probe "$mv" status "$n" > "$log" 2>&1 \
+             && ! { [[ $probe != "${CHROME:-google-chrome}" ]] && grep -q '^make-video:' "$log" \
+                    && echo "== retry with ${CHROME:-google-chrome}" >> "$log" \
+                    && CHROME=${CHROME:-google-chrome} "$mv" status "$n" >> "$log" 2>&1 && probe=${CHROME:-google-chrome}; }; then
           result="needs re-narration (status: $({ grep -m1 -E '^  |make-video:' "$log" || head -1 "$log"; } | sed 's/^ *//' | cut -c1-80))"
         elif (( dry )); then
           result='would render'
@@ -217,10 +219,14 @@ main() {
           result="failed (log: $log)"
           failed=1
         fi
-        if (( to_checkout )) && [[ $result == skipped || $result == rendered ]] \
-             && { [[ ! -e $repo/${page%.html}.mp4 ]] || [[ $stem.mp4 -nt $repo/${page%.html}.mp4 ]]; } \
-             && ! cmp -s "$stem.mp4" "$repo/${page%.html}.mp4"; then
-          if cp -p "$stem.mp4" "$repo/${page%.html}.mp4"; then copied=yes; else copied=failed; failed=1; fi
+        if (( to_checkout )) && [[ $result == skipped || $result == rendered ]] && ! cmp -s "$stem.mp4" "$repo/${page%.html}.mp4"; then
+          if [[ -e $repo/${page%.html}.mp4 && ! $stem.mp4 -nt $repo/${page%.html}.mp4 ]]; then
+            copied='kept: newer'
+          elif cp -p "$stem.mp4" "$repo/${page%.html}.mp4"; then
+            copied=yes; copies=$((copies + 1))
+          else
+            copied=failed; failed=1
+          fi
         fi
       fi
       echo "  $page: $result"
@@ -240,7 +246,7 @@ main() {
   { printf 'page\tbranch\tcommit\tresult\tcopied\n'; (( ${#rows[@]} == 0 )) || printf '%s\n' "${rows[@]}"; } > "$dir/REPORT.tsv"
   table "$dir/REPORT.tsv"
   echo "videos and reports: $dir"
-  (( to_checkout )) && printf '%s\n' "${rows[@]}" | grep -q $'\tyes$' && echo "videos copied to: $repo/explainers"
+  (( copies == 0 )) || echo "videos copied to: $repo/explainers"
   return "$failed"
 }
 
