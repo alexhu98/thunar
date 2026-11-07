@@ -5012,7 +5012,7 @@ thunar_file_set_search_subfolders (ThunarFile *file,
   if (file->info == NULL)
     return;
 
-  thunar_file_set_metadata_setting (file, "thunar-search-subfolders", search_subfolders ? "true" : "false", TRUE);
+  thunar_file_set_metadata_setting (file, "thunar-search-subfolders", search_subfolders ? "true" : "false", FALSE);
 }
 
 

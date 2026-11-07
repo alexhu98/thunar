@@ -283,19 +283,20 @@ explainers/21-search-subfolders-toggle.narration.json  # its narration</pre>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">A fresh <code>general-purpose</code> agent in this session, given only the diff and issue #21, reviewed the first commit: 1 high and 2 medium findings (one high and one medium in the test), plus 5 low. The high, one medium and one low are fixed; the rest are kept, for the reasons below.</p>
+  <p data-k="summary">A fresh <code>general-purpose</code> agent in this session, given only the diff and issue #21, reviewed the first commit: 1 high and 2 medium findings (one high and one medium in the test), plus 5 low. The high and one medium are fixed; the rest are kept, for the reasons below.</p>
   <ul class="tight">
     <li data-k="b1"><b>Fixed (high, test):</b> the test's only checks needed gvfs, so in CI it asserted nothing about the results. Each search's results are now copied and pasted into a scratch folder, and the script checks which files arrive.</li>
     <li data-k="b2"><b>Fixed (medium):</b> in split view a stale "ignore the next search update" flag could swallow the toggle's re-run. The toggle now calls a new <code>thunar_window_restart_search</code> that clears the flag first.</li>
-    <li data-k="b3"><b>Fixed (low):</b> the choice is now written asynchronously, as the sort order is, so a network folder can't stall the window.</li>
+    <li data-k="b3"><b>Tried, then reverted (low):</b> writing the choice asynchronously, as the sort order is. CI's second review showed that this logs a warning on every click without gvfs and reloads the folder each time (R12, R13), so the write is synchronous again, as the zoom level's is. It goes to the local metadata service, not the folder itself.</li>
     <li data-k="b4"><b>Kept:</b> the fixed click position for the toggle (Tab, the suggested alternative, moved focus to the side pane when tried), and two Clear cases that can't happen because Clear already ends any running search.</li>
   </ul>
-  <p data-k="ci-review">CI's review of the first commit (Opus at xhigh) found 10: 2 high, 1 medium, 7 low. The medium and two lows matched the fixes above. Both highs are fixed in a later commit.</p>
+  <p data-k="ci-review">CI's review of the first commit (Opus at xhigh) found 10: 2 high, 1 medium, 7 low. The medium and two lows matched the fixes above. Both highs are fixed in a later commit. Its review of the second commit added R11 to R21: one medium (R11), now fixed, and lows that are kept.</p>
   <ul class="tight">
     <li data-k="r1"><b>Fixed, R1 (high):</b> Thunar loads only a listed set of metadata keys with each folder, and the new key wasn't on that list (<code>THUNARX_FILE_INFO_NAMESPACE</code>), so a saved choice would never come back after a restart.</li>
     <li data-k="r2"><b>Fixed, R2 (high):</b> when a window closed, the location entry touched the toggle after GTK had already destroyed it. The entry now forgets the toggle when it is destroyed.</li>
     <li data-k="r5"><b>Fixed, R5 (low):</b> the toggle and the search job now share one rule for "does this search include subfolders", <code>thunar_file_search_includes_subfolders</code>.</li>
-    <li data-k="r4"><b>Kept, R4 and R8 to R10 (low):</b> the toggle checks whether the folder is on a local disk on the main thread, as the Local Files Only rule needs; saving the choice without the per-folder preference, and the wider Clear item, are deliberate.</li>
+    <li data-k="r11"><b>Fixed, R11 (medium):</b> a search typed by hand into the location bar ran without the window's "searching" flag, so the toggle saved the choice but didn't re-run that search. The re-run no longer depends on that flag.</li>
+    <li data-k="r4"><b>Kept, R4, R8 to R10 and R14 to R21 (low):</b> the toggle checks whether the folder is on a local disk on the main thread, as the Local Files Only rule needs; saving the choice without the per-folder preference, and the wider Clear item, are deliberate; the others are in older upstream code or were rated unlikely or refuted by CI's own verifier.</li>
   </ul>
   </section>
 

@@ -3653,9 +3653,6 @@ thunar_window_restart_search (ThunarWindow *window)
 {
   _thunar_return_if_fail (THUNAR_IS_WINDOW (window));
 
-  if (window->is_searching == FALSE)
-    return;
-
   window->ignore_next_search_update = FALSE;
   thunar_window_update_search (window);
 }
