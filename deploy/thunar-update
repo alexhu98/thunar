@@ -67,7 +67,7 @@ case $code in
   404)
     repo=$(curl -sS -o /dev/null -w '%{http_code}' --retry 3 --retry-connrefused --max-time 60 "${auth[@]}" "$API") || repo=000
     case $repo in
-      200) log "the repo has no published release yet"; exit 0 ;;
+      200) log "the repo has no published release yet"; rm -f "$STATE/failed"; exit 0 ;;
       000|429|5??) code=$repo ;;
       403) code=429 ;;
     esac ;;
@@ -107,7 +107,7 @@ if [[ -r $STATE/last ]] && [[ "$(<"$STATE/last")" == "$thunar_id $installed" ]];
   exit 0
 fi
 
-held=$(apt-mark showhold "${PACKAGES[@]}")
+held=$(apt-mark showhold "${PACKAGES[@]}") || fail "Could not read the package holds."
 if [[ -n $held ]]; then
   log "not installing $tag: held: ${held//$'\n'/ }"
   rm -f "$STATE/failed"
@@ -115,7 +115,7 @@ if [[ -n $held ]]; then
 fi
 
 download() {
-  curl -fsSL --retry 3 --max-time 600 "${auth[@]}" -H "Accept: application/octet-stream" -o "$2" "$1"
+  curl -fsSL --retry 3 --retry-connrefused --max-time 600 "${auth[@]}" -H "Accept: application/octet-stream" -o "$2" "$1"
 }
 
 debs=()
