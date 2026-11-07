@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #45 Upload retries</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #45: screenshot uploads wait out each other instead of failing</h1>
+  <p class="lead" data-k="lead">Branch <code>38-shots-retry</code> → <code>main</code>, closes #38. Once merged, two PRs whose verify jobs upload at the same time no longer lose shots: a clash is retried for up to about a minute, and a real error still fails at once.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: one commit per run, only if needed</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">A new retry loop in <code>.github/scripts/shots.sh</code>, the script that commits each screenshot to the <code>shots</code> branch. It retries only a clash with another writer.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="Each upload reads the file, commits it, and on a clash waits longer and tries again, up to six times; any other error stops at once">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① One upload — every attempt</text>
+    <g data-k="1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Read the file</text>
+      <text x="36" y="114" class="m">GET contents</text>
+      <text x="36" y="134" class="b">its current blob, if</text>
+      <text x="36" y="154" class="b">it is already there</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-merge" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Commit it</text>
+      <text x="286" y="114" class="m">PUT contents</text>
+      <text x="286" y="134" class="b">one commit, moves</text>
+      <text x="286" y="154" class="b">the shots branch</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-merge" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Print the sha</text>
+      <text x="536" y="114" class="b">pins the shot's URL;</text>
+      <text x="536" y="134" class="b">same output as</text>
+      <text x="536" y="154" class="b">before this PR</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M375,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="520" y="244" style="fill:var(--accent)">② When the commit fails</text>
+    <g data-k="4">
+      <rect class="box-pr" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Clash: 409/422</text>
+      <text x="286" y="314" class="b">another run moved</text>
+      <text x="286" y="334" class="b">the branch first</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">4</text>
+    </g>
+    <g data-k="5">
+      <rect class="box-pr" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Wait, then retry</text>
+      <text x="36" y="314" class="m">2 4 8 16 30 s</text>
+      <text x="36" y="334" class="b">plus up to half again,</text>
+      <text x="36" y="354" class="b">6 attempts in all</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-pr" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Other error</text>
+      <text x="536" y="314" class="b">bad token, too big,</text>
+      <text x="536" y="334" class="b">network: fail now,</text>
+      <text x="536" y="354" class="b">no retry</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow" d="M270,320 H234" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M125,260 V184" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,320 H516" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>same as before</span>
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new in this PR</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Every PR's verify job saves its screenshots on a separate branch called <code>shots</code>, one commit per file, so the PR comments can link to them. On PR #35 the job failed with "1 image missing" although its tests passed: PR #37 was uploading at the same moment, and the old script gave up after three tries in about 6 seconds.</p>
+  <div class="note" data-k="note">Each commit moves the <code>shots</code> branch, so a commit that started from the old branch head is refused with a conflict. That refusal is harmless: trying again a little later works once the other run has moved on.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① One upload, every attempt</div>
+  <ol class="steps">
+    <li data-k="1"><b>Read the file.</b> <code>verify-proof.sh</code> or <code>explainer-proof.sh</code> calls <code>shots.sh</code> with one file. It asks GitHub for that path on the branch, to get its blob sha if the file is being replaced.</li>
+    <li data-k="2"><b>Commit it.</b> One Contents API <code>PUT</code> commits the file. This is the write that can clash.</li>
+    <li data-k="3"><b>Print the sha.</b> On success it prints the new commit's sha, which the caller turns into the shot's pinned URL. Unchanged by this PR.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--accent)">② When the commit fails</div>
+  <ol class="steps" start="4" style="counter-reset: s 3">
+    <li data-k="4"><b>Clash: 409/422.</b> GitHub's error message ends in <code>(HTTP 409)</code> or <code>(HTTP 422)</code>: another writer moved the branch. Only these two codes are retried.</li>
+    <li data-k="5"><b>Wait, then retry.</b> It sleeps 2, 4, 8, 16, then 30 seconds, each plus a random extra of up to half, and starts again at step 1 with a fresh read. After the 6th clash it gives up, about 60 to 90 seconds in.</li>
+    <li data-k="6"><b>Other error.</b> Anything else, such as a bad token, a file over the size limit or a network error, prints GitHub's message and fails on the first attempt, so a real problem isn't hidden behind a minute of retries.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="parts">
+  <h3 class="sec">A closer look</h3>
+  <div class="grid">
+    <div class="card" data-k="c1"><h3>Why random jitter</h3><p>Two runs that clash once would clash again if both waited exactly 2 seconds. The random extra spreads them apart.</p></div>
+    <div class="card" data-k="c2"><h3>SHOTS_BRANCH</h3><p>A new optional setting, default <code>shots</code>. CI never sets it; it lets a test upload to a scratch branch instead of the real one.</p></div>
+    <div class="card" data-k="c3"><h3>DRY_RUN=1</h3><p>Unchanged: it prints <code>DRY-RUN</code> and uploads nothing, before any network call.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">.github/scripts/
+└── shots.sh                       # retry only 409/422, 6 attempts, jittered backoff; SHOTS_BRANCH
+explainers/
+├── 38-shots-retry.html            # this page
+└── 38-shots-retry.narration.json  # its narration, stamped from this page</pre>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built from the failed run on PR #35, then tested in the cloud session against a scratch branch, never against <code>shots</code>.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>The PR #35 failure</h3><p>Its log shows three failed attempts at 04:46:43, :47 and :52 while PR #37 uploaded too: the window this PR widens.</p></div>
+    <div class="card" data-k="r2"><h3>Issue #38, option 1</h3><p>The smallest of the three fixes it lists: same one-file interface and per-file sha, only more and smarter retries.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Two uploads at once all land</td><td>Two loops of 6 files each, run in parallel against the scratch branch <code>scratch-38-shots</code>. The sandbox's proxy refuses Contents API writes, so a test stand-in for <code>gh</code> turned each <code>PUT</code> into a plain <code>git push</code> to that branch, reporting a rejected push as HTTP 409, as GitHub does</td><td class="ok">12 of 12 uploaded; one file clashed 3 times, landed on attempt 4</td></tr>
+    <tr data-k="c2"><td>Every pinned sha holds its file</td><td><code>git cat-file</code> of each printed sha and path, compared byte for byte with the local file (the repo is private, so the <code>?raw=true</code> URLs need a login)</td><td class="ok">12 of 12 match</td></tr>
+    <tr data-k="c3"><td>A non-conflict error fails at once</td><td>The real <code>gh</code> with <code>GH_TOKEN=bad</code>; GitHub's proxy answered HTTP 403</td><td class="ok">1 attempt, 0 s, exit 1</td></tr>
+    <tr data-k="c4"><td>Six clashes give up</td><td>A stand-in <code>gh</code> that always answers HTTP 409</td><td class="ok">6 attempts at 0, 2, 6, 18, 38, 73 s; exit 1</td></tr>
+    <tr data-k="c5"><td>DRY_RUN uploads nothing</td><td><code>DRY_RUN=1 shots.sh</code> on a test file</td><td class="ok">printed DRY-RUN, exit 0</td></tr>
+    <tr data-k="c6"><td>The real Contents API under a clash</td><td>The sandbox can't write through the API; CI's own uploads on this PR use it, but only clash if another PR uploads at the same time</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">After the last code change, a fresh agent given only the diff and issue #38 reviewed it for correctness: 0 high, 0 medium, 4 low findings, none fixed, each a trade-off the issue already chose.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Retried for nothing:</b> a 422 that isn't a clash, such as an invalid body, would still wait out all six attempts. Shots are small PNGs, so this is unlikely.</li>
+    <li data-k="b2"><b>Not retried:</b> a brief GitHub server error or a network drop fails the file at once, as the issue asks; a retry could commit the file twice.</li>
+    <li data-k="b3"><b>Log wording:</b> a commit that lands but returns no sha is logged as "not a conflict". Not retrying it is right; only the message is loose.</li>
+    <li data-k="b4"><b>Short errors:</b> the log shows gh's one-line error, not GitHub's full answer. Usually enough.</li>
+  </ul>
+  <p data-k="ci">CI's own review of this push is in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/45">PR #45</a>.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>Two PRs' verify jobs uploading together on GitHub</td><td>Needs a second PR pushed at the same moment, with this script on <code>main</code></td><td class="open">next two PRs that overlap</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/45">PR #45</a> → “Files changed”</li>
+    <li data-k="l2">The failure it fixes: <a href="https://github.com/alexhu98/thunar/actions/runs/42339466719/job/128304688047">PR #35's verify job</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: one commit per run, only if needed</h2>
+  <p class="intro" data-k="intro">No open issue builds on this one. Issue #38 keeps a bigger fix in reserve if clashes still beat a minute of retries.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR's retries come first; one commit per run follows only if clashes persist">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">#38 Shots upload clashes</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Jittered retries</text>
+      <text x="36" y="114" class="b">option 1: this PR</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Watch for clashes</text>
+      <text x="286" y="114" class="b">a missing image in</text>
+      <text x="286" y="134" class="b">a verify comment</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">One commit per run</text>
+      <text x="536" y="114" class="b">option 2, only if</text>
+      <text x="536" y="134" class="b">clashes persist</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="option2">
+  <h3 class="sec">One commit per run (not an issue yet)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Build one tree.</b> Put all of a run's files in one commit with the Git Data API, then move the branch once: one write per run instead of about 40.</li>
+    <li data-k="2"><b>Pin one sha.</b> Every URL would use the run's single commit, so <code>verify-proof.sh</code> would stop taking a sha per file.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="shots"><dt>shots branch</dt><dd>A branch with no code, holding every PR's screenshots under <code>pr-&lt;n&gt;/</code>.</dd></div>
+    <div data-k="contents"><dt>Contents API</dt><dd>GitHub's web API that commits one file per call.</dd></div>
+    <div data-k="409"><dt>HTTP 409 / 422</dt><dd>GitHub's answers when the branch moved under a commit, or the file's sha no longer matches.</dd></div>
+    <div data-k="backoff"><dt>Exponential backoff</dt><dd>Waiting twice as long after each failed try.</dd></div>
+    <div data-k="jitter"><dt>Jitter</dt><dd>A random extra wait, so two retrying runs don't retry in step.</dd></div>
+    <div data-k="sha"><dt>Pinned sha</dt><dd>The commit id in a shot's URL, so the link keeps showing that exact file.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
