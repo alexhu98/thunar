@@ -12,7 +12,7 @@ allowed-tools: Read Grep Glob
 
 $ARGUMENTS
 
-The caller passes the shots directory, the required-shots list and optionally a `baseline:` directory. Each entry in the list has a filename relative to the shots directory, an intent, and the element and state to confirm. The intent is the `proves` sentence from the manifest. A before/after pair is listed with both files.
+The caller passes the shots directory, the required-shots list and optionally a `baseline:` directory. Each entry in the list has its shot number (`num`), a filename relative to the shots directory, an intent, and the element and state to confirm. The intent is the `proves` sentence from the manifest. A before/after pair is listed with both files.
 
 ## Task
 

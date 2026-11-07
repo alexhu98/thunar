@@ -5,10 +5,12 @@
 #             or changes, or for every narration when the PR changes make-video.py: fails when a narration is
 #             missing, stale, or names keys the page no longer has
 #   render   each explainers/<issue>-*.html the PR adds or changes (or each page given) -> 1200px full-page dark PNG
-#   publish  commits each PNG to the shots branch as pr-$PR/explainer-<issue>.png and puts it in the PR comment's
-#            explainer section, with the narration results, through pr-comment.sh. A failed render or upload is
-#            marked in the section, and publish then fails.
-# Env: PR (number), HEAD_REF (branch, default the current one), HEAD_SHA, BASE (default origin/main), OUT.
+#   publish  commits each PNG to the shots branch as pr-$PR/explainer-<issue>.png and writes the explainer comment,
+#            with the narration results, through pr-comment.sh, then the summary through pr-summary.py. Run it
+#            whether or not the other steps passed: CHECK and NARRATION carry their outcomes, and a missing explainer,
+#            a failed narration, render or upload is marked in the comment, and publish then fails.
+# Env: PR (number), HEAD_REF (branch, default the current one), HEAD_SHA, BASE (default origin/main), OUT, CHECK and
+# NARRATION (the steps' outcomes: success, failure or skipped), RUN_ID, RUN_URL.
 # DRY_RUN=1 runs check, narration and render, then prints the comment instead of uploading and posting.
 set -euo pipefail
 
@@ -103,55 +105,73 @@ render() {
   return "$failed"
 }
 
-section() {  # the explainer section of the comment, for each image URL in $OUT/urls
-  local sha=${HEAD_SHA:-$(git rev-parse HEAD)} page issue url
-  echo '<!-- explainer:start -->'
+section() {  # the explainer comment, for each image URL in $OUT/urls; $1 is pass or fail
+  local sha=${HEAD_SHA:-$(git rev-parse HEAD)} branch=${HEAD_REF:-$(git rev-parse --abbrev-ref HEAD)} page issue url text
+  if [[ ${CHECK:-success} == failure ]]; then
+    text="missing"
+  elif [[ ! -s $OUT/urls ]]; then
+    text="not required"
+  elif grep -qv ' https://' "$OUT/urls"; then
+    text="failed"
+  else
+    text=rendered
+    if [[ -s $OUT/narration.md && ${NARRATION:-success} != failure ]]; then text+=', narration current'; fi
+  fi
+  [[ ${NARRATION:-success} != failure ]] || text+="; narration fails"
+  jq -cn --arg sha "$sha" --arg state "$1" --arg text "$text" '{sha: $sha, state: $state, text: $text}' \
+    | sed 's/>/\\u003e/g; s/^/<!-- pr-proof:status /; s/$/ -->/'
+  if [[ ${CHECK:-success} == failure ]]; then
+    printf '### Explainer: missing\n\nBranch `%s` must add or change `explainers/%s-<slug>.html` and its narration, as of `%s` (see `.claude/skills/explainer/SKILL.md`).\n\n' \
+      "$branch" "${branch%%-*}" "${sha::12}"
+  elif [[ ! -s $OUT/urls ]]; then
+    printf '### Explainer: not required\n\n`%s` is not an `<issue>-<slug>` branch and the PR changes no explainer, as of `%s`.\n\n' "$branch" "${sha::12}"
+  fi
   while read -r page url; do
     issue=$(basename "$page" | cut -d- -f1)
     if [[ $url == - ]]; then
-      printf '### Explainer: `%s`\n\nThe upload of its image failed, as of %s. See the run.\n\n' "$page" "${sha::12}"
+      printf '### Explainer: `%s`\n\nThe upload of its image failed, as of `%s`. See the run.\n\n' "$page" "${sha::12}"
     elif [[ $url == '!' ]]; then
-      printf '### Explainer: `%s`\n\nChrome made no image of it, as of %s. See the run.\n\n' "$page" "${sha::12}"
+      printf '### Explainer: `%s`\n\nChrome made no image of it, as of `%s`. See the run.\n\n' "$page" "${sha::12}"
     else
-      printf '### Explainer: `%s`\n\nDark mode, %spx wide, full page, as of %s.\n\n![Explainer for #%s](%s)\n\n' \
+      printf '### Explainer: `%s`\n\nDark mode, %spx wide, full page, as of `%s`.\n\n![Explainer for #%s](%s)\n\n' \
         "$page" "$WIDTH" "${sha::12}" "$issue" "$url"
     fi
   done < "$OUT/urls"
   if [[ -s $OUT/narration.md ]]; then
     printf '### Narration\n\n'
     cat "$OUT/narration.md"
-    echo
   fi
-  echo '<!-- explainer:end -->'
 }
 
 publish() {
   [[ -n ${PR:-} || ${DRY_RUN:-0} == 1 ]] || { echo "publish needs PR" >&2; exit 1; }
   : "${GH_REPO:?}"
-  [[ -f $OUT/list ]] || render || true
-  if [[ ! -s $OUT/list && ! -s $OUT/narration.md ]]; then
-    echo "no explainer in this PR; nothing to post"
-    return
-  fi
   : > "$OUT/urls"
   local page issue path sha failed=0
-  while read -r page; do
-    issue=$(basename "$page" | cut -d- -f1)
-    path="pr-${PR:-0}/explainer-$issue.png"
-    if [[ ! -s $OUT/explainer-$issue.png ]]; then
-      echo "::error::no image of $page to upload" >&2
-      echo "$page !" >> "$OUT/urls"
-      failed=1
-    elif sha=$(OUT="$OUT/shots" "$(dirname "$0")/shots.sh" "$OUT/explainer-$issue.png" "$path" "Explainer image for PR #${PR:-0}" </dev/null); then
-      echo "$page https://github.com/$GH_REPO/blob/$sha/$path?raw=true" >> "$OUT/urls"
-    else
-      echo "::error::could not upload $path" >&2
-      echo "$page -" >> "$OUT/urls"
-      failed=1
-    fi
-  done < "$OUT/list"
-  section > "$OUT/section.md"
+  if [[ ${CHECK:-success} == failure ]]; then
+    failed=1
+  else
+    [[ -f $OUT/list ]] || render || true
+    while read -r page; do
+      issue=$(basename "$page" | cut -d- -f1)
+      path="pr-${PR:-0}/explainer-$issue.png"
+      if [[ ! -s $OUT/explainer-$issue.png ]]; then
+        echo "::error::no image of $page to upload" >&2
+        echo "$page !" >> "$OUT/urls"
+        failed=1
+      elif sha=$(OUT="$OUT/shots" "$(dirname "$0")/shots.sh" "$OUT/explainer-$issue.png" "$path" "Explainer image for PR #${PR:-0}" </dev/null); then
+        echo "$page https://github.com/$GH_REPO/blob/$sha/$path?raw=true" >> "$OUT/urls"
+      else
+        echo "::error::could not upload $path" >&2
+        echo "$page -" >> "$OUT/urls"
+        failed=1
+      fi
+    done < "$OUT/list"
+  fi
+  [[ ${NARRATION:-success} != failure ]] || failed=1
+  section "$( (( failed )) && echo fail || echo pass)" > "$OUT/section.md"
   OUT="$OUT/comment" "$(dirname "$0")/pr-comment.sh" put explainer "$OUT/section.md"
+  OUT="$OUT/summary" python3 "$(dirname "$0")/pr-summary.py" || echo "::warning::could not update the summary comment" >&2
   return "$failed"
 }
 
@@ -160,6 +180,6 @@ case ${1:-all} in
   narration) narration ;;
   render) shift; render "$@" ;;
   publish) publish ;;
-  all) check; status=0; narration || status=1; render || status=1; set +e; (set -e; publish); rc=$?; set -e; (( rc == 0 )) || status=1; exit "$status" ;;
+  all) check; status=0; narration || { status=1; export NARRATION=failure; }; render || status=1; set +e; (set -e; publish); rc=$?; set -e; (( rc == 0 )) || status=1; exit "$status" ;;
   *) echo "usage: $0 [check|narration|render|publish]" >&2; exit 2 ;;
 esac

@@ -22,6 +22,10 @@ jobs:
     concurrency:
       group: build-${{ github.ref }}
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -79,6 +83,17 @@ jobs:
           path: dist/*.deb
           retention-days: 14
 
+      - name: Write the summary comment
+        if: failure() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BUILD_RESULT: failure
+        run: python3 .github/scripts/pr-summary.py
+
   verify:
     needs: build
     runs-on: ubuntu-24.04
@@ -87,11 +102,14 @@ jobs:
       group: verify-${{ github.ref }}
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     permissions:
+      actions: read
       contents: write
       pull-requests: write
     env:
       PR: ${{ github.event.pull_request.number }}
+      HEAD_REF: ${{ github.head_ref }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      RUN_ID: ${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -127,7 +145,7 @@ jobs:
         timeout-minutes: 20
         run: .github/scripts/verify-proof.sh run
 
-      - name: Upload the screenshots and update the PR comment
+      - name: Upload the screenshots and write the verify comment
         if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           GH_TOKEN: ${{ github.token }}
@@ -141,8 +159,10 @@ jobs:
           path: |
             ${{ runner.temp }}/verify-proof/results.tsv
             ${{ runner.temp }}/verify-proof/verify.tsv
+            ${{ runner.temp }}/verify-proof/numbered.json
             ${{ runner.temp }}/verify-proof/logs/
             ${{ runner.temp }}/verify-proof/shots/
+            ${{ runner.temp }}/verify-proof/pairs/
           if-no-files-found: ignore
           retention-days: 14
 
@@ -154,12 +174,15 @@ jobs:
       group: explainer-${{ github.ref }}
       cancel-in-progress: true
     permissions:
+      actions: read
       contents: write
       pull-requests: write
     env:
       PR: ${{ github.event.pull_request.number }}
       HEAD_REF: ${{ github.head_ref }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      RUN_ID: ${{ github.run_id }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -171,16 +194,19 @@ jobs:
         run: .github/scripts/explainer-proof.sh check
 
       - name: Check the narration
+        id: narration
         run: .github/scripts/explainer-proof.sh narration
 
       - name: Render the explainer
         if: ${{ !cancelled() && steps.require.outcome == 'success' }}
         run: .github/scripts/explainer-proof.sh render
 
-      - name: Upload the image and update the PR comment
-        if: ${{ !cancelled() && steps.require.outcome == 'success' }}
+      - name: Upload the image and write the explainer comment
+        if: ${{ !cancelled() }}
         env:
           GH_TOKEN: ${{ github.token }}
+          CHECK: ${{ steps.require.outcome }}
+          NARRATION: ${{ steps.narration.outcome }}
         run: .github/scripts/explainer-proof.sh publish
 
   review:
@@ -290,10 +316,35 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p "$RUNNER_TEMP/bin" && cp .github/scripts/review-proof.sh .github/scripts/review-state.py .github/scripts/pr-comment.sh "$RUNNER_TEMP/bin/"
+          mkdir -p "$RUNNER_TEMP/bin" && cp .github/scripts/review-proof.sh .github/scripts/review-state.py .github/scripts/pr-comment.sh .github/scripts/pr-summary.py "$RUNNER_TEMP/bin/"
           export IN=$RUNNER_TEMP/review-in
           [[ -f $IN/review/plan.json ]] && IN=$IN/review
           "$RUNNER_TEMP/bin/review-proof.sh" report
+
+  summary:
+    needs: [build, verify, explainer, review-report]
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+    env:
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      RUN_ID: ${{ github.run_id }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Write the summary comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/pr-summary.py
 
   release:
     needs: build

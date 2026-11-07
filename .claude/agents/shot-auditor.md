@@ -19,8 +19,8 @@ assertions cannot.
 
 ## What you receive
 
-A shots directory and a required-shots list. Each entry has a filename relative to
-that directory, an intent (the sentence the capture script gave `shot`, saying
+A shots directory and a required-shots list. Each entry has its shot number (both
+shots of a pair share one), a filename relative to that directory, an intent (the sentence the capture script gave `shot`, saying
 what the shot proves) and the element and state to confirm. Shots are Thunar
 windows captured with `import -window <id>` under Xvfb with xfwm4, so a window
 shot has no title bar. Shots come in `before-<what>` / `after-<what>` pairs or
@@ -54,7 +54,7 @@ old-vs-new comparison.
 One row per required shot:
 
 ```
-shot | intent | verdict (OK / BLANK / MISMATCH / MISSING) | observed (1 line)
+# | shot | intent | verdict (OK / BLANK / MISMATCH / MISSING) | observed (1 line)
 ```
 
 - **OK**: the named element is present, in frame, and in the named state.

@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR proof comments</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">Issue #23: CI's proof as four comments, with numbered side-by-side shots</h1>
+  <p class="lead" data-k="lead">Branch <code>23-pr-proof</code> → <code>main</code>, closes #23. Once merged, every PR's CI proof reads in decision order: a short summary first, then the code review, the screenshots and the explainer, each in its own comment, with every before/after pair shown side by side under what the test did and what it proves.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: the first CI run, then #20's re-run</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">CI now writes four PR comments instead of one: summary, code review, verify and explainer. The verify job numbers every shot and turns each before/after pair into one 1920 px image, and every job refreshes the summary when it finishes.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="A verify script describes its pairs, the verify job numbers the shots and builds one image per pair, and every job writes its own comment and then refreshes the summary">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Verify job — numbered shots, one image per pair</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Describe pairs</text>
+      <text x="36" y="114" class="m">verify/&lt;n&gt;.sh</text>
+      <text x="36" y="134" class="b">shot, then pair:</text>
+      <text x="36" y="154" class="b">action and proves</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Number, compose</text>
+      <text x="286" y="114" class="m">verify-shots.py</text>
+      <text x="286" y="134" class="b">a pair is one number</text>
+      <text x="286" y="154" class="b">1920 px pair image</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Upload, post</text>
+      <text x="536" y="114" class="m">shots branch</text>
+      <text x="536" y="134" class="b">originals and pairs</text>
+      <text x="536" y="154" class="b">verify comment</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-you" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">You review</text>
+      <text x="786" y="114" class="b">summary first,</text>
+      <text x="786" y="134" class="b">then each comment</text>
+      <text x="786" y="154" class="b">nothing collapsed</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M625,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② Every job — its own comment, then the summary</text>
+    <g data-k="5">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Four comments</text>
+      <text x="536" y="314" class="m">pr-comment.sh</text>
+      <text x="536" y="334" class="b">made once, in order</text>
+      <text x="536" y="354" class="b">then edited in place</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Summary</text>
+      <text x="286" y="314" class="m">pr-summary.py</text>
+      <text x="286" y="334" class="b">checks, key pair,</text>
+      <text x="286" y="354" class="b">shots table</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-merge" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Summary job</text>
+      <text x="36" y="314" class="b">runs after all jobs,</text>
+      <text x="36" y="334" class="b">writes the summary</text>
+      <text x="36" y="354" class="b">one last time</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <path class="arrow" d="M520,320 H484" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M270,320 H234" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,320 H875 V184" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>the verify job</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>every job that writes a comment</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Every PR gets proof from CI: the build, screenshots of the feature, an independent code review and a rendered explainer. Until now all of it went into one comment. On PR #20 that comment was about 20,000 pixels tall, the explainer came first, before and after shots were a screen apart, and nothing near a pair said what the test did between them. This PR splits the proof into four comments in the order a reviewer decides, and shows each pair as one image with its story right above it.</p>
+  <div class="note" data-k="note">Each comment is found by a marker on its first line, such as <code>&lt;!-- pr-proof:verify --&gt;</code>, and carries a hidden status line. The summary is built only from those status lines, the build job's result and the latest screenshot audit, so any job can rewrite it.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Verify job</div>
+  <ol class="steps">
+    <li data-k="1"><b>Describe pairs.</b> After its <code>before-&lt;what&gt;</code> and <code>after-&lt;what&gt;</code> shots, a verify script calls <code>pair &lt;what&gt; "ACTION" "PROVES" "BEFORE-STATE" "AFTER-STATE" [GROUP]</code> from <code>verify-lib.sh</code>, which adds a row to <code>pairs.tsv</code>. A test that passes with a pair and no <code>pair</code> call is marked "pairs incomplete" and fails.</li>
+    <li data-k="2"><b>Number, compose.</b> <code>verify-shots.py build</code> numbers the shots in the order they were saved, verify scripts first and the smoke test last, a pair being one number. It writes the manifest with a new <code>num</code> column, and makes each pair one 1920 px image with ImageMagick: before on the left with a blue "#6 BEFORE" bar, after on the right with a green "#6 AFTER" bar.</li>
+    <li data-k="3"><b>Upload, post.</b> <code>verify-proof.sh publish</code> commits the original shots, the pair images and the manifest to the <code>shots</code> branch, then writes the verify comment: the results table, then every shot except the key result, grouped under the script's headings.</li>
+    <li data-k="4"><b>You review.</b> The summary says whether the PR is ready and which check failed first. Nothing in any comment is behind a click.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② Every job</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Four comments.</b> The first time any job writes, <code>pr-comment.sh put</code> creates all four placeholders in the order summary, review, verify, explainer, then edits its own. When two jobs create them at once, each name keeps its oldest comment, which keeps the order, and the newer duplicates are deleted.</li>
+    <li data-k="6"><b>Summary.</b> After writing its comment, each job runs <code>pr-summary.py</code>. It reads the status lines, the build job and the latest <code>/visual-verify</code> verdict posted for the head, and writes the heading, the checks table, the key pair and the shots table. It does nothing when a newer commit has been pushed.</li>
+    <li data-k="7"><b>Summary job.</b> A new <code>summary</code> job runs after every other job, even when one failed, and writes the summary one last time. It also covers a failed build, after which the verify job never runs.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="comments">
+  <h3 class="sec">The four comments</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Comment</th><th>Written by</th><th>What it shows</th></tr>
+    <tr data-k="c1"><td>Summary</td><td>every job, last by the summary job</td><td>"PR proof: ✅ ready for review" or the first failing check; Build, Verify, Screenshot audit, Code review and Explainer with links; the key pair; the shots table</td></tr>
+    <tr data-k="c2"><td>Code review</td><td>review-report</td><td>this review's findings, then every finding the PR has had, closed ones with their text and their fix commit or reason</td></tr>
+    <tr data-k="c3"><td>Verify</td><td>verify</td><td>the results table, then every pair and single shot in number order, with a pointer to the key result</td></tr>
+    <tr data-k="c4"><td>Explainer</td><td>explainer</td><td>the rendered page at full width, the narration check, or why it is missing</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="pairfmt">
+  <h3 class="sec">One pair, as it appears</h3>
+<pre data-k="pair">| Shot #6       | before-rubber-band / after-rubber-band |
+|---------------|----------------------------------------|
+| Action        | Dragged from blank space up and left   |
+|               | over the delta icon                    |
+| Proves        | A drag that starts on blank space      |
+|               | still selects, and never goes up       |
+| Before        | the before shot's caption              |
+| After         | the after shot's caption               |
+
+[ #6 BEFORE · charlie, nothing selected ][ #6 AFTER · charlie, delta selected ]
+  one 1920 px image: two 950 px halves, 20 px apart</pre>
+  <div class="note" data-k="anchor">Every "Shot #n" and every number in a shots table is a link to <code>#shot-n</code>, an anchor placed just above that shot. Writing it as a link also stops GitHub from turning "#6" into a link to issue 6.</div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">.github/
+├── workflows/build.yml       # actions: read for the summary, CHECK/NARRATION outcomes,
+│                             # the explainer comment always posted, new summary job
+├── workflows/pr-summary.yml  # new: re-runs the summary job when a trusted audit comment
+│                             # is posted (runs from main, so only after the merge)
+└── scripts/
+    ├── pr-comment.sh         # rewritten: four comments by marker, made in order
+    ├── pr-summary.py         # new: the summary comment
+    ├── verify-shots.py       # new: pair check, numbering, pair images, verify comment
+    ├── verify-lib.sh         # new pair helper
+    ├── verify-proof.sh       # run checks pairs and builds images; publish uploads them
+    ├── explainer-proof.sh    # the explainer comment, with a status line
+    ├── review-proof.sh       # reads and writes the review comment
+    └── review-state.py       # keeps closed findings whole; the full findings table
+verify/3.sh                   # a pair call after each of its 12 pairs
+CLAUDE.md                     # four comments, pair, the # column, audit comment marker,
+                              # and cloud sessions use <issue>-<slug> branches
+.claude/
+├── agents/shot-auditor.md    # # column in the audit table
+└── skills/
+    ├── visual-verify/        # SKILL.md, README.md: num, # column, audit comment
+    ├── shot-audit/SKILL.md   # shot numbers in the request
+    └── explainer/SKILL.md    # names the explainer and review comments
+explainers/23-pr-proof.html   # this page, and its .narration.json</pre>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Each script was run in the cloud container against PR #20's real screenshots and against a fake GitHub. Posting to a real PR and running Thunar under Xvfb happen only in CI.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>PR #20's shots</h3><p>The 25 screenshots and manifest CI committed to <code>shots:pr-20/</code>, 12 pairs and the smoke shot, used as input for the numbering and the pair images.</p></div>
+    <div class="card" data-k="r2"><h3>The issue's layout</h3><p>Issue #23 describes the chosen layout ("idea 2, revised"). Its mockup file was never attached, so the comments follow the issue's text.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Pair images</td><td><code>verify-shots.py build</code> on PR #20's 25 shots, with a test <code>pairs.tsv</code>; the images were opened and looked at</td><td class="ok">12 images, 1920 px wide, 8-bit; bars and halves right, small dialogs centred</td></tr>
+    <tr data-k="c2"><td>Bar text fits</td><td>a 48-character state of wide capitals, measured with ImageMagick</td><td class="ok">shrinks from 22 to 16 pt</td></tr>
+    <tr data-k="c14"><td>Comment size, extreme</td><td><code>review-state.py render</code> on 900 closed findings and 1 open one, after CI's review</td><td class="ok">55,843 characters; the oldest rows left out with a note</td></tr>
+    <tr data-k="c3"><td>Pair check</td><td><code>verify-shots.py check</code> on the same shots</td><td class="ok">passes with every pair described</td></tr>
+    <tr data-k="c4"><td>Verify comment</td><td><code>verify-shots.py comment</code> with made-up URLs and one failed upload</td><td class="ok">key pointer, groups, smoke shot last as #13, failed image named, status "fail"</td></tr>
+    <tr data-k="c5"><td>Summary</td><td><code>pr-summary.py</code> with <code>DRY_RUN=1</code> and a stub <code>gh</code> returning comments, jobs and an audit comment</td><td class="ok">heading names Verify, the first failing check; links, key pair and shots table present</td></tr>
+    <tr data-k="c6"><td>Comment order</td><td><code>pr-comment.sh put verify</code> against a fake GitHub holding a summary, a review and a duplicate summary</td><td class="ok">verify and explainer created, duplicate deleted, verify updated</td></tr>
+    <tr data-k="c7"><td>Findings table</td><td><code>review-state.py render</code> on a state with fixed, unconfirmed, open and old shortened findings</td><td class="ok">all 4 listed; old one "(its text was not kept)"</td></tr>
+    <tr data-k="c12"><td>Comment size</td><td><code>review-state.py render</code> on 159 closed findings with the longest text kept</td><td class="ok">81,350 characters before the fix; 44,621 after, all 159 still listed</td></tr>
+    <tr data-k="c13"><td>Audit authors and old comment</td><td><code>pr-summary.py</code> with an outsider's FAIL verdict; <code>pr-comment.sh legacy get</code> and <code>delete</code> on a fake GitHub with an old single comment</td><td class="ok">outsider ignored; old state read, old comment deleted</td></tr>
+    <tr data-k="c8"><td>Explainer comment</td><td><code>explainer-proof.sh publish</code> with <code>DRY_RUN=1</code>, explainer missing and not required</td><td class="ok">both bodies and status lines right; exit 1 when missing</td></tr>
+    <tr data-k="c9"><td>Syntax</td><td><code>bash -n</code> on every script, <code>py_compile</code>, the workflow parsed as YAML</td><td class="ok">all pass</td></tr>
+    <tr data-k="c10"><td><code>verify/3.sh</code> with its pair calls</td><td>needs the built debs, Xvfb and xfwm4; CI runs it</td><td class="no">not run</td></tr>
+    <tr data-k="c11"><td>Posting to a real PR</td><td>needs a PR and CI's token</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh general-purpose agent, given only the diff and the issue, reviewed the change and checked each finding against the code: 1 high, 3 medium and 5 low. All 9 were fixed, and the tests above were run again after the fixes.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Comment size:</b> keeping every finding whole would pass GitHub's 65,536-character limit after about 45 findings. Closed findings now keep a short text, and the comment shortens them further, then drops the oldest rows, to stay under 60,000.</li>
+    <li data-k="b2"><b>Runs cut short:</b> a run that timed out published no shots. <code>publish</code> now numbers the shots itself when <code>run</code> didn't, and a missing numbering fails the Verify row.</li>
+    <li data-k="b3"><b>Summary freshness:</b> a failed build now writes the summary from the build job itself, and each writer reads everything again after writing and rewrites once if a result or the head changed.</li>
+    <li data-k="b4"><b>Smaller fixes:</b> only the owner and collaborators can post an audit verdict; the review state in the old single comment is carried over once and that comment deleted; one failed pair image no longer spoils the rest; a shot with no group gets its own heading; the explainer comment no longer stops early when there is no narration result.</li>
+  </ul>
+  <p data-k="ci">CI's own review of the PR's third commit found 15 more, in the code review comment. Its fixes can't touch <code>.github/</code>, so they were made by hand: all 4 medium ones (no summary refresh after an audit comment, a size loop that could still overshoot, pair Actions that described setup, another issue's pair shown as the key result) and 6 small ones. The 5 left are speed-ups and refactors.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only on the PR</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>The four comments appear in order, and a re-run edits them in place</td><td>needs CI writing to a real PR</td><td class="open">this PR's first CI run</td></tr>
+    <tr data-k="a2"><td>Every <code>#shot-n</code> link lands on its shot</td><td>depends on how GitHub turns the anchors into ids</td><td class="open">this PR's first CI run</td></tr>
+    <tr data-k="a3"><td>The pair images look right and render with no click</td><td>needs CI's shots of <code>verify/3.sh</code></td><td class="open">this PR's first CI run, then <code>/visual-verify pr:&lt;n&gt;</code></td></tr>
+    <tr data-k="a4"><td>A match with the issue's mockup</td><td>the mockup was never attached</td><td class="open">when the owner compares</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/23">#23</a></li>
+    <li data-k="l2">The old single comment, for comparison: <a href="https://github.com/alexhu98/thunar/pull/20">PR #20</a></li>
+    <li data-k="l3">The shots the pair images were tested on: the <code>shots</code> branch, folder <code>pr-20/</code></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: the first CI run, then #20's re-run</h2>
+  <p class="intro" data-k="intro">No open issue depends on #23. What is left is checking it on GitHub: this PR's own CI run, then a re-run of PR #20's branch with the new <code>verify/3.sh</code>.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR, then its first CI run and the screenshot audit, then a re-run of PR 20's branch">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">Checking #23 on GitHub</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">four comments,</text>
+      <text x="36" y="134" class="b">pair images</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">First CI run</text>
+      <text x="286" y="114" class="b">read the comments,</text>
+      <text x="286" y="134" class="b">click the # links</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Screenshot audit</text>
+      <text x="536" y="114" class="b">/visual-verify</text>
+      <text x="536" y="134" class="b">posted for the head</text>
+    </g>
+    <g data-k="n4">
+      <rect class="box-future" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">#20 re-run</text>
+      <text x="786" y="114" class="b">its branch with the</text>
+      <text x="786" y="134" class="b">new verify/3.sh</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M730,120 H766" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not done yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="firstrun">
+  <h3 class="sec">This PR's first CI run (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Read the four comments.</b> They should appear as summary, code review, verify and explainer, and a re-run should edit them without moving them.</li>
+    <li data-k="2"><b>Click the links.</b> Each number in the summary's shots table should jump to its shot in the verify comment.</li>
+    <li data-k="3"><b>Audit the shots.</b> <code>/visual-verify pr:&lt;n&gt;</code> reads the original shots, and its comment, marked with the head commit, fills the summary's Screenshot audit row.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="rerun">
+  <h3 class="sec">Re-run PR #20's branch</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Same shots, new layout.</b> With this PR merged, a PR from #20's feature with the new <code>verify/3.sh</code> gives the conversation the issue asks for, to compare with the old 20,000-pixel comment.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="pair"><dt>Pair</dt><dd>Two shots of the same window, <code>before-&lt;what&gt;</code> and <code>after-&lt;what&gt;</code>, around one action.</dd></div>
+    <div data-k="key"><dt>Key result</dt><dd>The first pair of the issue's own verify script, shown in the summary.</dd></div>
+    <div data-k="marker"><dt>Marker</dt><dd>An invisible HTML comment on a comment's first line that tells CI which of the four it is.</dd></div>
+    <div data-k="status"><dt>Status line</dt><dd>A hidden line in a comment giving its commit, pass or fail, and a short result.</dd></div>
+    <div data-k="shots"><dt>shots branch</dt><dd>A branch with no code that holds every PR's screenshots, so comments can link to them.</dd></div>
+    <div data-k="manifest"><dt>Manifest</dt><dd><code>verify.tsv</code>: one row per shot with its number, test, file and what it proves.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual screen with no monitor, where CI runs Thunar.</dd></div>
+    <div data-k="audit"><dt>Screenshot audit</dt><dd><code>/visual-verify</code>: an independent agent checks that each shot shows what it claims.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>

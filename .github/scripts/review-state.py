@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The review state kept in the PR comment, for review-proof.sh.
+"""The review state kept in the code review PR comment, for review-proof.sh.
 
 review-state.py decide STATE IN OUT SHA COMMIT MINUTES RUN_URL RESULT
     Merges this run's findings ($IN/findings.json), unless RESULT is failure, into the saved state, closes the open findings named in
@@ -7,9 +7,10 @@ review-state.py decide STATE IN OUT SHA COMMIT MINUTES RUN_URL RESULT
     $OUT/suggestions.json (the inline suggested changes, each tagged with its finding id).
 review-state.py open STATE OUT
     Writes the confirmed findings still open to $OUT/open.json and the accepted ones to $OUT/accepted.json.
-review-state.py render OUT REPO NOTE [FAILED_ID...]
-    Marks the findings whose suggestion couldn't be posted, writes the review section to $OUT/section.md and
-    prints how many confirmed medium or high findings are unresolved.
+review-state.py render OUT REPO SHA RESULT NOTE [FAILED_ID...]
+    Marks the findings whose suggestion couldn't be posted, writes the review comment to $OUT/section.md (this
+    review's findings, then every finding the PR has had, closed ones with their text and reason) and prints how many
+    confirmed medium or high findings are unresolved.
 """
 import json
 import os
@@ -19,6 +20,8 @@ import sys
 
 OPEN = ('suggested', 'not fixed')
 KEEP = 400
+LIMIT = 60000
+CLOSED = ('id', 'sha', 'file', 'line', 'severity', 'verdict', 'summary', 'status', 'detail', 'commit')
 
 
 def cap(s, n=KEEP):
@@ -53,6 +56,14 @@ def accepts(f, acc):
     s = f.get('sha')
     known = bool(s) and git('cat-file', '-e', f'{s}^{{commit}}')
     return any(c != s and (not known or git('merge-base', '--is-ancestor', s, c)) for c in acc.get(f['id'], ()))
+
+
+def short(f, n):
+    g = {k: f[k] for k in CLOSED if k in f}
+    for k in ('summary', 'detail'):
+        if k in g:
+            g[k] = cap(g[k], n) if n else ''
+    return g
 
 
 def unresolved(f):
@@ -127,7 +138,7 @@ def decide(state_p, inp, out, sha, commit, mins, run_url, result):
             fid = f'R{n}'
             n += 1
             f = {'id': fid, 'sha': sha, 'file': r['file'], 'line': r['line'], 'severity': r['severity'],
-                 'summary': cap(r['summary']), 'verdict': r['verdict'], 'new': True}
+                 'summary': cap(r['summary'], 300), 'verdict': r['verdict'], 'new': True}
             if commit and i in done:
                 f['status'], f['commit'] = 'fixed', commit
             elif c := suggestion(fid, r, hs):
@@ -141,8 +152,7 @@ def decide(state_p, inp, out, sha, commit, mins, run_url, result):
             findings.append(f)
         state.update(next=n, sha=sha, mode=plan['mode'], level=plan['level'], model=plan['model'],
                      reason=plan['reason'], minutes=int(mins) if mins else None, run=run_url)
-    state['findings'] = [f if f['status'] in OPEN + ('accepted',) or f.get('new') else {'id': f['id'], 'status': f['status']}
-                         for f in findings]
+    state['findings'] = [f if f['status'] in OPEN + ('accepted',) or f.get('new') else short(f, 120) for f in findings]
     json.dump(state, open(os.path.join(out, 'state-new.json'), 'w'))
     json.dump({'commit_id': sha, 'event': 'COMMENT',
                'body': f'CI code review of {sha[:12]}: {len(comments)} suggested change(s).', 'comments': comments},
@@ -157,14 +167,65 @@ def cell(s):
     return '`'.join(parts).replace('|', '\\|')
 
 
-def render(out, repo, note, failed):
+def detail(f, repo):
+    if f['status'] == 'fixed' and f.get('commit'):
+        return f"[{f['commit'][:12]}](https://github.com/{repo}/commit/{f['commit']})"
+    if f['status'] == 'suggested':
+        return 'suggested change on the PR'
+    if f['status'] == 'unconfirmed' and not f.get('detail'):
+        return 'never confirmed, so no longer re-checked'
+    return cell(cap(f.get('detail', ''), 160))
+
+
+def row(f, repo):
+    where = f"`{f['file']}:{f['line']}` " if f.get('file') else ''
+    text = cap(f['summary'], 200) if f.get('summary') else '(its text was not kept)'
+    sev = (f.get('severity', '?') + ('' if f.get('verdict', 'CONFIRMED') == 'CONFIRMED' else ' (plausible)'))
+    return f"| {f['id']} | {cell(where + text)} | {sev} | {f['status']} | {detail(f, repo)} |"
+
+
+def table(fs, repo):
+    return ['| # | Finding | Severity | Status | Fix commit or reason |', '|---|---|---|---|---|'] + [row(f, repo) for f in fs]
+
+
+def render(out, repo, sha, result, note, failed):
     state = load(os.path.join(out, 'state-new.json'), {})
     findings = state.get('findings', [])
     for f in findings:
         if f['id'] in failed and f['status'] == 'suggested':
             f['status'], f['detail'] = 'not fixed', "its suggested change couldn't be posted"
-    open_ = [f for f in findings if unresolved(f) and f['severity'] != 'low']
-    lines = ['<!-- review:start -->',
+    open_ = [f for f in findings if unresolved(f) and f.get('severity') != 'low']
+    if result == 'failure':
+        status = {'sha': sha, 'state': 'fail', 'text': 'the review did not finish'}
+    elif open_:
+        status = {'sha': sha, 'state': 'fail', 'text': f'{len(open_)} confirmed medium or high finding(s) unresolved'}
+    else:
+        status = {'sha': sha, 'state': 'pass', 'text': 'no confirmed medium or high findings unresolved'}
+    ids = {f['id'] for f in findings if f['status'] in OPEN or f.get('new')}
+    rows = len(findings)
+    text = body(state, status, ids, open_, repo, note, rows)
+    for step in (120, 60, 0, 'ids', 'rows', 'open'):
+        if len(text) < LIMIT:
+            break
+        if step == 'ids':
+            state['findings'] = [f if f['id'] in ids else {'id': f['id'], 'status': f['status']} for f in state['findings']]
+        elif step == 'rows':
+            while rows and len(body(state, status, ids, open_, repo, note, rows)) >= LIMIT:
+                rows //= 2
+        elif step == 'open':
+            state['findings'] = [short(f, 80) | {k: f[k] for k in f if k not in CLOSED} if f['id'] in ids else f
+                                 for f in state['findings']]
+        else:
+            state['findings'] = [f if f['id'] in ids else short(f, step) for f in state['findings']]
+        text = body(state, status, ids, open_, repo, note, rows)
+    open(os.path.join(out, 'section.md'), 'w').write(text)
+    print(len(open_))
+
+
+def body(state, status, ids, open_, repo, note, rows):
+    findings = state.get('findings', [])
+    shown = [f for f in findings if f['id'] in ids]
+    lines = ['<!-- pr-proof:status ' + json.dumps(status, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
              '<!-- review:state ' + json.dumps(state, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
              '### Code review', '']
     if state.get('sha'):
@@ -176,32 +237,18 @@ def render(out, repo, note, failed):
     if note:
         lines += ['', note]
     lines.append('')
-    shown = [f for f in findings if f['status'] in OPEN or f.get('new')]
-    closed = [f for f in findings if f not in shown]
     if shown:
-        lines += ['| # | Finding | Severity | Status | Fix commit or reason |', '|---|---|---|---|---|']
-        for f in shown:
-            if f['status'] == 'fixed':
-                detail = f"[{f['commit'][:12]}](https://github.com/{repo}/commit/{f['commit']})"
-            elif f['status'] == 'suggested':
-                detail = 'suggested change on the PR'
-            else:
-                detail = cell(cap(f.get('detail', ''), 160))
-            lines.append(f"| {f['id']} | {cell(chr(96) + f['file'] + ':' + str(f['line']) + chr(96))} {cell(cap(f['summary'], 200))} | {f['severity']}"
-                         f"{'' if f['verdict'] == 'CONFIRMED' else ' (plausible)'} | {f['status']} | {detail} |")
+        lines += table(shown, repo)
     elif state.get('sha'):
         lines.append('No open findings.')
     else:
         lines.append('Not reviewed yet.')
-    if closed:
-        by = {}
-        for f in closed:
-            by.setdefault(f['status'], []).append(f['id'])
-        lines += ['', 'Earlier, closed: ' + '; '.join(f"{k} {', '.join(v)}" for k, v in sorted(by.items())) + '.']
-    lines += ['', f"**{len(open_)} confirmed medium or high finding(s) unresolved.**" if open_ else 'No confirmed medium or high findings unresolved.',
-              '<!-- review:end -->']
-    open(os.path.join(out, 'section.md'), 'w').write('\n'.join(lines) + '\n')
-    print(len(open_))
+    lines += ['', f"**{len(open_)} confirmed medium or high finding(s) unresolved.**" if open_ else 'No confirmed medium or high findings unresolved.']
+    if findings and len(shown) < len(findings):
+        lines += ['', f'#### Every finding on this PR ({len(findings)})', ''] + table(findings[-rows:] if rows else [], repo)
+        if rows < len(findings):
+            lines += ['', f'The {len(findings) - rows} oldest are left out to fit the comment.']
+    return '\n'.join(lines) + '\n'
 
 
 if __name__ == '__main__':
@@ -211,6 +258,6 @@ if __name__ == '__main__':
     elif cmd == 'open':
         open_findings(*args)
     elif cmd == 'render':
-        render(args[0], args[1], args[2], set(args[3:]))
+        render(args[0], args[1], args[2], args[3], args[4], set(args[5:]))
     else:
         sys.exit(__doc__)

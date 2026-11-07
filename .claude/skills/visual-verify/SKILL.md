@@ -14,9 +14,9 @@ The audit MUST run in the **independent `shot-audit` skill** (Step 3). That skil
 Free-form tokens. Resolve what is present, and ask only if a required input is missing and can't be inferred.
 
 - **Shots**, one of these (required):
-  - `pr:<n>`: CI's shots for PR `<n>`, from the `shots` branch: `git fetch origin +refs/heads/shots:refs/remotes/origin/shots` (a plain `git fetch origin shots` updates only `FETCH_HEAD` in a single-branch clone), then `git show origin/shots:pr-<n>/verify.tsv` and each listed `pr-<n>/<file>`, written into a new scratch directory. Needs only git, so it works where `gh` and Xvfb don't.
+  - `pr:<n>`: CI's original shots for PR `<n>` (not the side-by-side `pair-*.png` images made for the PR comments), from the `shots` branch: `git fetch origin +refs/heads/shots:refs/remotes/origin/shots` (a plain `git fetch origin shots` updates only `FETCH_HEAD` in a single-branch clone), then `git show origin/shots:pr-<n>/verify.tsv` and each listed `pr-<n>/<file>`, written into a new scratch directory. Needs only git, so it works where `gh` and Xvfb don't.
   - a local directory holding `verify.tsv`, as `.github/scripts/verify-proof.sh run` writes it (`$OUT`, by default `${TMPDIR:-/tmp}/verify-proof/`).
-- **Intents**: the manifest's `proves` column, written by each `shot` call. The caller may add intents inline, for example from the issue's acceptance criteria. Inline intents are added to the manifest's, never replace them.
+- **Intents**: the manifest's `proves` column, written by each `shot` call. Its `num` column is the shot's number in CI's PR comments: both shots of a pair share one. The caller may add intents inline, for example from the issue's acceptance criteria. Inline intents are added to the manifest's, never replace them.
 - **`run:`** *(optional)*: run `.github/scripts/verify-proof.sh run` first, then audit its `$OUT`. Only in a sandbox where the built debs are installed (see the repo `CLAUDE.md`).
 - **`baseline:<dir or pr:<n>@<sha>>`** *(optional)*: older shots for an old-vs-new diff (report-only). `pr:<n>@<sha>` reads `pr-<n>/` from the `shots` commit `<sha>`.
 
@@ -36,10 +36,10 @@ With `run:`, run `.github/scripts/verify-proof.sh run > <log> 2>&1` and read the
 
 ### Step 3: independent audit skill
 
-Invoke `Skill(shot-audit, "<the audit request>")`. The request carries the shots directory, the required-shots list (each entry: file relative to the directory, its intent, the element and state to confirm, and its pair partner if it is `before-*` or `after-*`), and the `baseline:` directory if given. The skill forks into the read-only `shot-auditor` agent, which Reads every PNG and returns a table:
+Invoke `Skill(shot-audit, "<the audit request>")`. The request carries the shots directory, the required-shots list (each entry: its `num`, file relative to the directory, its intent, the element and state to confirm, and its pair partner if it is `before-*` or `after-*`), and the `baseline:` directory if given. The skill forks into the read-only `shot-auditor` agent, which Reads every PNG and returns a table:
 
 ```
-shot | intent | verdict (OK / BLANK / MISMATCH / MISSING) | observed (1 line)
+# | shot | intent | verdict (OK / BLANK / MISMATCH / MISSING) | observed (1 line)
 ```
 
 The skill returns the table only; this command reduces it in Step 4. **A missing, empty or unparseable table is INCONCLUSIVE, never PASS.** If `shot-audit` returns nothing, name that as the cause and stop. Don't fall back to auditing the PNGs inline, which is exactly the self-check this step exists to replace.
@@ -55,12 +55,12 @@ Reduce the table to one verdict and print it, ending with a parseable sentinel l
 
 Always print the full table above the sentinel, so a human can see why.
 
-**Visible changes, before to after (mandatory).** Between the table and the sentinel, always print a `Visible changes, before to after` heading. A pair whose shots match their intents can still contain a change nobody wanted, because the intent can be wrong. Print one line per `before-<what>` / `after-<what>` pair: `<what> | before: <what it showed> | after: <what it shows> | intended / not in the intent`. Build each line from the auditor's two `observed` cells, never from the intents alone. List intended changes too. If a pair shows no change, say `none`. If there are no pairs, print `no before/after pairs`. This section never changes the verdict and is printed for PASS and FAIL alike.
+**Visible changes, before to after (mandatory).** Between the table and the sentinel, always print a `Visible changes, before to after` heading. A pair whose shots match their intents can still contain a change nobody wanted, because the intent can be wrong. Print one line per `before-<what>` / `after-<what>` pair: `#<num> <what> | before: <what it showed> | after: <what it shows> | intended / not in the intent`. Build each line from the auditor's two `observed` cells, never from the intents alone. List intended changes too. If a pair shows no change, say `none`. If there are no pairs, print `no before/after pairs`. This section never changes the verdict and is printed for PASS and FAIL alike.
 
 Advisory output, such as a `baseline:` diff or extra states, is reported but never changes the verdict.
 
 ### Contract for callers
 
 - The final line is `VERDICT: PASS|FAIL|INCONCLUSIVE[ (cause)]`, which callers parse.
-- On a PR, put the table, the visible-changes section and the verdict in a PR comment, or in the PR description's screenshots section, for the owner to review before merging.
+- On a PR, post the table, the visible-changes section and the verdict as a PR comment whose first line is `<!-- visual-verify <the manifest's sha> -->`, for the owner to review before merging. CI's summary comment shows the latest verdict posted for the PR's head as its Screenshot audit row, and "not run yet" until there is one.
 - **PASS**: the screenshots may be posted or presented as proof. **FAIL**: fix the capture or the code and run again. **INCONCLUSIVE**: surface the cause and hand to the owner. Never present a shot as proof on anything but PASS.

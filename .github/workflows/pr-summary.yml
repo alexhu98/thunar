@@ -1,0 +1,55 @@
+name: pr-summary
+
+on:
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  summary:
+    if: >-
+      github.event.issue.pull_request && contains(github.event.comment.body, '<!-- visual-verify ')
+      && (contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
+      || github.event.comment.user.login == 'claude[bot]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    concurrency:
+      group: pr-summary-${{ github.event.issue.number }}
+      cancel-in-progress: false
+    permissions:
+      actions: write
+      pull-requests: read
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.issue.number }}
+    steps:
+      - name: Re-run the summary job of the head's build run once it has finished
+        run: |
+          read -r repo base sha < <(gh api "repos/$GH_REPO/pulls/$PR" --jq '[.head.repo.full_name, .base.ref, .head.sha] | @tsv')
+          if [[ $repo != "$GH_REPO" || $base != main ]]; then
+            echo "PR #$PR is not from this repo into main; build.yml writes no summary for it"
+            exit 0
+          fi
+          run=$(gh api "repos/$GH_REPO/actions/workflows/build.yml/runs?head_sha=$sha&event=pull_request" --jq '.workflow_runs[0].id // empty')
+          [[ -n $run ]] || { echo "::warning::no build run for ${sha::12}"; exit 0; }
+          for ((i = 0; i < 110; i++)); do
+            read -r status job < <(gh api "repos/$GH_REPO/actions/runs/$run/jobs" \
+              --jq '[.jobs[] | select(.name == "summary")][0] // {} | "\(.status // "none") \(.id // "")"')
+            run_status=$(gh api "repos/$GH_REPO/actions/runs/$run" --jq .status)
+            if [[ $status == none || $status == queued || $status == waiting || $status == pending ]] && [[ $run_status != completed ]]; then
+              echo "the summary job of run $run hasn't started; it will read the audit when it runs"
+              exit 0
+            fi
+            if [[ $run_status == completed ]]; then
+              [[ -n $job ]] || { echo "::warning::run $run has no summary job"; exit 0; }
+              gh api -X POST "repos/$GH_REPO/actions/jobs/$job/rerun"
+              echo "re-running job $job of run $run"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::run $run did not finish within 18 minutes; the summary does not show this audit yet"
+          exit 1

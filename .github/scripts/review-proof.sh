@@ -7,8 +7,8 @@
 #   collect  after the review: saves the findings ($FINDINGS, the action's structured_output) and the working-tree
 #            fix as a patch, for the report job.
 #   report   in a separate job holding the push token: commits and pushes the fix as claude[bot], posts the other
-#            findings as suggested changes, writes the review section of the PR comment through pr-comment.sh, and
-#            fails while confirmed medium or high findings stay unresolved.
+#            findings as suggested changes, writes the review comment through pr-comment.sh and then the summary
+#            through pr-summary.py, and fails while confirmed medium or high findings stay unresolved.
 # Env: PR, HEAD_SHA, HEAD_REF, BASE (default origin/main), OUT, IN (report: the collected files), REVIEW_RESULT
 # (report: the review job's result), RUN_ID, RUN_NUMBER (plan), RUN_URL, REVIEW_LEVEL, REVIEW_MODEL. DRY_RUN=1 makes report print the
 # commit, the suggestions and the section instead of pushing and posting them.
@@ -25,8 +25,8 @@ BOT_EMAIL='209825114+claude[bot]@users.noreply.github.com'
 NOT_IN_FIX=(':!explainers/' ':!.claude' ':!CLAUDE.md' ':!CLAUDE.local.md' ':!.mcp.json' ':!.claude.json' ':!.gitmodules' ':!.ripgreprc' ':!.husky' ':!.github/workflows/' ':!.github/scripts/')
 mkdir -p "$OUT"
 
-state() {  # the review state saved in the PR comment -> stdout (JSON; {} when there is none)
-  "$HERE/pr-comment.sh" get | python3 -c '
+state() {  # the review state saved in the review comment, or in the single comment from before -> stdout (JSON; {} when there is none)
+  { "$HERE/pr-comment.sh" get review; echo; "$HERE/pr-comment.sh" legacy get; } | python3 -c '
 import json, re, sys
 m = re.search(r"^<!-- review:state (.*?) -->", sys.stdin.read(), re.M)
 print(m.group(1) if m else "{}")'
@@ -310,8 +310,10 @@ EOF
       (( ${#failed[@]} == 0 )) || echo "::warning::suggestions ${failed[*]} could not be posted" >&2
     fi
   fi
-  unresolved=$(python3 "$HERE/review-state.py" render "$OUT" "$GH_REPO" "$note" "${failed[@]}")
+  unresolved=$(python3 "$HERE/review-state.py" render "$OUT" "$GH_REPO" "$HEAD_SHA" "$result" "$note" "${failed[@]}")
   OUT="$OUT/comment" "$HERE/pr-comment.sh" put review "$OUT/section.md"
+  "$HERE/pr-comment.sh" legacy delete || echo "::warning::could not delete the old single PR comment" >&2
+  OUT="$OUT/summary" python3 "$HERE/pr-summary.py" || echo "::warning::could not update the summary comment" >&2
   if (( unresolved > 0 )) || [[ $result == failure ]]; then
     echo "::error::$unresolved confirmed medium or high finding(s) unresolved${note:+; ${note%.}}. Don't re-run this job alone; push a fix or a Review-accept trailer." >&2
     exit 1
