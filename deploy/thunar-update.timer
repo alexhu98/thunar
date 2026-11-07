@@ -1,0 +1,10 @@
+[Unit]
+Description=Check for a new Thunar build 2 minutes after boot, then hourly
+
+[Timer]
+OnBootSec=2min
+OnCalendar=hourly
+Persistent=true
+
+[Install]
+WantedBy=timers.target

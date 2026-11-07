@@ -1,0 +1,7 @@
+Package: thunar thunar-data libthunarx-3-0
+Pin: version /\+local[0-9]+$/
+Pin-Priority: 1001
+
+Package: thunar thunar-data libthunarx-3-0
+Pin: version *
+Pin-Priority: -1

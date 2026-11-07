@@ -1,0 +1,8 @@
+[Unit]
+Description=Install the latest Thunar build from alexhu98/thunar
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/thunar-update

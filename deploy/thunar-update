@@ -1,0 +1,149 @@
+#!/bin/bash
+# Installs the latest alexhu98/thunar release's debs when its version differs from the installed one.
+# Run as root by thunar-update.service. THUNAR_UPDATE_API, THUNAR_UPDATE_ETC and THUNAR_UPDATE_STATE override the defaults for testing.
+set -uo pipefail
+
+API=${THUNAR_UPDATE_API:-https://api.github.com/repos/alexhu98/thunar}
+ETC=${THUNAR_UPDATE_ETC:-/etc/thunar-update}
+STATE=${THUNAR_UPDATE_STATE:-/var/lib/thunar-update}
+PACKAGES=(thunar thunar-data libthunarx-3-0)
+
+log() { echo "thunar-update: $*"; }
+
+notify() {
+  local only_thunar=$1 urgency=$2 body=$3 uid user sent=1
+  local -A seen=()
+  mapfile -t uids < <(ps -C thunar -o uid= | tr -d ' ')
+  [[ $only_thunar == 1 ]] || mapfile -t -O "${#uids[@]}" uids < <(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $2}')
+  for uid in "${uids[@]}"; do
+    [[ -n $uid && -z ${seen[$uid]:-} && -S /run/user/$uid/bus ]] || continue
+    seen[$uid]=1
+    user=$(id -nu "$uid") || continue
+    runuser -u "$user" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+      notify-send -u "$urgency" -i system-file-manager -a "Thunar update" "Thunar update" "$body" \
+      && sent=0 || log "could not notify $user"
+  done
+  return $sent
+}
+
+fail() {
+  log "$1"
+  if [[ $(cat "$STATE/failed" 2>/dev/null) != "$1" ]]; then
+    notify 0 critical "$1 See: journalctl -u thunar-update" \
+      && echo "$1" >"$STATE/failed"
+  fi
+  exit 1
+}
+
+succeed() {
+  echo "$1" >"$STATE/last"
+  rm -f "$STATE/failed"
+}
+
+installed_version() {
+  local p line v=
+  for p in "${PACKAGES[@]}"; do
+    line=$(dpkg-query -W -f='${db:Status-Abbrev}|${Version}' "$p" 2>/dev/null) || return
+    [[ $line == [ih]"i |"* ]] || return
+    [[ -z $v || ${line#*|} == "$v" ]] || return
+    v=${line#*|}
+  done
+  echo "$v"
+}
+
+mkdir -p "$STATE"
+exec 9>"$STATE/lock"
+flock -n 9 || { log "another update is running"; exit 0; }
+
+[[ -r $ETC/token ]] || fail "No token in $ETC/token."
+work=$(mktemp -d) || fail "Could not create a temporary folder."
+trap 'rm -rf "$work"' EXIT
+printf 'Authorization: Bearer %s\n' "$(<"$ETC/token")" >"$work/auth"
+auth=(-H @"$work/auth" -H "X-GitHub-Api-Version: 2022-11-28")
+
+code=$(curl -sS -o "$work/release.json" -D "$work/headers" -w '%{http_code}' --retry 3 --retry-connrefused --max-time 60 \
+  "${auth[@]}" -H "Accept: application/vnd.github+json" "$API/releases/latest") || code=000
+case $code in
+  404)
+    repo=$(curl -sS -o /dev/null -w '%{http_code}' --retry 3 --retry-connrefused --max-time 60 "${auth[@]}" "$API") || repo=000
+    case $repo in
+      200) log "the repo has no published release yet"; rm -f "$STATE/failed"; exit 0 ;;
+      000|429|5??) code=$repo ;;
+      403) code=429 ;;
+    esac ;;
+  403) grep -qiE '^(x-ratelimit-remaining: 0[[:space:]]|retry-after:)' "$work/headers" && code=429 ;;
+esac
+case $code in
+  200) ;;
+  404) fail "GitHub rejected the token in $ETC/token or it has no access to the repo (HTTP 404); it may have expired." ;;
+  401|403) fail "GitHub rejected the token in $ETC/token (HTTP $code); it may have expired." ;;
+  000|429|5??) log "GitHub is unreachable (HTTP $code); trying again at the next check"; exit 0 ;;
+  *) fail "Could not read the latest release (HTTP $code)." ;;
+esac
+
+arch=$(dpkg --print-architecture)
+python3 - "$work/release.json" "$arch" "${PACKAGES[@]}" >"$work/assets" <<'PY' || fail "Could not parse the latest release."
+import json, sys
+release = json.load(open(sys.argv[1]))
+arch, packages = sys.argv[2], sys.argv[3:]
+print(release["tag_name"])
+for package in packages:
+    found = [a for a in release.get("assets", [])
+             if a["name"].startswith(package + "_") and a["name"].endswith((f"_{arch}.deb", "_all.deb"))]
+    print(f'{found[0]["id"]} {found[0]["url"]}' if len(found) == 1 else "")
+PY
+mapfile -t assets <"$work/assets"
+
+tag=${assets[0]:-}
+[[ -n $tag ]] || fail "Could not parse the latest release."
+for i in "${!PACKAGES[@]}"; do
+  [[ -n ${assets[i + 1]:-} ]] || fail "Release $tag has no single ${PACKAGES[i]} deb for $arch."
+done
+
+installed=$(installed_version)
+read -r thunar_id _ <<<"${assets[1]}"
+if [[ -r $STATE/last ]] && [[ "$(<"$STATE/last")" == "$thunar_id $installed" ]]; then
+  rm -f "$STATE/failed"
+  exit 0
+fi
+
+held=$(apt-mark showhold "${PACKAGES[@]}") || fail "Could not read the package holds."
+if [[ -n $held ]]; then
+  log "not installing $tag: held: ${held//$'\n'/ }"
+  rm -f "$STATE/failed"
+  exit 0
+fi
+
+download() {
+  curl -fsSL --retry 3 --retry-connrefused --max-time 600 "${auth[@]}" -H "Accept: application/octet-stream" -o "$2" "$1"
+}
+
+debs=()
+for i in "${!PACKAGES[@]}"; do
+  read -r _ url <<<"${assets[i + 1]}"
+  deb=$work/${PACKAGES[i]}.deb
+  download "$url" "$deb" || fail "Could not download ${PACKAGES[i]} from $tag."
+  read -r package deb_version < <(dpkg-deb --show --showformat='${Package} ${Version}\n' "$deb")
+  [[ $package == "${PACKAGES[i]}" ]] || fail "The ${PACKAGES[i]} asset of $tag is another package."
+  debs+=("$deb")
+  if (( i == 0 )); then
+    version=$deb_version
+    if [[ $version == "$installed" ]]; then
+      succeed "$thunar_id $installed"
+      log "Thunar $installed is already the latest release ($tag)"
+      exit 0
+    fi
+  elif [[ $deb_version != "$version" ]]; then
+    fail "The debs of $tag have different versions."
+  fi
+done
+
+log "installing Thunar $version from $tag over ${installed:-nothing}"
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-remove --allow-downgrades \
+  -o DPkg::Lock::Timeout=600 -o Dpkg::Options::=--force-confold "${debs[@]}" \
+  || fail "Installing Thunar $version failed."
+
+[[ $(installed_version) == "$version" ]] || fail "Thunar $version did not install."
+succeed "$thunar_id $version"
+log "installed Thunar $version"
+notify 1 normal "Thunar updated to $version; restart Thunar to load it." || true
