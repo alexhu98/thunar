@@ -19,7 +19,8 @@
 # branches, or two other branches and no own one, are a conflict: reported, not rendered. A page whose <stem>.mp4 exists
 # and whose page and narration hashes equal those in <stem>.mp4.sha, which also holds a hash of make-video.py and the
 # pronunciation table, is skipped without running status. Any other narrated page runs status (retried with
-# google-chrome if it crashed on the headless shell) and, if it passes and not under --dry-run, render.
+# google-chrome if make-video.py stopped with an error on the headless shell) and, if it passes and not under
+# --dry-run, render.
 # Writes SOURCES.tsv (page, branch, commit) and REPORT.tsv (page, branch, commit, result, copied) in the gallery's
 # explainers/, and copies each skipped or rendered video that differs into the checkout's explainers/.
 set -euo pipefail
@@ -170,7 +171,7 @@ main() {
   echo "== decide"
   local mv=${MAKE_VIDEO:-$gallery/.claude/skills/explainer/make-video.py}
   local -a rows=()
-  local failed=0 copies=0 page stem want have result log tool copied probe=${CHROME:-}
+  local failed=0 copies=0 out page stem want have result log tool copied probe=${CHROME:-}
   if [[ -z $probe ]]; then
     probe=$(printf '%s\n' "${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell \
               | sort -V | tail -1)
@@ -208,8 +209,8 @@ main() {
              && ! { [[ $probe != "${CHROME:-google-chrome}" ]] && grep -q '^make-video:' "$log" \
                     && echo "== retry with ${CHROME:-google-chrome}" >> "$log" \
                     && CHROME=${CHROME:-google-chrome} "$mv" status "$n" >> "$log" 2>&1 && probe=${CHROME:-google-chrome}; }; then
-          result="needs re-narration (status: $(awk '/^== retry/ { b = ""; next } { b = b $0 "\n" } END { printf "%s", b }' "$log" \
-                    | { grep -m1 -E '^  |make-video:' || head -1; } | sed 's/^ *//' | cut -c1-80))"
+          out=$(awk '/^== retry/ { b = ""; next } { b = b $0 "\n" } END { printf "%s", b }' "$log")
+          result="needs re-narration (status: $({ grep -m1 -E '^  |make-video:' <<<"$out" || head -1 <<<"$out"; } | sed 's/^ *//' | cut -c1-80))"
         elif (( dry )); then
           result='would render'
         elif rm -f "$stem.mp4.sha" && echo "== $(date -Is) render $n" >> "$log" && CHROME=${CHROME:-google-chrome} "$mv" render "$n" >> "$log" 2>&1 && [[ -s $stem.mp4 ]]; then

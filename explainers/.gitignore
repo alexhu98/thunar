@@ -1,5 +1,6 @@
 *.mp4
 *.mp4.sha
+*.mp4.tmp
 *.log
 REPORT.tsv
 SOURCES.tsv
