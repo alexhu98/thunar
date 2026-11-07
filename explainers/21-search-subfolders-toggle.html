@@ -297,6 +297,7 @@ explainers/21-search-subfolders-toggle.narration.json  # its narration</pre>
     <li data-k="r2"><b>Fixed, R2 (high):</b> when a window closed, the location entry touched the toggle after GTK had already destroyed it. The entry now forgets the toggle when it is destroyed.</li>
     <li data-k="r5"><b>Fixed, R5 (low):</b> the toggle and the search job now share one rule for "does this search include subfolders", <code>thunar_file_search_includes_subfolders</code>.</li>
     <li data-k="r11"><b>Fixed, R11 (medium):</b> a search typed by hand into the location bar ran without the window's "searching" flag, so the toggle saved the choice but didn't re-run that search. The re-run no longer depends on that flag.</li>
+    <li data-k="r27"><b>Accepted, R27 (medium):</b> CI can't check that the choice survives a restart, because its verify machine has no gvfs. Adding gvfs to CI is tracked in issue #48.</li>
     <li data-k="r4"><b>Kept, R4, R8 to R10 and R14 to R21 (low):</b> the toggle checks whether the folder is on a local disk on the main thread, as the Local Files Only rule needs; saving the choice without the per-folder preference, and the wider Clear item, are deliberate; the others are in older upstream code or were rated unlikely or refuted by CI's own verifier.</li>
   </ul>
   </section>

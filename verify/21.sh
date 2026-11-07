@@ -101,7 +101,7 @@ if (( ON_DISK )); then
 fi
 shot "$WID" after-off "With the Include subfolders toggle released, the same search in top lists only match-top.txt"
 results_are off match-top.txt
-pair off "Clicked the Include subfolders toggle beside the search field" "Turning the toggle off re-runs the search in top without its subfolders" "toggle on, both files" "toggle off, only match-top.txt" "$S"
+pair off "Clicked the Include subfolders toggle beside the search field" "Turning the toggle off re-runs the search in top without its subfolders$SKIPPED" "toggle on, both files" "toggle off, only match-top.txt" "$S"
 
 go "$WORK/other"
 search match
@@ -150,6 +150,4 @@ shot "$WID" after-typed "Clicking the toggle re-runs the hand-typed search in to
 pair typed "Clicked the Include subfolders toggle with the hand-typed search showing" "The toggle also re-runs a search typed by hand into the location bar" "typed search, toggle on, both files" "toggle off, only match-top.txt" "$T"
 results_are typed match-top.txt
 
-if ! (( ON_DISK )); then
-  echo "note: GIO metadata is not writable here (no gvfs), so the on-disk checks were skipped" >&2
-fi
+[[ -z $SKIPPED ]] || echo "note:$SKIPPED" >&2
