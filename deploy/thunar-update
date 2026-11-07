@@ -44,7 +44,7 @@ installed_version() {
   local p line v=
   for p in "${PACKAGES[@]}"; do
     line=$(dpkg-query -W -f='${db:Status-Abbrev}|${Version}' "$p" 2>/dev/null) || return
-    [[ $line == "ii |"* ]] || return
+    [[ $line == [ih]"i |"* ]] || return
     [[ -z $v || ${line#*|} == "$v" ]] || return
     v=${line#*|}
   done
@@ -56,20 +56,25 @@ exec 9>"$STATE/lock"
 flock -n 9 || { log "another update is running"; exit 0; }
 
 [[ -r $ETC/token ]] || fail "No token in $ETC/token."
-work=$(mktemp -d)
+work=$(mktemp -d) || fail "Could not create a temporary folder."
 trap 'rm -rf "$work"' EXIT
 printf 'Authorization: Bearer %s\n' "$(<"$ETC/token")" >"$work/auth"
 auth=(-H @"$work/auth" -H "X-GitHub-Api-Version: 2022-11-28")
 
-code=$(curl -sS -o "$work/release.json" -w '%{http_code}' --retry 3 --retry-connrefused --max-time 60 \
+code=$(curl -sS -o "$work/release.json" -D "$work/headers" -w '%{http_code}' --retry 3 --retry-connrefused --max-time 60 \
   "${auth[@]}" -H "Accept: application/vnd.github+json" "$API/releases/latest") || code=000
 case $code in
-  200) ;;
   404)
-    if [[ $(curl -sS -o /dev/null -w '%{http_code}' --max-time 60 "${auth[@]}" "$API") == 200 ]]; then
-      log "the repo has no published release yet"; exit 0
-    fi
-    fail "GitHub rejected the token in $ETC/token or it has no access to the repo (HTTP 404); it may have expired." ;;
+    repo=$(curl -sS -o /dev/null -w '%{http_code}' --retry 3 --retry-connrefused --max-time 60 "${auth[@]}" "$API") || repo=000
+    case $repo in
+      200) log "the repo has no published release yet"; exit 0 ;;
+      000|429|5??) code=$repo ;;
+    esac ;;
+  403) grep -qiE '^(x-ratelimit-remaining: 0[[:space:]]|retry-after:)' "$work/headers" && code=429 ;;
+esac
+case $code in
+  200) ;;
+  404) fail "GitHub rejected the token in $ETC/token or it has no access to the repo (HTTP 404); it may have expired." ;;
   401|403) fail "GitHub rejected the token in $ETC/token (HTTP $code); it may have expired." ;;
   000|429|5??) log "GitHub is unreachable (HTTP $code); trying again at the next check"; exit 0 ;;
   *) fail "Could not read the latest release (HTTP $code)." ;;
@@ -126,11 +131,11 @@ for i in "${!PACKAGES[@]}"; do
 done
 
 log "installing Thunar $version from $tag over ${installed:-nothing}"
-DEBIAN_FRONTEND=noninteractive apt-get install -y --fix-broken --no-remove --allow-downgrades \
+DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades --allow-change-held-packages \
   -o DPkg::Lock::Timeout=600 -o Dpkg::Options::=--force-confold "${debs[@]}" \
   || fail "Installing Thunar $version failed."
 
 [[ $(installed_version) == "$version" ]] || fail "Thunar $version did not install."
 succeed "$thunar_id $version"
 log "installed Thunar $version"
-notify 1 normal "Thunar updated to $version; restart Thunar to load it."
+notify 1 normal "Thunar updated to $version; restart Thunar to load it." || true
