@@ -1,26 +1,26 @@
 sha	num	test	result	shot	file	proves
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	1	3	pass	before-icon	verify-3-before-icon.png	Icon view shows folder charlie (delta, one.txt, two.txt, three.txt), with the path bar ending in charlie
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	1	3	pass	after-icon	verify-3-after-icon.png	Icon view now shows folder bravo, the parent of charlie, after a double-click on blank space
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	2	3	pass	before-compact	verify-3-before-compact.png	Compact view shows folder charlie, with the path bar ending in charlie
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	2	3	pass	after-compact	verify-3-after-compact.png	Compact view now shows folder bravo, the parent of charlie, after a double-click on blank space
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	3	3	pass	before-details	verify-3-before-details.png	Details view shows folder charlie as rows, with the path bar ending in charlie
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	3	3	pass	after-details	verify-3-after-details.png	Details view now shows folder bravo, the parent of charlie, after a double-click on the blank space below the rows
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	4	3	pass	before-details-folder	verify-3-before-details-folder.png	Details view shows folder charlie with delta as its first row
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	4	3	pass	after-details-folder	verify-3-after-details-folder.png	A double-click on the delta row opened delta (inside.txt shown) and did not go back up to charlie
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	5	3	pass	before-folder	verify-3-before-folder.png	Icon view shows folder charlie with the delta folder as its first item
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	5	3	pass	after-folder	verify-3-after-folder.png	A double-click on the delta folder opened delta (inside.txt shown), not the parent folder
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	6	3	pass	before-rubber-band	verify-3-before-rubber-band.png	Icon view of folder charlie with nothing selected
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	6	3	pass	after-rubber-band	verify-3-after-rubber-band.png	A drag from blank space selected only the delta folder and left the window on charlie
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	7	3	pass	before-split-right	verify-3-before-split-right.png	Split view with both panes on folder charlie, the right pane active
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	7	3	pass	after-split-right	verify-3-after-split-right.png	Two double-clicks in the right pane took it up twice to alpha: the active right pane shows folder bravo, alpha's only item
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	8	3	pass	before-split-left	verify-3-before-split-left.png	Split view with the left pane active on folder charlie (delta, one.txt, three.txt, two.txt)
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	8	3	pass	after-split-left	verify-3-after-split-left.png	A double-click in the left pane took only that pane up to bravo (it shows folder charlie)
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	9	3	pass	before-root	verify-3-before-root.png	The whole screen: Thunar shows the root folder / in icon view and no other window is open
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	9	3	pass	after-root	verify-3-after-root.png	The whole screen after a double-click on blank space at /: Thunar still shows / and no dialog opened
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	10	3	pass	before-pref	verify-3-before-pref.png	Preferences, Behavior tab: the checkbox Double-click on a blank area to open the parent folder is ticked
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	10	3	pass	after-pref	verify-3-after-pref.png	After Alt+P the checkbox Double-click on a blank area to open the parent folder is unticked (the script asserts xfconf then reads false)
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	11	3	pass	before-off	verify-3-before-off.png	With the checkbox unticked, the same running Thunar shows folder charlie in icon view
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	11	3	pass	after-off	verify-3-after-off.png	With the setting off, a double-click on blank space left the window on folder charlie
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	12	3	pass	before-single	verify-3-before-single.png	Single-click mode, blank double-click turned back on: icon view shows folder charlie with delta first
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	12	3	pass	after-single	verify-3-after-single.png	In single-click mode a double-click on delta left the window on delta (inside.txt), not back on charlie
-157fe605351f7920a7d3d62e6584a2cbe97f6df6	13	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
+d85aba3a87a998472126bb04bb92923164460653	1	3	pass	before-icon	verify-3-before-icon.png	Icon view shows folder charlie (delta, one.txt, two.txt, three.txt), with the path bar ending in charlie
+d85aba3a87a998472126bb04bb92923164460653	1	3	pass	after-icon	verify-3-after-icon.png	Icon view now shows folder bravo, the parent of charlie, after a double-click on blank space
+d85aba3a87a998472126bb04bb92923164460653	2	3	pass	before-compact	verify-3-before-compact.png	Compact view shows folder charlie, with the path bar ending in charlie
+d85aba3a87a998472126bb04bb92923164460653	2	3	pass	after-compact	verify-3-after-compact.png	Compact view now shows folder bravo, the parent of charlie, after a double-click on blank space
+d85aba3a87a998472126bb04bb92923164460653	3	3	pass	before-details	verify-3-before-details.png	Details view shows folder charlie as rows, with the path bar ending in charlie
+d85aba3a87a998472126bb04bb92923164460653	3	3	pass	after-details	verify-3-after-details.png	Details view now shows folder bravo, the parent of charlie, after a double-click on the blank space below the rows
+d85aba3a87a998472126bb04bb92923164460653	4	3	pass	before-details-folder	verify-3-before-details-folder.png	Details view shows folder charlie with delta as its first row
+d85aba3a87a998472126bb04bb92923164460653	4	3	pass	after-details-folder	verify-3-after-details-folder.png	A double-click on the delta row opened delta (inside.txt shown) and did not go back up to charlie
+d85aba3a87a998472126bb04bb92923164460653	5	3	pass	before-folder	verify-3-before-folder.png	Icon view shows folder charlie with the delta folder as its first item
+d85aba3a87a998472126bb04bb92923164460653	5	3	pass	after-folder	verify-3-after-folder.png	A double-click on the delta folder opened delta (inside.txt shown), not the parent folder
+d85aba3a87a998472126bb04bb92923164460653	6	3	pass	before-rubber-band	verify-3-before-rubber-band.png	Icon view of folder charlie with nothing selected
+d85aba3a87a998472126bb04bb92923164460653	6	3	pass	after-rubber-band	verify-3-after-rubber-band.png	A drag from blank space selected only the delta folder and left the window on charlie
+d85aba3a87a998472126bb04bb92923164460653	7	3	pass	before-split-right	verify-3-before-split-right.png	Split view with both panes on folder charlie, the right pane active
+d85aba3a87a998472126bb04bb92923164460653	7	3	pass	after-split-right	verify-3-after-split-right.png	Two double-clicks in the right pane took it up twice to alpha: the active right pane shows folder bravo, alpha's only item
+d85aba3a87a998472126bb04bb92923164460653	8	3	pass	before-split-left	verify-3-before-split-left.png	Split view with the left pane active on folder charlie (delta, one.txt, three.txt, two.txt)
+d85aba3a87a998472126bb04bb92923164460653	8	3	pass	after-split-left	verify-3-after-split-left.png	A double-click in the left pane took only that pane up to bravo (it shows folder charlie)
+d85aba3a87a998472126bb04bb92923164460653	9	3	pass	before-root	verify-3-before-root.png	The whole screen: Thunar shows the root folder / in icon view and no other window is open
+d85aba3a87a998472126bb04bb92923164460653	9	3	pass	after-root	verify-3-after-root.png	The whole screen after a double-click on blank space at /: Thunar still shows / and no dialog opened
+d85aba3a87a998472126bb04bb92923164460653	10	3	pass	before-pref	verify-3-before-pref.png	Preferences, Behavior tab: the checkbox Double-click on a blank area to open the parent folder is ticked
+d85aba3a87a998472126bb04bb92923164460653	10	3	pass	after-pref	verify-3-after-pref.png	After Alt+P the checkbox Double-click on a blank area to open the parent folder is unticked (the script asserts xfconf then reads false)
+d85aba3a87a998472126bb04bb92923164460653	11	3	pass	before-off	verify-3-before-off.png	With the checkbox unticked, the same running Thunar shows folder charlie in icon view
+d85aba3a87a998472126bb04bb92923164460653	11	3	pass	after-off	verify-3-after-off.png	With the setting off, a double-click on blank space left the window on folder charlie
+d85aba3a87a998472126bb04bb92923164460653	12	3	pass	before-single	verify-3-before-single.png	Single-click mode, blank double-click turned back on: icon view shows folder charlie with delta first
+d85aba3a87a998472126bb04bb92923164460653	12	3	pass	after-single	verify-3-after-single.png	In single-click mode a double-click on delta left the window on delta (inside.txt), not back on charlie
+d85aba3a87a998472126bb04bb92923164460653	13	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
