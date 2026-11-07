@@ -95,6 +95,7 @@
   .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
   ul.tight { margin: 6px 0; padding-left: 20px; }
   ul.tight li { margin: 3px 0; }
+  #checks td:nth-child(3) { width: 32%; white-space: normal; }
 </style>
 </head>
 <body>
@@ -179,8 +180,8 @@
       <rect class="box-pr" x="20" y="456" width="210" height="110" rx="10"/>
       <text x="36" y="486" class="t">List the fixes</text>
       <text x="36" y="510" class="m">commits_since</text>
-      <text x="36" y="530" class="b">commits that changed</text>
-      <text x="36" y="550" class="b">the finding's file</text>
+      <text x="36" y="530" class="b">every commit since</text>
+      <text x="36" y="550" class="b">the finding</text>
       <circle class="badge" cx="210" cy="478" r="12"/><text class="badge-n" x="210" y="482.5" text-anchor="middle">6</text>
     </g>
     <g data-k="7">
@@ -223,8 +224,8 @@
   </ol>
   <div class="lane-h" style="color:var(--accent)">③ CI review, open findings</div>
   <ol class="steps" start="6" style="counter-reset: s 5">
-    <li data-k="6"><b>List the fixes.</b> When <code>plan</code> writes <code>open.json</code>, each open finding gets <code>commits_since</code>: the commits that changed its file after it was found. That points the reviewer at the fix.</li>
-    <li data-k="7"><b>Check at HEAD.</b> Step 4 of the review prompt now gives each open finding to a fresh agent, as step 2 does for new ones. It reads the file at HEAD, and "not changed in this diff" is no longer a reason to keep it open. Its note names the code at HEAD that resolves the finding or still shows it.</li>
+    <li data-k="6"><b>List the fixes.</b> When <code>plan</code> writes <code>open.json</code>, each open finding gets <code>commits_since</code>: every commit since it was found, in any file, or null when its commit is gone after a force-push. That points the reviewer at the fix.</li>
+    <li data-k="7"><b>Check at HEAD.</b> Step 4 of the review prompt now gives each open finding to one fresh agent, as step 2 does for new ones; in auto-fix mode, step 3 fixes only what that agent finds still there. It reads the finding's file and the code its claim depends on at HEAD, and "not changed in this diff" is no longer a reason to keep it open. Its note names the code at HEAD that resolves the finding or still shows it.</li>
   </ol>
   </div>
   </section>
@@ -293,7 +294,7 @@ explainers/
     <tr data-k="c6b"><td>A failed copy is reported</td><td>The checkout's video for #3 made a dangling link, after the review fix</td><td class="ok">copied: failed, the other 7 copied, exit 1</td></tr>
     <tr data-k="c7"><td>Gallery output is ignored</td><td>New <code>.gitignore</code> in the gallery, <code>git status --short --ignored</code></td><td class="ok">8 .log, 8 .mp4.sha, 8 .mp4 and 2 TSVs ignored; tracked files still 17</td></tr>
     <tr data-k="c8"><td>Shell lint</td><td><code>shellcheck</code> 0.11.0 on <code>videos-all.sh</code></td><td class="ok">clean</td></tr>
-    <tr data-k="c10"><td><code>commits_since</code> finds the fix</td><td>The new <code>plan</code> lines, unchanged, on a scratch repo: a finding in A, a fix to A, an unrelated commit to B</td><td class="ok">only the fix to A; [] for a missing file, unknown sha or no open findings</td></tr>
+    <tr data-k="c10"><td><code>commits_since</code> finds the fix</td><td>The new <code>plan</code> lines, unchanged, on a scratch repo: a finding in A, a fix to A, an unrelated commit to B</td><td class="ok">both later commits listed; null for an unknown sha; [] at HEAD or with no open findings; broken <code>open.json</code> fails</td></tr>
     <tr data-k="c11"><td>Review prompt</td><td>Rendered <code>prompt()</code> and read step 4; <code>shellcheck</code> on <code>review-proof.sh</code></td><td class="ok">as written; same 7 old warnings as on main, none new</td></tr>
     <tr data-k="c9"><td>A real render</td><td>Needs Kokoro and <code>google-chrome</code>, not in the cloud container</td><td class="no">not run</td></tr>
   </table>
@@ -302,10 +303,12 @@ explainers/
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">A fresh <code>general-purpose</code> agent, given only the diff and the three issues, reviewed it at medium level: no high or medium findings, 3 low, 2 fixed.</p>
+  <p data-k="summary">Two fresh <code>general-purpose</code> agents, each given only the diff and its issues, reviewed it at medium level: the video script had 3 low findings, 2 fixed; the review change had 1 medium and 3 low, all fixed.</p>
   <ul class="tight">
     <li data-k="b1"><b>Fixed, a failed copy:</b> a <code>cp</code> that fails, say on a full disk, stopped the whole run before the report. Now that row says "failed" and the run exits non-zero.</li>
     <li data-k="b2"><b>Fixed, an empty CHROME:</b> <code>CHROME=</code> set but empty broke every render. Render now gets <code>google-chrome</code> then.</li>
+    <li data-k="b4"><b>Fixed, a fix in another file:</b> <code>commits_since</code> first listed only commits to the finding's own file, so a fix in a helper would still look absent. It now lists every commit, and the agent reads the code the claim depends on.</li>
+    <li data-k="b5"><b>Fixed, small ones:</b> null instead of an empty list when the finding's commit is gone; one agent per open finding, not one in step 3 and another in step 4; a <code>jq</code> error now fails the step.</li>
     <li data-k="b3"><b>Left as is:</b> a tab inside a status error would add a column to <code>REPORT.tsv</code>. That predates this PR.</li>
   </ul>
   <p data-k="ci">CI's own review is in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/35">PR #35</a>.</p>
