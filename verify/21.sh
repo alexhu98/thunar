@@ -74,7 +74,7 @@ saved() {  # folder
 }
 
 ON_DISK=0
-gio info -w "$WORK" 2>/dev/null | grep -q 'metadata' && ON_DISK=1
+[[ $(gio info -w "$WORK" 2>/dev/null) == *metadata* ]] && ON_DISK=1
 
 metadata_on_disk() {
   (( ON_DISK ))
@@ -117,7 +117,7 @@ pair reopen "Left top for other, came back and searched for match again" "top re
 results_are reopen match-top.txt
 
 if metadata_on_disk; then
-  kill "$THUNAR_PID"
+  kill "$THUNAR_PID" 2>/dev/null || fail "Thunar was no longer running before the restart"
   wait "$THUNAR_PID" 2>/dev/null || true
   unset THUNAR_PID
   start_thunar
