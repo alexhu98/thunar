@@ -1,7 +1,7 @@
 {
   "title": "PR #35 · Video gallery (#29, #31, #32)",
   "voice": "af_heart",
-  "page_sha256": "d392745463b1d65072dfd11bd8a33dae56b52254ba37ca9f116453b65962afd3",
+  "page_sha256": "27c6d973bf6fa08785cbc738acb8d0fc34aa55a2969fd85778ae834f7ff797ea",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 35, which speeds up the video script, puts its videos where you look, and fixes a CI review gap.", "src": "0c0b8b9618be"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "c01ac8c52d9b"},
@@ -75,7 +75,7 @@
     "cases/k3": "4a63d526e8bb",
     "cases/k4": "f87dfcb42ee3",
     "cases/k5": "8eda7de55c14",
-    "files/tree": "88537171ce15",
+    "files/tree": "c143a01d989b",
     "undo/note": "8d47ec44b982",
     "verified/label": "5a01db6f2d60",
     "verified/heading": "f0387d007bb6",
