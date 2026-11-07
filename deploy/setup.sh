@@ -6,6 +6,13 @@ set -euo pipefail
 [[ $EUID == 0 ]] || { echo "Run it as root: sudo $0" >&2; exit 1; }
 here=$(cd "$(dirname "$0")" && pwd)
 
+token=
+if [[ ! -s /etc/thunar-update/token || ${1:-} == --new-token ]]; then
+  read -rsp "GitHub token (Contents: read on alexhu98/thunar): " token || true
+  echo
+  [[ -n $token ]] || { echo "No token given; nothing was installed." >&2; exit 1; }
+fi
+
 apt-get install -y curl python3 libnotify-bin
 
 install -m 755 "$here/thunar-update" /usr/local/sbin/thunar-update
@@ -13,13 +20,10 @@ install -m 644 "$here/thunar-update.service" "$here/thunar-update.timer" /etc/sy
 install -m 644 "$here/thunar-custom" /etc/apt/preferences.d/thunar-custom
 install -d -m 700 /etc/thunar-update
 
-if [[ -s /etc/thunar-update/token ]] && [[ ${1:-} != --new-token ]]; then
-  echo "Keeping the token in /etc/thunar-update/token (pass --new-token to replace it)."
-else
-  read -rsp "GitHub token (Contents: read on alexhu98/thunar): " token
-  echo
-  [[ -n $token ]] || { echo "No token given." >&2; exit 1; }
+if [[ -n $token ]]; then
   (umask 077 && printf '%s\n' "$token" >/etc/thunar-update/token)
+else
+  echo "Keeping the token in /etc/thunar-update/token (pass --new-token to replace it)."
 fi
 chmod 600 /etc/thunar-update/token
 

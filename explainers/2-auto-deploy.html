@@ -201,13 +201,13 @@
   <div class="lane-h" style="color:var(--accent)">① Each machine, 2 min after boot and hourly — check</div>
   <ol class="steps">
     <li data-k="1"><b>Timer fires.</b> <code>thunar-update.timer</code> starts <code>thunar-update.service</code> 2 minutes after boot and then on every hour. It is persistent, so an hour missed while the laptop slept runs as soon as it wakes.</li>
-    <li data-k="2"><b>Ask GitHub.</b> <code>/usr/local/sbin/thunar-update</code> asks the GitHub API for the latest release of <code>alexhu98/thunar</code>, using the read-only token in <code>/etc/thunar-update/token</code>, which only root can read. If GitHub can't be reached it just waits for the next hour; if GitHub rejects the token, you get a notification.</li>
-    <li data-k="3"><b>Compare.</b> It downloads only the <code>thunar</code> deb, reads its version from inside the package (<code>dpkg-deb -f … Version</code>) and compares it with the installed one. Same version: it remembers that release and stops, so later hours don't download anything.</li>
-    <li data-k="4"><b>Install.</b> When the version differs, it downloads <code>thunar-data</code> and <code>libthunarx-3-0</code>, checks all three have that version, and installs them together with <code>apt-get install --allow-downgrades</code>.</li>
+    <li data-k="2"><b>Ask GitHub.</b> <code>/usr/local/sbin/thunar-update</code> asks the GitHub API for the latest release of <code>alexhu98/thunar</code>, using the read-only token in <code>/etc/thunar-update/token</code>, which only root can read. If GitHub can't be reached or answers with a server error, it just waits for the next hour; if GitHub rejects the token, you get a notification.</li>
+    <li data-k="3"><b>Compare.</b> It downloads only the <code>thunar</code> deb, reads its version from inside the package (<code>dpkg-deb -f … Version</code>) and compares it with the installed one. All three packages must be fully installed at that version, or it counts as different, so a half-finished install is retried. Same version: it remembers that release and stops, so later hours don't download anything.</li>
+    <li data-k="4"><b>Install.</b> When the version differs, it downloads <code>thunar-data</code> and <code>libthunarx-3-0</code>, checks all three have that version, and installs them together with <code>apt-get install --allow-downgrades</code>. It also lets apt repair a half-finished install, but never remove a package to do it.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② After an install — tell you, never restart</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>Notify you.</b> If Thunar is running, you get “Thunar updated to <i>version</i>; restart Thunar to load it.” in your desktop session. Any failure also sends a notification, pointing to <code>journalctl -u thunar-update</code>.</li>
+    <li data-k="5"><b>Notify you.</b> If Thunar is running, you get “Thunar updated to <i>version</i>; restart Thunar to load it.” in your desktop session. Any failure also sends a notification, pointing to <code>journalctl -u thunar-update</code>: once per failure, and only counted as sent when a session got it, so a failure at boot still reaches you after you log in.</li>
     <li data-k="6"><b>You restart.</b> Thunar keeps running the old build until you close and reopen it, whenever it suits you.</li>
   </ol>
   </div>
@@ -258,13 +258,15 @@ explainers/2-auto-deploy.narration.json  # its narration</pre>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr data-k="c1"><td>Fresh install, then notification</td><td>A local fake of the GitHub API serving stand-in debs at <code>+local2</code>, with GitHub's <code>~</code> → <code>.</code> file names; a fake <code>thunar</code> process and session bus</td><td class="ok">installed <code>+local2</code>, 1 notification</td></tr>
+    <tr data-k="c1"><td>Fresh install, then notification</td><td>A local fake of the GitHub API serving stand-in debs at <code>+local2</code>, with GitHub's <code>~</code> → <code>.</code> file names and <code>thunar-data</code> as <code>_all.deb</code> like the real one; a fake <code>thunar</code> process and session bus</td><td class="ok">installed <code>+local2</code>, 1 notification</td></tr>
     <tr data-k="c2"><td>Nothing new: no download</td><td>Ran again with the same release</td><td class="ok">no change, 0 notifications</td></tr>
     <tr data-k="c3"><td>Upgrade and rollback</td><td>Latest set to <code>+local3</code>, then back to <code>+local2</code></td><td class="ok"><code>+local3</code>, then <code>+local2</code></td></tr>
-    <tr data-k="c4"><td>Bad, missing token; GitHub down</td><td>Wrong token (HTTP 401) three runs in a row, no token file, unreachable server</td><td class="ok">1 notification for 3 failed runs; silent retry when down</td></tr>
+    <tr data-k="c4"><td>Bad token, before and after login</td><td>Wrong token (HTTP 401) with no session bus, then twice with one</td><td class="ok">0, then 1 notification</td></tr>
+    <tr data-k="c10"><td>No release, GitHub errors, bad reply</td><td>HTTP 404 with a valid token, HTTP 500, a reply that isn't JSON</td><td class="ok">silent, silent, 1 notification</td></tr>
+    <tr data-k="c11"><td>Half-finished install</td><td>Removed <code>thunar-data</code> by force, then ran again</td><td class="ok">all 3 back at <code>+local2</code></td></tr>
     <tr data-k="c5"><td>The apt pin</td><td>A local repo with a higher “Zorin” <code>4.20.11</code>; <code>apt-cache policy</code> and a simulated <code>dist-upgrade</code></td><td class="ok">kept <code>+local2</code>, 0 upgraded</td></tr>
     <tr data-k="c6"><td>Manual rollback past the pin</td><td>Simulated install of the “Zorin” debs as local files</td><td class="ok">allowed</td></tr>
-    <tr data-k="c7"><td>Setup script</td><td><code>setup.sh</code> with <code>apt-get</code> and <code>systemctl</code> stubbed, token piped in; then again, then with <code>--new-token</code></td><td class="ok">files, modes 700/600, token kept, then replaced</td></tr>
+    <tr data-k="c7"><td>Setup script</td><td><code>setup.sh</code> with <code>apt-get</code> and <code>systemctl</code> stubbed: no token and no terminal, token piped in, then again</td><td class="ok">nothing installed; files, modes 700/600; token kept</td></tr>
     <tr data-k="c8"><td>Unit files</td><td><code>systemd-analyze verify</code></td><td class="ok">no errors</td></tr>
     <tr data-k="c9"><td>Real GitHub, real machines</td><td>The container has no token and no desktop session</td><td class="no">not run</td></tr>
   </table>
@@ -274,6 +276,7 @@ explainers/2-auto-deploy.narration.json  # its narration</pre>
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
   <p data-k="summary">After the first code commit, a fresh <code>general-purpose</code> agent reviewed the diff against the issue at medium level, without running anything. It found 3 problems: 1 high and 2 low. All 3 are fixed, and the mock tests were run again afterwards. CI's own review is in the code review PR comment.</p>
+  <p data-k="ci">CI's review then found 10 confirmed problems in the fixed code, 4 of them medium or high; all 10 are fixed, and the tests above were run again on the result. The worst: <code>thunar-data</code> is one package for every architecture, so its file ends in <code>_all.deb</code>, and the updater looked only for <code>_amd64.deb</code> and could never have installed anything. The first tests missed it because their stand-in packages were all <code>amd64</code>. The others: a half-finished install counted as up to date; a failure before login was never shown; a missing release was blamed on the token; the token was visible in the process list while <code>curl</code> ran; and setup could stop halfway without a terminal.</p>
   <ul class="tight">
     <li data-k="b1"><b>A file missing from the commit (high):</b> the repo ignores every <code>*.service</code> file, so the service unit was never committed and setup would have failed on a fresh checkout. It is now committed explicitly.</li>
     <li data-k="b2"><b>Misleading message (low):</b> a token without access to the repo gets a 404 from GitHub, not a 401. All three codes now say the token is the problem.</li>
