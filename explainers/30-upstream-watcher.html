@@ -137,8 +137,8 @@
     <g data-k="2">
       <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
       <text x="286" y="90" class="t">Already in hand?</text>
-      <text x="286" y="114" class="b">issue closed or PR</text>
-      <text x="286" y="134" class="b">open: report, stop;</text>
+      <text x="286" y="114" class="b">skipped, or another</text>
+      <text x="286" y="134" class="b">release open: stop;</text>
       <text x="286" y="154" class="b">no PR yet: resume</text>
       <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
     </g>
@@ -217,9 +217,9 @@
   <div class="lane-h" style="color:var(--accent)">① Every week — the scheduled cloud session</div>
   <ol class="steps">
     <li data-k="1"><b>Check upstream.</b> <code>check.sh</code> reads <code>main</code>'s version from <code>configure.ac</code>, lists upstream's tags with <code>git ls-remote</code>, and prints the newest tag in <code>main</code>'s series that <code>main</code> lacks. With several new tags it picks only the newest. With none, the session reports the one line and ends.</li>
-    <li data-k="2"><b>Already in hand?</b> It searches the repo's issues and PRs for the title <code>Merge upstream &lt;tag&gt;</code>. A closed issue means you skipped the release, and an open PR means it is in hand: either way it reports and ends. An open issue with no PR means an earlier run stopped partway, so it carries on from step 4.</li>
+    <li data-k="2"><b>Already in hand?</b> It searches the repo's <code>Merge upstream</code> issues and PRs. A closed issue for this tag means you skipped the release; an open PR for it, or any open one for another release, means it waits, so two release PRs never overlap. An open issue for this tag with no PR means an earlier run stopped partway, so it carries on from where that run stopped.</li>
     <li data-k="3"><b>Open an issue.</b> Titled <code>Merge upstream &lt;tag&gt;</code>, with the tag's link, its section of upstream's <code>NEWS</code>, <code>Refs #30</code> and a Done-when list.</li>
-    <li data-k="4"><b>Merge the tag.</b> On a new branch <code>&lt;n&gt;-thunar-4.20.x</code> from <code>main</code>, it merges the git tag, never the tarball. Conflicts are resolved file by file, keeping both upstream's fix and the fork's feature, then a file-list check confirms the fork's changes all survived.</li>
+    <li data-k="4"><b>Merge the tag.</b> On a new branch <code>&lt;n&gt;-thunar-4.20.x</code> from <code>main</code>, it merges the git tag, never the tarball, in a commit marked <code>Review: suggest</code> so CI's review suggests changes rather than editing upstream's code. Conflicts are resolved file by file, keeping both upstream's fix and the fork's feature, then a file-list check confirms the fork's changes all survived.</li>
     <li data-k="5"><b>Write the explainer.</b> With the <code>explainer</code> skill: what the release changes, how each conflict was resolved, and its stamped narration, which CI requires on every <code>&lt;n&gt;-…</code> branch.</li>
     <li data-k="6"><b>Push and open the PR.</b> Only the new branch is pushed, never tags, <code>master</code>, <code>xfce-4.20</code> or the <code>upstream</code> remote. The PR into <code>main</code> says <code>Closes #&lt;n&gt;</code>.</li>
   </ol>
@@ -295,6 +295,7 @@ explainers/30-upstream-watcher.narration.json  # its narration</pre>
     <li data-k="b3"><b>Release notes (low):</b> the <code>git log</code> range named tags that aren't fetched under those names; it now uses the fetched refs.</li>
     <li data-k="b4"><b>File-list check (low):</b> the step now says how to read a difference, since upstream adopting a fork change is normal.</li>
     <li data-k="b5"><b>Duplicate search (found here):</b> GitHub refused the query without <code>is:issue</code>, with HTTP 422; it now passes and filters on the exact title.</li>
+    <li data-k="b6"><b>CI's review (12 findings):</b> the release merge now carries <code>Review: suggest</code>, an open release blocks a newer one, a resumed run reuses its pushed branch, both tags are fetched in step 1, and the branch never tracks <code>main</code>. The test-run layout is still open with you.</li>
   </ul>
   </section>
 
@@ -377,7 +378,7 @@ explainers/30-upstream-watcher.narration.json  # its narration</pre>
   <div class="panel">
   <ol class="steps">
     <li data-k="1"><b>The weekly schedule.</b> A scheduled task on claude.ai starts a fresh cloud session each week in this environment, which already allows <code>gitlab.xfce.org</code>, and runs <code>/upstream-merge</code>. Its first run should report "none".</li>
-    <li data-k="2"><b>A test run.</b> <code>/upstream-merge --base &lt;copy&gt; --issue 30</code> from a copy of <code>main</code> rebuilt on <code>thunar-4.20.9</code>. It should open a PR that merges <code>thunar-4.20.10</code> with green checks; that PR is then closed, never merged.</li>
+    <li data-k="2"><b>A test run.</b> <code>/upstream-merge --base &lt;branch&gt;</code> from a pushed copy of <code>main</code> rebuilt on an older release. It opens a <code>[test]</code> issue and PR, which should get green checks and are then closed, never merged.</li>
     <li data-k="3"><b>Writing it down.</b> How to pause or remove the schedule goes into #30, which then closes.</li>
     <li data-k="4"><b>Each real release.</b> From then on, a new 4.20 tag arrives within a week as an issue and a PR, for you to check and merge.</li>
   </ol>
