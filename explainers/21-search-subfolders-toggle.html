@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #47 Search subfolders</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #47: An "Include subfolders" toggle in the search bar, saved per folder</h1>
+  <p class="lead" data-k="lead">Branch <code>21-search-subfolders-toggle</code> → <code>main</code>, closes #21. Once merged, a button beside the search field turns subfolder search on or off for the folder you are in, and Thunar remembers that choice for the folder.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing depends on #21</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">While you search, a folder-icon toggle sits right of the search field. Clicking it re-runs the search with or without subfolders and saves the choice in that folder's metadata. Folders with no saved choice keep following Preferences.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="Ctrl+F shows the toggle; clicking it saves the folder's choice and re-runs the search; the search job reads the saved choice, else the preference">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Click the toggle — search again</text>
+    <g data-k="1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Ctrl+F</text>
+      <text x="36" y="114" class="b">the search field</text>
+      <text x="36" y="134" class="b">opens; the toggle</text>
+      <text x="36" y="154" class="b">appears beside it</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Toggle shows</text>
+      <text x="286" y="114" class="b">the folder's choice,</text>
+      <text x="286" y="134" class="b">else what the</text>
+      <text x="286" y="154" class="b">preference means</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Click saves</text>
+      <text x="536" y="114" class="m">thunar-search-</text>
+      <text x="536" y="134" class="m">subfolders</text>
+      <text x="536" y="154" class="b">on the folder</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-merge" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Search re-runs</text>
+      <text x="786" y="114" class="b">existing search</text>
+      <text x="786" y="134" class="b">path, same query</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--accent)">② The search job decides</text>
+    <g data-k="5">
+      <rect class="box-pr" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">One helper</text>
+      <text x="286" y="314" class="b">saved choice first,</text>
+      <text x="286" y="334" class="b">else Preferences'</text>
+      <text x="286" y="354" class="b">Include subfolders</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Search job</text>
+      <text x="536" y="314" class="b">walks subfolders</text>
+      <text x="536" y="334" class="b">or only the folder;</text>
+      <text x="536" y="354" class="b">both views use it</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow" d="M875,180 V320 H734" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,320 H516" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>added by this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>existing Thunar code, reused</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Until now, whether a search looks inside subfolders was one setting for every folder: Preferences, Advanced, Include subfolders (Always, Local Files Only or Never). You wanted subfolders searched in some folders and not in others, without opening Preferences each time. This PR adds a switch for that right where you type the search, and remembers it per folder the way Thunar already remembers a folder's sort order and zoom.</p>
+  <div class="note" data-k="note">Every search, in every view, goes through one function, <code>thunar_io_jobs_search_directory</code>. Teaching that one function about the saved choice is what makes the list view and the tree view follow it, with no change to either.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Click the toggle — search again</div>
+  <ol class="steps">
+    <li data-k="1"><b>Ctrl+F.</b> The location bar becomes the search field ("Search: …"). <code>thunar-location-entry.c</code> watches the field's text, and as soon as it holds a search query it shows the new toggle to the right of the field. When the search ends, the toggle hides again.</li>
+    <li data-k="2"><b>Toggle shows.</b> When it appears, and when the folder changes, the toggle is set from the folder: pressed if the folder's saved choice is on, released if it is off. With no saved choice it shows what the preference means for this folder, so "Local Files Only" shows pressed on a local disk and released on a network share.</li>
+    <li data-k="3"><b>Click saves.</b> A click writes <code>true</code> or <code>false</code> as the folder's <code>metadata::thunar-search-subfolders</code>, through the same <code>thunar_file_set_metadata_setting</code> that saves a folder's sort order and zoom level.</li>
+    <li data-k="4"><b>Search re-runs.</b> The toggle then calls the new <code>thunar_window_restart_search</code>, which hands the same query to the existing <code>thunar_window_update_search</code>, so the results change at once.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--accent)">② The search job decides</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>One helper.</b> The new <code>thunar_file_get_recursive_search_mode</code> in <code>thunar-file.c</code> returns Always or Never from the folder's saved choice, or the <code>misc-recursive-search</code> preference when there is none. A second helper, <code>thunar_file_search_includes_subfolders</code>, turns that mode into yes or no for the folder, for both the toggle and the job.</li>
+    <li data-k="6"><b>Search job.</b> <code>thunar_io_jobs_search_directory</code> used to read the preference itself; now it asks the helper. The rest of the job is unchanged: Always walks every subfolder, Never stays in the folder, and Local Files Only checks the disk as before.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">What a search in a folder does</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>The folder has…</th><th>Subfolders searched?</th></tr>
+    <tr data-k="k1"><td>a saved choice: on</td><td>yes, whatever Preferences says</td></tr>
+    <tr data-k="k2"><td>a saved choice: off</td><td>no, whatever Preferences says</td></tr>
+    <tr data-k="k3"><td>no saved choice</td><td>as Preferences says: Always, Never, or only on local disks</td></tr>
+    <tr data-k="k4"><td>its saved settings cleared</td><td>back to "no saved choice"</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="clear">
+  <h3 class="sec">Clearing a folder's choice</h3>
+  <p data-k="c1">View, Clear Saved Folder View Settings now also removes the saved search choice. That menu item used to show only when "Remember view settings for each folder" is on. Because the toggle saves its choice even when that preference is off (otherwise, with the preference off by default, the toggle would remember nothing), the item now also shows whenever the folder has any saved setting.</p>
+  <div class="note" data-k="undo">To undo the feature for one folder, clear its saved settings. To undo it entirely, revert this PR: folders keep a harmless unused metadata key, and searches follow Preferences again.</div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+├── thunar-location-entry.c   # the toggle: shown while searching, saves, re-runs
+├── thunar-file.c             # helpers: saved choice, else the preference; Clear removes it
+├── thunar-file.h             # its declarations
+├── thunar-io-jobs.c          # the search job asks the helper, not the preference
+├── thunar-window.c           # restart_search; Clear also shows for a folder with saved settings
+└── thunar-window.h           # its declaration
+thunarx/thunarx-file-info.h   # the new key joins the metadata Thunar loads with each folder
+verify/21.sh                  # the Xvfb test CI runs on every PR
+explainers/21-search-subfolders-toggle.html            # this page
+explainers/21-search-subfolders-toggle.narration.json  # its narration</pre>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built as a Debian package in this session, installed in the sandbox, and driven with real clicks and keys under Xvfb by <code>verify/21.sh</code>, the same script CI runs.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Folder settings</h3><p>Sort order and zoom are saved with <code>thunar_file_set_metadata_setting</code> and cleared in <code>thunar_file_clear_directory_specific_settings</code>; the new key follows them.</p></div>
+    <div class="card" data-k="r2"><h3>The search job</h3><p><code>_thunar_job_search_directory</code> already turns a mode into a recursive or flat search; it is unchanged.</p></div>
+    <div class="card" data-k="r3"><h3>Issue #21's spec</h3><p>Its Want list and Verify ideas; every check below maps to one of them.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage -b -us -uc</code> on Ubuntu 24.04 in this session, after the review fixes</td><td class="ok">5 debs, no new compiler warnings</td></tr>
+    <tr data-k="c2"><td>Turning the toggle off drops subfolders</td><td><code>verify/21.sh</code>: Ctrl+F in <code>top</code>, type <code>match</code>, click the toggle</td><td class="ok">2 files, then exactly match-top.txt</td></tr>
+    <tr data-k="c3"><td>Another folder keeps the default</td><td>The same search in <code>other</code></td><td class="ok">exactly the 2 match files</td></tr>
+    <tr data-k="c4"><td>The choice comes back</td><td>Leave <code>top</code>, return, search again</td><td class="ok">toggle released, exactly match-top.txt</td></tr>
+    <tr data-k="c5"><td>Clear removes the choice</td><td>View, Clear Saved Folder View Settings, search <code>top</code> again</td><td class="ok">toggle pressed, exactly the 2 files</td></tr>
+    <tr data-k="c5b"><td>A search typed by hand re-runs on toggle</td><td>Ctrl+L, type <code>Search: match</code> in <code>top</code>, click the toggle</td><td class="ok">exactly match-top.txt</td></tr>
+    <tr data-k="c6"><td>Saved on disk, and cleared on disk</td><td><code>gio info</code> on the folder; the script runs it only where GIO metadata is writable. The sandbox has no gvfs, so the choice lived only in Thunar's memory there</td><td class="no">not run here</td></tr>
+    <tr data-k="c7"><td>The choice survives a Thunar restart</td><td>Needs gvfs's metadata store, absent in the sandbox</td><td class="no">not run</td></tr>
+    <tr data-k="c8"><td>The screenshots show what they claim</td><td>Each local shot read and compared with its description in this session, after the review fixes</td><td class="ok">7 of 7</td></tr>
+  </table>
+  </div>
+  <p data-k="ci">Each result row is asserted: the script selects the results, copies them, pastes them into a scratch folder and compares the files that arrive. CI repeats the build and <code>verify/21.sh</code> on the PR and posts its own screenshots in the PR comment; those, not this table, are the proof the owner reviews.</p>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh <code>general-purpose</code> agent in this session, given only the diff and issue #21, reviewed the first commit: 1 high and 2 medium findings (one high and one medium in the test), plus 5 low. The high and one medium are fixed; the rest are kept, for the reasons below.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed (high, test):</b> the test's only checks needed gvfs, so in CI it asserted nothing about the results. Each search's results are now copied and pasted into a scratch folder, and the script checks which files arrive.</li>
+    <li data-k="b2"><b>Fixed (medium):</b> in split view a stale "ignore the next search update" flag could swallow the toggle's re-run. The toggle now calls a new <code>thunar_window_restart_search</code> that clears the flag first.</li>
+    <li data-k="b3"><b>Tried, then reverted (low):</b> writing the choice asynchronously, as the sort order is. CI's second review showed that this logs a warning on every click without gvfs and reloads the folder each time (R12, R13), so the write is synchronous again, as the zoom level's is. It goes to the local metadata service, not the folder itself.</li>
+    <li data-k="b4"><b>Kept:</b> the fixed click position for the toggle (Tab, the suggested alternative, moved focus to the side pane when tried), and two Clear cases that can't happen because Clear already ends any running search.</li>
+  </ul>
+  <p data-k="ci-review">CI's review of the first commit (Opus at xhigh) found 10: 2 high, 1 medium, 7 low. The medium and two lows matched the fixes above. Both highs are fixed in a later commit. Its review of the second commit added R11 to R21: one medium (R11), now fixed, and lows that are kept.</p>
+  <ul class="tight">
+    <li data-k="r1"><b>Fixed, R1 (high):</b> Thunar loads only a listed set of metadata keys with each folder, and the new key wasn't on that list (<code>THUNARX_FILE_INFO_NAMESPACE</code>), so a saved choice would never come back after a restart.</li>
+    <li data-k="r2"><b>Fixed, R2 (high):</b> when a window closed, the location entry touched the toggle after GTK had already destroyed it. The entry now forgets the toggle when it is destroyed.</li>
+    <li data-k="r5"><b>Fixed, R5 (low):</b> the toggle and the search job now share one rule for "does this search include subfolders", <code>thunar_file_search_includes_subfolders</code>.</li>
+    <li data-k="r11"><b>Fixed, R11 (medium):</b> a search typed by hand into the location bar ran without the window's "searching" flag, so the toggle saved the choice but didn't re-run that search. The re-run no longer depends on that flag.</li>
+    <li data-k="r27"><b>Accepted, R27 (medium):</b> CI can't check that the choice survives a restart, because its verify machine has no gvfs. Adding gvfs to CI is tracked in issue #48.</li>
+    <li data-k="r4"><b>Kept, R4, R8 to R10 and R14 to R21 (low):</b> the toggle checks whether the folder is on a local disk on the main thread, as the Local Files Only rule needs; saving the choice without the per-folder preference, and the wider Clear item, are deliberate; the others are in older upstream code or were rated unlikely or refuted by CI's own verifier.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>The choice survives a restart and a reboot</td><td>Needs gvfs's metadata store, which your desktop has and the test sandbox does not</td><td class="open">first install after merge</td></tr>
+    <tr data-k="a2"><td>The toggle in your theme</td><td>The tests use ZorinBlue-Dark under Xvfb, not your session</td><td class="open">first install after merge</td></tr>
+    <tr data-k="a3"><td>Split-view crash regression check</td><td>Only reproduces in your real session, per <code>CLAUDE.md</code></td><td class="open">manual, after the update</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/47">PR #47</a> → “Files changed”</li>
+    <li data-k="l2">The issue: <a href="https://github.com/alexhu98/thunar/issues/21">#21</a></li>
+    <li data-k="l3">CI's screenshots: the PR comment's verify section, stored on the <code>shots</code> branch under <code>pr-47/</code></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing depends on #21</h2>
+  <p class="intro" data-k="intro">No open issue says "Depends on #21", so after the merge only your own check remains.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR merges, then the owner tries it in a real session">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--merge)">#21 Include subfolders toggle</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">toggle, saved per</text>
+      <text x="36" y="134" class="b">folder</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Try it for real</text>
+      <text x="286" y="114" class="b">restart Thunar,</text>
+      <text x="286" y="134" class="b">split-view check</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-a">
+  <h3 class="sec">After the merge (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Try it in your session.</b> Search a folder, flip the toggle, then quit and restart Thunar and search that folder again: the toggle should come back as you left it.</li>
+    <li data-k="2"><b>Run the split-view crash check.</b> The manual check from <code>CLAUDE.md</code>, as after every update.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="recursive"><dt>Recursive search</dt><dd>A search that also looks inside every subfolder, and their subfolders.</dd></div>
+    <div data-k="metadata"><dt>Folder metadata</dt><dd>Small key-value notes GIO stores about a file or folder, outside the folder itself.</dd></div>
+    <div data-k="gvfs"><dt>gvfs</dt><dd>The desktop service that stores that metadata on disk; without it, it lasts only while Thunar runs.</dd></div>
+    <div data-k="local"><dt>Local Files Only</dt><dd>The preference setting that searches subfolders only on disks that cannot be unmounted.</dd></div>
+    <div data-k="toggle"><dt>Toggle button</dt><dd>A button that stays pressed (on) or released (off) after a click.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual X display with no screen, used to run Thunar in tests.</dd></div>
+    <div data-k="xdotool"><dt>xdotool</dt><dd>A tool that moves the pointer, clicks and types into X windows from a script.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>

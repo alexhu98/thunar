@@ -1626,7 +1626,6 @@ _thunar_job_search_directory (ThunarJob *job,
   ThunarFile                        *directory;
   const char                        *search_query_c;
   gchar                            **search_query_c_terms;
-  gboolean                           is_source_device_local;
   ThunarRecursiveSearchMode          mode;
   gboolean                           show_hidden;
   enum ThunarStandardViewModelSearch search_type;
@@ -1647,8 +1646,7 @@ _thunar_job_search_directory (ThunarJob *job,
   if (search_query_c_terms == NULL)
     return FALSE;
 
-  is_source_device_local = thunar_g_file_is_on_local_device (thunar_file_get_file (directory));
-  if (mode == THUNAR_RECURSIVE_SEARCH_ALWAYS || (mode == THUNAR_RECURSIVE_SEARCH_LOCAL && is_source_device_local))
+  if (thunar_file_search_includes_subfolders (directory, mode))
     search_type = THUNAR_STANDARD_VIEW_MODEL_SEARCH_RECURSIVE;
 
   directory_uri = thunar_file_dup_uri (directory);
@@ -1672,10 +1670,9 @@ thunar_io_jobs_search_directory (ThunarStandardViewModel *model,
   ThunarRecursiveSearchMode mode;
   gboolean                  show_hidden;
 
-  preferences = thunar_preferences_get ();
+  mode = thunar_file_get_recursive_search_mode (directory);
 
-  /* grab a reference of preferences determine the current recursive search mode */
-  g_object_get (G_OBJECT (preferences), "misc-recursive-search", &mode, NULL);
+  preferences = thunar_preferences_get ();
   g_object_get (G_OBJECT (preferences), "last-show-hidden", &show_hidden, NULL);
 
   g_object_unref (preferences);

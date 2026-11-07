@@ -54,7 +54,8 @@ G_BEGIN_DECLS
   "metadata::thunar-sort-column,metadata::thunar-sort-order," \
   "metadata::thunar-zoom-level," \
   "metadata::thunar-zoom-level-ThunarDetailsView,metadata::thunar-zoom-level-ThunarIconView,metadata::thunar-zoom-level-ThunarCompactView," \
-  "metadata::thunar-highlight-color-background,metadata::thunar-highlight-color-foreground"
+  "metadata::thunar-highlight-color-background,metadata::thunar-highlight-color-foreground," \
+  "metadata::thunar-search-subfolders"
 
 
 /*
