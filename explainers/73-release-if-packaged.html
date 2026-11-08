@@ -144,7 +144,7 @@
     </g>
     <g data-k="3">
       <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
-      <text x="536" y="90" class="t">Anything packaged?</text>
+      <text x="536" y="90" class="t">Packaged files?</text>
       <text x="536" y="114" class="b">drop .github/,</text>
       <text x="536" y="134" class="b">.claude/, explainers/,</text>
       <text x="536" y="154" class="b">verify/, CLAUDE.md …</text>
@@ -201,7 +201,7 @@
   <ol class="steps">
     <li data-k="1"><b>Find last tag.</b> The build job's <code>changes</code> step lists the repo's <code>v*</code> tags and picks the one with the highest <code>+localN</code>, the same way <code>publish-release.sh</code> does.</li>
     <li data-k="2"><b>Diff with it.</b> The checkout is one commit deep, so the step fetches only that tag, one commit deep, and runs <code>git diff --name-only</code> between the tag and the pushed commit.</li>
-    <li data-k="3"><b>Anything packaged?</b> It removes the paths that never reach the debs: <code>.github/</code>, <code>.claude/</code>, <code>.gitlab/</code>, <code>explainers/</code>, <code>verify/</code>, <code>deploy/</code>, <code>.gitlab-ci.yml</code>, <code>CLAUDE.md</code>, <code>.clang-format</code> and <code>.gitignore</code>. Everything else counts, so a new top-level file counts by default.</li>
+    <li data-k="3"><b>Packaged files?</b> It removes the paths that never reach the debs: <code>.github/</code>, <code>.claude/</code>, <code>.gitlab/</code>, <code>explainers/</code>, <code>verify/</code>, <code>deploy/</code>, <code>.gitlab-ci.yml</code>, <code>CLAUDE.md</code>, <code>.clang-format</code> and <code>.gitignore</code>. Everything else counts, so a new top-level file counts by default.</li>
     <li data-k="4"><b>Nothing: skip.</b> The step sets <code>skip=true</code> and writes “No release: no packaged files changed since &lt;tag&gt;” to the run summary. Every later build step, the version stamp and the whole verify job, which holds publish and prune, are skipped.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Something packaged, or no tag: as before</div>
