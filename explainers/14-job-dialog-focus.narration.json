@@ -1,281 +1,121 @@
 {
-  "title": "PR #PRNUM · Dialog focus",
+  "title": "PR #80 · Dialog focus",
   "voice": "af_heart",
+  "page_sha256": "06440dc090bb185f6de12eaa51204178fa70cbc0779042188657f487dd3a35c0",
   "lines": [
-    {
-      "screen": "title",
-      "keys": [],
-      "caption": "This is a tour of pull request PRNUM, which stops Thunar's file-operation dialogs from stealing the focus."
-    },
-    {
-      "screen": "title",
-      "keys": [
-        "p1",
-        "p2",
-        "p3"
-      ],
-      "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later."
-    },
-    {
-      "screen": "adds",
-      "keys": [],
-      "caption": "Part 1. What this PR adds."
-    },
-    {
-      "screen": "flow",
-      "keys": [
-        "1"
-      ],
-      "caption": "You start a copy in Thunar and go back to typing in another app."
-    },
-    {
-      "screen": "flow",
-      "keys": [
-        "2"
-      ],
-      "caption": "After half a second, the progress window appears without asking for the focus."
-    },
-    {
-      "screen": "flow",
-      "keys": [
-        "3"
-      ],
-      "caption": "When a job needs attention, the window is un-minimized if needed, but never raised."
-    },
-    {
-      "screen": "flow",
-      "keys": [
-        "4"
-      ],
-      "caption": "A job's question or error dialog no longer has a default button for Enter to press."
-    },
-    {
-      "screen": "flow",
-      "keys": [
-        "5"
-      ],
-      "caption": "The dialog opens with its focus on its message text, not on a button."
-    },
-    {
-      "screen": "flow",
-      "keys": [
-        "6"
-      ],
-      "caption": "It is put on screen first, and only then made modal."
-    },
-    {
-      "screen": "flow",
-      "keys": [
-        "7"
-      ],
-      "caption": "You answer by clicking, or by tabbing to a button. Escape still cancels, once you focus the dialog."
-    },
-    {
-      "screen": "bigpic",
-      "keys": [
-        "why"
-      ],
-      "caption": "Before, the progress window and the replace dialog took your keyboard, and a stray Enter could cancel the copy."
-    },
-    {
-      "screen": "bigpic",
-      "keys": [
-        "note"
-      ],
-      "caption": "Window managers focus a new modal dialog whatever it asks, so the dialog is mapped before it becomes modal."
-    },
-    {
-      "screen": "steps",
-      "keys": [
-        "2"
-      ],
-      "caption": "The half-second timer now calls a new raise function instead of present, which asked for the focus."
-    },
-    {
-      "screen": "steps",
-      "keys": [
-        "3"
-      ],
-      "caption": "An open progress window is only un-minimized, because raising it moved the focus to its dialog."
-    },
-    {
-      "screen": "steps",
-      "keys": [
-        "4"
-      ],
-      "caption": "No button is the default any more, and the job error message goes through the same code."
-    },
-    {
-      "screen": "steps",
-      "keys": [
-        "5",
-        "6"
-      ],
-      "caption": "A new helper parks the focus on the text, shows the dialog, waits for it to appear, then runs it."
-    },
-    {
-      "screen": "cases",
-      "keys": [
-        "k1",
-        "k2"
-      ],
-      "caption": "Enter typed elsewhere stays in your app, and Enter in the dialog does nothing until you pick a button."
-    },
-    {
-      "screen": "cases",
-      "keys": [
-        "k3",
-        "k4",
-        "k5"
-      ],
-      "caption": "Tabbing to Cancel, Escape, closing the dialog, and the buttons all work as before."
-    },
-    {
-      "screen": "cases",
-      "keys": [
-        "placement"
-      ],
-      "caption": "Under GNOME, an unfocused dialog may open behind your app, so you may need to click Thunar to answer."
-    },
-    {
-      "screen": "cases",
-      "keys": [
-        "undo"
-      ],
-      "caption": "To undo it, revert this PR. Nothing is saved anywhere."
-    },
-    {
-      "screen": "files",
-      "keys": [
-        "tree"
-      ],
-      "caption": "The PR changes four Thunar source files and two headers, and adds the test and this page.",
-      "from": [
-        "tree"
-      ]
-    },
-    {
-      "screen": "verified",
-      "keys": [],
-      "caption": "Part 2. How it was built and verified."
-    },
-    {
-      "screen": "refs",
-      "keys": [
-        "r1",
-        "r2",
-        "r3"
-      ],
-      "caption": "It was checked against the window manager spec, a small GTK test program, and Zorin's Thunar without the fix."
-    },
-    {
-      "screen": "checks",
-      "keys": [
-        "c1",
-        "c2"
-      ],
-      "caption": "It builds, and the test program showed that xfwm4 focuses a modal dialog on map, but not one made modal later."
-    },
-    {
-      "screen": "checks",
-      "keys": [
-        "c3",
-        "c4"
-      ],
-      "caption": "The verify script keeps another app focused through a long copy, three replace dialogs and an error, and its keys reach it."
-    },
-    {
-      "screen": "checks",
-      "keys": [
-        "c5",
-        "c6"
-      ],
-      "caption": "Enter in the dialog does nothing, while Tab to Cancel, Escape and Replace still work."
-    },
-    {
-      "screen": "checks",
-      "keys": [
-        "c7"
-      ],
-      "caption": "On Zorin's Thunar without the fix, an earlier version of the same test fails: the dialog takes the focus."
-    },
-    {
-      "screen": "checks",
-      "keys": [
-        "c8"
-      ],
-      "caption": "All the sandbox tests pass with this build."
-    },
-    {
-      "screen": "checks",
-      "keys": [
-        "c9"
-      ],
-      "caption": "It wasn't run under GNOME, where the bug was seen; the sandbox has only xfwm4."
-    },
-    {
-      "screen": "checks",
-      "keys": [
-        "ci"
-      ],
-      "caption": "CI repeats the build and the test, and its screenshots are the proof to review."
-    },
-    {
-      "screen": "review",
-      "keys": [
-        "summary"
-      ],
-      "caption": "A fresh review agent found two medium and three low findings; both medium ones and one low were fixed."
-    },
-    {
-      "screen": "review",
-      "keys": [
-        "b1",
-        "b2"
-      ],
-      "caption": "The dialog now waits for a real map before turning modal, and the error message no longer takes the focus."
-    },
-    {
-      "screen": "review",
-      "keys": [
-        "b3"
-      ],
-      "caption": "The test now also copies a large file, to show the progress window without a question."
-    },
-    {
-      "screen": "review",
-      "keys": [
-        "b4",
-        "b5"
-      ],
-      "caption": "Two behaviour changes were kept on purpose: no raising, and the same rules for the permissions question."
-    },
-    {
-      "screen": "aftermerge",
-      "keys": [
-        "a1",
-        "a2"
-      ],
-      "caption": "After the merge, try a long copy while typing under GNOME, and run the split-view crash check."
-    },
-    {
-      "screen": "later",
-      "keys": [],
-      "caption": "Part 3. What comes later: nothing depends on issue 14.",
-      "say": "Part 3. What comes later: nothing depends on issue fourteen."
-    },
-    {
-      "screen": "next",
-      "keys": [
-        "n1",
-        "n2"
-      ],
-      "caption": "Once this merges, only your own check in a real session remains."
-    },
-    {
-      "screen": "title",
-      "keys": [],
-      "caption": "In short: copying files no longer takes your keyboard, and a stray Enter can't cancel the copy."
-    }
-  ]
+    {"screen": "title", "keys": [], "caption": "This is a tour of pull request 80, which stops Thunar's file-operation dialogs from stealing the focus.", "src": "ea7ec4864832"},
+    {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "9ebb2bff57c3"},
+    {"screen": "adds", "keys": [], "caption": "Part 1. What this PR adds.", "src": "f25b78fe0afc"},
+    {"screen": "flow", "keys": ["1"], "caption": "You start a copy in Thunar and go back to typing in another app.", "src": "018e1109762c"},
+    {"screen": "flow", "keys": ["2"], "caption": "After half a second, the progress window appears without asking for the focus.", "src": "c5d44a0129bc"},
+    {"screen": "flow", "keys": ["3"], "caption": "When a job needs attention, the window is un-minimized if needed, but never raised.", "src": "0b0b497fe2a5"},
+    {"screen": "flow", "keys": ["4"], "caption": "A job's question or error dialog no longer has a default button for Enter to press.", "src": "661318b1bfaf"},
+    {"screen": "flow", "keys": ["5"], "caption": "The dialog opens with its focus on its message text, not on a button.", "src": "47e28554bfb9"},
+    {"screen": "flow", "keys": ["6"], "caption": "It is put on screen first, and only then made modal.", "src": "957b36ce2f99"},
+    {"screen": "flow", "keys": ["7"], "caption": "You answer by clicking, or by tabbing to a button. Escape still cancels, once you focus the dialog.", "src": "8435d9c62aa5"},
+    {"screen": "bigpic", "keys": ["why"], "caption": "Before, the progress window and the replace dialog took your keyboard, and a stray Enter could cancel the copy.", "src": "fed30ed7b152"},
+    {"screen": "bigpic", "keys": ["note"], "caption": "Window managers focus a new modal dialog whatever it asks, so the dialog is mapped before it becomes modal.", "src": "98bcbfb53bec"},
+    {"screen": "steps", "keys": ["2"], "caption": "The half-second timer now calls a new raise function instead of present, which asked for the focus.", "src": "819d5542c191"},
+    {"screen": "steps", "keys": ["3"], "caption": "An open progress window is only un-minimized, because raising it moved the focus to its dialog.", "src": "187f6ad0e9e0"},
+    {"screen": "steps", "keys": ["4"], "caption": "No button is the default any more, and the job error message goes through the same code.", "src": "c64c5ff98536"},
+    {"screen": "steps", "keys": ["5", "6"], "caption": "A new helper parks the focus on the text, shows the dialog, waits for it to appear, then runs it.", "src": "528ab4877be2"},
+    {"screen": "cases", "keys": ["k1", "k2"], "caption": "Enter typed elsewhere stays in your app, and Enter in the dialog does nothing until you pick a button.", "src": "50aac5ff69ef"},
+    {"screen": "cases", "keys": ["k3", "k4", "k5"], "caption": "Tabbing to Cancel, Escape, closing the dialog, and the buttons all work as before.", "src": "8bd52660d4bb"},
+    {"screen": "cases", "keys": ["placement"], "caption": "Under GNOME, an unfocused dialog may open behind your app, so you may need to click Thunar to answer.", "src": "2bd0816b8062"},
+    {"screen": "cases", "keys": ["undo"], "caption": "To undo it, revert this PR. Nothing is saved anywhere.", "src": "38c948799027"},
+    {"screen": "files", "keys": ["tree"], "caption": "The PR changes four Thunar source files and two headers, and adds the test and this page.", "from": ["tree"], "src": "ec2029ed9680"},
+    {"screen": "verified", "keys": [], "caption": "Part 2. How it was built and verified.", "src": "4b674558682d"},
+    {"screen": "refs", "keys": ["r1", "r2", "r3"], "caption": "It was checked against the window manager spec, a small GTK test program, and Zorin's Thunar without the fix.", "src": "a2bfecdef649"},
+    {"screen": "checks", "keys": ["c1", "c2"], "caption": "It builds, and the test program showed that xfwm4 focuses a modal dialog on map, but not one made modal later.", "src": "650ab78b5be0"},
+    {"screen": "checks", "keys": ["c3", "c4"], "caption": "The verify script keeps another app focused through a long copy, three replace dialogs and an error, and its keys reach it.", "src": "a9f54307b0ad"},
+    {"screen": "checks", "keys": ["c5", "c6"], "caption": "Enter in the dialog does nothing, while Tab to Cancel, Escape and Replace still work.", "src": "1ca49def6f15"},
+    {"screen": "checks", "keys": ["c7"], "caption": "On Zorin's Thunar without the fix, an earlier version of the same test fails: the dialog takes the focus.", "src": "a40510b3e54c"},
+    {"screen": "checks", "keys": ["c8"], "caption": "All the sandbox tests pass with this build.", "src": "068c2da8503f"},
+    {"screen": "checks", "keys": ["c9"], "caption": "It wasn't run under GNOME, where the bug was seen; the sandbox has only xfwm4.", "src": "e457b0b99db0"},
+    {"screen": "checks", "keys": ["ci"], "caption": "CI repeats the build and the test, and its screenshots are the proof to review.", "src": "1c849658904f"},
+    {"screen": "review", "keys": ["summary"], "caption": "A fresh review agent found two medium and three low findings; both medium ones and one low were fixed.", "src": "0d58209cc543"},
+    {"screen": "review", "keys": ["b1", "b2"], "caption": "The dialog now waits for a real map before turning modal, and the error message no longer takes the focus.", "src": "af4891d2c00e"},
+    {"screen": "review", "keys": ["b3"], "caption": "The test now also copies a large file, to show the progress window without a question.", "src": "6c508f6187c3"},
+    {"screen": "review", "keys": ["b4", "b5"], "caption": "Two behaviour changes were kept on purpose: no raising, and the same rules for the permissions question.", "src": "8ea30c8554fa"},
+    {"screen": "aftermerge", "keys": ["a1", "a2"], "caption": "After the merge, try a long copy while typing under GNOME, and run the split-view crash check.", "src": "d34fa259d04c"},
+    {"screen": "later", "keys": [], "caption": "Part 3. What comes later: nothing depends on issue 14.", "say": "Part 3. What comes later: nothing depends on issue fourteen.", "src": "61e673d04e4a"},
+    {"screen": "next", "keys": ["n1", "n2"], "caption": "Once this merges, only your own check in a real session remains.", "src": "f53160922407"},
+    {"screen": "title", "keys": [], "caption": "In short: copying files no longer takes your keyboard, and a stray Enter can't cancel the copy.", "src": "ea7ec4864832"}
+  ],
+  "page_text": {
+    "title/title": "047656adf266",
+    "title/lead": "2f8a60e4be9a",
+    "title/p1": "e2dcca34ab6e",
+    "title/p2": "0d01b98be0dc",
+    "title/p3": "10a708569b06",
+    "adds/label": "d30d052ce036",
+    "adds/heading": "3bf5e3f0972a",
+    "adds/intro": "bde693a95b5e",
+    "flow/1": "018e1109762c",
+    "flow/2": "c5d44a0129bc",
+    "flow/3": "0b0b497fe2a5",
+    "flow/4": "661318b1bfaf",
+    "flow/5": "47e28554bfb9",
+    "flow/6": "957b36ce2f99",
+    "flow/7": "8435d9c62aa5",
+    "bigpic/why": "fed30ed7b152",
+    "bigpic/note": "98bcbfb53bec",
+    "steps/1": "e28977d815e0",
+    "steps/2": "819d5542c191",
+    "steps/3": "187f6ad0e9e0",
+    "steps/4": "c64c5ff98536",
+    "steps/5": "70b04bef1c50",
+    "steps/6": "5ac69b98d019",
+    "steps/7": "c8f63ab41cab",
+    "cases/k1": "cc8b9ce8667c",
+    "cases/k2": "6d8a495b155b",
+    "cases/k3": "d4bd1603d46c",
+    "cases/k4": "ff65b71182a0",
+    "cases/k5": "e8d60331c336",
+    "cases/placement": "2bd0816b8062",
+    "cases/undo": "38c948799027",
+    "files/tree": "ec2029ed9680",
+    "verified/label": "5a01db6f2d60",
+    "verified/heading": "f0387d007bb6",
+    "verified/intro": "a348a3a0079c",
+    "refs/r1": "4d2545bd2313",
+    "refs/r2": "cc1732f08499",
+    "refs/r3": "e409b0018129",
+    "checks/c1": "b637d46c60b5",
+    "checks/c2": "79869a34de26",
+    "checks/c3": "079245985748",
+    "checks/c4": "c91aa909b131",
+    "checks/c5": "3c9a5a4d4308",
+    "checks/c6": "774b7e9fda16",
+    "checks/c7": "a40510b3e54c",
+    "checks/c8": "068c2da8503f",
+    "checks/c9": "e457b0b99db0",
+    "checks/ci": "1c849658904f",
+    "review/summary": "0d58209cc543",
+    "review/b1": "5a45b5a8243d",
+    "review/b2": "9a3a6fa5d466",
+    "review/b3": "6c508f6187c3",
+    "review/b4": "2d3cdbd4ea1f",
+    "review/b5": "715f24998315",
+    "aftermerge/a1": "3aa34f9add6f",
+    "aftermerge/a2": "1c21d31a1ec0",
+    "see/l1": "d23f12b2515c",
+    "see/l2": "c9d6ccf6b702",
+    "see/l3": "54ffb1473085",
+    "later/label": "090b293c4121",
+    "later/heading": "5a4944d58731",
+    "later/intro": "0f83a40e784f",
+    "next/n1": "080ad40fe0ca",
+    "next/n2": "b698579c19cf",
+    "issue-a/1": "4d84a880adcf",
+    "issue-a/2": "4143ddfb8f28",
+    "glossary/focus": "ab40e662f321",
+    "glossary/default": "eecf9bd332e6",
+    "glossary/modal": "667f727059fc",
+    "glossary/map": "fc45fe6afb4b",
+    "glossary/usertime": "3b35d5ae73b3",
+    "glossary/wm": "e3164574f220",
+    "glossary/xev": "2d24bee17314",
+    "glossary/xvfb": "0f545bf51511"
+  }
 }
