@@ -182,7 +182,7 @@
     <li data-k="1"><b>You press.</b> Up or Down in list view, with Expandable folders on, plain or with Shift, Ctrl or both. Before moving, the key handler notes where the cursor was, and with Ctrl, which rows were selected.</li>
     <li data-k="2"><b>Move the cursor.</b> <code>thunar_details_view_key_up_set_cursor</code> and <code>…_key_down_set_cursor</code> run unchanged. Like any cursor move in GTK, this leaves only the new row selected.</li>
     <li data-k="3"><b>Read modifiers.</b> With no modifier nothing more happens, so plain arrows behave as before. With Ctrl, <code>thunar_details_view_select_after_move</code> puts the saved selection back, so Ctrl+Space can then add the cursor row.</li>
-    <li data-k="4"><b>Shift: a range.</b> The anchor is where the cursor was when this run of Shift presses started; a click or a plain arrow starts a new run. <code>thunar_details_view_select_files_between</code> walks the visible rows from the anchor to the cursor and selects each one that has a file. With Ctrl too, the range is added to what was selected.</li>
+    <li data-k="4"><b>Shift: a range.</b> The anchor is the row the cursor last reached any way other than a Shift or Ctrl arrow: a click, a plain arrow, Home, End or typing a name. <code>thunar_details_view_select_files_between</code> walks the visible rows from the anchor to the cursor and selects each one that has a file. With Ctrl too, the range is added to what was selected, and shrinks again when you reverse.</li>
   </ol>
   </div>
   </section>
@@ -239,8 +239,8 @@ explainers/49-shift-select-expandable.narration.json  # its narration</pre>
     <tr data-k="c4"><td>Across an open folder</td><td>Expand <code>folder</code> with Right, Shift+Down four times</td><td class="ok">folder, inner1–3, file1</td></tr>
     <tr data-k="c5"><td>Plain keys unchanged</td><td>Down, Up, Left twice, Down, then Enter on the folder</td><td class="ok">one row each time; folder opens</td></tr>
     <tr data-k="c6"><td>Expandable folders off</td><td>Turned off with <code>xfconf-query</code>, Shift+Down twice from file1</td><td class="ok">file1–3</td></tr>
-    <tr data-k="c7"><td>All sandbox tests</td><td><code>verify-proof.sh run</code> with the smoke test and #49, each under its own Xvfb</td><td class="ok">2 of 2 pass, after the review fixes</td></tr>
-    <tr data-k="c8"><td>The screenshots show what they claim</td><td><code>/visual-verify</code>: a read-only auditor agent read each shot</td><td class="ok">12 of 12 OK, after the fixes</td></tr>
+    <tr data-k="c7"><td>All sandbox tests</td><td><code>verify-proof.sh run</code> with the smoke test and #49, each under its own Xvfb</td><td class="ok">2 of 2 pass on <code>0ad37fa</code></td></tr>
+    <tr data-k="c8"><td>The screenshots show what they claim</td><td><code>/visual-verify</code>: a read-only auditor agent read each shot</td><td class="ok">12 of 12 OK, locally and on CI's shots of <code>0ad37fa</code></td></tr>
     <tr data-k="c9"><td>Seeing a Loading row on screen</td><td>A three-file folder loads too fast under Xvfb for the row to show; the test checks no such row ends up selected</td><td class="no">not shown</td></tr>
   </table>
   </div>
@@ -251,12 +251,18 @@ explainers/49-shift-select-expandable.narration.json  # its narration</pre>
   <h3 class="sec">Code review</h3>
   <p data-k="summary">A fresh <code>general-purpose</code> agent in this session, given only the diff and issue #49, found no leaks or crashes, 1 medium and 3 low findings. Three were fixed; the build and tests were run again afterwards.</p>
   <ul class="tight">
-    <li data-k="b1"><b>Fixed (medium):</b> a Shift run could reuse an old anchor after plain arrows came back to the same row. A click, or any Up/Down without Shift, now forgets the anchor, and <code>verify/49.sh</code> checks it.</li>
+    <li data-k="b1"><b>Fixed (medium):</b> a Shift run could reuse an old anchor after plain arrows came back to the same row. <code>verify/49.sh</code> checks it.</li>
     <li data-k="b2"><b>Fixed (low):</b> the status bar was updated once per selected row; it is now updated once per key press, as Invert Selection does.</li>
     <li data-k="b3"><b>Fixed (low):</b> the range could run past an anchor hidden inside a collapsed folder; the walk now stops at the anchor.</li>
     <li data-k="b4"><b>Kept (low):</b> Shift+End, Shift+Page Down and Shift+click are still handled by GTK, which starts them from the cursor, not from this anchor. GTK has no way to set its anchor.</li>
   </ul>
-  <p data-k="ci-review">CI's own review of this PR is in the code review PR comment, the second of CI's comments.</p>
+  <p data-k="ci-review">CI's review of <code>942653b</code> (level xhigh) reported 12 findings, 3 of them medium, and pushed fixes for 10 of them as commit <code>0ad37fa</code>. The build, <code>verify/49.sh</code> and the screenshot audit were run again on it. Its findings are in the code review PR comment, the second of CI's comments.</p>
+  <ul class="tight">
+    <li data-k="ci1"><b>Fixed (medium):</b> the anchor now follows every cursor move except a Shift or Ctrl arrow, through GTK's cursor-changed signal, so Home, End, Page Up and typing a name also reset it (R1, R7).</li>
+    <li data-k="ci2"><b>Fixed (medium):</b> Ctrl arrows keep the anchor, as GTK does, and selection updates are held back for the whole move, so the status bar never shows only the cursor row first (R2, R5).</li>
+    <li data-k="ci3"><b>Fixed (low):</b> a right-click no longer resets the anchor, and Shift+Ctrl shrinks its range when you reverse (R3, R6); plus tidy-ups to helpers, alignment and comments (R9–R12).</li>
+    <li data-k="ci4"><b>Not fixed:</b> R4 is the GTK anchor limit above; R8, copying the selection on each Ctrl arrow, was not shown to be slow.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -334,7 +340,7 @@ explainers/49-shift-select-expandable.narration.json  # its narration</pre>
     <div data-k="expandable"><dt>Expandable folders</dt><dd>A list view option that shows a folder's contents under it, as a tree.</dd></div>
     <div data-k="loading"><dt>Loading row</dt><dd>A placeholder row with no file, shown in a folder while Thunar reads it.</dd></div>
     <div data-k="cursor"><dt>Cursor</dt><dd>The outlined row that the arrow keys move; it need not be selected.</dd></div>
-    <div data-k="anchor"><dt>Anchor</dt><dd>The row a Shift range starts from: where the cursor was when Shift was first pressed.</dd></div>
+    <div data-k="anchor"><dt>Anchor</dt><dd>The row a Shift range starts from: where the cursor last landed other than by a Shift or Ctrl arrow.</dd></div>
     <div data-k="gtk"><dt>GTK</dt><dd>The toolkit Thunar's windows are built with; it has its own arrow-key handling.</dd></div>
     <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual X display with no screen, used to run Thunar in tests.</dd></div>
     <div data-k="xdotool"><dt>xdotool</dt><dd>A tool that moves the pointer, clicks and presses keys in X windows from a script.</dd></div>
