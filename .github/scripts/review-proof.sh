@@ -14,7 +14,7 @@
 #            findings as suggested changes, writes the review comment through pr-comment.sh and then the summary
 #            through pr-summary.py, and fails while confirmed medium or high findings stay unresolved.
 # Env: PR, HEAD_SHA, HEAD_REF, BASE (default origin/main), OUT, IN (report: the collected files), REVIEW_RESULT
-# (report: the result of the review job's steps before the report), SUGGESTIONS_POSTED (report: 1 when the review job's own report already posted the suggestions), RUN_ID, RUN_NUMBER (plan), RUN_URL, REVIEW_LEVEL, REVIEW_MODEL. DRY_RUN=1 makes report print the
+# (report: the result of the review job's steps before the report), SUGGESTIONS_POSTED and SUGGESTIONS_FAILED (report: 1 when the review job's own report already tried to post the suggestions, and the IDs that failed), RUN_ID, RUN_NUMBER (plan), RUN_URL, REVIEW_LEVEL, REVIEW_MODEL. DRY_RUN=1 makes report print the
 # commit, the suggestions and the section instead of pushing and posting them.
 set -euo pipefail
 
@@ -357,7 +357,6 @@ for f, rs in fork.items():
 report() {
   : "${HEAD_SHA:?}" "${HEAD_REF:?}"
   local result=${REVIEW_RESULT:-success} commit= note= mins= failed=() ids i unresolved
-  rm -f "$OUT/reported"
   state > "$OUT/state.json"
   rm -f "$OUT/fixed-files.txt" "$OUT/fixed.json"
   if [[ ! -s $IN/plan.json ]]; then
@@ -438,7 +437,9 @@ EOF
   hunks > "$OUT/hunks.txt"
   python3 "$HERE/review-state.py" decide "$OUT/state.json" "$IN" "$OUT" "$HEAD_SHA" "$commit" "$mins" "${RUN_URL:-}" "$result"
   mapfile -t ids < <(jq -r '.comments[].id' "$OUT/suggestions.json")
-  if (( ${#ids[@]} > 0 )) && [[ ${SUGGESTIONS_POSTED:-} != 1 ]]; then
+  if [[ ${SUGGESTIONS_POSTED:-} == 1 ]]; then
+    read -ra failed <<< "${SUGGESTIONS_FAILED:-}"
+  elif (( ${#ids[@]} > 0 )); then
     if [[ ${DRY_RUN:-0} == 1 ]]; then
       echo "would post a review with these suggestions:"; jq . "$OUT/suggestions.json" | sed 's/^/  | /'
     elif ! jq 'del(.comments[].id)' "$OUT/suggestions.json" | gh api "repos/{owner}/{repo}/pulls/$PR/reviews" --input - --jq '"posted \(.html_url)"'; then
@@ -448,8 +449,8 @@ EOF
       done
       (( ${#failed[@]} == 0 )) || echo "::warning::suggestions ${failed[*]} could not be posted" >&2
     fi
-    if [[ -n ${GITHUB_OUTPUT:-} && ${DRY_RUN:-0} != 1 ]] && (( ${#failed[@]} == 0 )); then
-      echo suggested=1 >> "$GITHUB_OUTPUT"
+    if [[ -n ${GITHUB_OUTPUT:-} && ${DRY_RUN:-0} != 1 ]]; then
+      printf 'suggested=1\nsuggest_failed=%s\n' "${failed[*]}" >> "$GITHUB_OUTPUT"
     fi
   fi
   unresolved=$(python3 "$HERE/review-state.py" render "$OUT" "$GH_REPO" "$HEAD_SHA" "$result" "$note" "${failed[@]}")

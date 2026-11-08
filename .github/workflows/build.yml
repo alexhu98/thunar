@@ -295,6 +295,7 @@ jobs:
       result: ${{ steps.result.outputs.result }}
       reported: ${{ steps.report.outputs.reported }}
       suggested: ${{ steps.report.outputs.suggested }}
+      suggest_failed: ${{ steps.report.outputs.suggest_failed }}
     env:
       PR: ${{ github.event.pull_request.number }}
       HEAD_REF: ${{ github.head_ref }}
@@ -415,6 +416,7 @@ jobs:
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       REVIEW_RESULT: ${{ needs.review.outputs.result || needs.review.result }}
       SUGGESTIONS_POSTED: ${{ needs.review.outputs.suggested }}
+      SUGGESTIONS_FAILED: ${{ needs.review.outputs.suggest_failed }}
       RUN_ID: ${{ github.run_id }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
