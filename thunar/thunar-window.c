@@ -120,6 +120,7 @@ typedef struct
   GList     *drop_file_list;
   guint      drop_data_ready : 1;
   guint      drop_occurred : 1;
+  guint      hovering : 1;
   guint      highlighted : 1;
   guint      switch_timeout_id;
 } ThunarWindowTabDrop;
@@ -3005,11 +3006,7 @@ thunar_window_tab_drag_motion (GtkWidget      *label_box,
   if (target != gdk_atom_intern_static_string ("text/uri-list"))
     return FALSE;
 
-  if (!tab_drop->highlighted)
-    {
-      gtk_drag_highlight (label_box);
-      tab_drop->highlighted = TRUE;
-    }
+  tab_drop->hovering = TRUE;
 
   if (tab_drop->switch_timeout_id == 0)
     tab_drop->switch_timeout_id = g_timeout_add (500, thunar_window_tab_drag_switch_timeout, label_box);
@@ -3025,6 +3022,17 @@ thunar_window_tab_drag_motion (GtkWidget      *label_box,
         thunar_file_accepts_drop (directory, tab_drop->drop_file_list, context, &action);
     }
 
+  if (action != 0 && !tab_drop->highlighted)
+    {
+      gtk_drag_highlight (label_box);
+      tab_drop->highlighted = TRUE;
+    }
+  else if (action == 0 && tab_drop->highlighted)
+    {
+      gtk_drag_unhighlight (label_box);
+      tab_drop->highlighted = FALSE;
+    }
+
   gdk_drag_status (context, action, timestamp);
   return TRUE;
 }
@@ -3037,6 +3045,8 @@ thunar_window_tab_drag_leave (GtkWidget      *label_box,
                               guint           timestamp)
 {
   ThunarWindowTabDrop *tab_drop = g_object_get_data (G_OBJECT (label_box), "thunar-tab-drop");
+
+  tab_drop->hovering = FALSE;
 
   if (tab_drop->highlighted)
     {
@@ -3094,7 +3104,7 @@ thunar_window_tab_drag_data_received (GtkWidget        *label_box,
   GdkDragAction        action = 0;
   gboolean             succeed = FALSE;
 
-  if (!tab_drop->highlighted && !tab_drop->drop_occurred)
+  if (!tab_drop->hovering && !tab_drop->drop_occurred)
     return;
 
   if (!tab_drop->drop_data_ready)
