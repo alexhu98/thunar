@@ -1,5 +1,4 @@
 #!/bin/bash
-# Prints "<tag> <sha>" of the v* tag with the highest +localN, or nothing when there is none.
 set -euo pipefail
 
 gh api --paginate 'repos/{owner}/{repo}/git/matching-refs/tags/v' --jq '.[] | "\(.ref) \(.object.sha)"' \
