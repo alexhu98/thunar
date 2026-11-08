@@ -1,9 +1,10 @@
 #!/bin/bash
 # CI code review of a PR: review-proof.sh plan | collect | report
 #   plan     before the review: picks the mode from the head commit's Review: trailer (default auto-fix, or suggest
-#            for an upstream release merge), waits (up to 30 min) until earlier runs on the branch have written their
-#            review state, skips when the head was already reviewed or only explainers/ changed since the last
-#            reviewed commit, and writes the diff (for a release merge, only the fork's side), the issue, the open
+#            for an upstream release merge), and skips at once, writing only plan.json, when a newer run of this repo's
+#            branch replaced the head. Otherwise waits (up to 20 min) until earlier runs on the branch have written their
+#            review state, skips when the head was already reviewed, is CI's own fix commit (recorded in the state) on
+#            top of the last reviewed one, or only explainers/ changed since the last reviewed commit, and writes the diff (for a release merge, only the fork's side), the issue, the open
 #            findings with the commits since each was found, the accepted findings and the prompt to $OUT. Prints its decisions as key=value lines for $GITHUB_OUTPUT.
 #   collect  after the review: saves the findings ($FINDINGS, the action's structured_output) and the working-tree
 #            fix as a patch, for the report job.
@@ -18,7 +19,7 @@ set -euo pipefail
 BASE=${BASE:-origin/main}
 OUT=${OUT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/review}
 IN=${IN:-$OUT}
-LEVEL=${REVIEW_LEVEL:-xhigh}
+LEVEL=${REVIEW_LEVEL:-high}
 MODEL=${REVIEW_MODEL:-claude-opus-5-5}
 HERE=$(cd "$(dirname "$0")" && pwd)
 BOT_NAME='claude[bot]'
@@ -41,11 +42,11 @@ EOF
 
 wait_for_earlier_runs() {
   [[ -n ${RUN_ID:-} && -n ${RUN_NUMBER:-} && -n ${HEAD_REF:-} ]] || return 0
-  local waited=0 busy errors=0 failed seen run runs jobs
+  local waited=0 start=$SECONDS busy errors=0 failed seen run runs jobs
   while :; do
     busy=0 failed=0 seen=0
     if ! runs=$(gh api -X GET "repos/{owner}/{repo}/actions/runs" -f branch="$HEAD_REF" -f event=pull_request -F per_page=30 --jq \
-      ".workflow_runs[] | select(.path == \".github/workflows/build.yml\" and .status != \"completed\" and .run_number < $RUN_NUMBER) | .id"); then
+      ".workflow_runs[] | select(.path == \".github/workflows/build.yml\" and .head_repository.full_name == .repository.full_name and .status != \"completed\" and .run_number < $RUN_NUMBER) | .id"); then
       busy=1 failed=1 runs=
     fi
     for run in $runs; do
@@ -63,14 +64,40 @@ wait_for_earlier_runs() {
       echo "::warning::the GitHub API failed 3 times in a row while checking earlier runs; reviewing anyway" >&2
       return 0
     fi
-    if (( waited >= 1800 )); then
-      echo "::warning::an earlier run's review still hasn't finished after 30 min; reviewing anyway" >&2
+    if (( SECONDS - start >= 1200 )); then
+      echo "::warning::an earlier run's review still hasn't finished after 20 min; reviewing anyway" >&2
       return 0
     fi
     (( waited == 0 )) && echo "waiting for an earlier run's review to finish" >&2
     sleep 20
     waited=$((waited + 20))
   done
+}
+
+superseded() {
+  [[ -n ${RUN_NUMBER:-} && -n ${HEAD_REF:-} ]] || return 1
+  gh api -X GET "repos/{owner}/{repo}/actions/runs" -f branch="$HEAD_REF" -f event=pull_request -F per_page=30 --jq \
+    "[.workflow_runs[] | select(.path == \".github/workflows/build.yml\" and .head_repository.full_name == .repository.full_name and .run_number > $RUN_NUMBER and .head_sha != \"$HEAD_SHA\")]
+     | max_by(.run_number) | .head_sha // empty" 2>/dev/null
+}
+
+write_plan() {
+  jq -n --arg sha "$HEAD_SHA" --arg mode "$mode" --arg from "$from" --arg reason "$reason" --arg level "$LEVEL" \
+    --arg model "$MODEL" --arg release "$release" --argjson skip "$skip" --argjson full "$full" --argjson forced "$forced" \
+    --argjson ownfix "$ownfix" \
+    '{sha: $sha, mode: $mode, from: $from, full: ($full == 1), forced: ($forced == 1), skip: ($skip == 1), own_fix: ($ownfix == 1),
+      reason: $reason, level: $level, model: $model,
+      release: (if $release == "" then null else $release end)}' \
+    > "$OUT/plan.json"
+  echo "review of ${HEAD_SHA::12}: $([[ $skip == 1 ]] && echo skipped || echo "$mode"), $reason" >&2
+  echo "skip=$skip"
+  echo "superseded=$1"
+  echo "mode=$mode"
+}
+
+own_fix() {
+  [[ -n $1 && $(git rev-parse -q --verify "$HEAD_SHA^" 2>/dev/null) == "$1" ]] &&
+    jq -e --arg c "$HEAD_SHA" 'any(.findings[]?; .commit == $c)' "$OUT/state.json" > /dev/null
 }
 
 accepted() {
@@ -110,7 +137,7 @@ open_findings() {
 
 plan() {
   : "${HEAD_SHA:?}"
-  local trailer mode default=auto-fix forced=0 last skip=0 reason= from full=1 mb release issue= trusted
+  local trailer mode default=auto-fix forced=0 last skip=0 reason= from full=1 mb release issue= trusted newer ownfix=0
   trailer=$(git log -1 --format='%(trailers:key=Review,valueonly,separator=%x2C)' "$HEAD_SHA" | tr -d ' \n' | tr '[:upper:]' '[:lower:]')
   mb=$(git merge-base "$BASE" "$HEAD_SHA")
   release=$(release_merge "$mb")
@@ -120,7 +147,16 @@ plan() {
     '') mode=$default ;;
     *) echo "::warning::unknown Review: trailer \"$trailer\"; using $default" >&2; mode=$default ;;
   esac
-  wait_for_earlier_runs
+  newer=$(superseded) || newer=
+  [[ -n $newer ]] || wait_for_earlier_runs
+  [[ -n $newer ]] || newer=$(superseded) || newer=
+  if [[ -n $newer ]]; then
+    from= skip=1 reason="a newer run for ${newer::12} replaced it and reviews the changes"
+    : > "$OUT/prompt.md"
+    schema | jq -c . > "$OUT/schema.json"
+    write_plan 1
+    return 0
+  fi
   state > "$OUT/state.json"
   last=$(jq -r '.sha // empty' "$OUT/state.json")
   from=${release:-$mb}
@@ -128,6 +164,8 @@ plan() {
     skip=1 reason="${last::12} was already reviewed"
   elif [[ -n $last ]] && git merge-base --is-ancestor "$HEAD_SHA" "$last" 2>/dev/null; then
     skip=1 reason="${HEAD_SHA::12} is already part of the reviewed ${last::12}"
+  elif own_fix "$last"; then
+    skip=1 ownfix=1 reason="it is CI's own fix from the review of ${last::12}, which the next push's review covers"
   elif [[ -n $last ]] && git cat-file -e "$last^{commit}" 2>/dev/null && git merge-base --is-ancestor "$last" "$HEAD_SHA" \
     && git merge-base --is-ancestor "$mb" "$last" && { [[ -z $release ]] || git merge-base --is-ancestor "$release" "$last"; }; then
     if git diff --quiet "$last" "$HEAD_SHA" -- . ':!explainers/'; then
@@ -206,14 +244,7 @@ plan() {
   fi
   schema | jq -c . > "$OUT/schema.json"
   prompt "$mode" "$from" "$full" "$release" > "$OUT/prompt.md"
-  jq -n --arg sha "$HEAD_SHA" --arg mode "$mode" --arg from "$from" --arg reason "$reason" --arg level "$LEVEL" \
-    --arg model "$MODEL" --arg release "$release" --argjson skip "$skip" --argjson full "$full" --argjson forced "$forced" \
-    '{sha: $sha, mode: $mode, from: $from, full: ($full == 1), forced: ($forced == 1), skip: ($skip == 1), reason: $reason, level: $level, model: $model,
-      release: (if $release == "" then null else $release end)}' \
-    > "$OUT/plan.json"
-  echo "review of ${HEAD_SHA::12}: $([[ $skip == 1 ]] && echo skipped || echo "$mode"), $reason" >&2
-  echo "skip=$skip"
-  echo "mode=$mode"
+  write_plan 0
 }
 
 prompt() {  # mode, from sha, full (1|0), release merge (or empty)
@@ -335,8 +366,16 @@ report() {
     result=failure
   elif [[ $(jq -r .skip "$IN/plan.json") == true ]]; then
     note="Skipped \`${HEAD_SHA::12}\`: $(jq -r .reason "$IN/plan.json")."
-  elif [[ $result != success || ! -s $IN/findings.json ]]; then
-    note="The review of \`${HEAD_SHA::12}\` failed ($result); its findings are not recorded."
+    if [[ $result != success ]]; then
+      note+=" The review job still ended with $result."
+    elif [[ $(jq -r '.own_fix // false' "$IN/plan.json") == true ]]; then
+      result=unreviewed
+    fi
+  elif [[ $result != success ]]; then
+    note="The review job for \`${HEAD_SHA::12}\` did not finish ($result); its findings are not recorded."
+    result=failure
+  elif [[ ! -s $IN/findings.json ]]; then
+    note="The review of \`${HEAD_SHA::12}\` returned no findings object, so its findings are not recorded."
     result=failure
   fi
   open_findings
