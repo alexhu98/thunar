@@ -54,6 +54,10 @@ static gint
 thunar_dialogs_run_job_dialog (GtkDialog *dialog);
 static GtkWidget *
 thunar_dialogs_find_selectable_label (GtkWidget *widget);
+static gboolean
+thunar_dialogs_job_dialog_mapped (GtkWidget *dialog,
+                                  GdkEvent  *event,
+                                  gboolean  *mapped);
 
 
 
@@ -570,10 +574,24 @@ thunar_dialogs_find_selectable_label (GtkWidget *widget)
 
 
 
+static gboolean
+thunar_dialogs_job_dialog_mapped (GtkWidget *dialog,
+                                  GdkEvent  *event,
+                                  gboolean  *mapped)
+{
+  *mapped = TRUE;
+  return FALSE;
+}
+
+
+
 static gint
 thunar_dialogs_run_job_dialog (GtkDialog *dialog)
 {
   GtkWidget *label;
+  gboolean   destroy_with_parent;
+  gboolean   mapped = FALSE;
+  gulong     handler_id;
 
   gtk_window_set_focus_on_map (GTK_WINDOW (dialog), FALSE);
   gtk_window_set_modal (GTK_WINDOW (dialog), FALSE);
@@ -585,12 +603,45 @@ thunar_dialogs_run_job_dialog (GtkDialog *dialog)
       gtk_label_select_region (GTK_LABEL (label), 0, 0);
     }
 
+  destroy_with_parent = gtk_window_get_destroy_with_parent (GTK_WINDOW (dialog));
+  gtk_window_set_destroy_with_parent (GTK_WINDOW (dialog), FALSE);
+  handler_id = g_signal_connect (dialog, "map-event", G_CALLBACK (thunar_dialogs_job_dialog_mapped), &mapped);
   gtk_widget_show (GTK_WIDGET (dialog));
-  while (gtk_widget_get_visible (GTK_WIDGET (dialog))
-         && (gdk_window_get_state (gtk_widget_get_window (GTK_WIDGET (dialog))) & GDK_WINDOW_STATE_WITHDRAWN) != 0)
-    gtk_main_iteration ();
+  while (!mapped && gtk_widget_get_visible (GTK_WIDGET (dialog)))
+    if (gtk_main_iteration ())
+      break;
+  g_signal_handler_disconnect (dialog, handler_id);
+  gtk_window_set_destroy_with_parent (GTK_WINDOW (dialog), destroy_with_parent);
 
   return gtk_dialog_run (dialog);
+}
+
+
+
+/**
+ * thunar_dialogs_show_job_error:
+ * @parent       : the parent #GtkWindow or %NULL.
+ * @error        : the #GError of the job.
+ * @primary_text : the primary text of the dialog.
+ *
+ * Utility function to display an error dialog for the ThunarJob::error
+ * signal.
+ **/
+void
+thunar_dialogs_show_job_error (GtkWindow    *parent,
+                               const GError *error,
+                               const gchar  *primary_text)
+{
+  GtkWidget *dialog;
+
+  _thunar_return_if_fail (parent == NULL || GTK_IS_WINDOW (parent));
+
+  dialog = xfce_message_dialog_new (parent, NULL, "dialog-error", primary_text,
+                                    error != NULL ? error->message : NULL,
+                                    XFCE_BUTTON_TYPE_MIXED, "window-close-symbolic", _("_Close"), GTK_RESPONSE_CLOSE,
+                                    NULL);
+  thunar_dialogs_run_job_dialog (GTK_DIALOG (dialog));
+  gtk_widget_destroy (dialog);
 }
 
 

@@ -57,6 +57,23 @@ EDITOR_WID=$(find_window editor) || fail "the xev window (the other app being ty
 focus "$EDITOR_WID"
 sleep 0.5
 [[ $(xdotool getactivewindow) == "$EDITOR_WID" ]] || fail "the editor window could not be focused"
+mkdir -p "$WORK/big-copy"
+truncate -s 3G "$WORK/big.img"
+dbus-send --session --print-reply --reply-timeout=10000 --dest=org.xfce.FileManager /org/xfce/FileManager \
+  org.xfce.FileManager.CopyInto string:"$WORK" array:string:"$WORK/big.img" string:"$WORK/big-copy" string:"" string:"" >/dev/null \
+  || fail "the D-Bus CopyInto call for the 3 GB file failed"
+find_window 'File Operation Progress' >/dev/null || fail "the progress window did not appear during the copy of a 3 GB file"
+ACTIVE=$(xdotool getactivewindow)
+[[ $ACTIVE == "$EDITOR_WID" ]] || fail "the progress window of a long copy took the focus: window $ACTIVE ('$(xdotool getwindowname "$ACTIVE")') is active"
+shot root progress-without-focus "During the copy of a 3 GB file with no question, the File Operation Progress window appeared after 500 ms and the editor kept the focus"
+for ((i = 0; i < 300; i++)); do
+  xdotool search --onlyvisible --name '^File Operation Progress$' >/dev/null 2>&1 || break
+  sleep 0.2
+done
+(( i < 300 )) || fail "the copy of the 3 GB file did not finish within 60 s"
+rm -f "$WORK/big.img" "$WORK/big-copy/big.img"
+[[ $(xdotool getactivewindow) == "$EDITOR_WID" ]] || fail "the editor lost the focus during the long copy"
+
 shot root before-replace-dialog "The xev window 'editor' (another app, standing in for an editor) has the focus, before Thunar is asked over D-Bus to copy report.txt onto an existing one"
 
 copy_into_dst
@@ -109,6 +126,40 @@ xdotool key Escape
 gone 'Confirm to replace files' || fail "Escape did not close the replace dialog"
 gone 'File Operation Progress' || fail "Escape did not cancel the job: the progress window stays open"
 dst_is "old version of the report" "after Escape"
+
+error_window() {  # prints the job error dialog's window: Thunar's untitled window, waits up to 10 s
+  local i w
+  for ((i = 0; i < 50; i++)); do
+    for w in $(xdotool search --onlyvisible --pid "$THUNAR_PID" 2>/dev/null); do
+      [[ -z $(xdotool getwindowname "$w" 2>/dev/null) ]] && { echo "$w"; return 0; }
+    done
+    sleep 0.2
+  done
+  return 1
+}
+
+focus "$EDITOR_WID"
+sleep 0.5
+dbus-send --session --print-reply --reply-timeout=10000 --dest=org.xfce.FileManager /org/xfce/FileManager \
+  org.xfce.FileManager.CopyInto string:"$WORK" array:string:"$SRC/missing.txt" string:"$DST" string:"" string:"" >/dev/null \
+  || fail "the D-Bus CopyInto call for a missing file failed"
+ERR=$(error_window) || fail "copying a missing file showed no error dialog"
+sleep 1
+ACTIVE=$(xdotool getactivewindow)
+[[ $ACTIVE == "$EDITOR_WID" ]] || fail "the job error dialog took the focus: window $ACTIVE ('$(xdotool getwindowname "$ACTIVE")') is active"
+before=$(editor_keys)
+xdotool key Return
+sleep 1
+(( $(editor_keys) > before )) || fail "the editor did not receive the Return pressed after the error dialog opened"
+error_window >/dev/null || fail "the Return typed in the editor closed the job error dialog"
+shot root error-without-focus "Copying a missing file opened the job error dialog over Thunar, and the editor kept the focus and received the Return typed after it"
+focus "$ERR"
+xdotool key Escape
+for ((i = 0; i < 25; i++)); do
+  xdotool search --onlyvisible --pid "$THUNAR_PID" 2>/dev/null | grep -qx "$ERR" || break
+  sleep 0.2
+done
+(( i < 25 )) || fail "Escape did not close the job error dialog"
 
 next_copy "the third time"
 focus "$ASK"

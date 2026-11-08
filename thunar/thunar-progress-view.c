@@ -543,7 +543,7 @@ thunar_progress_view_error (ThunarProgressView *view,
   window = gtk_widget_get_toplevel (GTK_WIDGET (view));
 
   /* display the error message */
-  xfce_dialog_show_error (GTK_WINDOW (window), error, _("Error while processing file operation"));
+  thunar_dialogs_show_job_error (GTK_WINDOW (window), error, _("Error while processing file operation"));
 }
 
 

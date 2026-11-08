@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #PRNUM Dialog focus</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #PRNUM: File-operation dialogs no longer steal the focus</h1>
+  <p class="lead" data-k="lead">Branch <code>14-job-dialog-focus</code> → <code>main</code>, closes #14. Once merged, the progress window and the replace and question dialogs open without taking your keystrokes, and a stray Enter can no longer cancel a copy.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing depends on #14</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">Two changes: the progress window is shown without asking for the focus, and the dialogs a job opens (its questions and its error message) have no default button and open without taking the focus. The code is in <code>thunar-progress-dialog.c</code>, <code>thunar-application.c</code>, <code>thunar-dialogs.c</code> and <code>thunar-progress-view.c</code>.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="A copy shows the progress window after 500 ms without taking the focus; a conflict opens a question dialog with no default button, focused on its text, mapped before it is made modal, and you answer it by clicking or tabbing">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① The progress window</text>
+    <g data-k="1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">You copy files</text>
+      <text x="36" y="114" class="b">then go on typing</text>
+      <text x="36" y="134" class="b">in another app</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">After 500 ms</text>
+      <text x="286" y="114" class="b">the progress window</text>
+      <text x="286" y="134" class="b">is shown, without</text>
+      <text x="286" y="154" class="b">asking for focus</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Needs attention</text>
+      <text x="536" y="114" class="b">un-minimized if</text>
+      <text x="536" y="134" class="b">needed, not raised,</text>
+      <text x="536" y="154" class="b">focus left alone</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② When the job asks a question or fails</text>
+    <g data-k="4">
+      <rect class="box-pr" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">No default</text>
+      <text x="36" y="314" class="b">no button answers</text>
+      <text x="36" y="334" class="b">Enter; same buttons,</text>
+      <text x="36" y="354" class="b">same order</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">4</text>
+    </g>
+    <g data-k="5">
+      <rect class="box-pr" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Focus on text</text>
+      <text x="286" y="314" class="b">the dialog starts</text>
+      <text x="286" y="334" class="b">with its focus on</text>
+      <text x="286" y="354" class="b">the message text</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-pr" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Map, then modal</text>
+      <text x="536" y="314" class="b">shown and mapped</text>
+      <text x="536" y="334" class="b">first; only then</text>
+      <text x="536" y="354" class="b">made modal</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-you" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">You answer</text>
+      <text x="786" y="314" class="b">click or Tab to a</text>
+      <text x="786" y="334" class="b">button; Escape or</text>
+      <text x="786" y="354" class="b">closing = Cancel</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <path class="arrow" d="M230,320 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,320 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,320 H766" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>changed by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">During a long copy, Thunar's progress window popped up and took the keyboard away from the app you were typing in. When the copy hit a file that already existed, the replace dialog did the same, and its default button answered the next Enter: in the question dialog that was Cancel, so a stray Enter cancelled the whole copy.</p>
+  <div class="note" data-k="note">Asking not to be focused is not enough for a modal dialog: xfwm4 focuses a modal dialog when it is mapped, and when its parent is raised, whatever the dialog asks. So the dialog is mapped before it becomes modal, and the progress window is never raised.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① The progress window</div>
+  <ol class="steps">
+    <li data-k="1"><b>You copy files.</b> You start a copy or move in Thunar and go back to typing in another app.</li>
+    <li data-k="2"><b>After 500 ms.</b> If the job is still running, <code>thunar_application_show_progress_dialog_timeout</code> now calls the new <code>thunar_progress_dialog_raise</code> instead of <code>gtk_window_present</code>. A hidden window is shown with <code>gtk_widget_show</code>; the window already asks not to be focused when it appears.</li>
+    <li data-k="3"><b>Needs attention.</b> When a job asks a question, the progress window is shown the same way. If it is already visible, it is only un-minimized (<code>gdk_window_show_unraised</code>), because raising it made xfwm4 focus the dialog on top of it.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② When the job asks a question or fails</div>
+  <ol class="steps" start="4" style="counter-reset: s 3">
+    <li data-k="4"><b>No default.</b> <code>thunar_dialogs_show_job_ask</code> no longer makes each button, and last Cancel, the default, and the replace dialog no longer makes Replace the default. The buttons and their order are unchanged. The job error message, which has only Close, now opens through the same code too.</li>
+    <li data-k="5"><b>Focus on text.</b> The new <code>thunar_dialogs_run_job_dialog</code> puts the dialog's focus on its message text before it opens. Otherwise GTK would focus the first button, and Enter would press it.</li>
+    <li data-k="6"><b>Map, then modal.</b> It asks not to be focused, shows the dialog while it is still not modal and waits for the window manager to put it on screen. Only then does <code>gtk_dialog_run</code> make it modal, so the window manager never sees a new modal window.</li>
+    <li data-k="7"><b>You answer.</b> Click the dialog or a button, or Tab to one and press Enter. Escape and closing the dialog still cancel, but only once you have focused it.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">What each key does now</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>You press</th><th>Before</th><th>Now</th></tr>
+    <tr data-k="k1"><td>Enter in another app while a dialog opens</td><td>lands on the dialog: Cancel or Replace</td><td>stays in your app</td></tr>
+    <tr data-k="k2"><td>Enter in the focused dialog, no button focused</td><td>presses the default button</td><td>nothing</td></tr>
+    <tr data-k="k3"><td>Tab to Cancel, then Enter</td><td>cancels</td><td>cancels</td></tr>
+    <tr data-k="k4"><td>Escape, or closing the dialog</td><td colspan="2">cancels, as before</td></tr>
+    <tr data-k="k5"><td>Alt+R, a click on a button</td><td colspan="2">that button, as before</td></tr>
+  </table>
+  </div>
+  <div class="note warn" data-k="placement">The dialogs no longer jump on top of the app you are using. Under GNOME, a window that isn't focused may open behind it, so you may need to click Thunar's taskbar entry to answer.</div>
+  <div class="note" data-k="undo">To undo it, revert this PR: nothing is saved anywhere.</div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/thunar-progress-dialog.c   # new thunar_progress_dialog_raise: show without focus, never raise
+thunar/thunar-progress-dialog.h   # its declaration
+thunar/thunar-application.c       # the 500 ms timer calls it instead of gtk_window_present
+thunar/thunar-dialogs.c           # no default buttons; thunar_dialogs_run_job_dialog runs the job dialogs
+thunar/thunar-dialogs.h           # declares thunar_dialogs_show_job_error
+thunar/thunar-progress-view.c     # a job error opens through thunar_dialogs_show_job_error
+verify/14.sh                      # the Xvfb test CI runs on every PR
+explainers/14-job-dialog-focus.html            # this page
+explainers/14-job-dialog-focus.narration.json  # its narration</pre>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built as a Debian package in this session, installed in the sandbox, and driven under Xvfb and xfwm4 by <code>verify/14.sh</code>, with a second app holding the focus. The window manager's behaviour was first pinned down with a small GTK test program.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>The window manager spec</h3><p>A window whose user time is 0 asks not to be focused when it appears; GTK sets that for windows that don't focus on map.</p></div>
+    <div class="card" data-k="r2"><h3>A GTK test program</h3><p>Run under the same xfwm4 as CI, it showed which ways of showing a dialog and its parent move the focus and which don't.</p></div>
+    <div class="card" data-k="r3"><h3>Zorin's Thunar 4.20.2</h3><p>The packaged Thunar without this PR: the same test was run on it to show it catches the bug.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage -b -us -uc</code> on Ubuntu 24.04 in this session</td><td class="ok">5 debs, no new warnings</td></tr>
+    <tr data-k="c2"><td>What xfwm4 focuses</td><td>The GTK test program under Xvfb and xfwm4, with an xev window focused</td><td class="ok">modal on map: focused; raised parent: focused; mapped, then modal: not</td></tr>
+    <tr data-k="c3"><td>Dialogs open without the focus</td><td><code>verify/14.sh</code>: an xev window holds the focus while Thunar is asked over D-Bus to copy a 3 GB file, a file onto an existing one (three times) and a missing file</td><td class="ok">xev still focused every time</td></tr>
+    <tr data-k="c4"><td>Typing goes to the other app</td><td>Typed text and Return after the replace dialog, and Return after the error dialog, opened</td><td class="ok">xev got Return; both dialogs still open, file unchanged</td></tr>
+    <tr data-k="c5"><td>Enter in the dialog does nothing</td><td>Focused the replace dialog, pressed Return</td><td class="ok">dialog open, file unchanged</td></tr>
+    <tr data-k="c6"><td>Cancel, Escape and Replace</td><td>Tab Tab Return; Escape on the second copy; Alt+R on the third</td><td class="ok">cancelled, cancelled, replaced</td></tr>
+    <tr data-k="c7"><td>The test catches the bug</td><td><code>verify/14.sh</code> run on Zorin's Thunar 4.20.2, in its first version, before the long-copy and error cases were added</td><td class="ok">fails: the dialog took the focus</td></tr>
+    <tr data-k="c8"><td>All sandbox tests</td><td><code>verify-proof.sh run</code> with the smoke test, #3, #14, #21, #22 and #49, on the last code change</td><td class="ok">6 of 6 pass</td></tr>
+    <tr data-k="c9"><td>Under GNOME/Mutter, where #14 was seen</td><td>The sandbox has only xfwm4</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  <p data-k="ci">CI repeats the build and <code>verify/14.sh</code> on the PR and posts its own screenshots in the PR comment; those, not this table, are the proof the owner reviews.</p>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh <code>general-purpose</code> agent in this session, given only the diff and issue #14, reviewed it at high effort: no crash or leak, 2 medium and 3 low findings. Both medium findings and one low were fixed; the build and the tests were run again afterwards.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed (medium):</b> the wait before making the dialog modal ended at once, because GTK marks a window as shown before the window manager maps it. It now waits for the real map, and closing the parent window can't destroy the dialog during that wait.</li>
+    <li data-k="b2"><b>Fixed (medium):</b> the job error message still took the focus. It now opens through the same code, and <code>verify/14.sh</code> checks it.</li>
+    <li data-k="b3"><b>Fixed (low):</b> the test never showed the progress window without a question; it now copies a 3 GB file first.</li>
+    <li data-k="b4"><b>Kept (low):</b> a progress window that is already open is no longer raised when a job needs attention, since raising it moves the focus; the dialog itself still appears above it.</li>
+    <li data-k="b5"><b>Kept (low):</b> the question the Properties dialog asks when changing permissions of a folder's contents also opens without the focus and without a default button, since it uses the same dialog.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>A long copy while typing in your editor, under GNOME/Mutter</td><td>CI runs xfwm4 under Xvfb, not your session</td><td class="open">first install after merge</td></tr>
+    <tr data-k="a2"><td>Split-view crash regression check</td><td>Only reproduces in your real session, per <code>CLAUDE.md</code></td><td class="open">manual, after the update</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/PRNUM">PR #PRNUM</a> → “Files changed”</li>
+    <li data-k="l2">The issue: <a href="https://github.com/alexhu98/thunar/issues/14">#14</a></li>
+    <li data-k="l3">CI's screenshots: the PR comment's verify section, stored on the <code>shots</code> branch under <code>pr-PRNUM/</code></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing depends on #14</h2>
+  <p class="intro" data-k="intro">No open issue says "Depends on #14", so after the merge only your own check remains.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR merges, then the owner tries it in a real session">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--merge)">#14 Dialog focus</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">dialogs leave the</text>
+      <text x="36" y="134" class="b">focus where it is</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Try it for real</text>
+      <text x="286" y="114" class="b">copy while typing</text>
+      <text x="286" y="134" class="b">under GNOME/Mutter,</text>
+      <text x="286" y="154" class="b">split-view check</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-a">
+  <h3 class="sec">After the merge (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Try it in your session.</b> Start a large copy, keep typing in your editor, and copy onto an existing file: your keystrokes should stay in the editor, and Enter there shouldn't touch the copy.</li>
+    <li data-k="2"><b>Run the split-view crash check.</b> The manual check from <code>CLAUDE.md</code>, as after every update.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="focus"><dt>Keyboard focus</dt><dd>The window, and the widget in it, that receives what you type.</dd></div>
+    <div data-k="default"><dt>Default button</dt><dd>The dialog button that Enter presses when no other button has the focus.</dd></div>
+    <div data-k="modal"><dt>Modal dialog</dt><dd>A dialog that blocks its parent window until it is answered.</dd></div>
+    <div data-k="map"><dt>Map</dt><dd>X11's word for putting a window on screen.</dd></div>
+    <div data-k="usertime"><dt>User time</dt><dd>A window property; 0 asks the window manager not to focus the window when it appears.</dd></div>
+    <div data-k="wm"><dt>Window manager</dt><dd>The program that places windows and decides which one is focused: xfwm4 in CI, Mutter in GNOME.</dd></div>
+    <div data-k="xev"><dt>xev</dt><dd>A small X program that prints every key it receives; the test types into it as a stand-in for your editor.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual X display with no screen, used to run Thunar in tests.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
