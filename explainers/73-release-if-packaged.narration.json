@@ -1,7 +1,7 @@
 {
   "title": "PR #76 · Release only when packaged files changed",
   "voice": "af_heart",
-  "page_sha256": "a7ad3bcd00e5a7cfacbb8157f85f26cb6235920f499cccc8329dd345145d25d8",
+  "page_sha256": "dc98812af6e9f530e037fe2284dbf622f5050c90de9e0078e0ecbaf7a2e7e0cd",
   "lines": [
     {"screen": "title", "keys": [], "from": ["title", "lead"], "caption": "This is a tour of pull request 76, which stops main from releasing when nothing packaged changed.", "src": "5de4b5a07529"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what the PR adds, how it was checked, and what comes later.", "src": "d47550ecc737"},
@@ -31,6 +31,7 @@
     {"screen": "review", "keys": ["summary"], "caption": "A fresh review agent found no bugs and two low notes, kept because they can only cause an extra release.", "src": "24dcd39d4a77"},
     {"screen": "review", "keys": ["b1"], "caption": "CI's first review had seven low findings. Three are fixed: the copied tag lookup, a no-op fallback, and the missing explainer.", "src": "fc92afbe0f3b"},
     {"screen": "review", "keys": ["b2"], "caption": "The other four stay as they are, because CI's own check found they go against what the issue asks.", "src": "d2b26281b198"},
+    {"screen": "review", "keys": ["b3"], "caption": "A second review found four more lows. A stray comment was removed, and three were accepted, each with its reason on the page.", "src": "1bdb44c26d9e"},
     {"screen": "aftermerge", "keys": ["a1", "a2"], "caption": "This merge's own push should skip. The next code merge should release the next +localN.", "say": "This merge's own push should skip. The next code merge should release the next local number.", "src": "c6883e940aea"},
     {"screen": "see", "keys": ["l1", "l2"], "caption": "After the merge, the push run's summary on the Actions tab names the tag it compared with.", "src": "ae96a5589892"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later.", "src": "ec0b80cd6751"},
@@ -82,6 +83,7 @@
     "review/summary": "24dcd39d4a77",
     "review/b1": "fc92afbe0f3b",
     "review/b2": "d2b26281b198",
+    "review/b3": "1bdb44c26d9e",
     "aftermerge/a1": "05ea71bbea3e",
     "aftermerge/a2": "f271ea7ddd59",
     "see/l1": "991bfa98ada9",
