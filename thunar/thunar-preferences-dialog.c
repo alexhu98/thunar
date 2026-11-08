@@ -1055,6 +1055,34 @@ thunar_preferences_dialog_init (ThunarPreferencesDialog *dialog)
   gtk_grid_attach (GTK_GRID (grid), button, 0, row, 1, 1);
   gtk_widget_show (button);
 
+  /* next row */
+  row++;
+
+  button = gtk_check_button_new_with_mnemonic (_("Double-click on a _tab to open the parent folder"));
+  g_object_bind_property (G_OBJECT (dialog->preferences),
+                          "misc-double-click-tab-go-up",
+                          G_OBJECT (button),
+                          "active",
+                          G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+  gtk_widget_set_tooltip_text (button, _("Select this option to open the parent folder when you double-click on a tab or on the empty part of the tab bar"));
+  gtk_widget_set_hexpand (button, TRUE);
+  gtk_grid_attach (GTK_GRID (grid), button, 0, row, 1, 1);
+  gtk_widget_show (button);
+
+  /* next row */
+  row++;
+
+  button = gtk_check_button_new_with_mnemonic (_("_Always show tabs, even with only one open"));
+  g_object_bind_property (G_OBJECT (dialog->preferences),
+                          "misc-always-show-tabs",
+                          G_OBJECT (button),
+                          "active",
+                          G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+  gtk_widget_set_tooltip_text (button, _("Select this option to show the tab bar even when only one tab is open"));
+  gtk_widget_set_hexpand (button, TRUE);
+  gtk_grid_attach (GTK_GRID (grid), button, 0, row, 1, 1);
+  gtk_widget_show (button);
+
   if (thunar_g_vfs_is_uri_scheme_supported ("trash"))
     {
       frame = g_object_new (GTK_TYPE_FRAME, "border-width", 0, "shadow-type", GTK_SHADOW_NONE, NULL);
