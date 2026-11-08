@@ -208,16 +208,16 @@
   <div class="panel">
   <div class="lane-h" style="color:var(--accent)">① Plan the review</div>
   <ol class="steps">
-    <li data-k="1"><b>Newer run?</b> <code>plan</code> asks GitHub's runs API whether a newer run of <code>build.yml</code> exists for this branch, with another head. A newer push always starts one, so if it exists the review is skipped straight away, without waiting, and the newer run reviews the same changes. This run's review-report is skipped too, so it can't queue behind and cancel an earlier run's report.</li>
+    <li data-k="1"><b>Newer run?</b> <code>plan</code> asks GitHub's runs API whether a newer run of <code>build.yml</code> exists for this branch, with another head. A newer push always starts one, so if it exists the review is skipped straight away, without waiting, and the newer run reviews the same changes. This run's review-report is skipped too, so it can't queue behind and cancel an earlier run's report. Runs from fork PRs with the same branch name don't count.</li>
     <li data-k="2"><b>Wait, ask again.</b> Otherwise it waits for earlier runs to record their reviews, now for up to 20 minutes instead of 30, then asks once more, since a push may have come in meanwhile.</li>
     <li data-k="3"><b>CI's own fix?</b> A head that the review state records as the commit that fixed a finding, with the last reviewed commit as its parent, is skipped. The author or subject alone doesn't count, since anyone with push access could copy them.</li>
     <li data-k="4"><b>Other rules.</b> Already reviewed, already part of a reviewed head, or only <code>explainers/</code> changed: skipped as before. Anything else is reviewed.</li>
   </ol>
   <div class="lane-h" style="color:var(--accent)">② Review and report</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>Review at high.</b> <code>REVIEW_LEVEL</code> is <code>high</code> instead of <code>xhigh</code>. The Review step gets 30 minutes of its own, and the whole job 55 instead of 90. The longest review so far took 20. A review that runs out of time fails its step, so review-report still runs and records it.</li>
+    <li data-k="5"><b>Review at high.</b> <code>REVIEW_LEVEL</code> is <code>high</code> instead of <code>xhigh</code>. The Review step gets 30 minutes of its own, and the whole job 60 instead of 90. The longest review so far took 20. A review that runs out of time fails its step, so review-report still runs and records it.</li>
     <li data-k="6"><b>Record the state.</b> Unchanged: a skipped review doesn't move the recorded commit, so the next push's review takes in the bot's fix.</li>
-    <li data-k="7"><b>Summary row.</b> When the review job is cancelled or runs past its 55 minutes, the summary's Code review row now says "stopped: the review job was cancelled or ran past its time limit". A head that is CI's own fix shows ⏳ "not reviewed yet", and the summary waits for a review of the fix instead of going green.</li>
+    <li data-k="7"><b>Summary row.</b> When the review job is cancelled or runs past its 60 minutes, the summary's Code review row now says "stopped: the review job was cancelled or ran past its time limit". A head that is CI's own fix shows ⏳ "not reviewed yet", and the summary waits for a review of the fix instead of going green.</li>
   </ol>
   </div>
   </section>
@@ -234,7 +234,7 @@
 │   ├── review-proof.sh               # superseded() and own_fix(); plan skips on both; 20-minute wait; level high
 │   ├── review-state.py               # "not reviewed yet" status for CI's own fix
 │   └── pr-summary.py                 # "stopped" for a cancelled review; waits for a review of CI's fix
-└── workflows/build.yml               # REVIEW_LEVEL high; Review step 30 min, job 55; no report when superseded
+└── workflows/build.yml               # REVIEW_LEVEL high; Review step 30 min, job 60; no report when superseded
 .claude/skills/explainer/SKILL.md     # the new skips, in its CI review notes
 CLAUDE.md                             # the new skips; ask the owner when stuck on CI's own fix
 explainers/
@@ -275,12 +275,14 @@ explainers/
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">A fresh agent, given only the diff and the three issues, reviewed the first version: 0 high, 0 medium, 2 low findings and 1 hardening point, all fixed. CI's first review, at <code>high</code> in 5 minutes, then found 7 more, 1 high, 3 medium and 3 low, all unconfirmed. All 7 are fixed, which reshaped both new skips.</p>
+  <p data-k="summary">A fresh agent, given only the diff and the three issues, reviewed the first version: 0 high, 0 medium, 2 low findings and 1 hardening point, all fixed. CI's first review, at <code>high</code> in 5 minutes, then found 7 more, 1 high, 3 medium and 3 low, all unconfirmed. All 7 are fixed, which reshaped both new skips. Its next two reviews found 11 more, 3 medium and 8 low, all unconfirmed: 9 are fixed, and 2 are left for the owner to decide.</p>
   <ul class="tight">
     <li data-k="b1"><b>Newer push, by its run:</b> after a force-push, GitHub can briefly report the old head, which looked like a newer push and could skip the real one's review (R1). The skip now needs a newer run of the workflow, which only a push creates.</li>
     <li data-k="b2"><b>No stray report:</b> a skipped, replaced run's review-report could queue behind an earlier run's and cancel it, losing that run's findings (R2). A replaced run now has no review-report.</li>
     <li data-k="b3"><b>CI's own fix:</b> it showed green though unreviewed (R3), and was spotted by author and subject, which can be copied (R4). It now shows "not reviewed yet", and must be recorded in the review state as a fix commit.</li>
     <li data-k="b4"><b>Smaller ones:</b> the wait for earlier runs is 20 minutes, not 10 (R5); CLAUDE.md says the fix commit's trailer doesn't force a review (R6); a review that overruns says so (R7).</li>
+    <li data-k="b5"><b>Later rounds:</b> the merge rule's addition was redundant and could loop, so it became "ask the owner" (R8–R10); the job limit is 60 minutes, enough for the wait and the review (R11); fork runs don't count (R14); a replaced run's plan stops early (R15); the failure and limit wording are exact (R13, R17, R18).</li>
+    <li data-k="b6"><b>For the owner:</b> R12, a replaced run trusts the newer run to review even if that run is cancelled by hand; R16, the runs API is asked up to three times per plan.</li>
   </ul>
   <p data-k="ci">CI's own review of this push is in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/62">PR #62</a>. It is the first run at <code>high</code>.</p>
   </section>

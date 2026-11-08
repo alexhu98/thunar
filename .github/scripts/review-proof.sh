@@ -77,7 +77,7 @@ wait_for_earlier_runs() {
 superseded() {
   [[ -n ${RUN_NUMBER:-} && -n ${HEAD_REF:-} ]] || return 1
   gh api -X GET "repos/{owner}/{repo}/actions/runs" -f branch="$HEAD_REF" -f event=pull_request -F per_page=30 --jq \
-    "[.workflow_runs[] | select(.path == \".github/workflows/build.yml\" and .run_number > $RUN_NUMBER and .head_sha != \"$HEAD_SHA\")]
+    "[.workflow_runs[] | select(.path == \".github/workflows/build.yml\" and .head_repository.full_name == .repository.full_name and .run_number > $RUN_NUMBER and .head_sha != \"$HEAD_SHA\")]
      | max_by(.run_number) | .head_sha // empty" 2>/dev/null
 }
 
@@ -136,12 +136,19 @@ plan() {
   newer=$(superseded) || newer=
   [[ -n $newer ]] || wait_for_earlier_runs
   [[ -n $newer ]] || newer=$(superseded) || newer=
+  if [[ -n $newer ]]; then
+    : > "$OUT/prompt.md"
+    schema | jq -c . > "$OUT/schema.json"
+    jq -n --arg sha "$HEAD_SHA" --arg mode "$mode" --arg reason "a newer run for ${newer::12} replaced it and reviews the changes" \
+      '{sha: $sha, mode: $mode, skip: true, own_fix: false, reason: $reason}' > "$OUT/plan.json"
+    echo "review of ${HEAD_SHA::12}: skipped, $(jq -r .reason "$OUT/plan.json")" >&2
+    printf 'skip=1\nsuperseded=1\nmode=%s\n' "$mode"
+    return 0
+  fi
   state > "$OUT/state.json"
   last=$(jq -r '.sha // empty' "$OUT/state.json")
   from=${release:-$mb}
-  if [[ -n $newer ]]; then
-    skip=1 reason="a newer run for ${newer::12} replaced it and reviews the changes"
-  elif [[ $last == "$HEAD_SHA" ]]; then
+  if [[ $last == "$HEAD_SHA" ]]; then
     skip=1 reason="${last::12} was already reviewed"
   elif [[ -n $last ]] && git merge-base --is-ancestor "$HEAD_SHA" "$last" 2>/dev/null; then
     skip=1 reason="${HEAD_SHA::12} is already part of the reviewed ${last::12}"
@@ -234,7 +241,7 @@ plan() {
     > "$OUT/plan.json"
   echo "review of ${HEAD_SHA::12}: $([[ $skip == 1 ]] && echo skipped || echo "$mode"), $reason" >&2
   echo "skip=$skip"
-  echo "superseded=$([[ -n $newer ]] && echo 1 || echo 0)"
+  echo "superseded=0"
   echo "mode=$mode"
 }
 
@@ -357,9 +364,9 @@ report() {
     result=failure
   elif [[ $(jq -r .skip "$IN/plan.json") == true ]]; then
     note="Skipped \`${HEAD_SHA::12}\`: $(jq -r .reason "$IN/plan.json")."
-    [[ $(jq -r '.own_fix // false' "$IN/plan.json") != true ]] || result=unreviewed
+    [[ $result != success || $(jq -r '.own_fix // false' "$IN/plan.json") != true ]] || result=unreviewed
   elif [[ $result != success || ! -s $IN/findings.json ]]; then
-    note="The review of \`${HEAD_SHA::12}\` failed or ran past its 30-minute limit ($result); its findings are not recorded."
+    note="The review job for \`${HEAD_SHA::12}\` did not finish ($result); its findings are not recorded."
     result=failure
   fi
   open_findings
