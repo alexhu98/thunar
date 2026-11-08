@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #62 Review costs</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #62: CI's code review skips its own fixes and replaced pushes, and runs lighter</h1>
+  <p class="lead" data-k="lead">Branch <code>52-review-costs</code> → <code>main</code>, closes #52, #53 and #54. The review job billed 899 of the 2,019 minutes used from 2 to 7 November. Once merged, it stops reviewing work that another review already covers, and every review is cheaper and capped.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: build and job costs</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">Two new reasons to skip a review in <code>review-proof.sh plan</code>, and a lighter, capped review in <code>build.yml</code>.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="The plan step checks for a newer push, waits for earlier runs, checks again, then skips CI's own fix commit; otherwise the review runs at high within 30 minutes">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Plan the review</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Newer push?</text>
+      <text x="36" y="114" class="b">the PR's head is</text>
+      <text x="36" y="134" class="b">no longer this one:</text>
+      <text x="36" y="154" class="b">skip, no waiting</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-merge" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Wait, ask again</text>
+      <text x="286" y="114" class="b">wait for earlier</text>
+      <text x="286" y="134" class="b">runs, then check</text>
+      <text x="286" y="154" class="b">for a newer push</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">CI's own fix?</text>
+      <text x="536" y="114" class="b">claude[bot]'s fix</text>
+      <text x="536" y="134" class="b">on the reviewed</text>
+      <text x="536" y="154" class="b">head: skip</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-merge" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Other rules</text>
+      <text x="786" y="114" class="b">already reviewed,</text>
+      <text x="786" y="134" class="b">only explainers:</text>
+      <text x="786" y="154" class="b">skip, as before</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--accent)">② Review and report</text>
+    <g data-k="5">
+      <rect class="box-pr" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Review at high</text>
+      <text x="786" y="314" class="b">instead of xhigh;</text>
+      <text x="786" y="334" class="b">the job stops</text>
+      <text x="786" y="354" class="b">after 30 minutes</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Record the state</text>
+      <text x="536" y="314" class="b">a skip keeps the</text>
+      <text x="536" y="334" class="b">last reviewed head,</text>
+      <text x="536" y="354" class="b">as before</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-pr" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Summary row</text>
+      <text x="286" y="314" class="b">a stopped review</text>
+      <text x="286" y="334" class="b">says so, not just</text>
+      <text x="286" y="354" class="b">"not run"</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M520,320 H484" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>same as before</span>
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new in this PR</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Actions stopped on 7 November when the account ran out of minutes. The review job alone billed 899 of 2,019 minutes. 274 of them went to reviewing claude[bot]'s own fix commits, and 327 to reviews whose head a newer push had already replaced.</p>
+  <div class="note" data-k="note">A skipped review leaves the "last reviewed" commit where it was. So the next review diffs from there, and still covers whatever was skipped.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Plan the review</div>
+  <ol class="steps">
+    <li data-k="1"><b>Newer push?</b> <code>plan</code> asks GitHub for the PR's current head. If a newer push has replaced this run's head, it skips the review straight away, without waiting for earlier runs. The newer run reviews the same changes.</li>
+    <li data-k="2"><b>Wait, ask again.</b> Otherwise it waits, as before, up to 30 minutes for earlier runs to record their reviews, then asks once more, since a push may have come in meanwhile.</li>
+    <li data-k="3"><b>CI's own fix?</b> A head authored by claude[bot], with the subject "Fix N finding(s) from the CI code review of …" and the last reviewed commit as its parent, is skipped.</li>
+    <li data-k="4"><b>Other rules.</b> Already reviewed, already part of a reviewed head, or only <code>explainers/</code> changed: skipped as before. Anything else is reviewed.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--accent)">② Review and report</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Review at high.</b> <code>REVIEW_LEVEL</code> is <code>high</code> instead of <code>xhigh</code>, and the job's limit drops from 90 to 30 minutes. The longest review so far took 20.</li>
+    <li data-k="6"><b>Record the state.</b> Unchanged: a skipped review doesn't move the recorded commit, so the next push's review takes in the bot's fix.</li>
+    <li data-k="7"><b>Summary row.</b> When the review job is cancelled or runs out of time, the summary's Code review row now says "stopped: the review job was cancelled or ran past its 30-minute limit".</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="gate">
+  <h3 class="sec">The merge rule</h3>
+  <p data-k="gate">The agent merges only once a review has covered the head. A head that is CI's own fix is now skipped. So before merging on one, the agent pushes an empty commit with a <code>Review: auto-fix</code> trailer. That review covers just the fix, at <code>high</code>.</p>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">.github/
+├── scripts/
+│   ├── review-proof.sh               # superseded() and own_fix(); plan skips on both; default level high
+│   └── pr-summary.py                 # "stopped" for a cancelled or timed-out review
+└── workflows/build.yml               # REVIEW_LEVEL high, review timeout 30 minutes
+.claude/skills/explainer/SKILL.md     # the new skips, in its CI review notes
+CLAUDE.md                             # the new skips; the merge rule's re-review after a bot fix
+explainers/
+├── 52-review-costs.html              # this page
+└── 52-review-costs.narration.json    # its narration, stamped from this page</pre>
+  <div class="note warn" data-k="undo">To go back to deeper reviews, set <code>REVIEW_LEVEL: xhigh</code> in <code>build.yml</code>. For a single PR, push an empty commit with a <code>Review: auto-fix</code> trailer to force a fresh review.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built from the billing breakdown in issues #52 to #54, then tested in the cloud session against a scratch git repository and a stand-in for <code>gh</code>.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>The existing skip rules</h3><p>"Already reviewed" and "only explainers changed" in <code>plan</code>: the new rules sit beside them and end the same way.</p></div>
+    <div class="card" data-k="r2"><h3>How state is recorded</h3><p><code>review-state.py decide</code> leaves the recorded commit alone on a skip, so no change there was needed.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Only CI's own fix is skipped</td><td><code>own_fix</code> against a scratch repo: the bot's fix on the reviewed head; a human commit; the fix on another parent; a bot commit with another subject; no reviewed head</td><td class="ok">true for the first only, 5 of 5</td></tr>
+    <tr data-k="c2"><td>Newer pushes are spotted</td><td><code>superseded</code> with a stand-in <code>gh</code>: the same head, a newer head, a failed call, an empty answer, no PR number</td><td class="ok">newer head only, 5 of 5</td></tr>
+    <tr data-k="c3"><td>The whole plan decides right</td><td><code>review-proof.sh plan</code> end to end, with a stand-in <code>gh</code> holding the review state</td><td class="ok">5 of 5 cases</td></tr>
+    <tr data-k="c4"><td>The fix is reviewed later</td><td>Same run: a human commit after the bot's fix</td><td class="ok">reviews the commits since the pre-fix head</td></tr>
+    <tr data-k="c5"><td>The summary's stopped text</td><td><code>section_state</code> with a cancelled, failed, finished and running review job</td><td class="ok">"stopped" only when cancelled</td></tr>
+    <tr data-k="c6"><td>Minutes and findings at high</td><td>Needs real reviews; issue #54 suggests comparing a few PRs</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">[REVIEW-SUMMARY]</p>
+  <p data-k="ci">CI's own review of this push is in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/62">PR #62</a>. It is the first run at <code>high</code>.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>A bot fix commit is skipped</td><td>Needs a CI review that pushes a fix</td><td class="open">the next PR whose review fixes something</td></tr>
+    <tr data-k="a2"><td>A replaced push is skipped</td><td>Needs two pushes in quick succession</td><td class="open">the next PR pushed twice in a row</td></tr>
+    <tr data-k="a3"><td>Minutes saved</td><td>Needs a week of PRs</td><td class="open">the billing page in a week</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/62">PR #62</a> → “Files changed”</li>
+    <li data-k="l2">The issues: <a href="https://github.com/alexhu98/thunar/issues/52">#52</a>, <a href="https://github.com/alexhu98/thunar/issues/53">#53</a> and <a href="https://github.com/alexhu98/thunar/issues/54">#54</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: build and job costs</h2>
+  <p class="intro" data-k="intro">This is the second of four PRs for the CI minutes issues. Each opens after the one before it merges.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="PR 61 and this PR done; build costs and fewer jobs to come">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">CI reliability and minutes</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">PR #61, merged</text>
+      <text x="36" y="114" class="b">#59, #48, #60</text>
+      <text x="36" y="134" class="b">reliable uploads,</text>
+      <text x="36" y="154" class="b">the merge rule</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-merge" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">This PR</text>
+      <text x="286" y="114" class="b">#52, #53, #54</text>
+      <text x="286" y="134" class="b">review costs</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Build costs</text>
+      <text x="536" y="114" class="b">#55, #57</text>
+      <text x="536" y="134" class="b">skip no-code PRs,</text>
+      <text x="536" y="154" class="b">cache the compiler</text>
+    </g>
+    <g data-k="n4">
+      <rect class="box-future" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Fewer jobs</text>
+      <text x="786" y="114" class="b">#56, then maybe</text>
+      <text x="786" y="134" class="b">#58: fold the small</text>
+      <text x="786" y="154" class="b">jobs together</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M730,120 H766" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="build-costs">
+  <h3 class="sec">Build costs: #55, #57 (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Skip what isn't code.</b> Build and verify skip PRs that change only explainers, skills or Markdown (#55).</li>
+    <li data-k="2"><b>Cache the compiler.</b> ccache keeps the last build's objects, so a small change compiles in seconds (#57).</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="fold">
+  <h3 class="sec">Fewer jobs: #56, then maybe #58</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Fold small jobs.</b> review-report into review and release into build, since each job is rounded up to a whole minute (#56).</li>
+    <li data-k="2"><b>Reuse the PR's debs.</b> A push to <code>main</code> reuses its merged PR's build, if the version stamp allows it (#58).</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="bot"><dt>claude[bot]</dt><dd>The account CI's review uses to push its fixes to a PR branch.</dd></div>
+    <div data-k="head"><dt>Head</dt><dd>The newest commit on a PR's branch; each push makes a new one.</dd></div>
+    <div data-k="superseded"><dt>Replaced push</dt><dd>A head that a newer push has already replaced while its run was still going.</dd></div>
+    <div data-k="level"><dt>high / xhigh</dt><dd>How hard the review digs: xhigh is deeper and slower, high is lighter.</dd></div>
+    <div data-k="state"><dt>Review state</dt><dd>What CI records in the review comment: the last reviewed commit and every finding.</dd></div>
+    <div data-k="trailer"><dt>Trailer</dt><dd>A <code>Key: value</code> line at the end of a commit message, such as <code>Review: auto-fix</code>.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>

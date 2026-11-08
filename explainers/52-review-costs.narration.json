@@ -1,0 +1,226 @@
+{
+  "title": "PR #62 · Review costs",
+  "voice": "af_heart",
+  "lines": [
+    {
+      "screen": "title",
+      "keys": [],
+      "caption": "This is a tour of pull request 62, which makes CI's code review skip work another review covers, and run lighter.",
+      "from": [
+        "title",
+        "lead"
+      ],
+      "say": "This is a tour of pull request sixty-two, which makes CI's code review skip work another review covers, and run lighter."
+    },
+    {
+      "screen": "title",
+      "keys": [
+        "p1",
+        "p2",
+        "p3"
+      ],
+      "caption": "It has three parts: what the PR adds, how it was built and verified, and what comes later."
+    },
+    {
+      "screen": "adds",
+      "keys": [],
+      "caption": "Part 1. What this PR adds."
+    },
+    {
+      "screen": "adds",
+      "keys": [
+        "intro"
+      ],
+      "caption": "Two new reasons to skip a review, and a lighter review with a time limit."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "1"
+      ],
+      "caption": "First, the plan step asks GitHub for the PR's current head. If a newer push replaced it, the review is skipped at once."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "2"
+      ],
+      "caption": "Otherwise it waits for earlier runs as before, then checks again for a newer push."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "3"
+      ],
+      "caption": "A head that is CI's own fix commit, on top of the reviewed head, is skipped too."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "4"
+      ],
+      "caption": "The older rules still apply: an already reviewed head, or a push that changes only explainers."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "5"
+      ],
+      "caption": "Reviews now run at high instead of xhigh, and the job stops after 30 minutes.",
+      "say": "Reviews now run at high instead of extra high, and the job stops after thirty minutes."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "6"
+      ],
+      "caption": "A skipped review keeps the last reviewed commit, so the next review still covers what was skipped."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "7"
+      ],
+      "caption": "And when a review is stopped, the summary says so, instead of just not run."
+    },
+    {
+      "screen": "bigpic",
+      "keys": [
+        "why"
+      ],
+      "caption": "Why: the review job billed 899 of about 2,000 minutes, much of it on fixes and replaced pushes.",
+      "say": "Why: the review job billed eight hundred ninety-nine of about two thousand minutes, much of it on fixes and replaced pushes."
+    },
+    {
+      "screen": "bigpic",
+      "keys": [
+        "note"
+      ],
+      "caption": "Nothing goes unreviewed: the next review diffs from the last reviewed commit."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "3"
+      ],
+      "caption": "The fix commit must be claude bot's, with its usual subject, and sit right on the reviewed head."
+    },
+    {
+      "screen": "gate",
+      "keys": [
+        "gate"
+      ],
+      "caption": "Before merging on a head that is CI's own fix, the agent forces a small review of just that fix."
+    },
+    {
+      "screen": "files",
+      "keys": [
+        "tree"
+      ],
+      "caption": "The PR changes the review script, the summary script, the workflow, and two instruction files."
+    },
+    {
+      "screen": "files",
+      "keys": [
+        "undo"
+      ],
+      "caption": "To go back to deeper reviews, set the level back to xhigh in the workflow.",
+      "say": "To go back to deeper reviews, set the level back to extra high in the workflow."
+    },
+    {
+      "screen": "verified",
+      "keys": [],
+      "caption": "Part 2. How it was built and verified."
+    },
+    {
+      "screen": "refs",
+      "keys": [
+        "r1",
+        "r2"
+      ],
+      "caption": "The new rules sit beside the existing skip rules, and the review state needed no change."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c1",
+        "c2"
+      ],
+      "caption": "The two new checks were tested against a scratch repository and a stand-in for GitHub. Each gave the right answer."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c3",
+        "c4"
+      ],
+      "caption": "The whole plan step decided right in five cases, and the push after a fix is reviewed from before the fix."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c5"
+      ],
+      "caption": "The summary says stopped only when the review job was cancelled."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c6"
+      ],
+      "caption": "How many minutes and findings the lighter review gives wasn't measured yet."
+    },
+    {
+      "screen": "review",
+      "keys": [
+        "summary"
+      ],
+      "caption": "[REVIEW]"
+    },
+    {
+      "screen": "aftermerge",
+      "keys": [
+        "a1",
+        "a2",
+        "a3"
+      ],
+      "caption": "After the merge, the next fix commit and the next quick double push show the skips, and billing shows the savings."
+    },
+    {
+      "screen": "later",
+      "keys": [],
+      "caption": "Part 3. What comes later: build and job costs."
+    },
+    {
+      "screen": "next",
+      "keys": [
+        "n1",
+        "n2",
+        "n3",
+        "n4"
+      ],
+      "caption": "This is the second of four pull requests. Build costs come next, then fewer jobs."
+    },
+    {
+      "screen": "build-costs",
+      "keys": [
+        "1",
+        "2"
+      ],
+      "caption": "Next, build and verify skip pull requests without code, and the compiler output is cached."
+    },
+    {
+      "screen": "fold",
+      "keys": [
+        "1",
+        "2"
+      ],
+      "caption": "Last, the small jobs fold into bigger ones, and a push to main may reuse its pull request's build."
+    },
+    {
+      "screen": "title",
+      "keys": [],
+      "caption": "In short: the review skips work that's already covered, and every review is cheaper and capped."
+    }
+  ]
+}
