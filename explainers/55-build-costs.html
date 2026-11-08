@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #69 Build costs</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #69: Skip the build on PRs with no code, and cache the compiler with ccache</h1>
+  <p class="lead" data-k="lead">Branch <code>55-build-costs</code> → <code>main</code>, closes #55 and #57. PRs that change only explainers, skills or docs no longer build and verify Thunar, and every other build reuses the last build's compiler output.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: #56, #66, #58</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">A changed-files check at the start of the build job, a ccache restore and save around the build, and a summary that says why build and verify were skipped. All in <code>build.yml</code> and <code>pr-summary.py</code>.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="The build job lists the PR's changed files; with no code it skips its heavy steps and verify skips too, and the summary says why; otherwise it restores ccache, builds, saves ccache and drops the branch's previous cache">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① No code changed: skip (#55)</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">List the files</text>
+      <text x="36" y="114" class="m">git diff HEAD^1</text>
+      <text x="36" y="134" class="b">the PR's changes</text>
+      <text x="36" y="154" class="b">on top of main</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Docs only?</text>
+      <text x="286" y="114" class="b">explainers/, .claude/</text>
+      <text x="286" y="134" class="b">*.md, narration</text>
+      <text x="286" y="154" class="b">then skip=true</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Steps skipped</text>
+      <text x="536" y="114" class="b">build and verify</text>
+      <text x="536" y="134" class="b">skip their steps</text>
+      <text x="536" y="154" class="b">but stay green</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Summary says</text>
+      <text x="786" y="114" class="b">why: build and</text>
+      <text x="786" y="134" class="b">verify rows read</text>
+      <text x="786" y="154" class="b">skipped, no code</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M440,180 V256" marker-end="url(#ah-flow)"/>
+    <text class="b" x="450" y="226">code changed</text>
+
+    <text class="lane" x="20" y="244" style="fill:var(--accent)">② Code changed: ccache (#57)</text>
+    <g data-k="5">
+      <rect class="box-pr" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Restore cache</text>
+      <text x="286" y="314" class="m">~/.ccache</text>
+      <text x="286" y="334" class="b">newest entry for</text>
+      <text x="286" y="354" class="b">this branch or main</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Build</text>
+      <text x="536" y="314" class="m">dpkg-buildpackage</text>
+      <text x="536" y="334" class="b">gcc through ccache</text>
+      <text x="536" y="354" class="b">then ccache -s</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-pr" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Save</text>
+      <text x="786" y="314" class="b">a new entry; GitHub</text>
+      <text x="786" y="334" class="b">evicts the oldest</text>
+      <text x="786" y="354" class="b">past 10 GB</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <path class="arrow" d="M480,320 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,320 H766" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>same as before</span>
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new in this PR</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">GitHub Actions ran out of minutes on 7 November, after about 2,019 billed minutes in six days. Build and verify billed 541 of them on PRs that changed no Thunar code, and the build job spent most of its 4 minutes compiling the same files as the run before.</p>
+  <div class="note" data-k="note">A skipped step keeps its job green, while a skipped job may not satisfy a required check. So build and verify still run on every PR; on a docs-only PR each finishes in seconds with its heavy steps skipped.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① No code changed: skip (#55)</div>
+  <ol class="steps">
+    <li data-k="1"><b>List the files.</b> On a pull request, the checkout is GitHub's merge commit of the PR into <code>main</code>. With two commits of history, <code>git diff --no-renames --name-only HEAD^1 HEAD</code> lists what the PR changes on top of the current <code>main</code>, both sides of a rename included. Pushes to <code>main</code> always build.</li>
+    <li data-k="2"><b>Docs only?</b> If every file is under <code>explainers/</code> or <code>.claude/</code>, or ends in <code>.md</code> or <code>.narration.json</code>, the step sets <code>skip=true</code>. Anything else builds as before: source, <code>.github/</code>, anything under <code>debian/</code> or <code>verify/</code>, even a <code>.md</code> file there, and the root <code>README.md</code>, which the <code>thunar-data</code> package installs.</li>
+    <li data-k="3"><b>Steps skipped.</b> The build job's PPA, build-deps, dry-run, ccache, build and upload steps skip, and so does every step of verify, through the job output <code>needs.build.outputs.skip</code>. In their place, each job runs one step named <code>No code changed</code>. Both jobs still finish green, with no debs, no shots and no verify comment.</li>
+    <li data-k="4"><b>Summary says why.</b> <code>pr-summary.py</code> reads each job's steps from the GitHub jobs list. A green build or verify job that ran <code>No code changed</code> shows as ⏭️ "skipped: the PR changes no code, packaging or CI files", the key result and shots says verify did not run, and the screenshot audit row reads "not needed: verify took no shots".</li>
+  </ol>
+  <div class="lane-h" style="color:var(--accent)">② Code changed: ccache (#57)</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Restore cache.</b> <code>ccache</code> is installed with the build-deps, and <code>actions/cache/restore</code> brings back the newest <code>~/.ccache</code> whose key starts with <code>ccache-$ImageOS-$ImageVersion-</code>: this branch's own, or else <code>main</code>'s.</li>
+    <li data-k="6"><b>Build.</b> <code>dpkg-buildpackage</code> runs as before, with <code>/usr/lib/ccache</code> first on <code>PATH</code>, so every <code>gcc</code> call goes through ccache. <code>CCACHE_DIR</code> is an absolute path, because debhelper gives the build a fake <code>HOME</code>. <code>ccache -s</code> prints the hit rate in the log.</li>
+    <li data-k="7"><b>Save.</b> The cache is saved under a key ending in the run ID, at most 500 MB. Old entries aren't deleted by the workflow: past the repo's 10 GB, GitHub evicts the least recently used, and it drops any entry unused for 7 days. Deleting them would need <code>actions: write</code> on a job that runs the PR's own scripts.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">.github/workflows/build.yml     # the changes check, the "No code changed" steps, skip conditions
+                                # on build and verify, ccache install, restore and save
+.github/scripts/pr-summary.py   # a green job that ran "No code changed" reads "skipped: ..."
+CLAUDE.md                       # merge rule and Verify section allow a "No code changed" PR
+explainers/
+├── 55-build-costs.html            # this page
+└── 55-build-costs.narration.json  # its narration, stamped from this page</pre>
+  <div class="note warn" data-k="undo">To undo the skip on one PR, touch any file outside the docs patterns. To start ccache from cold, or to free cache space by hand, delete the <code>ccache-*</code> entries under the repo's Actions → Caches.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built on patterns the workflow already had, checked offline in the cloud session, then by CI on this PR. No Thunar code changes, so there is no verify script.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>review-proof.sh plan</h3><p>Already skips the review when nothing but <code>explainers/</code> changed since the last reviewed head.</p></div>
+    <div class="card" data-k="r2"><h3>verify's deb cache</h3><p>The <code>actions/cache</code> restore and save pair keyed by image and run ID, with a prefix restore key. ccache copies it.</p></div>
+    <div class="card" data-k="r3"><h3>pr-summary.py job states</h3><p>Already turns each job's conclusion into a row; the new state is one more case in the same function.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>The docs pattern</td><td>The step's <code>grep</code> on 10 sample paths, in the cloud session</td><td class="ok">5 docs paths dropped; <code>verify/55.sh</code>, <code>thunar/a.c</code>, <code>build.yml</code>, <code>debian/rules</code>, <code>README.mdx</code> kept; after the review fix, <code>debian/x.md</code> and <code>verify/README.md</code> kept too</td></tr>
+    <tr data-k="c6"><td>The skip step under <code>bash -e</code></td><td>The step's script, run as GitHub runs it, in a scratch repo whose last commit adds only <code>explainers/b</code></td><td class="ok">skip=true, no early exit</td></tr>
+    <tr data-k="c2"><td>The summary's skip state</td><td><code>job_states</code>, <code>section_state</code> and <code>summary</code> on stand-in jobs and comments: both jobs ran <code>No code changed</code>, and an older head left shots</td><td class="ok">build, verify: skipped, no code; audit not needed; no old shots shown</td></tr>
+    <tr data-k="c3"><td>Workflow syntax</td><td><code>yaml.safe_load</code> on <code>build.yml</code></td><td class="ok">parses</td></tr>
+    <tr data-k="c4"><td>Full build and verify on this PR</td><td>CI run 42464307797 on <code>fbc0562</code>: it changes <code>.github/</code>, so nothing is skipped</td><td class="ok">build passed; verify 5 of 5; <code>/visual-verify</code> PASS on 50 shots</td></tr>
+    <tr data-k="c5"><td>ccache hit rate</td><td><code>ccache -s</code> in the second build on this branch, which restored the first build's cache</td><td class="ok">220 of 221 hits (99.55%); 18 MB saved</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh agent, given only the diff and the two issues, found 6: 2 medium, 4 low. 3 are fixed, 2 were kept on purpose, and 1 was the explainer, which this page adds.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed:</b> a compiled Python file from a local test run had been committed; docs-only PRs would have waited forever for a screenshot audit that has no shots to audit, so the summary now marks it not needed; and <code>*.md</code> under <code>debian/</code> or <code>verify/</code> no longer skips the build.</li>
+    <li data-k="b2"><b>Kept at first:</b> the build job had <code>actions: write</code> to delete its old cache entry. CI's review flagged that too, and the delete is now gone; see below.</li>
+  </ul>
+  <p data-k="ci">CI's first review, at <code>high</code> in 5 minutes, found 8: R1 to R8. R1, confirmed and medium, says <code>CLAUDE.md</code>'s merge rule still needs build and verify to run their steps and a <code>/visual-verify</code> PASS, so a docs-only PR could never be merged by the agent. The owner chose to change the rule in this PR: a PR whose build and verify ran <code>No code changed</code> needs neither, and the Verify section says when they skip. The other 7 are fixed in one push: the root <code>README.md</code> always builds; the build job is back to <code>actions: read</code>, so it no longer deletes old cache entries, which also settles two findings about that delete; the summary finds the skip by a dedicated <code>No code changed</code> step rather than the heavy steps' names; an older head's shots no longer show on a skipped head; and the file patterns are written in one place only. The second review found nothing new. The third, on the <code>CLAUDE.md</code> change, resolved R1 and found 6 more. R9, a medium, said the screenshot rule still asked for an audit after every CI run; it now skips runs that took no shots. R10 to R14, lows nobody confirmed, are accepted with <code>Review-accept: R10, R11, R12, R13, R14</code>: R13 and R14 question the owner's own decision to change the rule here; R12's two jobs share one skip output, so they can't disagree; R10's audit is never posted on a skipped PR, so it can't fail; and R11's file list already matches <code>build.yml</code>. The fourth review raised 2 more lows, accepted the same way with <code>Review-accept: R15, R16</code>: R15 says the first trailer sat on a commit that also changed <code>CLAUDE.md</code>, which the explainer-only commit after it covers; R16 says the <code>visual-verify</code> skill's one-line description still mentions every CI run, which <code>CLAUDE.md</code> now qualifies. The code review comment on <a href="https://github.com/alexhu98/thunar/pull/69">PR #69</a> has every finding.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>A docs-only PR skipping build and verify</td><td>This PR changes <code>.github/</code>, so it always builds</td><td class="open">the next docs-only PR</td></tr>
+    <tr data-k="a2"><td><code>main</code>'s ccache entry seeding new PRs</td><td>Saved by the first push to <code>main</code> after the merge</td><td class="open">the next PR after the merge</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/69">PR #69</a> → “Files changed”</li>
+    <li data-k="l2">The issues: <a href="https://github.com/alexhu98/thunar/issues/55">#55</a> and <a href="https://github.com/alexhu98/thunar/issues/57">#57</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: #56, #66, #58</h2>
+  <p class="intro" data-k="intro">The rest of the CI-minutes issues. Another session takes them after this merges, since they edit the same workflow.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR built; issue 56 folds small jobs, issue 66 quiets comment edits, issue 58 reuses PR debs on main; none built yet">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">Fewer billed minutes</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">#55, #57</text>
+      <text x="36" y="134" class="b">skip docs-only PRs,</text>
+      <text x="36" y="154" class="b">ccache the build</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Fold small jobs</text>
+      <text x="286" y="114" class="b">#56: fewer jobs,</text>
+      <text x="286" y="134" class="b">less per-job</text>
+      <text x="286" y="154" class="b">minute rounding</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Quieter edits</text>
+      <text x="536" y="114" class="b">#66: comments</text>
+      <text x="536" y="134" class="b">edited only when</text>
+      <text x="536" y="154" class="b">they change</text>
+    </g>
+    <g data-k="n4">
+      <rect class="box-future" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Reuse PR debs</text>
+      <text x="786" y="114" class="b">#58: a push to main</text>
+      <text x="786" y="134" class="b">reuses the merged</text>
+      <text x="786" y="154" class="b">PR's debs</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M730,120 H766" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="fold">
+  <h3 class="sec">Fold the small jobs: #56 (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>review-report into review.</b> The report runs as the review job's last step, saving a rounded-up minute per run.</li>
+    <li data-k="2"><b>release into build.</b> On a push to <code>main</code>, the release steps run at the end of the build job.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="quiet">
+  <h3 class="sec">Quieter comment edits: #66</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Skip identical edits.</b> <code>pr-comment.sh put</code> leaves a comment alone when its new body is the same.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="reuse">
+  <h3 class="sec">Reuse the PR's debs on main: #58</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Same tree, same debs.</b> When the pushed commit's tree equals the merged PR head's, the push run downloads that PR's debs instead of building, if the release version can be stamped.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="ccache"><dt>ccache</dt><dd>A compiler wrapper that reuses an earlier compile's output when the input is the same.</dd></div>
+    <div data-k="merge"><dt>Merge commit</dt><dd>The commit GitHub makes of a PR merged into <code>main</code>, which CI checks out.</dd></div>
+    <div data-k="step"><dt>Skipped step</dt><dd>A step whose <code>if:</code> is false; its job can still finish green.</dd></div>
+    <div data-k="cachekey"><dt>Cache key</dt><dd>The name an Actions cache entry is saved under; a prefix finds the newest match.</dd></div>
+    <div data-k="debhelper"><dt>debhelper</dt><dd>The Debian tool <code>dpkg-buildpackage</code> runs to configure and compile.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
