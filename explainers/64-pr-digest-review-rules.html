@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #67 PR digest</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #67: A short PR digest, and an end to endless low-finding review rounds</h1>
+  <p class="lead" data-k="lead">Branch <code>64-pr-digest-review-rules</code> → <code>main</code>, closes #64 and #65. Sessions read a PR's CI state as about 20 lines instead of 60,000 characters, and low findings nobody confirmed stop blocking the merge after one fix round.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: #66</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">A read-only <code>pr-digest</code> agent in <code>.claude/agents/</code>, and four rules in <code>CLAUDE.md</code> on how the agent reads and answers CI's reviews.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="The session asks pr-digest for a PR's state and gets about 20 lines back; each review round's fixes go out in one push, later low unconfirmed findings are accepted on an explainer-only commit, and the rest are fixed or go to the owner">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Reading a PR: through pr-digest</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Ask the digest</text>
+      <text x="36" y="114" class="b">PR number, last</text>
+      <text x="36" y="134" class="b">head and highest</text>
+      <text x="36" y="154" class="b">finding ID seen</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Read in full</text>
+      <text x="286" y="114" class="b">CI's 4 comments,</text>
+      <text x="286" y="134" class="b">checks, commits,</text>
+      <text x="286" y="154" class="b">owner's comments</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Parse markers</text>
+      <text x="536" y="114" class="m">review:state</text>
+      <text x="536" y="134" class="m">pr-proof:status</text>
+      <text x="536" y="154" class="b">not the tables</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">About 20 lines</text>
+      <text x="786" y="114" class="b">checks, totals, new</text>
+      <text x="786" y="134" class="b">findings, audit,</text>
+      <text x="786" y="154" class="b">merge rule line</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--accent)">② Answering a review round</text>
+    <g data-k="5">
+      <rect class="box-pr" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">One push</text>
+      <text x="786" y="314" class="b">every fix for the</text>
+      <text x="786" y="334" class="b">round's findings</text>
+      <text x="786" y="354" class="b">together</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-pr" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Accept the lows</text>
+      <text x="536" y="314" class="b">after one round:</text>
+      <text x="536" y="334" class="b">low, unconfirmed,</text>
+      <text x="536" y="354" class="b">explainer commit</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">The rest</text>
+      <text x="286" y="314" class="b">medium, high or</text>
+      <text x="286" y="334" class="b">confirmed: fixed,</text>
+      <text x="286" y="354" class="b">or to the owner</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <g data-k="8">
+      <rect class="box-pr" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Merge rule</text>
+      <text x="36" y="314" class="b">every finding is</text>
+      <text x="36" y="334" class="b">fixed, resolved or</text>
+      <text x="36" y="354" class="b">accepted by rule</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">8</text>
+    </g>
+    <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M520,320 H484" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M270,320 H234" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>same as before</span>
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new in this PR</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">On PR #62, CI's review raised 36 findings over 7 pushes, none of them confirmed. The session read the review comment, up to 60,000 characters, in full several times just to find each round's new ones, and every fix push drew about 7 new low findings. It took three owner decisions to end that loop.</p>
+  <div class="note" data-k="note">CI writes its state as JSON in hidden comment markers. The digest reads those, so it counts every finding even when the Markdown table is cut to fit, and it always prints the totals, so a finding it leaves out is still counted.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Reading a PR: through pr-digest</div>
+  <ol class="steps">
+    <li data-k="1"><b>Ask the digest.</b> Whenever the session needs a PR's CI state, it starts the <code>pr-digest</code> agent with the PR number and, after the first time, the last digest's head SHA and highest finding ID. <code>CLAUDE.md</code> now forbids a full <code>get_comments</code> in the main session.</li>
+    <li data-k="2"><b>Read in full.</b> The agent has only GitHub read tools, plus Read and Grep for <code>CLAUDE.md</code>. It reads the PR, its check runs, its commits, every comment and the review threads, in its own context.</li>
+    <li data-k="3"><b>Parse markers.</b> It parses <code>&lt;!-- review:state {...} --&gt;</code> for each finding's ID, severity, verdict and status, and <code>&lt;!-- pr-proof:status {...} --&gt;</code> for each check's state and the commit it covers. It also reads each commit's <code>Review-accept</code> trailer and flags a range like <code>R30-R36</code>, and checks whether build, verify and explainer ran their steps.</li>
+    <li data-k="4"><b>About 20 lines.</b> Head, base and whether <code>main</code> moved; each check; finding totals by status; the new findings, one line each; the open ones split by low-unconfirmed and the rest; the latest <code>/visual-verify</code> verdict; unanswered owner comments; and one line on the merge rule.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--accent)">② Answering a review round</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>One push.</b> All the fixes for one review's findings go out together, so each round costs one CI run and one new review.</li>
+    <li data-k="6"><b>Accept the lows.</b> After that one fix round, a <code>low</code> finding that isn't CONFIRMED, from any later review, is accepted, unless reading it shows a real bug that's quick to fix. It is accepted on a commit that changes only <code>explainers/</code>, which CI doesn't review, with <code>Review-accept: R30, R31</code>, each ID listed. A low finding already marked <code>unconfirmed</code> counts as accepted with no trailer.</li>
+    <li data-k="7"><b>The rest.</b> A <code>medium</code> or <code>high</code> finding, or a CONFIRMED one, is fixed or brought to the owner, as before. That includes <code>unconfirmed</code> ones: CI stops re-checking them, so the fixing commit's message names each ID, as in <code>Fixes R4</code>.</li>
+    <li data-k="8"><b>Merge rule.</b> "Every review finding is fixed" becomes "fixed, resolved or accepted under the CI review rules, none closed by a <code>Review-accept</code> the agent added outside them".</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">.claude/agents/pr-digest.md              # the read-only digest agent: method and its 20-line output
+CLAUDE.md                                # read CI's comments only through pr-digest; one push per round;
+                                         # low unconfirmed findings accepted; the merge rule's wording
+explainers/
+├── 64-pr-digest-review-rules.html            # this page
+└── 64-pr-digest-review-rules.narration.json  # its narration, stamped from this page</pre>
+  <div class="note warn" data-k="undo">Agent definitions load when a session starts. A session already running when this merges can't call <code>pr-digest</code> by name. It runs a general agent that reads <code>pr-digest.md</code> and follows it, as the <code>shot-audit</code> skill does for its agent.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built from how CI writes its markers, then tried on PR #62's final state and used on this PR's own CI rounds. No Thunar code changes, so there is no verify script.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>shot-auditor</h3><p>The read-only agent behind <code>/shot-audit</code>: a narrow tool list, a fixed method and a fixed table as its only output.</p></div>
+    <div class="card" data-k="r2"><h3>review-state.py</h3><p>Writes <code>review:state</code> and the review's <code>pr-proof:status</code>, and marks a finding <code>unconfirmed</code> once it has stayed open unconfirmed for a round.</p></div>
+    <div class="card" data-k="r3"><h3>review-proof.sh accepted()</h3><p>The trailer parser: it splits on anything but letters and digits and keeps each <code>R</code>-number, so a range keeps only its two ends.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>The digest on PR #62</td><td>A general agent told to follow <code>pr-digest.md</code>, on PR #62's final state, twice: before and after the review fixes</td><td class="ok">18 lines; R30–R36 accepted, R1–R29 unconfirmed, PASS for <code>05cc45a</code>; merge rule fails on R12, a medium the owner accepted off the PR</td></tr>
+    <tr data-k="c2"><td>The digest on this PR</td><td><code>pr-digest</code>, bound by name once the session picked it up, after CI's first review</td><td class="ok">23 lines: 9 findings, 1 CONFIRMED, each on one line</td></tr>
+    <tr data-k="c3"><td>The rules on this PR's own review</td><td>Each review's fixes in one push whose message names each ID; a later review's lows not CONFIRMED accepted</td><td class="ok">1 push a round; from round 3: confirmed fixed, 12 lows accepted; round 8 had only lows</td></tr>
+    <tr data-k="c4"><td>The agent bound by name</td><td>Needs a session started after the merge</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh agent, given only the diff and the two issues, found 8: 2 high, 3 medium, 3 low. All 8 are fixed. The first test run on PR #62 also showed the digest listing all 36 findings and judging the merge rule by the old wording; both are fixed.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Unconfirmed isn't always low:</b> CI marks any plausible finding <code>unconfirmed</code> after a round, medium and high too. Only low ones now count as accepted; the rest still need a fix or the owner.</li>
+    <li data-k="b2"><b>What the digest can see:</b> the review's skip reason is read from its one Markdown line, and whether jobs ran their steps comes from the run's job list.</li>
+    <li data-k="b3"><b>Smaller ones:</b> whether <code>main</code> moved has a defined test; the trailer goes in the message's last paragraph; the merge rule names <code>resolved</code> findings too; an escape note had lost its backslash.</li>
+  </ul>
+  <p data-k="ci">CI's first review, at <code>high</code> in 4 minutes, found 9 more: 5 medium, 4 low, one of them confirmed. All 9 are fixed in one push. The digest now reads which commit fixed an <code>unconfirmed</code> finding from its message, judges whether <code>main</code> moved by dates, and can return a finding's full text. The rules now say which reviews' lows are accepted, and that scripts reading a comment themselves are unaffected. Its second review found 7 more, R10–R16, 5 of them confirmed. All 7 are fixed in a second push: <code>main</code> counts as moved unless the branch already contains it, a <code>Fixes</code> line must touch the finding's file, and only a later review's lows are accepted without a fix. Its third review found 8 more. The 3 confirmed ones are fixed in a third push: one digest line lists every unsettled finding, a <code>Fixes</code> line in another file is flagged rather than refused, and findings cut from the state count as unsettled. The 5 lows that aren't confirmed are accepted under the new rule, on an explainer-only commit: R20–R24, about edge cases in the digest's own method (a PR whose first review found nothing, a very long ancestry walk, extra API calls and wording). The fourth review found 6: the 3 confirmed ones (trimmed closed findings, a mark no line showed, first-review lows not marked) are fixed in a fourth push, and the 3 lows, R28–R30, are accepted the same way, about trimmed findings and line count. The fifth review passed, with 4 findings none of them confirmed: the 2 mediums and 1 low, about findings cut from the state, are fixed, and R33, a low that would change CI's own script, is accepted. The sixth found 3 more about findings cut from the state, 1 confirmed; all 3 are fixed by one rule: a cut finding is settled only when fixed or resolved, and the caller judges the rest. The seventh passed, with 4 unconfirmed mediums on that same rule; one rewrite fixes them: a cut finding goes through the usual rules with what is left, and the owner settles any that still lack a fact. R42, a low on the same point, is accepted. The eighth passed with only 2 lows, which CI's own check found harmless; R43 and R44 are accepted, which ends the rounds. The code review comment on <a href="https://github.com/alexhu98/thunar/pull/67">PR #67</a> has every finding.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td><code>pr-digest</code> called by name</td><td>Agents load at session start</td><td class="open">the next session on a PR</td></tr>
+    <tr data-k="a2"><td>A second round of lows closed by one explainer commit</td><td>Needs a PR whose review raises more lows after a fix round</td><td class="open">the next such PR</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/67">PR #67</a> → “Files changed”</li>
+    <li data-k="l2">The issues: <a href="https://github.com/alexhu98/thunar/issues/64">#64</a> and <a href="https://github.com/alexhu98/thunar/issues/65">#65</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: #66</h2>
+  <p class="intro" data-k="intro">No open issue depends on this one. #66 came from the same PR #62 session and cuts the rest of the noise.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR built; issue 66, quieter CI comment edits, not built yet">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">Less context per PR</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">#64, #65</text>
+      <text x="36" y="134" class="b">short reads, fewer</text>
+      <text x="36" y="154" class="b">review rounds</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Quieter edits</text>
+      <text x="286" y="114" class="b">#66: CI edits its</text>
+      <text x="286" y="134" class="b">comments only when</text>
+      <text x="286" y="154" class="b">they change</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="quiet">
+  <h3 class="sec">Quieter comment edits: #66 (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Skip identical edits.</b> <code>pr-comment.sh put</code> leaves a comment alone when its new body is the same.</li>
+    <li data-k="2"><b>Fewer summary writes.</b> The summary is rewritten only when a check, the audit or the head changes, so a watching session wakes less often.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="agent"><dt>Agent</dt><dd>A helper Claude session with its own context and a limited set of tools.</dd></div>
+    <div data-k="digest"><dt>Digest</dt><dd>The short status <code>pr-digest</code> returns in place of CI's full comments.</dd></div>
+    <div data-k="marker"><dt>Marker</dt><dd>A hidden HTML comment in a PR comment that holds CI's data as JSON.</dd></div>
+    <div data-k="finding"><dt>Finding</dt><dd>One problem CI's review reports, numbered R1, R2 and so on.</dd></div>
+    <div data-k="confirmed"><dt>CONFIRMED / plausible</dt><dd>Whether the review reproduced a finding or only suspects it.</dd></div>
+    <div data-k="unconfirmed"><dt>unconfirmed</dt><dd>A plausible finding left open for a round, which CI stops re-checking.</dd></div>
+    <div data-k="trailer"><dt>Trailer</dt><dd>A <code>Key: value</code> line at the end of a commit message, such as <code>Review-accept: R30, R31</code>.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
