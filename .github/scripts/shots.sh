@@ -1,7 +1,8 @@
 #!/bin/bash
 # Commits one file to the orphan shots branch: shots.sh <local file> <path on shots> <commit message>
 # Prints the commit's sha, which pins the file's URL: https://github.com/$GH_REPO/blob/<sha>/<path>?raw=true
-# Env: GH_TOKEN, GH_REPO, OUT, SHOTS_BRANCH (default shots). DRY_RUN=1 prints DRY-RUN instead of committing.
+# Env: GH_TOKEN, GH_REPO, OUT, SHOTS_BRANCH (default shots), SHOTS_DEADLINE (epoch seconds after which GitHub errors
+# other than conflicts are no longer retried). DRY_RUN=1 prints DRY-RUN instead of committing.
 set -euo pipefail
 
 file=${1:?local file} path=${2:?path on shots} message=${3:?commit message}
@@ -16,12 +17,6 @@ if [[ ${DRY_RUN:-0} == 1 ]]; then
   exit 0
 fi
 delays=(2 4 8 16 30)
-attempts=6
-outage="$OUT/outage"
-if [[ -e $outage ]]; then
-  attempts=1
-  echo "an earlier upload in this run gave up on GitHub errors, so $path gets 1 attempt" >&2
-fi
 local_blob=$(git hash-object --no-filters "$file")
 transient=0
 landed() {
@@ -35,7 +30,7 @@ landed() {
   echo "$branch:$path already holds this file, in ${sha::12}; the failed upload landed" >&2
   echo "$sha"
 }
-for (( attempt = 1; attempt <= attempts; attempt++ )); do
+for attempt in 1 2 3 4 5 6; do
   if (( transient )) && landed; then
     exit 0
   fi
@@ -56,15 +51,19 @@ for (( attempt = 1; attempt <= attempts; attempt++ )); do
   else
     transient=1
     echo "upload of $path failed (attempt $attempt) with a transient error" >&2
+    if [[ -n ${SHOTS_DEADLINE:-} ]] && (( $(date +%s) >= SHOTS_DEADLINE )); then
+      echo "this run's time for retrying GitHub errors is used up, so $path is not retried" >&2
+      break
+    fi
   fi
-  if (( attempt < attempts )); then
+  if (( attempt < 6 )); then
     delay=${delays[attempt-1]}
     sleep $(( delay + RANDOM % (delay / 2 + 1) ))
   fi
 done
 if (( transient )); then
+  sleep 5
   landed && exit 0
-  touch "$outage"
 fi
-echo "upload of $path failed after $attempts attempt(s)" >&2
+echo "upload of $path failed after $attempt attempt(s)" >&2
 exit 1
