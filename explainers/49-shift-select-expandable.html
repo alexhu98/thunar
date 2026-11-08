@@ -275,7 +275,7 @@ explainers/49-shift-select-expandable.narration.json  # its narration</pre>
     <li data-k="ci8"><b>Fixed (medium):</b> the R16 change also dropped the anchor on a right-click on a selected row, which R3 had fixed; it is kept again, and <code>verify/49.sh</code> checks it (R27). Ctrl with the keypad's Space key moves the anchor too (R28), and a middle-click, which opens the row, still resets it (R32).</li>
     <li data-k="ci9"><b>Kept as #49 asks (low):</b> GTK's own Ctrl+Shift arrows only move the cursor; here Shift+Ctrl adds the range, as the issue specifies (R29).</li>
   </ul>
-  <p data-k="ci-review4">CI's reviews of <code>61f1a9f</code> and of its own fix <code>b77e9ff</code> found that a right- or middle-click selecting a row left the cursor behind, so the next Shift arrow spanned both rows (R37, R38, then medium R43, R44). Such a click now also moves the cursor to that row, and the anchor follows it; collapsing a folder moves an anchor inside it to the folder (R40). <code>verify/49.sh</code> checks both clicks.</p>
+  <p data-k="ci-review4">CI's reviews of <code>61f1a9f</code> and of its own fix <code>b77e9ff</code> found that a right- or middle-click selecting a row left the cursor behind, so the next Shift arrow spanned both rows (R37, R38, then medium R43, R44). Such a click now also moves the cursor to that row, and the anchor follows it; collapsing a folder moves an anchor inside it to the folder (R40). A right-click with Shift, Ctrl or Alt held, which only opens the menu, keeps the anchor (R55). <code>verify/49.sh</code> checks these clicks.</p>
   </section>
 
   <section class="sub" id="aftermerge">

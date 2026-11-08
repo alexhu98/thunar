@@ -112,10 +112,6 @@ thunar_details_view_key_press_event (GtkTreeView       *tree_view,
 static void
 thunar_details_view_cursor_changed (GtkTreeView       *tree_view,
                                     ThunarDetailsView *details_view);
-static gboolean
-tree_view_set_cursor_if_file_not_null (GtkTreeView  *tree_view,
-                                       GtkTreeModel *model,
-                                       GtkTreePath  *path);
 static void
 thunar_details_view_row_activated (GtkTreeView       *tree_view,
                                    GtkTreePath       *path,
@@ -826,14 +822,10 @@ static void
 thunar_details_view_cursor_changed (GtkTreeView       *tree_view,
                                     ThunarDetailsView *details_view)
 {
-  GtkTreeSelection *selection = gtk_tree_view_get_selection (tree_view);
-  GdkEvent         *event;
-  GdkModifierType   keep = GDK_SHIFT_MASK;
-  GdkModifierType   state = 0;
-  GtkTreePath      *path;
-  GtkTreePath      *anchor = NULL;
-  GList            *rows;
-  gboolean          keep_anchor = FALSE;
+  GdkEvent       *event;
+  GdkModifierType keep = GDK_SHIFT_MASK;
+  GdkModifierType state = 0;
+  GtkTreePath    *path;
 
   if (details_view->moving_cursor)
     return;
@@ -847,30 +839,11 @@ thunar_details_view_cursor_changed (GtkTreeView       *tree_view,
       gdk_event_free (event);
     }
 
-  gtk_tree_view_get_cursor (tree_view, &path, NULL);
-  if (path != NULL && (state & keep) != 0)
-    {
-      rows = gtk_tree_selection_get_selected_rows (selection, NULL);
-      if (rows != NULL && rows->next != NULL)
-        {
-          if (details_view->shift_anchor != NULL)
-            keep_anchor = TRUE;
-          else if ((state & GDK_SHIFT_MASK) != 0 && gtk_tree_path_compare (path, g_list_last (rows)->data) == 0)
-            anchor = gtk_tree_path_copy (rows->data);
-          else if ((state & GDK_SHIFT_MASK) != 0 && gtk_tree_path_compare (path, rows->data) == 0)
-            anchor = gtk_tree_path_copy (g_list_last (rows)->data);
-        }
-      else if (details_view->shift_anchor != NULL
-               && (rows == NULL || gtk_tree_path_compare (path, rows->data) != 0))
-        {
-          keep_anchor = TRUE;
-        }
-      g_list_free_full (rows, (GDestroyNotify) gtk_tree_path_free);
-    }
+  if ((state & keep) != 0 && details_view->shift_anchor != NULL)
+    return;
 
-  if (!keep_anchor)
-    thunar_details_view_set_shift_anchor (details_view, gtk_tree_view_get_model (tree_view), anchor != NULL ? anchor : path);
-  gtk_tree_path_free (anchor);
+  gtk_tree_view_get_cursor (tree_view, &path, NULL);
+  thunar_details_view_set_shift_anchor (details_view, gtk_tree_view_get_model (tree_view), path);
   gtk_tree_path_free (path);
 }
 
@@ -1040,7 +1013,15 @@ thunar_details_view_button_press_event (GtkTreeView       *tree_view,
               if (!gtk_tree_selection_path_is_selected (selection, path))
                 {
                   gtk_tree_selection_unselect_all (selection);
-                  tree_view_set_cursor_if_file_not_null (tree_view, model, path);
+                  if (gtk_tree_model_get_iter (model, &iter, path))
+                    {
+                      file = thunar_standard_view_model_get_file (THUNAR_STANDARD_VIEW_MODEL (model), &iter);
+                      if (file != NULL)
+                        {
+                          g_object_unref (file);
+                          gtk_tree_view_set_cursor (tree_view, path, NULL, FALSE);
+                        }
+                    }
                 }
 
               /* queue the menu popup */
@@ -1060,9 +1041,17 @@ thunar_details_view_button_press_event (GtkTreeView       *tree_view,
         {
           /* select only the path to the item on which the user clicked */
           gtk_tree_selection_unselect_all (selection);
-          /* try to open the path as new window/tab, if possible */
-          if (tree_view_set_cursor_if_file_not_null (tree_view, model, mc_path))
-            _thunar_standard_view_open_on_middle_click (THUNAR_STANDARD_VIEW (details_view), mc_path, event->state);
+          if (gtk_tree_model_get_iter (model, &iter, mc_path))
+            {
+              file = thunar_standard_view_model_get_file (THUNAR_STANDARD_VIEW_MODEL (model), &iter);
+              if (file != NULL)
+                {
+                  g_object_unref (file);
+                  gtk_tree_view_set_cursor (tree_view, mc_path, NULL, FALSE);
+                  /* try to open the path as new window/tab, if possible */
+                  _thunar_standard_view_open_on_middle_click (THUNAR_STANDARD_VIEW (details_view), mc_path, event->state);
+                }
+            }
 
           /* cleanup */
           gtk_tree_path_free (mc_path);
