@@ -58,28 +58,26 @@ focus "$EDITOR_WID"
 sleep 0.5
 [[ $(xdotool getactivewindow) == "$EDITOR_WID" ]] || fail "the editor window could not be focused"
 mkdir -p "$WORK/big-copy"
-truncate -s 2G "$WORK/big.img"
+truncate -s 3G "$WORK/big.img"
+truncate -s 1G "$WORK/big2.img"
 dbus-send --session --print-reply --reply-timeout=10000 --dest=org.xfce.FileManager /org/xfce/FileManager \
   org.xfce.FileManager.CopyInto string:"$WORK" array:string:"$WORK/big.img" string:"$WORK/big-copy" string:"" string:"" >/dev/null \
-  || fail "the D-Bus CopyInto call for the 2 GB file failed"
-find_window 'File Operation Progress' >/dev/null || fail "the progress window did not appear during the copy of a 2 GB file"
+  || fail "the D-Bus CopyInto call for the 3 GB file failed"
+find_window 'File Operation Progress' >/dev/null || fail "the progress window did not appear during the copy of a 3 GB file"
 ACTIVE=$(xdotool getactivewindow)
 [[ $ACTIVE == "$EDITOR_WID" ]] || fail "the progress window of a long copy took the focus: window $ACTIVE ('$(xdotool getwindowname "$ACTIVE")') is active"
-shot root progress-without-focus "During the copy of a 2 GB file with no question, the File Operation Progress window appeared after 500 ms and the editor kept the focus"
-truncate -s 2G "$WORK/big2.img"
-xdotool search --onlyvisible --name '^File Operation Progress$' >/dev/null 2>&1 \
-  || fail "the copy of the 2 GB file ended before a second copy could start with the progress window shown"
 dbus-send --session --print-reply --reply-timeout=10000 --dest=org.xfce.FileManager /org/xfce/FileManager \
   org.xfce.FileManager.CopyInto string:"$WORK" array:string:"$WORK/big2.img" string:"$WORK/big-copy" string:"" string:"" >/dev/null \
-  || fail "the D-Bus CopyInto call for the second 2 GB file failed"
+  || fail "the D-Bus CopyInto call for the second, 1 GB file failed"
 sleep 1
 ACTIVE=$(xdotool getactivewindow)
 [[ $ACTIVE == "$EDITOR_WID" ]] || fail "a second copy started with the progress window shown took the focus: window $ACTIVE ('$(xdotool getwindowname "$ACTIVE")') is active"
+shot root progress-without-focus "During the copy of a 3 GB file with no question, the File Operation Progress window appeared after 500 ms, a second copy started while it was shown raised it, and the editor kept the focus"
 for ((i = 0; i < 300; i++)); do
   xdotool search --onlyvisible --name '^File Operation Progress$' >/dev/null 2>&1 || break
   sleep 0.2
 done
-(( i < 300 )) || fail "the copies of the 2 GB files did not finish within 60 s"
+(( i < 300 )) || fail "the copies of the 3 GB and 1 GB files did not finish within 60 s"
 rm -f "$WORK/big.img" "$WORK/big2.img" "$WORK/big-copy/big.img" "$WORK/big-copy/big2.img"
 [[ $(xdotool getactivewindow) == "$EDITOR_WID" ]] || fail "the editor lost the focus during the long copy"
 
