@@ -144,7 +144,7 @@ def summary(runs):
     status = {n: hidden(mine.get(n, {}).get('body'), 'status') for n in JOBS}
     v = section_state('verify', status['verify'], head, jobs)
     checks.append(('Verify', v[0], v[1], link('verify', 'Verify comment')))
-    a = audit(comments, head)
+    a = ('skip', 'not needed: verify took no shots', '') if v[1] == NO_CODE else audit(comments, head)
     checks.append(('Screenshot audit', a[0], a[1], a[2]))
     r = section_state('review', status['review'], head, jobs)
     checks.append(('Code review', r[0], r[1], link('review', 'Code review comment')))

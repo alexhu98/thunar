@@ -40,7 +40,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           git diff --no-renames --name-only HEAD^1 HEAD > "$RUNNER_TEMP/changed.txt"
-          code=$(grep -Ev '^(explainers/|\.claude/)|\.md$|\.narration\.json$' "$RUNNER_TEMP/changed.txt" || true)
+          code=$(grep -E '^(debian|verify)/' "$RUNNER_TEMP/changed.txt"; grep -Ev '^(explainers/|\.claude/)|\.md$|\.narration\.json$' "$RUNNER_TEMP/changed.txt" || true)
           if [[ -s $RUNNER_TEMP/changed.txt && -z $code ]]; then
             echo skip=true >> "$GITHUB_OUTPUT"
             echo "Build and verify skipped: the PR changes only explainers/, .claude/, *.md or narration files." >> "$GITHUB_STEP_SUMMARY"
