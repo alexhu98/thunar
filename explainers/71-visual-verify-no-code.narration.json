@@ -1,7 +1,7 @@
 {
   "title": "PR #77 · Audit skip",
   "voice": "af_heart",
-  "page_sha256": "9a9f368f261b6376025e880205878297f2c4fffb3614b05ffd10922ea998c102",
+  "page_sha256": "cf963a6334191a6c921ccc7939cf934df4ca1eb316b67a9cab819743e5d9fc65",
   "lines": [
     {"screen": "title", "keys": [], "from": ["title", "lead"], "caption": "This is a tour of pull request 77, where the screenshot audit returns not needed when CI took no shots.", "src": "25ffccd4e2a3"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what the PR adds, how it was checked, and what comes later.", "src": "e7fece3382b9"},
@@ -34,7 +34,7 @@
     {"screen": "review", "keys": ["r3"], "caption": "Instead of waiting with no limit, a running build or verify ends with NOT YET.", "src": "bd363cfe8539"},
     {"screen": "review", "keys": ["r4"], "caption": "Only build and verify can show No code changed, and the digest's audit line now says not needed.", "src": "28cdc54c949d"},
     {"screen": "review", "keys": ["r6"], "caption": "The second review found that a missing check gave NOT YET forever. Now it goes on to the preflight.", "src": "ec19e30f7cc7"},
-    {"screen": "review", "keys": ["r7"], "caption": "Two low findings were accepted, since nothing posts the new verdicts and build and verify always skip together.", "src": "3862af51cbaf"},
+    {"screen": "review", "keys": ["r7"], "caption": "Two low findings were accepted, since nothing posts the new verdicts and build and verify always skip together.", "src": "ff9eb2daeb85"},
     {"screen": "review", "keys": ["r5"], "caption": "One finding is kept: CLAUDE.md routes every read of a PR's checks through pr-digest.", "src": "cbdef42c9b63"},
     {"screen": "aftermerge", "keys": ["a1", "a2"], "caption": "After the merge, the next docs-only pull request and the next code one show it working.", "src": "abf60e29871f"},
     {"screen": "see", "keys": ["l1", "l2"], "caption": "On this pull request, the summary's audit row already says not needed.", "src": "a81cf678c36a"},
@@ -86,7 +86,7 @@
     "review/r3": "bd363cfe8539",
     "review/r4": "28cdc54c949d",
     "review/r6": "ec19e30f7cc7",
-    "review/r7": "3862af51cbaf",
+    "review/r7": "ff9eb2daeb85",
     "review/r5": "cbdef42c9b63",
     "aftermerge/a1": "b65d32ba2b6e",
     "aftermerge/a2": "98c615c548be",
