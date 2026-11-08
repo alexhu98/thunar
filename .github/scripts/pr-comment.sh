@@ -26,11 +26,11 @@ api() {
   return 1
 }
 
-list() {  # -> "ID NAME" for every marked comment by the bot, oldest first
+list() {  # -> "ID NAME BODY" (BODY in base64) for every marked comment by the bot, oldest first
   [[ -n ${PR:-} ]] || return 0
   api --paginate "repos/{owner}/{repo}/issues/$PR/comments" --jq '.[]
     | select(.user.login == "github-actions[bot]" and (.body | test("^<!-- pr-proof:[a-z]+ -->")))
-    | "\(.id) \(.body | capture("^<!-- pr-proof:(?<n>[a-z]+) -->").n)"' | sort -n
+    | "\(.id) \(.body | capture("^<!-- pr-proof:(?<n>[a-z]+) -->").n) \(.body | @base64)"' | sort -n
 }
 
 id_of() {
@@ -83,7 +83,7 @@ ensure() {
 }
 
 put() {
-  local name=${1:?name} file=${2:?file} id
+  local name=${1:?name} file=${2:?file} id body
   [[ " ${NAMES[*]} " == *" $name "* ]] || { echo "unknown comment $name; one of ${NAMES[*]}" >&2; exit 2; }
   { printf '<!-- pr-proof:%s -->\n' "$name"; cat "$file"; } > "$OUT/comment.md"
   if [[ ${DRY_RUN:-0} == 1 ]]; then
@@ -93,9 +93,9 @@ put() {
   fi
   [[ -n ${PR:-} ]] || { echo "put needs PR" >&2; exit 1; }
   ensure
-  id=$(id_of "$name")
-  [[ -n $id ]] || { echo "::error::the $name comment is missing after creating it" >&2; exit 1; }
-  if [[ $(api "repos/{owner}/{repo}/issues/comments/$id" --jq .body 2>/dev/null) == "$(cat "$OUT/comment.md")" ]]; then
+  read -r id _ body < <(awk -v n="$name" '$2 == n {print; exit}' "$OUT/list") || true
+  [[ -n ${id:-} ]] || { echo "::error::the $name comment is missing after creating it" >&2; exit 1; }
+  if [[ $(printf '%s' "${body:-}" | base64 -d) == "$(cat "$OUT/comment.md")" ]]; then
     echo "the $name comment is unchanged"
     return
   fi

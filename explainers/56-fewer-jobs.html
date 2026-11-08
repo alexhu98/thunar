@@ -100,8 +100,8 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">PR #70: Fewer CI jobs, fewer comment edits, no rebuild after a merge</h1>
-  <p class="lead" data-k="lead">Branch <code>56-fewer-jobs</code> → <code>main</code>, closes #56, #66 and #58. GitHub bills each job as at least a whole minute, so CI now runs fewer short jobs, edits its PR comments only when they change, and releases a merged PR's own debs.</p>
+  <h1 data-k="title">PR #70: Fewer CI jobs and fewer comment edits</h1>
+  <p class="lead" data-k="lead">Branch <code>56-fewer-jobs</code> → <code>main</code>, closes #56 and #66, refs #58. GitHub bills each job as at least a whole minute, so CI now runs fewer short jobs and edits its PR comments only when they change.</p>
 
   <nav class="parts" aria-label="Parts of this page">
     <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
@@ -114,10 +114,10 @@
   <section class="part" id="adds">
   <p class="part-label" data-k="label">Part 1</p>
   <h2 data-k="heading">What this PR adds</h2>
-  <p class="intro" data-k="intro">Release folded into build, review-report run only for a fix, one re-run job dropped, a skip for unchanged comments, and debs reused on a push to <code>main</code>. No Thunar code changes.</p>
+  <p class="intro" data-k="intro">Release folded into verify, review-report run only for a fix, one re-run job dropped, and a skip for unchanged comments. No Thunar code changes.</p>
 
   <section class="sub" id="flow">
-  <div class="diagram" role="img" aria-label="On a PR, review now writes its own comment unless it has a fix to push, comments are edited only when they change, and an audit comment updates the summary directly; on a push to main, build reuses the merged PR's verified debs when the tree and version match, publishes the release itself, and verify is skipped">
+  <div class="diagram" role="img" aria-label="On a PR, review now writes its own comment unless it has a fix to push, comments are edited only when they change, and an audit comment updates the summary directly; on a push to main, build and verify run as before and verify publishes the release itself, only once the debs passed">
   <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -163,35 +163,35 @@
 
     <text class="lane" x="20" y="244" style="fill:var(--accent)">② On a push to main</text>
     <g data-k="5">
-      <rect class="box-pr" x="20" y="260" width="210" height="120" rx="10"/>
-      <text x="36" y="290" class="t">Find PR debs</text>
-      <text x="36" y="314" class="b">the merged PR's run</text>
-      <text x="36" y="334" class="b">whose build and</text>
-      <text x="36" y="354" class="b">verify passed</text>
+      <rect class="box-merge" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Build</text>
+      <text x="36" y="314" class="b">stamps the release</text>
+      <text x="36" y="334" class="b">version and builds</text>
+      <text x="36" y="354" class="b">the debs</text>
       <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">5</text>
     </g>
     <g data-k="6">
-      <rect class="box-pr" x="270" y="260" width="210" height="120" rx="10"/>
-      <text x="286" y="290" class="t">Same tree?</text>
-      <text x="286" y="314" class="b">and same version</text>
-      <text x="286" y="334" class="b">as this release:</text>
-      <text x="286" y="354" class="b">reuse, else build</text>
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Verify</text>
+      <text x="286" y="314" class="b">installs the debs</text>
+      <text x="286" y="334" class="b">and runs the smoke</text>
+      <text x="286" y="354" class="b">test and scripts</text>
       <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">6</text>
     </g>
     <g data-k="7">
       <rect class="box-pr" x="520" y="260" width="210" height="120" rx="10"/>
-      <text x="536" y="290" class="t">Release in build</text>
+      <text x="536" y="290" class="t">Release in verify</text>
       <text x="536" y="314" class="b">publish and keep</text>
       <text x="536" y="334" class="b">10, at the end of</text>
-      <text x="536" y="354" class="b">the build job</text>
+      <text x="536" y="354" class="b">the verify job</text>
       <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">7</text>
     </g>
     <g data-k="8">
       <rect class="box-pr" x="770" y="260" width="210" height="120" rx="10"/>
-      <text x="786" y="290" class="t">Verify skipped</text>
-      <text x="786" y="314" class="b">when the debs were</text>
-      <text x="786" y="334" class="b">reused: the PR</text>
-      <text x="786" y="354" class="b">already ran it</text>
+      <text x="786" y="290" class="t">Only if verified</text>
+      <text x="786" y="314" class="b">a failed verify</text>
+      <text x="786" y="334" class="b">now holds the</text>
+      <text x="786" y="354" class="b">release back</text>
       <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">8</text>
     </g>
     <path class="arrow" d="M230,320 H266" marker-end="url(#ah-flow)"/>
@@ -207,7 +207,7 @@
 
   <section class="sub" id="bigpic">
   <h3 class="sec">The big picture</h3>
-  <p data-k="why">Actions ran out of minutes on 7 November. GitHub rounds every job up to a whole minute, and the short jobs billed 345 minutes for 136 real ones. Pushes to <code>main</code> billed 95 more to rebuild what the PR had just built and verified. And every edit of CI's PR comments woke the watching session with the whole comment, even when nothing in it had changed.</p>
+  <p data-k="why">Actions ran out of minutes on 7 November. GitHub rounds every job up to a whole minute, and the short jobs billed 345 minutes for 136 real ones. And every edit of CI's PR comments woke the watching session with the whole comment, even when nothing in it had changed.</p>
   <div class="note" data-k="note">A job that runs for 10 seconds bills a full minute. Folding it into a job that already runs saves that minute, as long as the two together stay under the next whole minute.</div>
   </section>
 
@@ -223,31 +223,29 @@
   </ol>
   <div class="lane-h" style="color:var(--accent)">② On a push to main</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>Find PR debs.</b> <code>reuse-debs.sh find</code> looks up the PR merged as this commit and its newest build run whose build and verify passed, verify having run its tests, with a <code>debs</code> artifact not yet expired. Only a branch of this repo counts: a fork PR's earlier push could have left compiled objects in its ccache that its final files don't show.</li>
-    <li data-k="6"><b>Same tree?</b> PR builds now stamp the version the next release would get, and save the git tree they built in <code>built-tree</code>. The push reuses the debs only when that tree is this commit's tree and their version is the one it releases now. Otherwise it builds as before.</li>
-    <li data-k="7"><b>Release in build.</b> The <code>release</code> job's two steps, publish and keep the newest 10, run at the end of <code>build</code> on a push, so <code>build</code> has write access to the repo's contents.</li>
-    <li data-k="8"><b>Verify skipped.</b> When the debs were reused, <code>verify</code> doesn't start on the push: the PR's run already tested those exact debs.</li>
+    <li data-k="5"><b>Build.</b> Unchanged: on a push, <code>build</code> stamps the release version and builds the debs, with ccache.</li>
+    <li data-k="6"><b>Verify.</b> Unchanged: <code>verify</code> installs those debs and runs the smoke test and every <code>verify/&lt;issue&gt;.sh</code>.</li>
+    <li data-k="7"><b>Release in verify.</b> The <code>release</code> job's two steps, publish and keep the newest 10, now run at the end of <code>verify</code> on a push. <code>verify</code> already had write access to the repo's contents and the debs in <code>dist/</code>, so no job gains access, and <code>build</code> stays read-only.</li>
+    <li data-k="8"><b>Only if verified.</b> The old <code>release</code> job needed only <code>build</code>. Now a push whose tests fail publishes no release, so a broken build no longer reaches the releases page.</li>
   </ol>
   </div>
   </section>
 
-  <section class="sub" id="stamp">
-  <h3 class="sec">The version stamp (#58's blocker)</h3>
+  <section class="sub" id="skip58">
+  <h3 class="sec">Why #58 is left out</h3>
   <div class="grid">
-    <div class="card" data-k="s1"><h3>Before</h3><p>Only a push stamped <code>debian/changelog</code>, so a PR deb said <code>+local0</code> and could never be released as is.</p></div>
-    <div class="card" data-k="s2"><h3>Now</h3><p>A PR build stamps <code>next-version.sh</code>'s version too, the one its dry run already printed, with "CI build of PR #n at" its head.</p></div>
-    <div class="card" data-k="s3"><h3>Guard</h3><p>A release in between raises the number, and a moved <code>main</code> changes the tree. Either makes the push build its own debs.</p></div>
+    <div class="card" data-k="s1"><h3>The idea</h3><p>Stamp PR builds with the next release version, so a push could release the merged PR's debs instead of rebuilding.</p></div>
+    <div class="card" data-k="s2"><h3>The catch</h3><p>Every open PR's debs would then carry that same version with different contents. A PR deb installed for testing would stop the real release from installing.</p></div>
+    <div class="card" data-k="s3"><h3>The other way</h3><p>Re-stamping the PR's debs at release time means rewriting their control files, changelog and checksums, then releasing them untested. Not clean, so #58 stays open.</p></div>
   </div>
   </section>
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
-<pre data-k="tree">.github/workflows/build.yml       # release folded into build; review reports itself unless
-                                  # it has a fix; PR builds stamp the version; a push can
-                                  # reuse the PR's debs
+<pre data-k="tree">.github/workflows/build.yml       # release folded into verify; review reports itself
+                                  # unless it has a fix
 .github/workflows/pr-summary.yml  # writes the summary itself instead of re-running a job
-.github/scripts/reuse-debs.sh     # new: find the merged PR's verified debs, check tree and version
-.github/scripts/pr-comment.sh     # put skips an edit that changes nothing
+.github/scripts/pr-comment.sh     # put skips an edit that changes nothing, from the list it reads
 .github/scripts/pr-summary.py     # notes the new caller
 .github/scripts/review-proof.sh   # report can run inside review; its time counts so far
 .claude/agents/pr-digest.md       # review-report skipped without a fix is fine
@@ -255,7 +253,7 @@ CLAUDE.md                         # the merge rule allows that skip
 explainers/
 ├── 56-fewer-jobs.html            # this page
 └── 56-fewer-jobs.narration.json  # its narration, stamped from this page</pre>
-  <div class="note warn" data-k="undo">To undo, revert this PR. Re-running a push run that reused debs reuses them again; a new commit on <code>main</code> builds its own.</div>
+  <div class="note warn" data-k="undo">To undo, revert this PR. If a flaky test holds a release back, re-run the push run's failed jobs.</div>
   </section>
   </section>
 
@@ -269,7 +267,7 @@ explainers/
   <h3 class="sec">Built on 3 known-good references</h3>
   <div class="grid">
     <div class="card" data-k="r1"><h3>review-report job</h3><p>Kept as it was for a fix to push; its report command, without the push, now also runs as review's last step.</p></div>
-    <div class="card" data-k="r2"><h3>release job</h3><p>Its two scripts, <code>publish-release.sh</code> and <code>prune-releases.sh</code>, unchanged.</p></div>
+    <div class="card" data-k="r2"><h3>release job</h3><p>Its two scripts, <code>publish-release.sh</code> and <code>prune-releases.sh</code>, unchanged, now beside <code>verify</code>'s own <code>contents: write</code>.</p></div>
     <div class="card" data-k="r3"><h3>pr-summary.py</h3><p>Already writes the summary from any job; <code>pr-summary.yml</code> now calls it the same way.</p></div>
   </div>
   </section>
@@ -280,20 +278,21 @@ explainers/
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>Workflow and script syntax</td><td>PyYAML on both workflows, <code>bash -n</code> on every script, in the building session</td><td class="ok">all parse</td></tr>
-    <tr data-k="c2"><td>The folded review on a PR</td><td>This PR's own CI run</td><td class="no">not run yet: waits for this PR's first CI run</td></tr>
-    <tr data-k="c3"><td>Jobs and billed minutes</td><td>This PR's run against PR #69's, from the run's timing</td><td class="no">not run yet: waits for this PR's first CI run</td></tr>
+    <tr data-k="c2"><td>The review reporting itself</td><td>This PR's first CI run, 42499844251, whose review left no fix to push</td><td class="ok">review comment and summary written by review's last step; review-report skipped</td></tr>
+    <tr data-k="c4"><td>Unchanged comment left alone</td><td><code>pr-comment.sh put</code> against a stub <code>gh</code> serving four marked comments, in the building session</td><td class="ok">same body: no edit; changed body: 1 edit</td></tr>
+    <tr data-k="c3"><td>Jobs billed</td><td>Jobs that ran in this PR's first run, 42499844251, against PR #69's last, 42497499939, from the GitHub API</td><td class="ok">5 against 6: review-report, 22 s billed as 1 min there, skipped here</td></tr>
   </table>
   </div>
   </section>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">A fresh agent, given the diff and the intent, found 7: 2 high, 1 medium, 4 low. Both highs and one low, a check that could miss an artifact, are fixed. The medium, the merge rule's job names, waits on the owner's approval of the <code>CLAUDE.md</code> edit. Three lows are kept on purpose.</p>
+  <p data-k="summary">A fresh agent, given the diff and the intent, found 7 in the first version: 2 high, 1 medium, 4 low. Both highs and one low are fixed. The medium, the merge rule's job names, waits on the owner's approval of the <code>CLAUDE.md</code> edit. Kept on purpose: an audit no longer re-runs a failed summary check, though it still updates the comment.</p>
   <ul class="tight">
-    <li data-k="b1"><b>The push token beside the model:</b> the first version ran the report on the review's machine. The model can write files there, such as a Python module or a git config the report would load, or leave a process running. Fixed by keeping <code>review-report</code> on its own machine whenever there is a fix to push.</li>
-    <li data-k="b2"><b>A fork's ccache into a release:</b> a fork PR's earlier push could plant objects in its ccache that a later, clean push builds into debs. Fixed: only runs from this repo's branches are reused.</li>
-    <li data-k="b3"><b>Kept:</b> <code>build</code> has write access on PRs too, since job permissions can't depend on the event; reused debs say "CI build of PR #n" in their changelog, not the merge commit; a failed summary check isn't re-run by an audit any more, though the comment itself is updated.</li>
+    <li data-k="b1"><b>The push token beside the model:</b> the first version ran the whole report on the review's machine. The model can write files there, such as a Python module or a git config the report would load, or leave a process running. Fixed by keeping <code>review-report</code> on its own machine whenever there is a fix to push.</li>
+    <li data-k="b2"><b>A fork's ccache into a release:</b> reused debs could carry objects a fork PR's earlier push left in its ccache. Fixed at first by reusing only this repo's runs, then moot once #58 was left out.</li>
   </ul>
+  <p data-k="ci">CI's first review, at <code>high</code> in 6 minutes, found 9: 3 medium, 6 low, R1–R9. Fixed in one push: <code>build</code> no longer gets write access, because the release moved into <code>verify</code> (R1); PR debs no longer carry the next release's version, because #58 is left out (R2, and R8 with it); the in-job report calls the script directly (R6); the job's minutes are computed without a round trip (R7); and the unchanged-comment check reads the bodies from the list it already fetched (R9). R3, R4 and R5 wait on the owner: the <code>CLAUDE.md</code> edit, the report sharing the review job's time limit, and the review job's PR-write token, which #56 listed as a known cost.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -301,8 +300,7 @@ explainers/
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>Release published from the build job</td><td>Only a push to <code>main</code> releases</td><td class="open">this PR's merge</td></tr>
-    <tr data-k="a2"><td>A merged PR's debs reused</td><td>Needs a merged PR whose run built debs; this PR changes only CI, so its debs are built too and its merge can reuse them</td><td class="open">this PR's merge</td></tr>
+    <tr data-k="a1"><td>Release published from the verify job</td><td>Only a push to <code>main</code> releases</td><td class="open">this PR's merge</td></tr>
     <tr data-k="a3"><td>Summary written by <code>pr-summary.yml</code></td><td><code>issue_comment</code> runs the workflow from <code>main</code></td><td class="open">the next audit after the merge</td></tr>
   </table>
   </div>
@@ -312,7 +310,7 @@ explainers/
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/70">PR #70</a> → “Files changed”</li>
-    <li data-k="l2">The issues: <a href="https://github.com/alexhu98/thunar/issues/56">#56</a>, <a href="https://github.com/alexhu98/thunar/issues/66">#66</a> and <a href="https://github.com/alexhu98/thunar/issues/58">#58</a></li>
+    <li data-k="l2">The issues: <a href="https://github.com/alexhu98/thunar/issues/56">#56</a> and <a href="https://github.com/alexhu98/thunar/issues/66">#66</a>, and <a href="https://github.com/alexhu98/thunar/issues/58">#58</a>, left open</li>
   </ul>
   </section>
   </section>
@@ -321,14 +319,17 @@ explainers/
   <section class="part" id="later">
   <p class="part-label" data-k="label">Part 3</p>
   <h2 data-k="heading">What comes later</h2>
-  <p class="intro" data-k="intro">No open issue depends on this one. This PR closes the last of the minute-saving issues opened on 8 November.</p>
+  <p class="intro" data-k="intro">No open issue depends on this one. #58, reusing a merged PR's debs, stays open until its version problem has a clean answer.</p>
 
   <section class="sub" id="next">
-  <div class="diagram" role="img" aria-label="PR 69 and this PR built; nothing depends on them yet">
+  <div class="diagram" role="img" aria-label="PR 69 and this PR built; issue 58 not built yet">
   <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
         <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
       </marker>
     </defs>
     <text class="lane" x="20" y="44" style="fill:var(--merge)">Fewer billed minutes</text>
@@ -342,15 +343,24 @@ explainers/
     <g data-k="n2">
       <rect class="box-merge" x="270" y="60" width="210" height="120" rx="10"/>
       <text x="286" y="90" class="t">This PR</text>
-      <text x="286" y="114" class="b">#56, #66, #58:</text>
-      <text x="286" y="134" class="b">fewer jobs, edits</text>
-      <text x="286" y="154" class="b">and rebuilds</text>
+      <text x="286" y="114" class="b">#56, #66: fewer</text>
+      <text x="286" y="134" class="b">jobs and fewer</text>
+      <text x="286" y="154" class="b">comment edits</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Reuse PR debs</text>
+      <text x="536" y="114" class="b">#58: open, needs</text>
+      <text x="536" y="134" class="b">a clean answer to</text>
+      <text x="536" y="154" class="b">the version stamp</text>
     </g>
     <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
   </svg>
   </div>
   <div class="legend">
     <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
   </div>
   </section>
 
@@ -358,7 +368,7 @@ explainers/
   <h3 class="sec">What to watch after the merge</h3>
   <div class="panel">
   <ol class="steps">
-    <li data-k="1"><b>The merge's own run.</b> It should reuse this PR's debs, publish the release from <code>build</code> and skip <code>verify</code>.</li>
+    <li data-k="1"><b>The merge's own run.</b> It should publish the release from <code>verify</code>, with no <code>release</code> job.</li>
     <li data-k="2"><b>The explainer job.</b> It stays its own job: its check is part of the merge rule and must not hold up <code>verify</code>. Folding it is a separate decision.</li>
   </ol>
   </div>
@@ -371,8 +381,7 @@ explainers/
     <div data-k="billed"><dt>Billed minute</dt><dd>GitHub charges each job's run time rounded up to a whole minute.</dd></div>
     <div data-k="job"><dt>Job</dt><dd>One part of a workflow run on its own fresh machine, shown as one check on the PR.</dd></div>
     <div data-k="step"><dt>Step</dt><dd>One command or action inside a job; steps share the job's machine.</dd></div>
-    <div data-k="tree"><dt>Tree</dt><dd>Git's ID for the exact files of a commit; two commits with the same files share it.</dd></div>
-    <div data-k="artifact"><dt>Artifact</dt><dd>Files a run keeps for 14 days, such as the built <code>.deb</code> packages.</dd></div>
+        <div data-k="artifact"><dt>Artifact</dt><dd>Files a run keeps for 14 days, such as the built <code>.deb</code> packages.</dd></div>
     <div data-k="token"><dt>Push token</dt><dd>The secret that lets CI's review push its fix commit to the PR branch.</dd></div>
   </dl>
   </section>

@@ -431,7 +431,7 @@ EOF
   fi
   if [[ -n ${RUN_ID:-} ]]; then
     mins=$(gh api "repos/{owner}/{repo}/actions/runs/$RUN_ID/jobs" --jq \
-      '[.jobs[] | select(.name == "review" and .started_at != null) | (((.completed_at // (now | todate)) | fromdate) - (.started_at | fromdate))] | add // empty | . / 60 | ceil' 2>/dev/null) || mins=
+      '[.jobs[] | select(.name == "review" and .started_at != null) | ((if .completed_at then .completed_at | fromdate else now end) - (.started_at | fromdate))] | add // empty | . / 60 | ceil' 2>/dev/null) || mins=
   fi
   hunks > "$OUT/hunks.txt"
   python3 "$HERE/review-state.py" decide "$OUT/state.json" "$IN" "$OUT" "$HEAD_SHA" "$commit" "$mins" "${RUN_URL:-}" "$result"

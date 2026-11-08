@@ -24,10 +24,10 @@ jobs:
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     permissions:
       actions: read
-      contents: write
+      contents: read
       pull-requests: write
     outputs:
-      reused: ${{ steps.version.outputs.reused }}
+      version: ${{ steps.version.outputs.version }}
       skip: ${{ steps.changes.outputs.skip }}
     steps:
       - uses: actions/checkout@v4
@@ -52,86 +52,61 @@ jobs:
         if: steps.changes.outputs.skip == 'true'
         run: echo "Build and verify skipped, because the PR changes no code, packaging or CI files." | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Find the merged PR's verified debs
-        id: reuse
-        if: github.event_name == 'push'
+      - name: Add Zorin OS PPA (Xfce 4.20 libraries)
+        if: steps.changes.outputs.skip != 'true'
+        run: sudo add-apt-repository -y ppa:zorinos/stable
+
+      - name: Install build dependencies
+        if: steps.changes.outputs.skip != 'true'
+        run: |
+          sudo apt-get build-dep -y ./
+          sudo apt-get install -y --no-install-recommends ccache
+
+      - name: Dry-run the publish scripts
+        if: github.event_name == 'pull_request' && steps.changes.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: .github/scripts/reuse-debs.sh find >> "$GITHUB_OUTPUT"
-
-      - uses: actions/download-artifact@v4
-        if: steps.reuse.outputs.run != ''
-        continue-on-error: true
-        with:
-          name: debs
-          path: dist
-          run-id: ${{ steps.reuse.outputs.run }}
-          github-token: ${{ github.token }}
+        run: |
+          export VERSION DRY_RUN=1
+          VERSION=$(.github/scripts/next-version.sh)
+          echo "Version: $VERSION"
+          .github/scripts/publish-release.sh
+          .github/scripts/prune-releases.sh
 
       - name: Stamp version
         id: version
-        if: steps.changes.outputs.skip != 'true'
+        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
-          PR: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          REUSE_FROM: ${{ steps.reuse.outputs.pr }}
         run: |
           version=$(.github/scripts/next-version.sh)
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Version: $version" >> "$GITHUB_STEP_SUMMARY"
-          if [[ $GITHUB_EVENT_NAME == push ]] && .github/scripts/reuse-debs.sh check "$version"; then
-            echo "Reused the debs of $REUSE_FROM instead of building." | tee -a "$GITHUB_STEP_SUMMARY"
-            echo reused=true >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          rm -rf dist
-          echo build=true >> "$GITHUB_OUTPUT"
           {
             echo "thunar ($version) noble; urgency=medium"
             echo
-            if [[ -n $PR ]]; then echo "  * CI build of PR #$PR at ${HEAD_SHA::12}."; else echo "  * CI build of ${HEAD_SHA::12}."; fi
+            echo "  * CI build of ${GITHUB_SHA::12}."
             echo
             echo " -- GitHub Actions <actions@github.com>  $(date -R)"
             echo
             cat debian/changelog
           } > debian/changelog.new
           mv debian/changelog.new debian/changelog
-
-      - name: Add Zorin OS PPA (Xfce 4.20 libraries)
-        if: steps.version.outputs.build == 'true'
-        run: sudo add-apt-repository -y ppa:zorinos/stable
-
-      - name: Install build dependencies
-        if: steps.version.outputs.build == 'true'
-        run: |
-          sudo apt-get build-dep -y ./
-          sudo apt-get install -y --no-install-recommends ccache
-
-      - name: Dry-run the publish scripts
-        if: github.event_name == 'pull_request' && steps.version.outputs.build == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
-          DRY_RUN: 1
-        run: |
-          .github/scripts/publish-release.sh
-          .github/scripts/prune-releases.sh
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Version: $version" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Pick the ccache key
         id: ccache
-        if: steps.version.outputs.build == 'true'
+        if: steps.changes.outputs.skip != 'true'
         run: echo "key=ccache-$ImageOS-$ImageVersion-" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache/restore@v4
-        if: steps.version.outputs.build == 'true'
+        if: steps.changes.outputs.skip != 'true'
         with:
           path: ~/.ccache
           key: ${{ steps.ccache.outputs.key }}${{ github.run_id }}
           restore-keys: ${{ steps.ccache.outputs.key }}
 
       - name: Build
-        if: steps.version.outputs.build == 'true'
+        if: steps.changes.outputs.skip != 'true'
         run: |
           export PATH=/usr/lib/ccache:$PATH CCACHE_DIR=$HOME/.ccache CCACHE_BASEDIR=$GITHUB_WORKSPACE CCACHE_MAXSIZE=500M
           ccache -z
@@ -139,36 +114,20 @@ jobs:
           ccache -s
           mkdir dist
           mv ../*.deb dist/
-          git rev-parse 'HEAD^{tree}' > dist/built-tree
           ls -l dist
 
       - uses: actions/cache/save@v4
-        if: steps.version.outputs.build == 'true'
+        if: steps.changes.outputs.skip != 'true'
         with:
           path: ~/.ccache
           key: ${{ steps.ccache.outputs.key }}${{ github.run_id }}
 
       - uses: actions/upload-artifact@v4
-        if: steps.version.outputs.build == 'true'
+        if: steps.changes.outputs.skip != 'true'
         with:
           name: debs
-          path: |
-            dist/*.deb
-            dist/built-tree
+          path: dist/*.deb
           retention-days: 14
-
-      - name: Publish release
-        if: github.event_name == 'push'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
-        run: .github/scripts/publish-release.sh
-
-      - name: Keep the last 10 releases
-        if: github.event_name == 'push'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: .github/scripts/prune-releases.sh
 
       - name: Write the summary comment
         if: failure() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
@@ -183,7 +142,6 @@ jobs:
 
   verify:
     needs: build
-    if: needs.build.outputs.reused != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     concurrency:
@@ -263,6 +221,19 @@ jobs:
             ${{ runner.temp }}/verify-proof/pairs/
           if-no-files-found: ignore
           retention-days: 14
+
+      - name: Publish release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: .github/scripts/publish-release.sh
+
+      - name: Keep the last 10 releases
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/prune-releases.sh
 
   explainer:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
@@ -393,10 +364,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REVIEW_RESULT: ${{ job.status }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/bin" && cp .github/scripts/review-proof.sh .github/scripts/review-state.py .github/scripts/pr-comment.sh .github/scripts/pr-summary.py "$RUNNER_TEMP/bin/"
-          export IN=$RUNNER_TEMP/review OUT=$RUNNER_TEMP/review-report
-          "$RUNNER_TEMP/bin/review-proof.sh" report
+          IN: ${{ runner.temp }}/review
+          OUT: ${{ runner.temp }}/review-report
+        run: .github/scripts/review-proof.sh report
 
   review-report:
     needs: review
