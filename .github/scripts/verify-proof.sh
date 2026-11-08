@@ -23,7 +23,7 @@ OUT=${OUT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/verify-proof}
 DEBS=${DEBS:-$HOME/verify-debs}
 TIMEOUT=${TIMEOUT:-120}
 BUDGET=${BUDGET:-900}
-TOOLS=(xvfb xfwm4 xdotool imagemagick x11-utils dbus zorin-desktop-themes)
+TOOLS=(xvfb xfwm4 xdotool imagemagick x11-utils dbus gvfs gvfs-daemons zorin-desktop-themes)
 mkdir -p "$OUT"
 
 install() {
@@ -163,6 +163,7 @@ publish() {
   : "${GH_REPO:?}"
   : > "$OUT/urls.tsv"
   local file path sha url failed=0
+  export SHOTS_DEADLINE=$(( $(date +%s) + 300 ))
   if [[ -s $OUT/results.tsv && ! -s $OUT/numbered.json ]]; then
     python3 "$HERE/verify-shots.py" build "$OUT" || echo "::warning::some pair images could not be made" >&2
   fi

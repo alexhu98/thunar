@@ -1,7 +1,8 @@
 #!/bin/bash
 # Commits one file to the orphan shots branch: shots.sh <local file> <path on shots> <commit message>
 # Prints the commit's sha, which pins the file's URL: https://github.com/$GH_REPO/blob/<sha>/<path>?raw=true
-# Env: GH_TOKEN, GH_REPO, OUT, SHOTS_BRANCH (default shots). DRY_RUN=1 prints DRY-RUN instead of committing.
+# Env: GH_TOKEN, GH_REPO, OUT, SHOTS_BRANCH (default shots), SHOTS_DEADLINE (epoch seconds after which GitHub errors
+# other than conflicts are no longer retried). DRY_RUN=1 prints DRY-RUN instead of committing.
 set -euo pipefail
 
 file=${1:?local file} path=${2:?path on shots} message=${3:?commit message}
@@ -16,7 +17,23 @@ if [[ ${DRY_RUN:-0} == 1 ]]; then
   exit 0
 fi
 delays=(2 4 8 16 30)
+local_blob=$(git hash-object --no-filters "$file")
+transient=0
+landed() {
+  local blob sha
+  blob=$(gh api "repos/{owner}/{repo}/contents/$path?ref=$branch" -H 'Accept: application/vnd.github.object' --jq .sha 2>/dev/null) &&
+    [[ $blob == "$local_blob" ]] &&
+    sha=$(gh api "repos/{owner}/{repo}/commits?sha=$branch&path=$path&per_page=1" --jq '.[0].sha' 2>/dev/null) &&
+    [[ $sha =~ ^[0-9a-f]{40}$ ]] &&
+    blob=$(gh api "repos/{owner}/{repo}/contents/$path?ref=$sha" -H 'Accept: application/vnd.github.object' --jq .sha 2>/dev/null) &&
+    [[ $blob == "$local_blob" ]] || return 1
+  echo "$branch:$path already holds this file, in ${sha::12}; the failed upload landed" >&2
+  echo "$sha"
+}
 for attempt in 1 2 3 4 5 6; do
+  if (( transient )) && landed; then
+    exit 0
+  fi
   blob=$(gh api "repos/{owner}/{repo}/contents/$path?ref=$branch" -H 'Accept: application/vnd.github.object' --jq .sha 2>/dev/null) || blob=
   jq -n --arg m "$message" --arg b "$branch" --arg s "$blob" --rawfile c <(base64 -w0 "$file") \
     '{message: $m, branch: $b, content: $c} + (if $s == "" then {} else {sha: $s} end)' > "$body"
@@ -26,14 +43,27 @@ for attempt in 1 2 3 4 5 6; do
     exit 0
   fi
   cat "$err" >&2
-  if ! grep -qE 'HTTP (409|422)' "$err"; then
-    echo "upload of $path failed (attempt $attempt), not a conflict, so not retried" >&2
+  if grep -qE 'HTTP (409|422)' "$err"; then
+    echo "upload of $path hit a conflict (attempt $attempt)" >&2
+  elif grep -qE 'HTTP 4[0-9]{2}' "$err" && ! grep -qiE 'HTTP 429|rate limit' "$err"; then
+    echo "upload of $path failed (attempt $attempt) with $(grep -oE 'HTTP 4[0-9]{2}' "$err" | head -n 1), so not retried" >&2
     exit 1
+  else
+    transient=1
+    echo "upload of $path failed (attempt $attempt) with a transient error" >&2
+    if [[ -n ${SHOTS_DEADLINE:-} ]] && (( $(date +%s) >= SHOTS_DEADLINE )); then
+      echo "this run's time for retrying GitHub errors is used up, so $path is not retried" >&2
+      break
+    fi
   fi
-  echo "upload of $path hit a conflict (attempt $attempt)" >&2
   if (( attempt < 6 )); then
     delay=${delays[attempt-1]}
     sleep $(( delay + RANDOM % (delay / 2 + 1) ))
   fi
 done
+if (( transient )); then
+  sleep 5
+  landed && exit 0
+fi
+echo "upload of $path failed after $attempt attempt(s)" >&2
 exit 1
