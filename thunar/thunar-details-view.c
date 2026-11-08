@@ -881,8 +881,17 @@ thunar_details_view_button_press_event (GtkTreeView       *tree_view,
   if (G_UNLIKELY (event->window != gtk_tree_view_get_bin_window (tree_view)))
     return thunar_details_view_column_header_clicked (details_view, event);
 
-  if (event->button != 1 || (event->state & GDK_SHIFT_MASK) == 0)
-    thunar_details_view_reset_shift_anchor (details_view);
+  if (event->button == 1)
+    {
+      if ((event->state & GDK_SHIFT_MASK) == 0)
+        thunar_details_view_reset_shift_anchor (details_view);
+    }
+  else if (!gtk_tree_view_get_path_at_pos (tree_view, event->x, event->y, &path, NULL, NULL, NULL)
+           || !gtk_tree_selection_path_is_selected (gtk_tree_view_get_selection (tree_view), path))
+    {
+      thunar_details_view_reset_shift_anchor (details_view);
+    }
+  g_clear_pointer (&path, gtk_tree_path_free);
 
   /* give focus to the clicked view */
   window = gtk_widget_get_toplevel (GTK_WIDGET (details_view));
@@ -1419,9 +1428,10 @@ thunar_details_view_key_press_event (GtkTreeView       *tree_view,
       break;
 
     case GDK_KEY_space:
+    case GDK_KEY_KP_Space:
     case GDK_KEY_Return:
     case GDK_KEY_KP_Enter:
-      if (event->keyval == GDK_KEY_space && (state & GDK_CONTROL_MASK) != 0)
+      if ((event->keyval == GDK_KEY_space || event->keyval == GDK_KEY_KP_Space) && state == GDK_CONTROL_MASK)
         thunar_details_view_set_shift_anchor (details_view, model, path);
 
       /* Allow default actions to handle this case */
