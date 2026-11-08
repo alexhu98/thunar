@@ -50,6 +50,10 @@ static void
 thunar_dialogs_select_filename (GtkWidget *entry);
 static void
 thunar_dialogs_shrink_height (GtkWidget *dialog);
+static gint
+thunar_dialogs_run_job_dialog (GtkDialog *dialog);
+static GtkWidget *
+thunar_dialogs_find_selectable_label (GtkWidget *widget);
 
 
 
@@ -543,6 +547,54 @@ thunar_dialogs_show_error (gpointer      parent,
 
 
 
+static GtkWidget *
+thunar_dialogs_find_selectable_label (GtkWidget *widget)
+{
+  GtkWidget *label = NULL;
+  GList     *children;
+  GList     *lp;
+
+  if (GTK_IS_LABEL (widget))
+    return gtk_label_get_selectable (GTK_LABEL (widget)) ? widget : NULL;
+
+  if (!GTK_IS_CONTAINER (widget))
+    return NULL;
+
+  children = gtk_container_get_children (GTK_CONTAINER (widget));
+  for (lp = children; lp != NULL && label == NULL; lp = lp->next)
+    label = thunar_dialogs_find_selectable_label (lp->data);
+  g_list_free (children);
+
+  return label;
+}
+
+
+
+static gint
+thunar_dialogs_run_job_dialog (GtkDialog *dialog)
+{
+  GtkWidget *label;
+
+  gtk_window_set_focus_on_map (GTK_WINDOW (dialog), FALSE);
+  gtk_window_set_modal (GTK_WINDOW (dialog), FALSE);
+
+  label = thunar_dialogs_find_selectable_label (gtk_dialog_get_content_area (dialog));
+  if (label != NULL)
+    {
+      gtk_widget_grab_focus (label);
+      gtk_label_select_region (GTK_LABEL (label), 0, 0);
+    }
+
+  gtk_widget_show (GTK_WIDGET (dialog));
+  while (gtk_widget_get_visible (GTK_WIDGET (dialog))
+         && (gdk_window_get_state (gtk_widget_get_window (GTK_WIDGET (dialog))) & GDK_WINDOW_STATE_WITHDRAWN) != 0)
+    gtk_main_iteration ();
+
+  return gtk_dialog_run (dialog);
+}
+
+
+
 /**
  * thunar_dialogs_show_job_ask:
  * @parent   : the parent #GtkWindow or %NULL.
@@ -689,8 +741,6 @@ thunar_dialogs_show_job_ask (GtkWindow        *parent,
       gtk_widget_set_can_default (button, TRUE);
       gtk_dialog_add_action_widget (GTK_DIALOG (message), button, response);
       gtk_widget_show (button);
-
-      gtk_dialog_set_default_response (GTK_DIALOG (message), response);
     }
 
   if (has_cancel)
@@ -699,11 +749,10 @@ thunar_dialogs_show_job_ask (GtkWindow        *parent,
       gtk_widget_set_can_default (button, TRUE);
       gtk_dialog_add_action_widget (GTK_DIALOG (message), button, GTK_RESPONSE_CANCEL);
       gtk_widget_show (button);
-      gtk_dialog_set_default_response (GTK_DIALOG (message), GTK_RESPONSE_CANCEL);
     }
 
   /* run the question dialog */
-  response = gtk_dialog_run (GTK_DIALOG (message));
+  response = thunar_dialogs_run_job_dialog (GTK_DIALOG (message));
   gtk_widget_destroy (message);
 
   /* transform the result as required */
@@ -810,7 +859,6 @@ thunar_dialogs_show_job_ask_replace (GtkWindow  *parent,
                                               _("Re_name"), THUNAR_JOB_RESPONSE_RENAME,
                                                 _("_Replace"), THUNAR_JOB_RESPONSE_REPLACE,
                                         NULL);
-  gtk_dialog_set_default_response (GTK_DIALOG (dialog), THUNAR_JOB_RESPONSE_REPLACE);
 
   content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
 
@@ -1006,7 +1054,7 @@ thunar_dialogs_show_job_ask_replace (GtkWindow  *parent,
     gtk_window_resize (GTK_WINDOW (dialog), 600, 1);
 
   /* run the dialog */
-  response = gtk_dialog_run (GTK_DIALOG (dialog));
+  response = thunar_dialogs_run_job_dialog (GTK_DIALOG (dialog));
 
   /* translate GTK responses */
   if (G_UNLIKELY (response < 0))
