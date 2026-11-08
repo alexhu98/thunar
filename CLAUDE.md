@@ -4,7 +4,8 @@
 - Work on a branch named `<issue>-<short-slug>` and open the PR into `main`, the default branch. Put `Closes #<issue>` in the PR description, or `Refs #<issue>` when the PR does only part of the issue.
 - In a cloud session, ignore the `claude/…` branch the session is assigned. Once the issue is known, create `<issue>-<short-slug>` from `origin/main`, and push and open the PR from it.
 - Never push to the `upstream` remote. Never touch `master` or `xfce-4.20`: they mirror upstream.
-- The owner merges, and only when the build and verify jobs are green and the screenshots are reviewed.
+- The agent squash-merges a PR it opened, titled `<PR title> (#<issue>…) (#<pr>)`, once all of these hold on its head commit: build, verify, explainer, review and summary are green and ran their steps rather than skipping them; every review finding is fixed, none closed by a `Review-accept` the agent added; the latest `/visual-verify` verdict is PASS; no comment from the owner is unanswered; the narration is stamped.
+- The agent doesn't merge, and asks the owner instead, when a finding needs a decision, `/visual-verify` is FAIL or INCONCLUSIVE, CI fails twice on the same thing after a fix, or the change behaves differently from what its issue assumed. The owner merges those PRs, upstream-merge PRs (#30) and PRs the agent didn't open.
 - After opening a PR or pushing to one, watch it without asking (subscribe to its activity where the session can), and act on its CI results and reviews.
 
 ## Working with the owner
@@ -14,7 +15,7 @@
   - Each option: one concrete outcome, at most 20 words; recommended first and marked.
   - An action only the owner can do: the exact what and where, plus a one-key reply like "1. Done".
   - Several items: quickest or most blocking first; say what you'll get on with meanwhile.
-- Standard SOP (reviewing the diff, staging, committing, pushing, opening the PR) never needs the owner's attention, so it is never an option, an attention item or a closing prompt. A turn with only SOP left isn't blocked on the owner.
+- Standard SOP (reviewing the diff, staging, committing, pushing, opening the PR, merging one that passes the merge rule above) never needs the owner's attention, so it is never an option, an attention item or a closing prompt. A turn with only SOP left isn't blocked on the owner.
 - Never bury a request for the owner in the middle of a long update.
 - When asked what a term means ("what is X?", "explain X"), answer in 20 words or fewer per item: one sentence each, no preamble, no worked example. If it genuinely needs more, give the short version first and offer to expand.
 - When a turn ends a long task or the answer runs past a screen, open with what was done or found (one line), then anything you're unsure of (one line; omit it if nothing is). Details go below; "What I need from you" stays at the end.

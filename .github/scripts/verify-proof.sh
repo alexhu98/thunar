@@ -23,7 +23,7 @@ OUT=${OUT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/verify-proof}
 DEBS=${DEBS:-$HOME/verify-debs}
 TIMEOUT=${TIMEOUT:-120}
 BUDGET=${BUDGET:-900}
-TOOLS=(xvfb xfwm4 xdotool imagemagick x11-utils dbus zorin-desktop-themes)
+TOOLS=(xvfb xfwm4 xdotool imagemagick x11-utils dbus gvfs gvfs-daemons zorin-desktop-themes)
 mkdir -p "$OUT"
 
 install() {
