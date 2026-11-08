@@ -264,8 +264,10 @@ explainers/71-visual-verify-no-code.narration.json  # its narration</pre>
   <ul class="tight">
     <li data-k="r1"><b>Docs out of step:</b> the skill and its README said <code>pr:&lt;n&gt;</code> needs only git, and the README's contract never mentioned the new exit (R1, R3).</li>
     <li data-k="r2"><b>One output shape:</b> the stop is now a verdict, <code>NOT NEEDED</code>, so the last line is always <code>VERDICT:</code>, with no ambiguous quoted message (R6, R9).</li>
-    <li data-k="r3"><b>No waiting:</b> instead of waiting with no limit, a queued or running build or verify ends with <code>NOT YET</code> (R4, R5).</li>
+    <li data-k="r3"><b>No waiting:</b> instead of waiting with no limit, a queued or running build or verify ends with <code>NOT YET</code> (R4, R5; a missing one goes on, after R10).</li>
     <li data-k="r4"><b>Digest wording:</b> only build and verify can show <code>No code changed</code>, and the digest's audit line now says “not needed” (R2, R8).</li>
+    <li data-k="r6"><b>CI's second review:</b> R10, medium, confirmed: a check the digest reported as missing gave NOT YET forever. Now only a running build or verify does, and a missing one goes on to the preflight. Also fixed: the skill's description names the new verdicts (R12), and the digest says when to print “not needed” (R13).</li>
+    <li data-k="r7"><b>Accepted:</b> R11, since the callers already skip the audit on no-code runs by <code>CLAUDE.md</code>'s rule, so nothing posts the new verdicts; and R14, since build and verify always skip together.</li>
     <li data-k="r5"><b>Kept:</b> R7, a full digest where one jobs call would do, because <code>CLAUDE.md</code> routes every read of a PR's checks through <code>pr-digest</code>. All findings are in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/77">PR #77</a>.</li>
   </ul>
   </section>
