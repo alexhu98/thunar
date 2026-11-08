@@ -23,24 +23,44 @@ jobs:
       group: build-${{ github.ref }}
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     permissions:
-      actions: read
+      actions: write
       contents: read
       pull-requests: write
     outputs:
       version: ${{ steps.version.outputs.version }}
+      skip: ${{ steps.changes.outputs.skip }}
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
           persist-credentials: false
 
+      - name: Check what the PR changes
+        id: changes
+        if: github.event_name == 'pull_request'
+        run: |
+          git diff --no-renames --name-only HEAD^1 HEAD > "$RUNNER_TEMP/changed.txt"
+          code=$(grep -Ev '^(explainers/|\.claude/)|\.md$|\.narration\.json$' "$RUNNER_TEMP/changed.txt" || true)
+          if [[ -s $RUNNER_TEMP/changed.txt && -z $code ]]; then
+            echo skip=true >> "$GITHUB_OUTPUT"
+            echo "Build and verify skipped: the PR changes only explainers/, .claude/, *.md or narration files." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo skip=false >> "$GITHUB_OUTPUT"
+          fi
+          sed 's/^/  /' "$RUNNER_TEMP/changed.txt"
+
       - name: Add Zorin OS PPA (Xfce 4.20 libraries)
+        if: steps.changes.outputs.skip != 'true'
         run: sudo add-apt-repository -y ppa:zorinos/stable
 
       - name: Install build dependencies
-        run: sudo apt-get build-dep -y ./
+        if: steps.changes.outputs.skip != 'true'
+        run: |
+          sudo apt-get build-dep -y ./
+          sudo apt-get install -y --no-install-recommends ccache
 
       - name: Dry-run the publish scripts
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.changes.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -70,14 +90,46 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Version: $version" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Pick the ccache key
+        id: ccache
+        if: steps.changes.outputs.skip != 'true'
+        run: echo "key=ccache-$ImageOS-$ImageVersion-" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache/restore@v4
+        id: ccache-restore
+        if: steps.changes.outputs.skip != 'true'
+        with:
+          path: ~/.ccache
+          key: ${{ steps.ccache.outputs.key }}${{ github.run_id }}
+          restore-keys: ${{ steps.ccache.outputs.key }}
+
       - name: Build
+        if: steps.changes.outputs.skip != 'true'
         run: |
+          export PATH=/usr/lib/ccache:$PATH CCACHE_DIR=$HOME/.ccache CCACHE_BASEDIR=$GITHUB_WORKSPACE CCACHE_MAXSIZE=500M
+          ccache -z
           dpkg-buildpackage -b -us -uc -j"$(nproc)"
+          ccache -s
           mkdir dist
           mv ../*.deb dist/
           ls -l dist
 
+      - uses: actions/cache/save@v4
+        if: steps.changes.outputs.skip != 'true'
+        with:
+          path: ~/.ccache
+          key: ${{ steps.ccache.outputs.key }}${{ github.run_id }}
+
+      - name: Drop this branch's previous ccache
+        if: steps.changes.outputs.skip != 'true' && steps.ccache-restore.outputs.cache-matched-key != '' && steps.ccache-restore.outputs.cache-hit != 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OLD: ${{ steps.ccache-restore.outputs.cache-matched-key }}
+        run: gh api -X DELETE "repos/$GH_REPO/actions/caches?key=$OLD&ref=$GITHUB_REF" || echo "kept $OLD, which belongs to another branch"
+
       - uses: actions/upload-artifact@v4
+        if: steps.changes.outputs.skip != 'true'
         with:
           name: debs
           path: dist/*.deb
@@ -112,19 +164,23 @@ jobs:
       RUN_ID: ${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
+        if: needs.build.outputs.skip != 'true'
         with:
           persist-credentials: false
 
       - uses: actions/download-artifact@v4
+        if: needs.build.outputs.skip != 'true'
         with:
           name: debs
           path: dist
 
       - name: Pick the deb cache key
         id: debs
+        if: needs.build.outputs.skip != 'true'
         run: echo "key=verify-debs-$ImageOS-$ImageVersion-" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache/restore@v4
+        if: needs.build.outputs.skip != 'true'
         with:
           path: ~/verify-debs
           key: ${{ steps.debs.outputs.key }}${{ github.run_id }}
@@ -132,6 +188,7 @@ jobs:
 
       - name: Install Thunar and the test tools
         id: install
+        if: needs.build.outputs.skip != 'true'
         run: .github/scripts/verify-proof.sh install >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache/save@v4
@@ -142,18 +199,19 @@ jobs:
 
       - name: Smoke test and verify/*.sh
         id: run
+        if: needs.build.outputs.skip != 'true'
         timeout-minutes: 20
         run: .github/scripts/verify-proof.sh run
 
       - name: Upload the screenshots and write the verify comment
-        if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+        if: ${{ !cancelled() && needs.build.outputs.skip != 'true' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: .github/scripts/verify-proof.sh publish
 
       - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && needs.build.outputs.skip != 'true' }}
         with:
           name: verify
           path: |
