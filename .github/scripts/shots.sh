@@ -16,17 +16,30 @@ if [[ ${DRY_RUN:-0} == 1 ]]; then
   exit 0
 fi
 delays=(2 4 8 16 30)
+attempts=6
+outage="$OUT/outage"
+if [[ -e $outage ]]; then
+  attempts=1
+  echo "an earlier upload in this run gave up on GitHub errors, so $path gets 1 attempt" >&2
+fi
 local_blob=$(git hash-object --no-filters "$file")
 transient=0
-for attempt in 1 2 3 4 5 6; do
-  blob=$(gh api "repos/{owner}/{repo}/contents/$path?ref=$branch" -H 'Accept: application/vnd.github.object' --jq .sha 2>/dev/null) || blob=
-  if (( transient )) && [[ $blob == "$local_blob" ]] &&
+landed() {
+  local blob sha
+  blob=$(gh api "repos/{owner}/{repo}/contents/$path?ref=$branch" -H 'Accept: application/vnd.github.object' --jq .sha 2>/dev/null) &&
+    [[ $blob == "$local_blob" ]] &&
     sha=$(gh api "repos/{owner}/{repo}/commits?sha=$branch&path=$path&per_page=1" --jq '.[0].sha' 2>/dev/null) &&
-    [[ $sha =~ ^[0-9a-f]{40}$ ]]; then
-    echo "$branch:$path already holds this file, in ${sha::12}; the failed upload landed" >&2
-    echo "$sha"
+    [[ $sha =~ ^[0-9a-f]{40}$ ]] &&
+    blob=$(gh api "repos/{owner}/{repo}/contents/$path?ref=$sha" -H 'Accept: application/vnd.github.object' --jq .sha 2>/dev/null) &&
+    [[ $blob == "$local_blob" ]] || return 1
+  echo "$branch:$path already holds this file, in ${sha::12}; the failed upload landed" >&2
+  echo "$sha"
+}
+for (( attempt = 1; attempt <= attempts; attempt++ )); do
+  if (( transient )) && landed; then
     exit 0
   fi
+  blob=$(gh api "repos/{owner}/{repo}/contents/$path?ref=$branch" -H 'Accept: application/vnd.github.object' --jq .sha 2>/dev/null) || blob=
   jq -n --arg m "$message" --arg b "$branch" --arg s "$blob" --rawfile c <(base64 -w0 "$file") \
     '{message: $m, branch: $b, content: $c} + (if $s == "" then {} else {sha: $s} end)' > "$body"
   if sha=$(gh api -X PUT "repos/{owner}/{repo}/contents/$path" --input "$body" --jq .commit.sha 2>"$err") && [[ $sha =~ ^[0-9a-f]{40}$ ]]; then
@@ -44,10 +57,14 @@ for attempt in 1 2 3 4 5 6; do
     transient=1
     echo "upload of $path failed (attempt $attempt) with a transient error" >&2
   fi
-  if (( attempt < 6 )); then
+  if (( attempt < attempts )); then
     delay=${delays[attempt-1]}
     sleep $(( delay + RANDOM % (delay / 2 + 1) ))
   fi
 done
-echo "upload of $path failed after 6 attempts" >&2
+if (( transient )); then
+  landed && exit 0
+  touch "$outage"
+fi
+echo "upload of $path failed after $attempts attempt(s)" >&2
 exit 1
