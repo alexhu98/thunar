@@ -1,7 +1,7 @@
 {
   "title": "PR #51 · Shift-select in list view",
   "voice": "af_heart",
-  "page_sha256": "984006f884626a2f5a7b9086298ed9c19793d65d6fcac9111cf2ed9cc825cc36",
+  "page_sha256": "5ea9d1012fecad40d66bd2d441118438a4a39d8749b6551574614a2cab5f2741",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 51, which makes Shift and Ctrl arrows work in list view with Expandable folders.", "say": "This is a tour of pull request 51, which makes shift and control arrows work in list view with Expandable folders.", "src": "b074fade020d"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "d62509892ffe"},
@@ -40,7 +40,7 @@
     {"screen": "review", "keys": ["ci3", "ci4"], "caption": "One of its changes was taken back later; the GTK anchor limit stays.", "say": "One of its changes was taken back later; the G T K anchor limit stays.", "src": "6618b58a7979"},
     {"screen": "review", "keys": ["ci-review2", "ci5"], "caption": "The next review found two more medium ones: Ctrl+Space now moves the anchor to the row it toggles.", "say": "The next review found two more medium ones: control space now moves the anchor to the row it toggles.", "src": "acebaf69e7ac"},
     {"screen": "review", "keys": ["ci6", "ci7"], "caption": "And Shift+Ctrl now only adds to the selection, as the issue asks; two older Right key bugs are left for later.", "say": "And shift control now only adds to the selection, as the issue asks; two older right key bugs are left for later.", "src": "94f7152bed8c"},
-    {"screen": "review", "keys": ["ci-review3", "ci8"], "caption": "A third review found that a right-click on a selected row dropped the anchor again; it is kept now, and tested.", "src": "d7db2f763bae"},
+    {"screen": "review", "keys": ["ci-review3", "ci8"], "caption": "A third review found that a right-click on a selected row dropped the anchor again; it is kept now, and tested.", "src": "b28733114056"},
     {"screen": "review", "keys": ["ci9"], "caption": "GTK's own Ctrl+Shift arrows only move the cursor; here they add the range, as the issue specifies.", "say": "G T K's own control shift arrows only move the cursor; here they add the range, as the issue specifies.", "src": "a1c8448d6ebf"},
     {"screen": "aftermerge", "keys": ["a1", "a2"], "caption": "After the merge, try it in your own folders, and run the split view crash check.", "src": "6f70367c4d6c"},
     {"screen": "later", "keys": [], "caption": "Part 3. Nothing depends on issue 49, so only your own check remains.", "src": "a92c2095a867"},
@@ -107,7 +107,7 @@
     "review/ci6": "8609c43e746d",
     "review/ci7": "7445894f606f",
     "review/ci-review3": "e65e011aa3c7",
-    "review/ci8": "e8dda301f1c8",
+    "review/ci8": "fa6033be1616",
     "review/ci9": "a1c8448d6ebf",
     "aftermerge/a1": "084d483f651e",
     "aftermerge/a2": "1c21d31a1ec0",

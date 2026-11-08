@@ -886,7 +886,8 @@ thunar_details_view_button_press_event (GtkTreeView       *tree_view,
       if ((event->state & GDK_SHIFT_MASK) == 0)
         thunar_details_view_reset_shift_anchor (details_view);
     }
-  else if (!gtk_tree_view_get_path_at_pos (tree_view, event->x, event->y, &path, NULL, NULL, NULL)
+  else if (event->button != 3
+           || !gtk_tree_view_get_path_at_pos (tree_view, event->x, event->y, &path, NULL, NULL, NULL)
            || !gtk_tree_selection_path_is_selected (gtk_tree_view_get_selection (tree_view), path))
     {
       thunar_details_view_reset_shift_anchor (details_view);
