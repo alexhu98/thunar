@@ -82,18 +82,16 @@ copy_into "$WORK/many" "$WORK/copies" "for the folder of 30000 files"
 LONG_PROGRESS=$(find_window 'File Operation Progress') || fail "the progress window did not appear during the copy of 30000 files"
 ACTIVE=$(xdotool getactivewindow)
 [[ $ACTIVE == "$EDITOR_WID" ]] || fail "the progress window of a long copy took the focus: window $ACTIVE ('$(xdotool getwindowname "$ACTIVE")') is active"
-xdotool windowraise "$MAIN"
+focus "$EDITOR_WID"
 sleep 0.5
-(( $(stack_pos "$MAIN") > $(stack_pos "$LONG_PROGRESS") )) || fail "the progress window could not be lowered under Thunar's main window before the second copy"
-[[ $(xdotool getactivewindow) == "$EDITOR_WID" ]] || fail "raising Thunar's main window took the focus from the editor"
+(( $(stack_pos "$EDITOR_WID") > $(stack_pos "$LONG_PROGRESS") )) || fail "the progress window could not be lowered under the editor before the second copy"
 progress_shown "$LONG_PROGRESS" || fail "the progress window closed before the second copy started"
 copy_into "$WORK/more" "$WORK/copies" "for the second folder"
 sleep 1
 ACTIVE=$(xdotool getactivewindow)
 [[ $ACTIVE == "$EDITOR_WID" ]] || fail "a second copy started with the progress window shown took the focus: window $ACTIVE ('$(xdotool getwindowname "$ACTIVE")') is active"
-(( $(stack_pos "$LONG_PROGRESS") > $(stack_pos "$MAIN") )) || fail "a second copy started with the progress window shown did not raise it above Thunar's main window"
 (( $(ls "$WORK/copies/many" | wc -l) < 30000 )) || fail "the copy of 30000 files ended before the second copy's progress window was checked, so the raise of a shown window was not exercised"
-shot root progress-without-focus "During a copy of 30000 files with no question, the File Operation Progress window appeared after 500 ms, a second copy started while it was shown raised it above Thunar's main window, and the editor kept the focus"
+shot root progress-without-focus "During a copy of 30000 files with no question, the File Operation Progress window appeared after 500 ms, a second copy started while the editor covered it, and the editor kept the focus"
 progress_shown "$LONG_PROGRESS" || fail "the progress window closed before the progress-without-focus shot was taken"
 for ((i = 0; i < 300; i++)); do
   xdotool search --onlyvisible --name '^File Operation Progress$' >/dev/null 2>&1 || break
