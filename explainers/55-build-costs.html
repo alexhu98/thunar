@@ -228,6 +228,7 @@
 <pre data-k="tree">.github/workflows/build.yml     # the changes check, the "No code changed" steps, skip conditions
                                 # on build and verify, ccache install, restore and save
 .github/scripts/pr-summary.py   # a green job that ran "No code changed" reads "skipped: ..."
+CLAUDE.md                       # merge rule and Verify section allow a "No code changed" PR
 explainers/
 ├── 55-build-costs.html            # this page
 └── 55-build-costs.narration.json  # its narration, stamped from this page</pre>
@@ -259,8 +260,8 @@ explainers/
     <tr data-k="c6"><td>The skip step under <code>bash -e</code></td><td>The step's script, run as GitHub runs it, in a scratch repo whose last commit adds only <code>explainers/b</code></td><td class="ok">skip=true, no early exit</td></tr>
     <tr data-k="c2"><td>The summary's skip state</td><td><code>job_states</code>, <code>section_state</code> and <code>summary</code> on stand-in jobs and comments: both jobs ran <code>No code changed</code>, and an older head left shots</td><td class="ok">build, verify: skipped, no code; audit not needed; no old shots shown</td></tr>
     <tr data-k="c3"><td>Workflow syntax</td><td><code>yaml.safe_load</code> on <code>build.yml</code></td><td class="ok">parses</td></tr>
-    <tr data-k="c4"><td>Full build and verify on this PR</td><td>CI on this PR: it changes <code>.github/</code>, so nothing is skipped</td><td class="open">see the PR's checks</td></tr>
-    <tr data-k="c5"><td>ccache hit rate</td><td>Needs a second CI build on this branch</td><td class="open">see the PR's checks</td></tr>
+    <tr data-k="c4"><td>Full build and verify on this PR</td><td>CI run 42464307797 on <code>fbc0562</code>: it changes <code>.github/</code>, so nothing is skipped</td><td class="ok">build passed; verify 5 of 5; <code>/visual-verify</code> PASS on 50 shots</td></tr>
+    <tr data-k="c5"><td>ccache hit rate</td><td><code>ccache -s</code> in the second build on this branch, which restored the first build's cache</td><td class="ok">220 of 221 hits (99.55%); 18 MB saved</td></tr>
   </table>
   </div>
   </section>
@@ -272,7 +273,7 @@ explainers/
     <li data-k="b1"><b>Fixed:</b> a compiled Python file from a local test run had been committed; docs-only PRs would have waited forever for a screenshot audit that has no shots to audit, so the summary now marks it not needed; and <code>*.md</code> under <code>debian/</code> or <code>verify/</code> no longer skips the build.</li>
     <li data-k="b2"><b>Kept at first:</b> the build job had <code>actions: write</code> to delete its old cache entry. CI's review flagged that too, and the delete is now gone; see below.</li>
   </ul>
-  <p data-k="ci">CI's first review, at <code>high</code> in 5 minutes, found 8: R1 to R8. R1, confirmed and medium, says <code>CLAUDE.md</code>'s merge rule still needs build and verify to run their steps and a <code>/visual-verify</code> PASS, so a docs-only PR could never be merged by the agent; changing that rule is the owner's call. The other 7 are fixed in one push: the root <code>README.md</code> always builds; the build job is back to <code>actions: read</code>, so it no longer deletes old cache entries, which also settles two findings about that delete; the summary finds the skip by a dedicated <code>No code changed</code> step rather than the heavy steps' names; an older head's shots no longer show on a skipped head; and the file patterns are written in one place only. The code review comment on <a href="https://github.com/alexhu98/thunar/pull/69">PR #69</a> has every finding.</p>
+  <p data-k="ci">CI's first review, at <code>high</code> in 5 minutes, found 8: R1 to R8. R1, confirmed and medium, says <code>CLAUDE.md</code>'s merge rule still needs build and verify to run their steps and a <code>/visual-verify</code> PASS, so a docs-only PR could never be merged by the agent. The owner chose to change the rule in this PR: a PR whose build and verify ran <code>No code changed</code> needs neither, and the Verify section says when they skip. The other 7 are fixed in one push: the root <code>README.md</code> always builds; the build job is back to <code>actions: read</code>, so it no longer deletes old cache entries, which also settles two findings about that delete; the summary finds the skip by a dedicated <code>No code changed</code> step rather than the heavy steps' names; an older head's shots no longer show on a skipped head; and the file patterns are written in one place only. The code review comment on <a href="https://github.com/alexhu98/thunar/pull/69">PR #69</a> has every finding.</p>
   </section>
 
   <section class="sub" id="aftermerge">
