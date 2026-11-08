@@ -101,7 +101,7 @@
 <main>
   <header id="title">
   <h1 data-k="title">PR #77: no screenshot audit when CI took no shots</h1>
-  <p class="lead" data-k="lead">Branch <code>71-visual-verify-no-code</code> → <code>main</code>, closes #71. On a PR whose build and verify ran <code>No code changed</code>, <code>/visual-verify</code> now says “not needed” instead of returning INCONCLUSIVE, so a docs-only PR no longer lands on the owner.</p>
+  <p class="lead" data-k="lead">Branch <code>71-visual-verify-no-code</code> → <code>main</code>, closes #71. On a PR whose build and verify ran <code>No code changed</code>, <code>/visual-verify</code> now returns NOT NEEDED instead of INCONCLUSIVE, so a docs-only PR no longer lands on the owner.</p>
 
   <nav class="parts" aria-label="Parts of this page">
     <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
@@ -153,9 +153,9 @@
     <g data-k="4">
       <rect class="box-you" x="770" y="60" width="210" height="120" rx="10"/>
       <text x="786" y="90" class="t">Not needed</text>
-      <text x="786" y="114" class="b">prints one line;</text>
-      <text x="786" y="134" class="b">no verdict, no</text>
-      <text x="786" y="154" class="b">PR comment</text>
+      <text x="786" y="114" class="m">NOT NEEDED</text>
+      <text x="786" y="134" class="b">a verdict that is</text>
+      <text x="786" y="154" class="b">never posted</text>
       <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
     </g>
     <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
@@ -202,9 +202,9 @@
   <div class="lane-h" style="color:var(--accent)">① /visual-verify pr:&lt;n&gt;: the new Step 0</div>
   <ol class="steps">
     <li data-k="1"><b>Ask the digest.</b> Before reading any manifest, the skill takes the <code>checks:</code> line of a <code>pr-digest</code> digest whose head is the PR's current head: the caller's, or a new one it starts.</li>
-    <li data-k="2"><b>Read the steps.</b> <code>pr-digest</code> now writes, for build, verify and explainer, whether each ran its steps, ran <code>No code changed</code>, or skipped them all, from the build run's job list. While build or verify is still running, the skill waits and asks again.</li>
+    <li data-k="2"><b>Read the steps.</b> <code>pr-digest</code> now writes, for build, verify and explainer, whether each ran its steps, ran <code>No code changed</code>, or skipped them all, from the build run's job list. While build or verify is still running or queued, the skill stops with <code>NOT YET</code> and runs again on CI's next event.</li>
     <li data-k="3"><b>Both no code?</b> The skill stops only when build and verify both ran <code>No code changed</code>. A missing or stale manifest alone never counts, so a verify run that skipped by mistake still gives INCONCLUSIVE.</li>
-    <li data-k="4"><b>Not needed.</b> It prints “not needed: build and verify ran <code>No code changed</code>, so CI took no shots” and stops, with no <code>VERDICT:</code> line and no PR comment. The summary already shows “not needed” for that head.</li>
+    <li data-k="4"><b>Not needed.</b> It ends with <code>VERDICT: NOT NEEDED (build and verify ran No code changed)</code> and posts no PR comment. The summary already shows “not needed” for that head, and <code>pr-digest</code> now says so too.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Otherwise: the audit as before</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
@@ -216,8 +216,9 @@
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
-<pre data-k="tree">.claude/skills/visual-verify/SKILL.md  # description, the Step 0 check, the callers' contract
-.claude/agents/pr-digest.md            # names the No code changed step per job
+<pre data-k="tree">.claude/skills/visual-verify/SKILL.md  # description, Step 0, NOT NEEDED and NOT YET
+.claude/skills/visual-verify/README.md  # the two new verdicts in its table
+.claude/agents/pr-digest.md            # No code changed per job; not-needed audit line
 explainers/71-visual-verify-no-code.html            # this page
 explainers/71-visual-verify-no-code.narration.json  # its narration</pre>
   <div class="note" data-k="undo">To undo it, revert this PR. Agents then skip the skill on such PRs by <code>CLAUDE.md</code>'s rule alone, as before.</div>
@@ -257,9 +258,16 @@ explainers/71-visual-verify-no-code.narration.json  # its narration</pre>
   <ul class="tight">
     <li data-k="b1"><b>Ambiguous wording in <code>pr-digest</code>:</b> “ran only its step” is false for build, which also checks out and checks what changed; and which of job or step must succeed. It now says the job and the step both succeed.</li>
     <li data-k="b2"><b>Contradictions in the skill:</b> Step 1 says every failure is INCONCLUSIVE, and the contract says the last line is always <code>VERDICT:</code>. The check moved to its own Step 0, and the contract names the exception.</li>
-    <li data-k="b3"><b>Gaps:</b> a caller's old digest could be reused, and a run still in progress fell through to INCONCLUSIVE. The digest must now match the head, and the skill waits for a running build or verify.</li>
+    <li data-k="b3"><b>Gaps:</b> a caller's old digest could be reused, and a run still in progress fell through to INCONCLUSIVE. The digest must now match the head, and an unfinished build or verify no longer falls through.</li>
   </ul>
-  <p data-k="ci">CI's own review is in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/77">PR #77</a>.</p>
+  <p data-k="ci">CI's first review found 9 low findings, 2 of them confirmed. All are fixed in one push, except R7, kept by design:</p>
+  <ul class="tight">
+    <li data-k="r1"><b>Docs out of step:</b> the skill and its README said <code>pr:&lt;n&gt;</code> needs only git, and the README's contract never mentioned the new exit (R1, R3).</li>
+    <li data-k="r2"><b>One output shape:</b> the stop is now a verdict, <code>NOT NEEDED</code>, so the last line is always <code>VERDICT:</code>, with no ambiguous quoted message (R6, R9).</li>
+    <li data-k="r3"><b>No waiting:</b> instead of waiting with no limit, a queued or running build or verify ends with <code>NOT YET</code> (R4, R5).</li>
+    <li data-k="r4"><b>Digest wording:</b> only build and verify can show <code>No code changed</code>, and the digest's audit line now says “not needed” (R2, R8).</li>
+    <li data-k="r5"><b>Kept:</b> R7, a full digest where one jobs call would do, because <code>CLAUDE.md</code> routes every read of a PR's checks through <code>pr-digest</code>. All findings are in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/77">PR #77</a>.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -267,7 +275,7 @@ explainers/71-visual-verify-no-code.narration.json  # its narration</pre>
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>The skill prints “not needed” on a docs-only PR and posts nothing</td><td>Agents load the skill from <code>main</code></td><td class="open">the next docs-only PR</td></tr>
+    <tr data-k="a1"><td>The skill returns NOT NEEDED on a docs-only PR and posts nothing</td><td>Agents load the skill from <code>main</code></td><td class="open">the next docs-only PR</td></tr>
     <tr data-k="a2"><td>A code PR still gets its audit and posted verdict</td><td>Same</td><td class="open">the next code PR</td></tr>
   </table>
   </div>
@@ -300,8 +308,8 @@ explainers/71-visual-verify-no-code.narration.json  # its narration</pre>
     <g data-k="n1">
       <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
       <text x="36" y="90" class="t">Skill knows</text>
-      <text x="36" y="114" class="b">this PR: “not</text>
-      <text x="36" y="134" class="b">needed” on no-code</text>
+      <text x="36" y="114" class="b">this PR: NOT</text>
+      <text x="36" y="134" class="b">NEEDED on no-code</text>
       <text x="36" y="154" class="b">CI runs</text>
     </g>
     <g data-k="n2">
@@ -326,6 +334,7 @@ explainers/71-visual-verify-no-code.narration.json  # its narration</pre>
   <dl class="gloss">
     <div data-k="nocode"><dt>No code changed</dt><dd>The step build and verify run, instead of their real steps, on a PR that changes no code, packaging or CI files.</dd></div>
     <div data-k="vv"><dt>/visual-verify</dt><dd>The skill that audits CI's screenshots and posts a PASS, FAIL or INCONCLUSIVE verdict.</dd></div>
+    <div data-k="notyet"><dt>NOT YET</dt><dd>The unposted verdict while build or verify hasn't finished; the skill runs again later.</dd></div>
     <div data-k="digest"><dt>pr-digest</dt><dd>A read-only agent that sums up a PR's CI state in about 20 lines.</dd></div>
     <div data-k="inc"><dt>INCONCLUSIVE</dt><dd>The verdict when the audit can't be trusted; it sends the PR to the owner.</dd></div>
     <div data-k="manifest"><dt>verify.tsv</dt><dd>The manifest of shots CI writes to the shots branch, one row per shot.</dd></div>

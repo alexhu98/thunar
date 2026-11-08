@@ -14,7 +14,7 @@ The audit MUST run in the **independent `shot-audit` skill** (Step 3). That skil
 Free-form tokens. Resolve what is present, and ask only if a required input is missing and can't be inferred.
 
 - **Shots**, one of these (required):
-  - `pr:<n>`: CI's original shots for PR `<n>` (not the side-by-side `pair-*.png` images made for the PR comments), from the `shots` branch: `git fetch origin +refs/heads/shots:refs/remotes/origin/shots` (a plain `git fetch origin shots` updates only `FETCH_HEAD` in a single-branch clone), then `git show origin/shots:pr-<n>/verify.tsv` and each listed `pr-<n>/<file>`, written into a new scratch directory. Needs only git, so it works where `gh` and Xvfb don't.
+  - `pr:<n>`: CI's original shots for PR `<n>` (not the side-by-side `pair-*.png` images made for the PR comments), from the `shots` branch: `git fetch origin +refs/heads/shots:refs/remotes/origin/shots` (a plain `git fetch origin shots` updates only `FETCH_HEAD` in a single-branch clone), then `git show origin/shots:pr-<n>/verify.tsv` and each listed `pr-<n>/<file>`, written into a new scratch directory. Needs git, plus Step 0's `pr-digest` digest of the PR's checks; it works where `gh` and Xvfb don't.
   - a local directory holding `verify.tsv`, as `.github/scripts/verify-proof.sh run` writes it (`$OUT`, by default `${TMPDIR:-/tmp}/verify-proof/`).
 - **Intents**: the manifest's `proves` column, written by each `shot` call. Its `num` column is the shot's number in CI's PR comments: both shots of a pair share one. The caller may add intents inline, for example from the issue's acceptance criteria. Inline intents are added to the manifest's, never replace them.
 - **`run:`** *(optional)*: run `.github/scripts/verify-proof.sh run` first, then audit its `$OUT`. Only in a sandbox where the built debs are installed (see the repo `CLAUDE.md`).
@@ -22,11 +22,13 @@ Free-form tokens. Resolve what is present, and ask only if a required input is m
 
 ### Step 0: no shots to audit (`pr:<n>` only)
 
-Before the preflight, check whether the PR's head ran `No code changed` in both build and verify. Read it from the `checks:` line of a `pr-digest` digest whose `head` is the PR's current head (`git ls-remote origin refs/pull/<n>/head`): the caller's if it has one, otherwise a new one (`Agent(pr-digest, "<n>")`).
+Before the preflight, check whether the PR's head ran `No code changed` in both build and verify. Read it from the `checks:` line of a `pr-digest` digest whose `head` is the PR's current head (`git ls-remote origin refs/pull/<n>/head`): the caller's if it has one, otherwise a new one (`Agent(pr-digest, "<n>")`). `CLAUDE.md` routes every read of the PR's checks through `pr-digest`, so the skill doesn't list the jobs itself.
 
-- Both build and verify show `No code changed`: print `not needed: build and verify ran \`No code changed\`, so CI took no shots` and stop. This is the skill's one exit without a verdict: no `VERDICT:` line and no PR comment.
-- Build or verify is still `running`: wait for it to finish and take a new digest. Don't go on to Step 1, where a missing or older manifest would read as INCONCLUSIVE.
+- Both build and verify show `No code changed`: stop with `VERDICT: NOT NEEDED (build and verify ran No code changed)`.
+- Build or verify is `running` or `missing` (queued, or not created yet): stop with `VERDICT: NOT YET (build or verify hasn't finished)`. The caller runs the skill again when CI's next event for the head arrives. Don't go on to Step 1, where a missing or older manifest would read as INCONCLUSIVE.
 - Anything else: go on to Step 1. Key this check on the `No code changed` step only, never on a missing or stale manifest, so a verify run that skipped its steps by mistake still ends INCONCLUSIVE there.
+
+`NOT NEEDED` and `NOT YET` are never posted as a PR comment.
 
 ### Step 1: preflight (guards the INCONCLUSIVE outcome)
 
@@ -69,6 +71,6 @@ Advisory output, such as a `baseline:` diff or extra states, is reported but nev
 
 ### Contract for callers
 
-- The final line is `VERDICT: PASS|FAIL|INCONCLUSIVE[ (cause)]`, which callers parse, or Step 0's `not needed` line when build and verify ran `No code changed`. That one posts no PR comment, and `CLAUDE.md`'s merge rule needs no verdict for that head.
+- The final line is `VERDICT: PASS|FAIL|INCONCLUSIVE|NOT NEEDED|NOT YET[ (cause)]`, which callers parse. `NOT NEEDED` and `NOT YET` come only from Step 0 and are never posted; `CLAUDE.md`'s merge rule needs no verdict for a head whose build and verify ran `No code changed`.
 - On a PR, post the table, the visible-changes section and the verdict as a PR comment whose first line is `<!-- visual-verify <the manifest's sha> -->`, for the owner to review before merging. CI's summary comment shows the latest verdict posted for the PR's head as its Screenshot audit row, and "not run yet" until there is one.
 - **PASS**: the screenshots may be posted or presented as proof. **FAIL**: fix the capture or the code and run again. **INCONCLUSIVE**: surface the cause and hand to the owner. Never present a shot as proof on anything but PASS.
