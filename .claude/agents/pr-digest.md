@@ -40,10 +40,11 @@ never fix anything you find.
    - `<!-- review:state {...} -->` in the review comment: `sha` (the last head a review ran on), `reason`, and
      `findings`, each with `id`, `sha` (the head it was found on), `severity`, `verdict`, `status`, `file`, `line`, `summary`, `detail`, `commit`.
      CI writes each `>` inside the JSON as the six characters `\u003e`, which any JSON parser reads back. Findings whose text
-     was cut to fit the comment keep only `id` and `status`; report them by ID. The comment's tables are built from the same
-     trimmed state, so nothing else gives their severity or review. A trimmed one is settled only when it is
-     `fixed` or `resolved`; count any other as not settled, marked `trimmed`, for the caller to judge from an
-     earlier digest that showed it in full. No trailer or `Fixes` line settles it.
+     was cut to fit the comment keep only `id` and `status`; report them by ID. Apply step 7 to a trimmed one with what is
+     left: its status, `Fixes` lines and owner comments need no severity. When step 7 needs its severity or verdict,
+     take them from its review thread's heading, `**Rn (severity, verdict)**`, if it has one; count a trimmed one
+     whose review can't be told as from the first review. When a needed fact is still missing, count it as not
+     settled, marked `trimmed: no <fact>`; the owner settles those.
    - The review comment's one Markdown line you do read: `Skipped <sha>: <reason>.`, the reason the review skipped
      the head. `state.sha` and `state.reason` only change when a review runs.
    A finding with `"new": true` appeared or changed status since the last review that ran; a skipped review
