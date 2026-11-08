@@ -124,7 +124,7 @@ CI's `review` job reviews every push that changes more than `explainers/` and re
 - `Review: auto-fix` or `Review: suggest` on an empty commit forces a re-review: `git commit --allow-empty -m "Re-review" --trailer "Review: auto-fix"`.
 - `Review-accept: R23, R32` on any commit in the PR closes those findings as accepted, for findings kept on purpose.
 
-An explainer-only push, CI's own fix commit and a head that a newer push replaced skip the review; the next push's review covers them. The job fails while confirmed medium or high findings stay unresolved; low ones are reported without failing it.
+A push that changes nothing but `explainers/` since the last reviewed commit, CI's own fix commit and a head that a newer push replaced skip the review; the next code push's review covers them. The job fails while confirmed medium or high findings stay unresolved; low ones are reported without failing it.
 
 ## Video (local only, never in CI)
 
