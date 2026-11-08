@@ -57,28 +57,29 @@ EDITOR_WID=$(find_window editor) || fail "the xev window (the other app being ty
 focus "$EDITOR_WID"
 sleep 0.5
 [[ $(xdotool getactivewindow) == "$EDITOR_WID" ]] || fail "the editor window could not be focused"
-mkdir -p "$WORK/big-copy"
-truncate -s 3G "$WORK/big.img"
-truncate -s 1G "$WORK/big2.img"
+mkdir -p "$WORK/many" "$WORK/more" "$WORK/copies"
+(cd "$WORK/many" && seq -f 'file-%g' 30000 | xargs touch)
+(cd "$WORK/more" && seq -f 'file-%g' 5000 | xargs touch)
 dbus-send --session --print-reply --reply-timeout=10000 --dest=org.xfce.FileManager /org/xfce/FileManager \
-  org.xfce.FileManager.CopyInto string:"$WORK" array:string:"$WORK/big.img" string:"$WORK/big-copy" string:"" string:"" >/dev/null \
-  || fail "the D-Bus CopyInto call for the 3 GB file failed"
-find_window 'File Operation Progress' >/dev/null || fail "the progress window did not appear during the copy of a 3 GB file"
+  org.xfce.FileManager.CopyInto string:"$WORK" array:string:"$WORK/many" string:"$WORK/copies" string:"" string:"" >/dev/null \
+  || fail "the D-Bus CopyInto call for the folder of 30000 files failed"
+find_window 'File Operation Progress' >/dev/null || fail "the progress window did not appear during the copy of 30000 files"
 ACTIVE=$(xdotool getactivewindow)
 [[ $ACTIVE == "$EDITOR_WID" ]] || fail "the progress window of a long copy took the focus: window $ACTIVE ('$(xdotool getwindowname "$ACTIVE")') is active"
 dbus-send --session --print-reply --reply-timeout=10000 --dest=org.xfce.FileManager /org/xfce/FileManager \
-  org.xfce.FileManager.CopyInto string:"$WORK" array:string:"$WORK/big2.img" string:"$WORK/big-copy" string:"" string:"" >/dev/null \
-  || fail "the D-Bus CopyInto call for the second, 1 GB file failed"
+  org.xfce.FileManager.CopyInto string:"$WORK" array:string:"$WORK/more" string:"$WORK/copies" string:"" string:"" >/dev/null \
+  || fail "the D-Bus CopyInto call for the second folder failed"
 sleep 1
 ACTIVE=$(xdotool getactivewindow)
 [[ $ACTIVE == "$EDITOR_WID" ]] || fail "a second copy started with the progress window shown took the focus: window $ACTIVE ('$(xdotool getwindowname "$ACTIVE")') is active"
-shot root progress-without-focus "During the copy of a 3 GB file with no question, the File Operation Progress window appeared after 500 ms, a second copy started while it was shown raised it, and the editor kept the focus"
+shot root progress-without-focus "During a copy of 30000 files with no question, the File Operation Progress window appeared after 500 ms, a second copy started while it was shown raised it, and the editor kept the focus"
 for ((i = 0; i < 300; i++)); do
   xdotool search --onlyvisible --name '^File Operation Progress$' >/dev/null 2>&1 || break
   sleep 0.2
 done
-(( i < 300 )) || fail "the copies of the 3 GB and 1 GB files did not finish within 60 s"
-rm -f "$WORK/big.img" "$WORK/big2.img" "$WORK/big-copy/big.img" "$WORK/big-copy/big2.img"
+(( i < 300 )) || fail "the copies of 30000 and 5000 files did not finish within 60 s"
+(( $(ls "$WORK/copies/many" | wc -l) == 30000 && $(ls "$WORK/copies/more" | wc -l) == 5000 )) || fail "the copies of 30000 and 5000 files are incomplete"
+rm -rf "$WORK/many" "$WORK/more" "$WORK/copies"
 [[ $(xdotool getactivewindow) == "$EDITOR_WID" ]] || fail "the editor lost the focus during the long copy"
 
 shot root before-replace-dialog "The xev window 'editor' (another app, standing in for an editor) has the focus, before Thunar is asked over D-Bus to copy report.txt onto an existing one"
