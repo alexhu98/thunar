@@ -2,8 +2,8 @@
 # CI code review of a PR: review-proof.sh plan | collect | report
 #   plan     before the review: picks the mode from the head commit's Review: trailer (default auto-fix, or suggest
 #            for an upstream release merge), waits (up to 30 min) until earlier runs on the branch have written their
-#            review state, skips when the head was already reviewed or only explainers/ changed since the last
-#            reviewed commit, and writes the diff (for a release merge, only the fork's side), the issue, the open
+#            review state, skips when a newer push replaced the head, the head was already reviewed, is CI's own fix
+#            commit on top of the last reviewed one, or only explainers/ changed since the last reviewed commit, and writes the diff (for a release merge, only the fork's side), the issue, the open
 #            findings with the commits since each was found, the accepted findings and the prompt to $OUT. Prints its decisions as key=value lines for $GITHUB_OUTPUT.
 #   collect  after the review: saves the findings ($FINDINGS, the action's structured_output) and the working-tree
 #            fix as a patch, for the report job.
@@ -18,7 +18,7 @@ set -euo pipefail
 BASE=${BASE:-origin/main}
 OUT=${OUT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/review}
 IN=${IN:-$OUT}
-LEVEL=${REVIEW_LEVEL:-xhigh}
+LEVEL=${REVIEW_LEVEL:-high}
 MODEL=${REVIEW_MODEL:-claude-opus-5-5}
 HERE=$(cd "$(dirname "$0")" && pwd)
 BOT_NAME='claude[bot]'
@@ -73,6 +73,21 @@ wait_for_earlier_runs() {
   done
 }
 
+superseded() {
+  local now
+  [[ -n ${PR:-} ]] || return 1
+  now=$(gh api "repos/{owner}/{repo}/pulls/$PR" --jq .head.sha 2>/dev/null) || return 1
+  [[ $now =~ ^[0-9a-f]{40}$ && $now != "$HEAD_SHA" ]] || return 1
+  echo "$now"
+}
+
+own_fix() {
+  local fix='^Fix [0-9]+ finding\(s\) from the CI code review of [0-9a-f]{12}$'
+  [[ -n $1 && $(git log -1 --format='%an <%ae>' "$HEAD_SHA") == "$BOT_NAME <$BOT_EMAIL>" ]] &&
+    [[ $(git log -1 --format=%s "$HEAD_SHA") =~ $fix ]] &&
+    [[ $(git rev-parse -q --verify "$HEAD_SHA^" 2>/dev/null) == "$1" ]]
+}
+
 accepted() {
   git log --format='%H %(trailers:key=Review-accept,valueonly,separator=%x2C)' "$(git merge-base "$BASE" "$HEAD_SHA")..$HEAD_SHA" \
     | awk -F '[^A-Za-z0-9]+' '{ for (i = 2; i <= NF; i++) if (toupper($i) ~ /^R[0-9]+$/) print toupper($i), $1 }' | sort -u
@@ -110,7 +125,7 @@ open_findings() {
 
 plan() {
   : "${HEAD_SHA:?}"
-  local trailer mode default=auto-fix forced=0 last skip=0 reason= from full=1 mb release issue= trusted
+  local trailer mode default=auto-fix forced=0 last skip=0 reason= from full=1 mb release issue= trusted newer
   trailer=$(git log -1 --format='%(trailers:key=Review,valueonly,separator=%x2C)' "$HEAD_SHA" | tr -d ' \n' | tr '[:upper:]' '[:lower:]')
   mb=$(git merge-base "$BASE" "$HEAD_SHA")
   release=$(release_merge "$mb")
@@ -120,14 +135,20 @@ plan() {
     '') mode=$default ;;
     *) echo "::warning::unknown Review: trailer \"$trailer\"; using $default" >&2; mode=$default ;;
   esac
-  wait_for_earlier_runs
+  newer=$(superseded) || newer=
+  [[ -n $newer ]] || wait_for_earlier_runs
+  [[ -n $newer ]] || newer=$(superseded) || newer=
   state > "$OUT/state.json"
   last=$(jq -r '.sha // empty' "$OUT/state.json")
   from=${release:-$mb}
-  if [[ $last == "$HEAD_SHA" ]]; then
+  if [[ -n $newer ]]; then
+    skip=1 reason="a newer push replaced it with ${newer::12}, whose run reviews the changes"
+  elif [[ $last == "$HEAD_SHA" ]]; then
     skip=1 reason="${last::12} was already reviewed"
   elif [[ -n $last ]] && git merge-base --is-ancestor "$HEAD_SHA" "$last" 2>/dev/null; then
     skip=1 reason="${HEAD_SHA::12} is already part of the reviewed ${last::12}"
+  elif own_fix "$last"; then
+    skip=1 reason="it is CI's own fix from the review of ${last::12}, which the next push's review covers"
   elif [[ -n $last ]] && git cat-file -e "$last^{commit}" 2>/dev/null && git merge-base --is-ancestor "$last" "$HEAD_SHA" \
     && git merge-base --is-ancestor "$mb" "$last" && { [[ -z $release ]] || git merge-base --is-ancestor "$release" "$last"; }; then
     if git diff --quiet "$last" "$HEAD_SHA" -- . ':!explainers/'; then

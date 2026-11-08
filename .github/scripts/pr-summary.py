@@ -92,6 +92,8 @@ def section_state(name, st, head, jobs):
         return 'running', 'running'
     if name == 'verify' and jobs.get('build', ('',))[0] != 'pass':
         return 'skip', 'not run: the build did not pass'
+    if name == 'review' and jobs.get('review', ('',))[0] == 'cancelled':
+        return 'fail', 'stopped: the review job was cancelled or ran past its 30-minute limit'
     if st:
         return 'fail', f"not run for `{head[:12]}` (last: {st['text']} for `{st['sha'][:12]}`)"
     return 'fail', 'not run'

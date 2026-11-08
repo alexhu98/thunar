@@ -212,7 +212,7 @@ jobs:
   review:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 30
     concurrency:
       group: review-${{ github.ref }}
       cancel-in-progress: false
@@ -227,7 +227,7 @@ jobs:
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       RUN_ID: ${{ github.run_id }}
       RUN_NUMBER: ${{ github.run_number }}
-      REVIEW_LEVEL: xhigh
+      REVIEW_LEVEL: high
       REVIEW_MODEL: claude-opus-5-5
     steps:
       - uses: actions/checkout@v4
