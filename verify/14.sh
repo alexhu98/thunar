@@ -40,10 +40,28 @@ editor_keys() {
   grep -c 'keysym 0xff0d, Return' "$WORK/editor.log" || true
 }
 
-copy_into_dst() {
+copy_into() {
   dbus-send --session --print-reply --reply-timeout=10000 --dest=org.xfce.FileManager /org/xfce/FileManager \
-    org.xfce.FileManager.CopyInto string:"$WORK" array:string:"$SRC/report.txt" string:"$DST" string:"" string:"" >/dev/null \
-    || fail "the D-Bus CopyInto call failed"
+    org.xfce.FileManager.CopyInto string:"$WORK" array:string:"$1" string:"$2" string:"" string:"" >/dev/null \
+    || fail "the D-Bus CopyInto call $3 failed"
+}
+
+copy_into_dst() {
+  copy_into "$SRC/report.txt" "$DST" "for report.txt"
+}
+
+stack_pos() {
+  local hex i=0 w
+  hex=$(printf '0x%x' "$1")
+  for w in $(xprop -root -notype _NET_CLIENT_LIST_STACKING | sed 's/^[^#]*# //; s/,//g'); do
+    [[ $w == "$hex" ]] && { echo "$i"; return 0; }
+    i=$((i + 1))
+  done
+  echo -1
+}
+
+progress_shown() {
+  grep -qx "$1" <<<"$(xdotool search --onlyvisible --name '^File Operation Progress$' 2>/dev/null || true)"
 }
 
 open_thunar "$DST"
@@ -60,19 +78,23 @@ sleep 0.5
 mkdir -p "$WORK/many" "$WORK/more" "$WORK/copies"
 (cd "$WORK/many" && seq -f 'file-%g' 30000 | xargs touch)
 (cd "$WORK/more" && seq -f 'file-%g' 5000 | xargs touch)
-dbus-send --session --print-reply --reply-timeout=10000 --dest=org.xfce.FileManager /org/xfce/FileManager \
-  org.xfce.FileManager.CopyInto string:"$WORK" array:string:"$WORK/many" string:"$WORK/copies" string:"" string:"" >/dev/null \
-  || fail "the D-Bus CopyInto call for the folder of 30000 files failed"
-find_window 'File Operation Progress' >/dev/null || fail "the progress window did not appear during the copy of 30000 files"
+copy_into "$WORK/many" "$WORK/copies" "for the folder of 30000 files"
+LONG_PROGRESS=$(find_window 'File Operation Progress') || fail "the progress window did not appear during the copy of 30000 files"
 ACTIVE=$(xdotool getactivewindow)
 [[ $ACTIVE == "$EDITOR_WID" ]] || fail "the progress window of a long copy took the focus: window $ACTIVE ('$(xdotool getwindowname "$ACTIVE")') is active"
-dbus-send --session --print-reply --reply-timeout=10000 --dest=org.xfce.FileManager /org/xfce/FileManager \
-  org.xfce.FileManager.CopyInto string:"$WORK" array:string:"$WORK/more" string:"$WORK/copies" string:"" string:"" >/dev/null \
-  || fail "the D-Bus CopyInto call for the second folder failed"
+xdotool windowraise "$MAIN"
+sleep 0.5
+(( $(stack_pos "$MAIN") > $(stack_pos "$LONG_PROGRESS") )) || fail "the progress window could not be lowered under Thunar's main window before the second copy"
+[[ $(xdotool getactivewindow) == "$EDITOR_WID" ]] || fail "raising Thunar's main window took the focus from the editor"
+progress_shown "$LONG_PROGRESS" || fail "the progress window closed before the second copy started"
+copy_into "$WORK/more" "$WORK/copies" "for the second folder"
 sleep 1
 ACTIVE=$(xdotool getactivewindow)
 [[ $ACTIVE == "$EDITOR_WID" ]] || fail "a second copy started with the progress window shown took the focus: window $ACTIVE ('$(xdotool getwindowname "$ACTIVE")') is active"
-shot root progress-without-focus "During a copy of 30000 files with no question, the File Operation Progress window appeared after 500 ms, a second copy started while it was shown raised it, and the editor kept the focus"
+(( $(stack_pos "$LONG_PROGRESS") > $(stack_pos "$MAIN") )) || fail "a second copy started with the progress window shown did not raise it above Thunar's main window"
+(( $(ls "$WORK/copies/many" | wc -l) < 30000 )) || fail "the copy of 30000 files ended before the second copy's progress window was checked, so the raise of a shown window was not exercised"
+shot root progress-without-focus "During a copy of 30000 files with no question, the File Operation Progress window appeared after 500 ms, a second copy started while it was shown raised it above Thunar's main window, and the editor kept the focus"
+progress_shown "$LONG_PROGRESS" || fail "the progress window closed before the progress-without-focus shot was taken"
 for ((i = 0; i < 300; i++)); do
   xdotool search --onlyvisible --name '^File Operation Progress$' >/dev/null 2>&1 || break
   sleep 0.2
@@ -137,9 +159,7 @@ dst_is "old version of the report" "after Escape"
 
 focus "$EDITOR_WID"
 sleep 0.5
-dbus-send --session --print-reply --reply-timeout=10000 --dest=org.xfce.FileManager /org/xfce/FileManager \
-  org.xfce.FileManager.CopyInto string:"$WORK" array:string:"$SRC/missing.txt" string:"$DST" string:"" string:"" >/dev/null \
-  || fail "the D-Bus CopyInto call for a missing file failed"
+copy_into "$SRC/missing.txt" "$DST" "for a missing file"
 ERR=$(find_window Error) || fail "copying a missing file showed no error dialog"
 sleep 1
 ACTIVE=$(xdotool getactivewindow)
