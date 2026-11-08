@@ -55,9 +55,9 @@ For each group in order, start its child with `create_session`, with `source_url
 
 Add the group's notes from its row after "together in one PR" (e.g. "plus #58 only if its version-stamp blocker is solved", or what an earlier group already changed). Record the returned session ID in the row.
 
-Then make sure a check-in is pending (step 4) and end the turn. A group may start only when all of these hold: the stop point's group is neither merged nor skipped; every group before it in the plan is merged or skipped, or the plan runs it in parallel with them; and no group its `After` names is skipped, unless the owner has said it may start anyway. A group whose child failed or stopped holds up the groups after it until it merges or the owner says to skip it.
+Then make sure a check-in is pending (step 4) and end the turn. A group may start only when all of these hold: if there is a stop point, the group is not after the stop point's group in the plan and the stop point's group is neither merged nor skipped; every group before it in the plan is merged or skipped, or the plan runs it in parallel with them; and no group its `After` names is skipped, unless the owner has said it may start anyway. A group whose child failed or stopped holds up the groups after it until it merges or the owner says to skip it.
 
-When the owner skips a group, its row reads `skipped`. Tell them its session may still be running and that they stop it there, since the orchestrator never stops a child. Then start the groups that may now start, and in "What I need from you" ask whether each group whose `After` names it should start anyway; each one the owner declines is skipped the same way, which can in turn raise the same question for its own dependents.
+When the owner skips a group, its row reads `skipped`. If it has a session, tell them it may still be running and that they stop it there, since the orchestrator never stops a child. Then start the groups that may now start, and, unless it is the stop point's group, in "What I need from you" ask whether each group whose `After` names it should start anyway; each one the owner declines is skipped the same way, which can in turn raise the same question for its own dependents.
 
 ## 4. Watch cheaply
 
@@ -66,7 +66,7 @@ The children report their own events; the orchestrator records them and passes o
 **A child's message** (`batch <t> group A: …`), handled once, since each message arrives once:
 - `opened #<n>`: record the PR number in the row.
 - `blocked: <question>`: tell the owner in "What I need from you": group A's session title, the question in one line, and that they answer it in that session. Set `waiting on owner: yes`.
-- `resumed`: set `waiting on owner: no`.
+- `resumed`: set `waiting on owner: no`, and if the pending check-in is a 4-hour one, replace it with a 90-minute one.
 - `merged #<n>`: record the PR number in the row, tick it and set `waiting on owner: no`. Then start the groups that may now start (step 3).
 
 Any message from the child also sets `waiting on owner: no` before it is handled, unless its row reads `skipped`: no handler changes a skipped row, and its child's messages only go to the owner.
