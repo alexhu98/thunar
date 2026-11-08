@@ -201,6 +201,8 @@ def render(out, repo, sha, result, note, failed):
         status = {'sha': sha, 'state': 'fail', 'text': 'the review did not finish'}
     elif open_:
         status = {'sha': sha, 'state': 'fail', 'text': f'{len(open_)} confirmed medium or high finding(s) unresolved'}
+    elif result == 'unreviewed':
+        status = {'sha': sha, 'state': 'wait', 'text': "not reviewed yet: CI's own fix, which the next push's review covers"}
     else:
         status = {'sha': sha, 'state': 'pass', 'text': 'no confirmed medium or high findings unresolved'}
     ids = {f['id'] for f in findings if f['status'] in OPEN or f.get('new')}

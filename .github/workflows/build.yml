@@ -212,7 +212,7 @@ jobs:
   review:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 55
     concurrency:
       group: review-${{ github.ref }}
       cancel-in-progress: false
@@ -221,6 +221,8 @@ jobs:
       contents: read
       issues: read
       pull-requests: read
+    outputs:
+      superseded: ${{ steps.plan.outputs.superseded }}
     env:
       PR: ${{ github.event.pull_request.number }}
       HEAD_REF: ${{ github.head_ref }}
@@ -284,7 +286,7 @@ jobs:
 
   review-report:
     needs: review
-    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.review.result != 'cancelled' && needs.review.result != 'skipped'
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.review.result != 'cancelled' && needs.review.result != 'skipped' && needs.review.outputs.superseded != '1'
     runs-on: ubuntu-24.04
     concurrency:
       group: review-report-${{ github.ref }}

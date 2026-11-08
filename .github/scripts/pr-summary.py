@@ -153,6 +153,8 @@ def summary(runs):
         title = '⚠️ Screenshot audit inconclusive: the owner decides'
     elif a[0] == 'wait':
         title = '⏳ waiting for the screenshot audit'
+    elif r[0] == 'wait':
+        title = "⏳ waiting for a review of CI's fix"
     else:
         title = '✅ ready for review'
     run_url = os.environ.get('RUN_URL') or (f"https://github.com/{os.environ['GH_REPO']}/actions/runs/{run_id}"

@@ -127,16 +127,16 @@
     <text class="lane" x="20" y="44" style="fill:var(--accent)">① Plan the review</text>
     <g data-k="1">
       <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
-      <text x="36" y="90" class="t">Newer push?</text>
-      <text x="36" y="114" class="b">the PR's head is</text>
-      <text x="36" y="134" class="b">no longer this one:</text>
+      <text x="36" y="90" class="t">Newer run?</text>
+      <text x="36" y="114" class="b">a newer push has</text>
+      <text x="36" y="134" class="b">started its own run:</text>
       <text x="36" y="154" class="b">skip, no waiting</text>
       <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
     </g>
     <g data-k="2">
       <rect class="box-merge" x="270" y="60" width="210" height="120" rx="10"/>
       <text x="286" y="90" class="t">Wait, ask again</text>
-      <text x="286" y="114" class="b">up to 10 minutes</text>
+      <text x="286" y="114" class="b">up to 20 minutes</text>
       <text x="286" y="134" class="b">for earlier runs,</text>
       <text x="286" y="154" class="b">then check again</text>
       <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
@@ -144,9 +144,9 @@
     <g data-k="3">
       <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
       <text x="536" y="90" class="t">CI's own fix?</text>
-      <text x="536" y="114" class="b">claude[bot]'s fix</text>
-      <text x="536" y="134" class="b">on the reviewed</text>
-      <text x="536" y="154" class="b">head: skip</text>
+      <text x="536" y="114" class="b">a fix commit the</text>
+      <text x="536" y="134" class="b">state records, on</text>
+      <text x="536" y="154" class="b">the reviewed head</text>
       <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
     </g>
     <g data-k="4">
@@ -183,8 +183,8 @@
       <rect class="box-pr" x="270" y="260" width="210" height="120" rx="10"/>
       <text x="286" y="290" class="t">Summary row</text>
       <text x="286" y="314" class="b">a stopped review</text>
-      <text x="286" y="334" class="b">says so, not just</text>
-      <text x="286" y="354" class="b">"not run"</text>
+      <text x="286" y="334" class="b">or an unreviewed</text>
+      <text x="286" y="354" class="b">fix says so</text>
       <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
     </g>
     <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
@@ -208,16 +208,16 @@
   <div class="panel">
   <div class="lane-h" style="color:var(--accent)">① Plan the review</div>
   <ol class="steps">
-    <li data-k="1"><b>Newer push?</b> <code>plan</code> asks GitHub for the PR's current head. If a newer push has replaced this run's head, it skips the review straight away, without waiting for earlier runs. The newer run reviews the same changes. A head GitHub reports that is older than this one, which can happen for a moment after a push, doesn't count.</li>
-    <li data-k="2"><b>Wait, ask again.</b> Otherwise it waits for earlier runs to record their reviews, now for up to 10 minutes instead of 30, then asks once more, since a push may have come in meanwhile.</li>
-    <li data-k="3"><b>CI's own fix?</b> A head authored by claude[bot], with the subject "Fix N finding(s) from the CI code review of …" and the last reviewed commit as its parent, is skipped.</li>
+    <li data-k="1"><b>Newer run?</b> <code>plan</code> asks GitHub's runs API whether a newer run of <code>build.yml</code> exists for this branch, with another head. A newer push always starts one, so if it exists the review is skipped straight away, without waiting, and the newer run reviews the same changes. This run's review-report is skipped too, so it can't queue behind and cancel an earlier run's report.</li>
+    <li data-k="2"><b>Wait, ask again.</b> Otherwise it waits for earlier runs to record their reviews, now for up to 20 minutes instead of 30, then asks once more, since a push may have come in meanwhile.</li>
+    <li data-k="3"><b>CI's own fix?</b> A head that the review state records as the commit that fixed a finding, with the last reviewed commit as its parent, is skipped. The author or subject alone doesn't count, since anyone with push access could copy them.</li>
     <li data-k="4"><b>Other rules.</b> Already reviewed, already part of a reviewed head, or only <code>explainers/</code> changed: skipped as before. Anything else is reviewed.</li>
   </ol>
   <div class="lane-h" style="color:var(--accent)">② Review and report</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>Review at high.</b> <code>REVIEW_LEVEL</code> is <code>high</code> instead of <code>xhigh</code>. The Review step gets 30 minutes of its own, and the whole job 45 instead of 90. The longest review so far took 20. A review that runs out of time fails its step, so review-report still runs and records it.</li>
+    <li data-k="5"><b>Review at high.</b> <code>REVIEW_LEVEL</code> is <code>high</code> instead of <code>xhigh</code>. The Review step gets 30 minutes of its own, and the whole job 55 instead of 90. The longest review so far took 20. A review that runs out of time fails its step, so review-report still runs and records it.</li>
     <li data-k="6"><b>Record the state.</b> Unchanged: a skipped review doesn't move the recorded commit, so the next push's review takes in the bot's fix.</li>
-    <li data-k="7"><b>Summary row.</b> When the review job is cancelled or runs past its 45 minutes, the summary's Code review row now says "stopped: the review job was cancelled or ran past its time limit".</li>
+    <li data-k="7"><b>Summary row.</b> When the review job is cancelled or runs past its 55 minutes, the summary's Code review row now says "stopped: the review job was cancelled or ran past its time limit". A head that is CI's own fix shows ⏳ "not reviewed yet", and the summary waits for a review of the fix instead of going green.</li>
   </ol>
   </div>
   </section>
@@ -231,9 +231,10 @@
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">.github/
 ├── scripts/
-│   ├── review-proof.sh               # superseded() and own_fix(); plan skips on both; 10-minute wait; level high
-│   └── pr-summary.py                 # "stopped" for a cancelled or timed-out review
-└── workflows/build.yml               # REVIEW_LEVEL high; Review step 30 min, job 45
+│   ├── review-proof.sh               # superseded() and own_fix(); plan skips on both; 20-minute wait; level high
+│   ├── review-state.py               # "not reviewed yet" status for CI's own fix
+│   └── pr-summary.py                 # "stopped" for a cancelled review; waits for a review of CI's fix
+└── workflows/build.yml               # REVIEW_LEVEL high; Review step 30 min, job 55; no report when superseded
 .claude/skills/explainer/SKILL.md     # the new skips, in its CI review notes
 CLAUDE.md                             # the new skips; no merge on CI's own fix commit
 explainers/
@@ -262,11 +263,11 @@ explainers/
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr data-k="c1"><td>Only CI's own fix is skipped</td><td><code>own_fix</code> against a scratch repo: the bot's fix on the reviewed head; a human commit; the fix on another parent; a bot commit with another subject; no reviewed head</td><td class="ok">true for the first only, 5 of 5</td></tr>
-    <tr data-k="c2"><td>Newer pushes are spotted</td><td><code>superseded</code> with a stand-in <code>gh</code>: the same head, a newer head, a failed call, an empty answer, no PR number; then in <code>plan</code>, an older head and one not yet fetched</td><td class="ok">newer or unknown head only, 7 of 7</td></tr>
-    <tr data-k="c3"><td>The whole plan decides right</td><td><code>review-proof.sh plan</code> end to end, with a stand-in <code>gh</code> holding the review state</td><td class="ok">7 of 7 cases</td></tr>
+    <tr data-k="c1"><td>Only CI's own fix is skipped</td><td><code>plan</code> against a scratch repo: the fix commit the state records; the same commit not recorded; a look-alike with the same subject</td><td class="ok">skipped the first only, 3 of 3</td></tr>
+    <tr data-k="c2"><td>Newer runs are spotted</td><td><code>plan</code> with a stand-in <code>gh</code> for the runs API: a newer run, none, and a failed call</td><td class="ok">skipped only with a newer run, 3 of 3</td></tr>
+    <tr data-k="c3"><td>The whole plan decides right</td><td><code>review-proof.sh plan</code> end to end, with a stand-in <code>gh</code> holding the review state</td><td class="ok">7 of 7 cases, after the last fix</td></tr>
     <tr data-k="c4"><td>The fix is reviewed later</td><td>Same run: a human commit after the bot's fix</td><td class="ok">reviews the commits since the pre-fix head</td></tr>
-    <tr data-k="c5"><td>The summary's stopped text</td><td><code>section_state</code> with a cancelled, failed, finished and running review job (before the <code>timed_out</code> mapping was added)</td><td class="ok">"stopped" only when cancelled</td></tr>
+    <tr data-k="c5"><td>The summary's stopped text</td><td><code>section_state</code> with a cancelled, failed, finished and running review job (before the <code>timed_out</code> mapping was added); <code>review-state.py render</code> with an unreviewed fix</td><td class="ok">"stopped" only when cancelled; "not reviewed yet" for the fix</td></tr>
     <tr data-k="c6"><td>Minutes and findings at high</td><td>Needs real reviews; issue #54 suggests comparing a few PRs</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -274,11 +275,12 @@ explainers/
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">A fresh agent, given only the diff and the three issues, reviewed it for correctness: 0 high, 0 medium, 2 low findings and 1 hardening point, all fixed. There was no second review after those fixes.</p>
+  <p data-k="summary">A fresh agent, given only the diff and the three issues, reviewed the first version: 0 high, 0 medium, 2 low findings and 1 hardening point, all fixed. CI's first review, at <code>high</code> in 5 minutes, then found 7 more, 1 high, 3 medium and 3 low, all unconfirmed. All 7 are fixed, which reshaped both new skips.</p>
   <ul class="tight">
-    <li data-k="b1"><b>Two waits in one limit:</b> waiting for earlier runs could take up to 30 minutes inside a 30-minute job, so the review itself could be cut off. Now the wait is at most 10 minutes, the Review step has its own 30, and the job 45.</li>
-    <li data-k="b2"><b>A lagging head:</b> right after a push, GitHub can briefly report the previous head, which would have looked like a newer push. A head already in this commit's history is now ignored.</li>
-    <li data-k="b3"><b>Timed out:</b> the summary maps a <code>timed_out</code> job the same as a cancelled one.</li>
+    <li data-k="b1"><b>Newer push, by its run:</b> after a force-push, GitHub can briefly report the old head, which looked like a newer push and could skip the real one's review (R1). The skip now needs a newer run of the workflow, which only a push creates.</li>
+    <li data-k="b2"><b>No stray report:</b> a skipped, replaced run's review-report could queue behind an earlier run's and cancel it, losing that run's findings (R2). A replaced run now has no review-report.</li>
+    <li data-k="b3"><b>CI's own fix:</b> it showed green though unreviewed (R3), and was spotted by author and subject, which can be copied (R4). It now shows "not reviewed yet", and must be recorded in the review state as a fix commit.</li>
+    <li data-k="b4"><b>Smaller ones:</b> the wait for earlier runs is 20 minutes, not 10 (R5); CLAUDE.md says the fix commit's trailer doesn't force a review (R6); a review that overruns says so (R7).</li>
   </ul>
   <p data-k="ci">CI's own review of this push is in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/62">PR #62</a>. It is the first run at <code>high</code>.</p>
   </section>
