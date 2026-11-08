@@ -87,6 +87,10 @@ keys shift+Up shift+Up
 selected_is file1 file2 file3
 shot "$MAIN" shift-up-from-below "Clicking file3 and pressing Shift+Up twice selected file1 to file3, with the anchor on file3 below"
 
+click_row 1
+keys shift+Down shift+Down Down Up shift+Down
+selected_is file3 file4
+
 # Ctrl+Down moves only the cursor; Ctrl+Space adds the cursor row
 click_row 1
 shot "$MAIN" before-ctrl-down "file1 is clicked and is the only selected row"

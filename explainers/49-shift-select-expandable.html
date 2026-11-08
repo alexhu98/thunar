@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #51 Shift-select</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #51: Shift and Ctrl arrows work with Expandable folders</h1>
+  <p class="lead" data-k="lead">Branch <code>49-shift-select-expandable</code> → <code>main</code>, closes #49. Once merged, in list view with Expandable folders on, Shift+Up/Down extend the selection and Ctrl+Up/Down move only the cursor, as in every other view.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing depends on #49</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">The list view's own Up/Down handling still moves the cursor, so it still steps into expanded folders and skips their "Loading…" rows. Afterwards it now looks at Shift and Ctrl and fixes up the selection. All of it is in <code>thunar/thunar-details-view.c</code>.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="A key press moves the cursor as before, then the modifiers decide the selection: none keeps the single row, Ctrl restores the saved selection, Shift selects the files from the anchor to the cursor">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">One Up or Down press, Expandable folders on</text>
+    <g data-k="1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">You press</text>
+      <text x="36" y="114" class="m">Shift+Down</text>
+      <text x="36" y="134" class="b">or Ctrl+Down, or</text>
+      <text x="36" y="154" class="b">plain Up/Down</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-merge" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Move the cursor</text>
+      <text x="286" y="114" class="b">into open folders,</text>
+      <text x="286" y="134" class="b">past Loading rows;</text>
+      <text x="286" y="154" class="b">as before</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Read modifiers</text>
+      <text x="536" y="114" class="b">none: one row</text>
+      <text x="536" y="134" class="b">Ctrl: keep the old</text>
+      <text x="536" y="154" class="b">selection</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Shift: a range</text>
+      <text x="786" y="114" class="b">every file from the</text>
+      <text x="786" y="134" class="b">anchor to the cursor,</text>
+      <text x="786" y="154" class="b">no Loading rows</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>added by this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>existing Thunar code, unchanged</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">With Expandable folders on, Thunar's list view handles the arrow keys itself instead of leaving them to GTK, so that the cursor can step into an expanded folder and skip the "Loading…" row a folder shows while it reads. That code ignored Shift and Ctrl: every press moved the cursor and selected only the new row. You use list view with Expandable folders on, so Shift+arrows never worked for you.</p>
+  <div class="note" data-k="note">GTK's own key handling was not switched back on for Shift and Ctrl, because it would stop on "Loading…" rows. Thunar can't hold a selected row without a file, so the range is selected file by file instead.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>You press.</b> Up or Down in list view, with Expandable folders on, plain or with Shift, Ctrl or both. Before moving, the key handler notes where the cursor was, and with Ctrl, which rows were selected.</li>
+    <li data-k="2"><b>Move the cursor.</b> <code>thunar_details_view_key_up_set_cursor</code> and <code>…_key_down_set_cursor</code> run unchanged. Like any cursor move in GTK, this leaves only the new row selected.</li>
+    <li data-k="3"><b>Read modifiers.</b> With no modifier nothing more happens, so plain arrows behave as before. With Ctrl, <code>thunar_details_view_select_after_move</code> puts the saved selection back, so Ctrl+Space can then add the cursor row.</li>
+    <li data-k="4"><b>Shift: a range.</b> The anchor is where the cursor was when this run of Shift presses started; a click or a plain arrow starts a new run. <code>thunar_details_view_select_files_between</code> walks the visible rows from the anchor to the cursor and selects each one that has a file. With Ctrl too, the range is added to what was selected.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">What each key does now</h3>
+  <p data-k="setup">Click file1 in a folder of file1 to file6, then press:</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Keys</th><th>Before</th><th>Now</th></tr>
+    <tr data-k="k1"><td>Shift+Down twice</td><td>only file3</td><td>file1 to file3</td></tr>
+    <tr data-k="k2"><td>then Shift+Up</td><td>only file2</td><td>file1 and file2</td></tr>
+    <tr data-k="k3"><td>Ctrl+Down twice, Ctrl+Space</td><td>file1 dropped</td><td>file1 and file3</td></tr>
+    <tr data-k="k4"><td>Shift+Down across an open folder</td><td>one row at a time</td><td>the folder and its files, never a Loading row</td></tr>
+    <tr data-k="k5"><td>Plain arrows, Left, Right, Enter</td><td colspan="2">unchanged</td></tr>
+    <tr data-k="k6"><td>Expandable folders off</td><td colspan="2">unchanged: GTK still handles the keys</td></tr>
+  </table>
+  </div>
+  <div class="note" data-k="undo">To undo it, revert this PR: nothing is saved anywhere.</div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/thunar-details-view.c   # Up/Down honour Shift and Ctrl; the Shift anchor lives on the view
+verify/49.sh                   # the Xvfb test CI runs on every PR
+explainers/49-shift-select-expandable.html            # this page
+explainers/49-shift-select-expandable.narration.json  # its narration</pre>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built as a Debian package in this session, installed in the sandbox, and driven with real keys under Xvfb by <code>verify/49.sh</code>, the same script CI runs.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>The existing key handler</h3><p>Its Up/Down steps already skip Loading rows; they are kept as they are and the selection is fixed up after them.</p></div>
+    <div class="card" data-k="r2"><h3>Expandable folders off</h3><p>GTK's own handling there is what Shift and Ctrl should match, and the test checks it still works.</p></div>
+    <div class="card" data-k="r3"><h3>verify/22.sh</h3><p>Its copy-and-paste check of which files are selected is reused here.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage -b -us -uc</code> on Ubuntu 24.04 in this session</td><td class="ok">5 debs, no warnings in the file</td></tr>
+    <tr data-k="c2"><td>Shift extends, both ways</td><td><code>verify/49.sh</code>: click file1, Shift+Down twice, Shift+Up; click file3, Shift+Up twice; a new Shift run after plain arrows</td><td class="ok">file1–3, file1–2, file1–3, file3–4</td></tr>
+    <tr data-k="c3"><td>Ctrl keeps the selection</td><td>Click file1, Ctrl+Down twice, Ctrl+Space</td><td class="ok">file1 and file3</td></tr>
+    <tr data-k="c4"><td>Across an open folder</td><td>Expand <code>folder</code> with Right, Shift+Down four times</td><td class="ok">folder, inner1–3, file1</td></tr>
+    <tr data-k="c5"><td>Plain keys unchanged</td><td>Down, Up, Left twice, Down, then Enter on the folder</td><td class="ok">one row each time; folder opens</td></tr>
+    <tr data-k="c6"><td>Expandable folders off</td><td>Turned off with <code>xfconf-query</code>, Shift+Down twice from file1</td><td class="ok">file1–3</td></tr>
+    <tr data-k="c7"><td>All sandbox tests</td><td><code>verify-proof.sh run</code> with the smoke test and #49, each under its own Xvfb</td><td class="ok">2 of 2 pass, after the review fixes</td></tr>
+    <tr data-k="c8"><td>The screenshots show what they claim</td><td><code>/visual-verify</code>: a read-only auditor agent read each shot</td><td class="ok">12 of 12 OK, after the fixes</td></tr>
+    <tr data-k="c9"><td>Seeing a Loading row on screen</td><td>A three-file folder loads too fast under Xvfb for the row to show; the test checks no such row ends up selected</td><td class="no">not shown</td></tr>
+  </table>
+  </div>
+  <p data-k="ci">The script checks each selection by copying it, pasting it into a scratch folder in a second window, and comparing the files that arrive. CI repeats the build and <code>verify/49.sh</code> on the PR and posts its own screenshots in the PR comment; those, not this table, are the proof the owner reviews.</p>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh <code>general-purpose</code> agent in this session, given only the diff and issue #49, found no leaks or crashes, 1 medium and 3 low findings. Three were fixed; the build and tests were run again afterwards.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed (medium):</b> a Shift run could reuse an old anchor after plain arrows came back to the same row. A click, or any Up/Down without Shift, now forgets the anchor, and <code>verify/49.sh</code> checks it.</li>
+    <li data-k="b2"><b>Fixed (low):</b> the status bar was updated once per selected row; it is now updated once per key press, as Invert Selection does.</li>
+    <li data-k="b3"><b>Fixed (low):</b> the range could run past an anchor hidden inside a collapsed folder; the walk now stops at the anchor.</li>
+    <li data-k="b4"><b>Kept (low):</b> Shift+End, Shift+Page Down and Shift+click are still handled by GTK, which starts them from the cursor, not from this anchor. GTK has no way to set its anchor.</li>
+  </ul>
+  <p data-k="ci-review">CI's own review of this PR is in the code review PR comment, the second of CI's comments.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>Shift-selecting in your own large folders</td><td>The tests use a few sample files under Xvfb, not your session</td><td class="open">first install after merge</td></tr>
+    <tr data-k="a2"><td>Split-view crash regression check</td><td>Only reproduces in your real session, per <code>CLAUDE.md</code></td><td class="open">manual, after the update</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/51">PR #51</a> → “Files changed”</li>
+    <li data-k="l2">The issue: <a href="https://github.com/alexhu98/thunar/issues/49">#49</a></li>
+    <li data-k="l3">CI's screenshots: the PR comment's verify section, stored on the <code>shots</code> branch under <code>pr-51/</code></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing depends on #49</h2>
+  <p class="intro" data-k="intro">No open issue says "Depends on #49", so after the merge only your own check remains.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR merges, then the owner tries it in a real session">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--merge)">#49 Shift-select in list view</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">Shift and Ctrl</text>
+      <text x="36" y="134" class="b">arrows in list view</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Try it for real</text>
+      <text x="286" y="114" class="b">Shift+Down in your</text>
+      <text x="286" y="134" class="b">folders, split-view</text>
+      <text x="286" y="154" class="b">check</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-a">
+  <h3 class="sec">After the merge (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Try it in your session.</b> In list view, click a file and press Shift+Down a few times, including across an expanded folder: the rows in between should all stay selected.</li>
+    <li data-k="2"><b>Run the split-view crash check.</b> The manual check from <code>CLAUDE.md</code>, as after every update.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="expandable"><dt>Expandable folders</dt><dd>A list view option that shows a folder's contents under it, as a tree.</dd></div>
+    <div data-k="loading"><dt>Loading row</dt><dd>A placeholder row with no file, shown in a folder while Thunar reads it.</dd></div>
+    <div data-k="cursor"><dt>Cursor</dt><dd>The outlined row that the arrow keys move; it need not be selected.</dd></div>
+    <div data-k="anchor"><dt>Anchor</dt><dd>The row a Shift range starts from: where the cursor was when Shift was first pressed.</dd></div>
+    <div data-k="gtk"><dt>GTK</dt><dd>The toolkit Thunar's windows are built with; it has its own arrow-key handling.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual X display with no screen, used to run Thunar in tests.</dd></div>
+    <div data-k="xdotool"><dt>xdotool</dt><dd>A tool that moves the pointer, clicks and presses keys in X windows from a script.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
