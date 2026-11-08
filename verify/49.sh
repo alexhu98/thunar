@@ -17,7 +17,7 @@ for f in inner1 inner2 inner3; do echo "$f" > "$DIR/folder/$f"; done
 xfconf-query -c thunar -p /default-view -n -t string -s ThunarDetailsView
 xfconf-query -c thunar -p /misc-expandable-folders -n -t bool -s true
 
-click_row() {  # row index, 0 being the first row (folder)
+click_row() {
   focus "$MAIN"
   xdotool mousemove --window "$MAIN" "$NAME_X" $((ROW0 + $1 * ROW_H))
   sleep 0.3
@@ -36,7 +36,7 @@ keys() {
 }
 
 N=0
-selected_is() {  # the names the selection must hold
+selected_is() {
   local dest got want i
   N=$((N + 1))
   dest="$WORK/check-$N"
@@ -69,7 +69,6 @@ xdotool windowsize --sync "$MAIN" "$W" "$H"
 wait_title "$MAIN" files
 sleep 1
 
-# Shift+Down from file1 (rows: 0 folder, 1 file1 ... 6 file6)
 click_row 1
 selected_is file1
 shot "$MAIN" before-shift-down "List view with Expandable folders on: file1 is clicked and is the only selected row (status bar: file1 selected)"
@@ -91,7 +90,6 @@ click_row 1
 keys shift+Down shift+Down Down Up shift+Down
 selected_is file3 file4
 
-# Ctrl+Down moves only the cursor; Ctrl+Space adds the cursor row
 click_row 1
 shot "$MAIN" before-ctrl-down "file1 is clicked and is the only selected row"
 keys ctrl+Down ctrl+Down ctrl+space
@@ -99,7 +97,6 @@ selected_is file1 file3
 shot "$MAIN" after-ctrl-down "Ctrl+Down twice kept file1 selected and moved only the cursor; Ctrl+Space added file3 (2 files selected, file2 not)"
 pair ctrl-down "Clicked file1, pressed Ctrl+Down twice, then Ctrl+Space" "Ctrl+Down moves only the cursor, so Ctrl+Space can add a second, separate row" "file1 selected" "file1 and file3 selected, file2 not" "$C"
 
-# Shift+Down across an expanded folder selects its children
 click_row 0
 keys Right
 sleep 1
@@ -109,7 +106,6 @@ selected_is folder inner1 inner2 inner3 file1
 shot "$MAIN" after-expanded "Four Shift+Down presses selected folder, its children inner1 to inner3 and file1 (5 items selected)"
 pair expanded "Expanded folder, then pressed Shift+Down four times from it" "Shift+Down steps into the expanded folder and selects its children, never a placeholder" "folder expanded, folder selected" "folder, inner1-3 and file1 selected" "$E"
 
-# Plain keys behave as before: Down selects one row, Left collapses, Enter opens
 keys Down
 selected_is file2
 keys Up Up
@@ -123,7 +119,6 @@ keys Up Return
 wait_title "$MAIN" folder
 shot "$MAIN" enter-opens "Enter on the folder row still opens the folder: the window shows inner1, inner2 and inner3"
 
-# Expandable folders off: GTK's own handling, unchanged
 xfconf-query -c thunar -p /misc-expandable-folders -s false
 keys BackSpace
 wait_title "$MAIN" files
