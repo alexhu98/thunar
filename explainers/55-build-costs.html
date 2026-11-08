@@ -160,10 +160,10 @@
     <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
     <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
     <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
-    <path class="arrow" d="M375,180 V256" marker-end="url(#ah-flow)"/>
-    <text class="b" x="385" y="226">code changed</text>
+    <path class="arrow" d="M440,180 V256" marker-end="url(#ah-flow)"/>
+    <text class="b" x="450" y="226">code changed</text>
 
-    <text class="lane" x="20" y="244" style="fill:var(--accent)">② Code changed: build with ccache (#57)</text>
+    <text class="lane" x="20" y="244" style="fill:var(--accent)">② Code changed: ccache (#57)</text>
     <g data-k="5">
       <rect class="box-pr" x="270" y="260" width="210" height="120" rx="10"/>
       <text x="286" y="290" class="t">Restore cache</text>
@@ -182,10 +182,10 @@
     </g>
     <g data-k="7">
       <rect class="box-pr" x="770" y="260" width="210" height="120" rx="10"/>
-      <text x="786" y="290" class="t">Save, prune</text>
-      <text x="786" y="314" class="b">save a new entry,</text>
-      <text x="786" y="334" class="b">delete the one this</text>
-      <text x="786" y="354" class="b">branch had before</text>
+      <text x="786" y="290" class="t">Save</text>
+      <text x="786" y="314" class="b">a new entry; GitHub</text>
+      <text x="786" y="334" class="b">evicts the oldest</text>
+      <text x="786" y="354" class="b">past 10 GB</text>
       <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">7</text>
     </g>
     <path class="arrow" d="M480,320 H516" marker-end="url(#ah-flow)"/>
@@ -210,28 +210,28 @@
   <div class="lane-h" style="color:var(--accent)">① No code changed: skip (#55)</div>
   <ol class="steps">
     <li data-k="1"><b>List the files.</b> On a pull request, the checkout is GitHub's merge commit of the PR into <code>main</code>. With two commits of history, <code>git diff --no-renames --name-only HEAD^1 HEAD</code> lists what the PR changes on top of the current <code>main</code>, both sides of a rename included. Pushes to <code>main</code> always build.</li>
-    <li data-k="2"><b>Docs only?</b> If every file is under <code>explainers/</code> or <code>.claude/</code>, or ends in <code>.md</code> or <code>.narration.json</code>, the step sets <code>skip=true</code>. Anything else builds as before: source, <code>.github/</code>, and anything under <code>debian/</code> or <code>verify/</code>, even a <code>.md</code> file there.</li>
-    <li data-k="3"><b>Steps skipped.</b> The build job's PPA, build-deps, dry-run, ccache, build and upload steps skip, and so does every step of verify, through the job output <code>needs.build.outputs.skip</code>. Both jobs still finish green, with no debs, no shots and no verify comment.</li>
-    <li data-k="4"><b>Summary says why.</b> <code>pr-summary.py</code> reads each job's steps from the GitHub jobs list. A green build whose <code>Build</code> step was skipped, or a green verify whose test step was skipped, shows as ⏭️ "skipped: the PR changes only explainers/, .claude/, *.md or narration files", the key result says verify did not run, and the screenshot audit row reads "not needed: verify took no shots".</li>
+    <li data-k="2"><b>Docs only?</b> If every file is under <code>explainers/</code> or <code>.claude/</code>, or ends in <code>.md</code> or <code>.narration.json</code>, the step sets <code>skip=true</code>. Anything else builds as before: source, <code>.github/</code>, anything under <code>debian/</code> or <code>verify/</code>, even a <code>.md</code> file there, and the root <code>README.md</code>, which the <code>thunar-data</code> package installs.</li>
+    <li data-k="3"><b>Steps skipped.</b> The build job's PPA, build-deps, dry-run, ccache, build and upload steps skip, and so does every step of verify, through the job output <code>needs.build.outputs.skip</code>. In their place, each job runs one step named <code>No code changed</code>. Both jobs still finish green, with no debs, no shots and no verify comment.</li>
+    <li data-k="4"><b>Summary says why.</b> <code>pr-summary.py</code> reads each job's steps from the GitHub jobs list. A green build or verify job that ran <code>No code changed</code> shows as ⏭️ "skipped: the PR changes no code, packaging or CI files", the key result and shots says verify did not run, and the screenshot audit row reads "not needed: verify took no shots".</li>
   </ol>
-  <div class="lane-h" style="color:var(--accent)">② Code changed: build with ccache (#57)</div>
+  <div class="lane-h" style="color:var(--accent)">② Code changed: ccache (#57)</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
     <li data-k="5"><b>Restore cache.</b> <code>ccache</code> is installed with the build-deps, and <code>actions/cache/restore</code> brings back the newest <code>~/.ccache</code> whose key starts with <code>ccache-$ImageOS-$ImageVersion-</code>: this branch's own, or else <code>main</code>'s.</li>
     <li data-k="6"><b>Build.</b> <code>dpkg-buildpackage</code> runs as before, with <code>/usr/lib/ccache</code> first on <code>PATH</code>, so every <code>gcc</code> call goes through ccache. <code>CCACHE_DIR</code> is an absolute path, because debhelper gives the build a fake <code>HOME</code>. <code>ccache -s</code> prints the hit rate in the log.</li>
-    <li data-k="7"><b>Save, prune.</b> The cache is saved under a key ending in the run ID, and the entry it was restored from is deleted when it belongs to this branch. Each branch, and <code>main</code>, keeps one entry of at most 500 MB, well under the repo's 10 GB.</li>
+    <li data-k="7"><b>Save.</b> The cache is saved under a key ending in the run ID, at most 500 MB. Old entries aren't deleted by the workflow: past the repo's 10 GB, GitHub evicts the least recently used, and it drops any entry unused for 7 days. Deleting them would need <code>actions: write</code> on a job that runs the PR's own scripts.</li>
   </ol>
   </div>
   </section>
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
-<pre data-k="tree">.github/workflows/build.yml     # the changes check, skip conditions on build and verify,
-                                # ccache install, restore, save and prune
-.github/scripts/pr-summary.py   # a green job with its heavy step skipped reads "skipped: ..."
+<pre data-k="tree">.github/workflows/build.yml     # the changes check, the "No code changed" steps, skip conditions
+                                # on build and verify, ccache install, restore and save
+.github/scripts/pr-summary.py   # a green job that ran "No code changed" reads "skipped: ..."
 explainers/
 ├── 55-build-costs.html            # this page
 └── 55-build-costs.narration.json  # its narration, stamped from this page</pre>
-  <div class="note warn" data-k="undo">To undo the skip on one PR, touch any file outside the docs patterns. To start ccache from cold, delete the <code>ccache-*</code> entries under the repo's Actions → Caches.</div>
+  <div class="note warn" data-k="undo">To undo the skip on one PR, touch any file outside the docs patterns. To start ccache from cold, or to free cache space by hand, delete the <code>ccache-*</code> entries under the repo's Actions → Caches.</div>
   </section>
   </section>
 
@@ -257,7 +257,7 @@ explainers/
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>The docs pattern</td><td>The step's <code>grep</code> on 10 sample paths, in the cloud session</td><td class="ok">5 docs paths dropped; <code>verify/55.sh</code>, <code>thunar/a.c</code>, <code>build.yml</code>, <code>debian/rules</code>, <code>README.mdx</code> kept; after the review fix, <code>debian/x.md</code> and <code>verify/README.md</code> kept too</td></tr>
     <tr data-k="c6"><td>The skip step under <code>bash -e</code></td><td>The step's script, run as GitHub runs it, in a scratch repo whose last commit adds only <code>explainers/b</code></td><td class="ok">skip=true, no early exit</td></tr>
-    <tr data-k="c2"><td>The summary's skip state</td><td><code>job_states</code> and <code>section_state</code> on a stand-in jobs list with both heavy steps skipped</td><td class="ok">build and verify: skipped, no code</td></tr>
+    <tr data-k="c2"><td>The summary's skip state</td><td><code>job_states</code>, <code>section_state</code> and <code>summary</code> on stand-in jobs and comments: both jobs ran <code>No code changed</code>, and an older head left shots</td><td class="ok">build, verify: skipped, no code; audit not needed; no old shots shown</td></tr>
     <tr data-k="c3"><td>Workflow syntax</td><td><code>yaml.safe_load</code> on <code>build.yml</code></td><td class="ok">parses</td></tr>
     <tr data-k="c4"><td>Full build and verify on this PR</td><td>CI on this PR: it changes <code>.github/</code>, so nothing is skipped</td><td class="open">see the PR's checks</td></tr>
     <tr data-k="c5"><td>ccache hit rate</td><td>Needs a second CI build on this branch</td><td class="open">see the PR's checks</td></tr>
@@ -267,12 +267,12 @@ explainers/
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">A fresh agent, given only the diff and the two issues, found 6: 2 medium, 4 low. 3 are fixed, 2 are kept on purpose, and 1 was the explainer, which this page adds.</p>
+  <p data-k="summary">A fresh agent, given only the diff and the two issues, found 6: 2 medium, 4 low. 3 are fixed, 2 were kept on purpose, and 1 was the explainer, which this page adds.</p>
   <ul class="tight">
     <li data-k="b1"><b>Fixed:</b> a compiled Python file from a local test run had been committed; docs-only PRs would have waited forever for a screenshot audit that has no shots to audit, so the summary now marks it not needed; and <code>*.md</code> under <code>debian/</code> or <code>verify/</code> no longer skips the build.</li>
-    <li data-k="b2"><b>Kept:</b> the build job now has <code>actions: write</code> to delete its old cache entry, since a separate job just for that would bill another minute per run. A closed PR's last cache entry stays until GitHub evicts it after 7 days unused.</li>
+    <li data-k="b2"><b>Kept at first:</b> the build job had <code>actions: write</code> to delete its old cache entry. CI's review flagged that too, and the delete is now gone; see below.</li>
   </ul>
-  <p data-k="ci">CI's review on <a href="https://github.com/alexhu98/thunar/pull/69">PR #69</a> reports in the code review comment.</p>
+  <p data-k="ci">CI's first review, at <code>high</code> in 5 minutes, found 8: R1 to R8. R1, confirmed and medium, says <code>CLAUDE.md</code>'s merge rule still needs build and verify to run their steps and a <code>/visual-verify</code> PASS, so a docs-only PR could never be merged by the agent; changing that rule is the owner's call. The other 7 are fixed in one push: the root <code>README.md</code> always builds; the build job is back to <code>actions: read</code>, so it no longer deletes old cache entries, which also settles two findings about that delete; the summary finds the skip by a dedicated <code>No code changed</code> step rather than the heavy steps' names; an older head's shots no longer show on a skipped head; and the file patterns are written in one place only. The code review comment on <a href="https://github.com/alexhu98/thunar/pull/69">PR #69</a> has every finding.</p>
   </section>
 
   <section class="sub" id="aftermerge">

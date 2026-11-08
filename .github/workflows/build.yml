@@ -23,7 +23,7 @@ jobs:
       group: build-${{ github.ref }}
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     permissions:
-      actions: write
+      actions: read
       contents: read
       pull-requests: write
     outputs:
@@ -40,14 +40,17 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           git diff --no-renames --name-only HEAD^1 HEAD > "$RUNNER_TEMP/changed.txt"
-          code=$(grep -E '^(debian|verify)/' "$RUNNER_TEMP/changed.txt"; grep -Ev '^(explainers/|\.claude/)|\.md$|\.narration\.json$' "$RUNNER_TEMP/changed.txt" || true)
+          code=$(grep -E '^(debian|verify)/|^README\.md$' "$RUNNER_TEMP/changed.txt"; grep -Ev '^(explainers/|\.claude/)|\.md$|\.narration\.json$' "$RUNNER_TEMP/changed.txt" || true)
           if [[ -s $RUNNER_TEMP/changed.txt && -z $code ]]; then
             echo skip=true >> "$GITHUB_OUTPUT"
-            echo "Build and verify skipped: the PR changes only explainers/, .claude/, *.md or narration files." >> "$GITHUB_STEP_SUMMARY"
           else
             echo skip=false >> "$GITHUB_OUTPUT"
           fi
           sed 's/^/  /' "$RUNNER_TEMP/changed.txt"
+
+      - name: No code changed
+        if: steps.changes.outputs.skip == 'true'
+        run: echo "Build and verify skipped, because the PR changes no code, packaging or CI files." | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Add Zorin OS PPA (Xfce 4.20 libraries)
         if: steps.changes.outputs.skip != 'true'
@@ -96,7 +99,6 @@ jobs:
         run: echo "key=ccache-$ImageOS-$ImageVersion-" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache/restore@v4
-        id: ccache-restore
         if: steps.changes.outputs.skip != 'true'
         with:
           path: ~/.ccache
@@ -119,14 +121,6 @@ jobs:
         with:
           path: ~/.ccache
           key: ${{ steps.ccache.outputs.key }}${{ github.run_id }}
-
-      - name: Drop this branch's previous ccache
-        if: steps.changes.outputs.skip != 'true' && steps.ccache-restore.outputs.cache-matched-key != '' && steps.ccache-restore.outputs.cache-hit != 'true'
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          OLD: ${{ steps.ccache-restore.outputs.cache-matched-key }}
-        run: gh api -X DELETE "repos/$GH_REPO/actions/caches?key=$OLD&ref=$GITHUB_REF" || echo "kept $OLD, which belongs to another branch"
 
       - uses: actions/upload-artifact@v4
         if: steps.changes.outputs.skip != 'true'
@@ -163,6 +157,10 @@ jobs:
       HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       RUN_ID: ${{ github.run_id }}
     steps:
+      - name: No code changed
+        if: needs.build.outputs.skip == 'true'
+        run: echo "Verify skipped, because the PR changes no code, packaging or CI files."
+
       - uses: actions/checkout@v4
         if: needs.build.outputs.skip != 'true'
         with:

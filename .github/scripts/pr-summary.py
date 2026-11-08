@@ -23,8 +23,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ICON = {'pass': '✅', 'fail': '❌', 'running': '⏳', 'wait': '⏳', 'skip': '⏭️'}
 TRUSTED = ('OWNER', 'MEMBER', 'COLLABORATOR')
 JOBS = {'verify': ('verify',), 'review': ('review', 'review-report'), 'explainer': ('explainer',)}
-HEAVY_STEP = {'build': 'Build', 'verify': 'Smoke test and verify/*.sh'}
-NO_CODE = 'skipped: the PR changes only explainers/, .claude/, *.md or narration files'
+NO_CODE_STEP = 'No code changed'
+NO_CODE = 'skipped: the PR changes no code, packaging or CI files'
 
 
 def gh(*args):
@@ -60,7 +60,7 @@ def job_states(run_id):
             state = {'success': 'pass', 'cancelled': 'cancelled'}.get(os.environ['BUILD_RESULT'], 'fail')
         elif j['status'] != 'completed':
             state = 'running'
-        elif j['conclusion'] == 'success' and any(st['name'] == HEAVY_STEP.get(j['name']) and st['conclusion'] == 'skipped'
+        elif j['conclusion'] == 'success' and any(st['name'] == NO_CODE_STEP and st['conclusion'] == 'success'
                                                   for st in j.get('steps') or []):
             state = 'nocode'
         else:
@@ -169,18 +169,18 @@ def summary(runs):
     out += [f'| {n} | {ICON.get(s, "⚠️")} {cell(t)} | {w} |' for n, s, t, w in checks]
     data = hidden(mine.get('verify', {}).get('body'), 'data') or {}
     vsha = (status['verify'] or {}).get('sha', '')
-    stale = f' (as of `{vsha[:12]}`, not the head)' if data and vsha and vsha != head else ''
+    stale = f' (as of `{vsha[:12]}`, not the head)' if data and vsha and vsha != head and v[1] != NO_CODE else ''
     out += ['', '### The key result' + stale, '']
-    if data.get('key'):
+    if v[1] == NO_CODE:
+        out.append('No key result: verify did not run, because the PR changes no code, packaging or CI files.')
+    elif data.get('key'):
         out.append(data['key'])
     elif data and vsha == head:
         out.append("No key result: the PR's issue has no verify script with a before/after pair.")
-    elif v[1] == NO_CODE:
-        out.append('No key result: verify did not run, because the PR changes no code, packaging or CI scripts.')
     else:
         out.append('No key result yet: verify has not published shots for this head.')
     out += ['', '### Shots' + stale, '']
-    out.append(data.get('shots') or 'No screenshots yet.')
+    out.append('No screenshots: verify did not run.' if v[1] == NO_CODE else data.get('shots') or 'No screenshots yet.')
     return '\n'.join(out) + '\n'
 
 
