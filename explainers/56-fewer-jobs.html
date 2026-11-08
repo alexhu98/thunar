@@ -248,7 +248,7 @@
 .github/scripts/pr-comment.sh     # put skips an edit that changes nothing; get and put
                                   # read bodies from one comment list
 .github/scripts/pr-summary.py     # notes the new caller
-.github/scripts/review-proof.sh   # report runs from its own copy; its time counts so far
+.github/scripts/review-proof.sh   # report's job time counts so far when run inside review
 .claude/agents/pr-digest.md       # review-report skipped without a fix is fine
 CLAUDE.md                         # the merge rule allows that skip
 explainers/
@@ -294,7 +294,8 @@ explainers/
     <li data-k="b2"><b>A fork's ccache into a release:</b> reused debs could carry objects a fork PR's earlier push left in its ccache. Fixed at first by reusing only this repo's runs, then moot once #58 was left out.</li>
   </ul>
   <p data-k="ci">CI's first review, at <code>high</code> in 6 minutes, found 9: 3 medium, 6 low, R1–R9. Fixed in one push: <code>build</code> no longer gets write access, because the release moved into <code>verify</code> (R1); PR debs no longer carry the next release's version, because #58 is left out (R2, and R8 with it); the in-job report calls the script directly (R6); the job's minutes are computed without a round trip (R7); and the unchanged-comment check reads the bodies from the list it already fetched (R9). R3, R4 and R5 wait on the owner: the <code>CLAUDE.md</code> edit, the report sharing the review job's time limit, and the review job's PR-write token, which #56 listed as a known cost.</p>
-  <p data-k="ci2">CI's second review, in 4 minutes, found R1 and R2 resolved and 6 more, R10–R15. R10, a confirmed medium: the in-job report ran scripts from the tree the auto-fix model may have edited. Fixed in one push with R6, R9, R14 and R15: the report runs from a fresh checkout of the head, <code>review-proof.sh report</code> copies itself out of the tree so both report steps just call it, and <code>pr-comment.sh get</code> reads the body from its list. R11 and R12, two lows its own check disproved, and R13, a low about re-running a failed <code>verify</code> after a newer release (the old <code>release</code> job behaved the same), are accepted.</p>
+  <p data-k="ci2">CI's second review, in 4 minutes, found R1 and R2 resolved and 6 more, R10–R15. R10, a confirmed medium: the in-job report ran scripts from the tree the auto-fix model may have edited. Fixed in one push with R6, R9, R14 and R15: the report runs from a fresh checkout of the head, both report steps just call <code>review-proof.sh report</code>, and <code>pr-comment.sh get</code> reads the body from its list. R11 and R12, two lows its own check disproved, and R13, a low about re-running a failed <code>verify</code> after a newer release (the old <code>release</code> job behaved the same), are accepted.</p>
+  <p data-k="ci3">CI's third review passed, with R10 resolved and 5 more, R16–R20. Fixed in one push: the report step now waits for its checkout (R16), <code>pr-comment.sh get</code> reads the whole list so the pipe can't break (R17), and the self-copy is gone, since a fix can never touch <code>.github/scripts/</code> (R18). R19, the extra checkout's cost, is accepted. R20, the report reading files the model could write, is with the owner: <code>review-report</code> read the same files before, from the uploaded artifact.</p>
   </section>
 
   <section class="sub" id="aftermerge">
