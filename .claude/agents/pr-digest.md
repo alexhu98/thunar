@@ -40,7 +40,8 @@ never fix anything you find.
    - `<!-- review:state {...} -->` in the review comment: `sha` (the last head a review ran on), `reason`, and
      `findings`, each with `id`, `severity`, `verdict`, `status`, `file`, `line`, `summary`, `detail`, `commit`.
      CI writes each `>` inside the JSON as the six characters `\u003e`, which any JSON parser reads back. Findings whose text
-     was cut to fit the comment keep `id` and `status`; report them by ID.
+     was cut to fit the comment keep `id` and `status`; report them by ID, and since their severity and review
+     can't be read, count them as not settled, marked `trimmed`.
    - The review comment's one Markdown line you do read: `Skipped <sha>: <reason>.`, the reason the review skipped
      the head. `state.sha` and `state.reason` only change when a review runs.
    A finding with `"new": true` appeared or changed status since the last review that ran; a skipped review
@@ -64,7 +65,8 @@ never fix anything you find.
    others came from later reviews. Under those rules a finding is settled when it is:
    - `fixed` or `resolved`;
    - `accepted` or `unconfirmed`, `low`, not CONFIRMED, and from a later review;
-   - `unconfirmed` otherwise, when a later commit's `Fixes` line names it and that commit changes its file;
+   - `unconfirmed` otherwise, when a later commit's `Fixes` line names it (mark it `other file` when that commit
+     doesn't change the finding's file, for the caller to check);
    - `accepted` otherwise, only when an owner comment decided it, since a trailer the agent added can't.
    List every finding that isn't settled. This line is your judgement; the caller checks the gate again before
    merging.
@@ -82,7 +84,7 @@ findings: <total> total · highest <Rn> · fixed <IDs> · resolved <IDs> · acce
 new since <since or "the last review">:
   <Rn> <severity> <verdict> <file>:<line> <status> <summary, one line>
 low, not CONFIRMED, open (`suggested` or `not fixed`): <IDs or "none">
-medium/high or CONFIRMED, not settled: <IDs, each with its status, or "none">
+not settled, besides the open lows above: <IDs, each with its status and any mark, or "none">
 Review-accept trailers: <commit12>: <IDs> … (or "none"; flag any range)
 visual-verify: <VERDICT> for <sha12> (head|not head) (or "none")
 owner comments unanswered: <n> — <link or one-line quote each> (or "none")
