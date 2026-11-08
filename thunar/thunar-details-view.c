@@ -202,7 +202,6 @@ struct _ThunarDetailsView
   gboolean expandable_folders;
 
   GtkTreeRowReference *shift_anchor;
-  GtkTreeRowReference *shift_cursor;
   gboolean             moving_cursor;
 };
 
@@ -527,7 +526,6 @@ thunar_details_view_finalize (GObject *object)
     g_source_remove (details_view->idle_id);
 
   g_clear_pointer (&details_view->shift_anchor, gtk_tree_row_reference_free);
-  g_clear_pointer (&details_view->shift_cursor, gtk_tree_row_reference_free);
 
   g_signal_handlers_disconnect_by_func (G_OBJECT (THUNAR_STANDARD_VIEW (details_view)->preferences),
                                         thunar_details_view_highlight_option_changed, details_view);
@@ -812,7 +810,18 @@ static void
 thunar_details_view_reset_shift_anchor (ThunarDetailsView *details_view)
 {
   g_clear_pointer (&details_view->shift_anchor, gtk_tree_row_reference_free);
-  g_clear_pointer (&details_view->shift_cursor, gtk_tree_row_reference_free);
+}
+
+
+
+static void
+thunar_details_view_set_shift_anchor (ThunarDetailsView *details_view,
+                                      GtkTreeModel      *model,
+                                      GtkTreePath       *path)
+{
+  thunar_details_view_reset_shift_anchor (details_view);
+  if (path != NULL)
+    details_view->shift_anchor = gtk_tree_row_reference_new (model, path);
 }
 
 
@@ -841,13 +850,10 @@ thunar_details_view_cursor_changed (GtkTreeView       *tree_view,
   if ((state & keep) != 0 && details_view->shift_anchor != NULL)
     return;
 
-  thunar_details_view_reset_shift_anchor (details_view);
   gtk_tree_view_get_cursor (tree_view, &path, NULL);
+  thunar_details_view_set_shift_anchor (details_view, gtk_tree_view_get_model (tree_view), path);
   if (path != NULL)
-    {
-      details_view->shift_anchor = gtk_tree_row_reference_new (gtk_tree_view_get_model (tree_view), path);
-      gtk_tree_path_free (path);
-    }
+    gtk_tree_path_free (path);
 }
 
 
@@ -875,7 +881,7 @@ thunar_details_view_button_press_event (GtkTreeView       *tree_view,
   if (G_UNLIKELY (event->window != gtk_tree_view_get_bin_window (tree_view)))
     return thunar_details_view_column_header_clicked (details_view, event);
 
-  if (event->button == 1 && (event->state & GDK_SHIFT_MASK) == 0)
+  if (event->button != 1 || (event->state & GDK_SHIFT_MASK) == 0)
     thunar_details_view_reset_shift_anchor (details_view);
 
   /* give focus to the clicked view */
@@ -1194,8 +1200,7 @@ static void
 thunar_details_view_select_files_between (GtkTreeView  *tree_view,
                                           GtkTreeModel *model,
                                           GtkTreePath  *from,
-                                          GtkTreePath  *to,
-                                          gboolean      select)
+                                          GtkTreePath  *to)
 {
   GtkTreeSelection *selection = gtk_tree_view_get_selection (tree_view);
   GtkTreePath      *path;
@@ -1203,6 +1208,7 @@ thunar_details_view_select_files_between (GtkTreeView  *tree_view,
   GtkTreeIter       iter;
   GtkTreeIter       next;
   ThunarFile       *file;
+  gint              cmp;
 
   if (gtk_tree_path_compare (from, to) > 0)
     {
@@ -1223,20 +1229,18 @@ thunar_details_view_select_files_between (GtkTreeView  *tree_view,
 
   for (;;)
     {
-      if (gtk_tree_path_compare (path, end) > 0)
+      cmp = gtk_tree_path_compare (path, end);
+      if (cmp > 0)
         break;
 
       file = thunar_standard_view_model_get_file (THUNAR_STANDARD_VIEW_MODEL (model), &iter);
       if (file != NULL)
         {
-          if (select)
-            gtk_tree_selection_select_iter (selection, &iter);
-          else
-            gtk_tree_selection_unselect_iter (selection, &iter);
+          gtk_tree_selection_select_iter (selection, &iter);
           g_object_unref (file);
         }
 
-      if (gtk_tree_path_compare (path, end) >= 0)
+      if (cmp == 0)
         break;
 
       if (gtk_tree_view_row_expanded (tree_view, path) && gtk_tree_model_iter_children (model, &next, &iter))
@@ -1281,7 +1285,6 @@ thunar_details_view_select_after_move (ThunarDetailsView *details_view,
 {
   GtkTreeSelection *selection = gtk_tree_view_get_selection (tree_view);
   GtkTreePath      *anchor = NULL;
-  GtkTreePath      *last = NULL;
   GList            *lp;
 
   gtk_tree_selection_unselect_all (selection);
@@ -1296,20 +1299,10 @@ thunar_details_view_select_after_move (ThunarDetailsView *details_view,
   if (anchor == NULL)
     {
       anchor = gtk_tree_path_copy (old_cursor);
-      g_clear_pointer (&details_view->shift_anchor, gtk_tree_row_reference_free);
-      details_view->shift_anchor = gtk_tree_row_reference_new (model, anchor);
+      thunar_details_view_set_shift_anchor (details_view, model, anchor);
     }
 
-  if (details_view->shift_cursor != NULL)
-    last = gtk_tree_row_reference_get_path (details_view->shift_cursor);
-  if (last != NULL && (state & GDK_CONTROL_MASK) != 0 && gtk_tree_path_compare (last, old_cursor) == 0)
-    thunar_details_view_select_files_between (tree_view, model, anchor, last, FALSE);
-  g_clear_pointer (&last, gtk_tree_path_free);
-
-  g_clear_pointer (&details_view->shift_cursor, gtk_tree_row_reference_free);
-  details_view->shift_cursor = gtk_tree_row_reference_new (model, new_cursor);
-
-  thunar_details_view_select_files_between (tree_view, model, anchor, new_cursor, TRUE);
+  thunar_details_view_select_files_between (tree_view, model, anchor, new_cursor);
   gtk_tree_path_free (anchor);
 }
 
@@ -1428,6 +1421,9 @@ thunar_details_view_key_press_event (GtkTreeView       *tree_view,
     case GDK_KEY_space:
     case GDK_KEY_Return:
     case GDK_KEY_KP_Enter:
+      if (event->keyval == GDK_KEY_space && (state & GDK_CONTROL_MASK) != 0)
+        thunar_details_view_set_shift_anchor (details_view, model, path);
+
       /* Allow default actions to handle this case */
       GTK_WIDGET_CLASS (thunar_details_view_parent_class)->key_press_event (GTK_WIDGET (tree_view), event);
       stopPropagation = TRUE;

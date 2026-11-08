@@ -96,6 +96,14 @@ keys ctrl+Down ctrl+Down ctrl+space
 selected_is file1 file3
 shot "$MAIN" after-ctrl-down "Ctrl+Down twice kept file1 selected and moved only the cursor; Ctrl+Space added file3 (2 files selected, file2 not)"
 pair ctrl-down "Clicked file1, pressed Ctrl+Down twice, then Ctrl+Space" "Ctrl+Down moves only the cursor, so Ctrl+Space can add a second, separate row" "file1 selected" "file1 and file3 selected, file2 not" "$C"
+keys ctrl+shift+Down
+selected_is file1 file3 file4
+keys shift+Down
+selected_is file3 file4 file5
+
+click_row 1
+keys ctrl+Down ctrl+Down shift+Down
+selected_is file1 file2 file3 file4
 
 click_row 0
 keys Right
