@@ -1,7 +1,7 @@
 {
   "title": "PR #79 · Tab bar actions",
   "voice": "af_heart",
-  "page_sha256": "706bd713ce2db75a86b20669a82fc1f8ed0270baac3ce3be97b74ec4944f4e41",
+  "page_sha256": "905c2ce35e14c9557051714c1ad0a2bdc33ba94a3070927789361f65b8242351",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of the pull request for issues 19 and 24, which make Thunar's tab bar do more.", "src": "f6f7066d2067"},
     {"screen": "title", "keys": ["lead"], "caption": "Files dropped on a tab's label land in that tab's folder, and a double-click on a tab opens its parent folder.", "src": "2d122c4846d2"},
@@ -36,7 +36,7 @@
     {"screen": "review", "keys": ["summary"], "caption": "A fresh review agent read the diff before the first push and found two medium and three low issues.", "src": "c74dedb91cdb"},
     {"screen": "review", "keys": ["b1", "b2", "b3"], "caption": "The fixes skip tabs scrolled out of view, make the test unable to pass by accident, and drop late file lists.", "src": "9c6f69f1b440"},
     {"screen": "review", "keys": ["b4"], "caption": "Two small lows were kept, since they match the code around them.", "src": "6d2eeca6cc89"},
-    {"screen": "review", "keys": ["ci-review"], "caption": "CI's review then found ten lows. Five are fixed, and the owner accepted four that follow the issues.", "src": "944f23f30ec0"},
+    {"screen": "review", "keys": ["ci-review"], "caption": "CI's review then found ten lows. Most are fixed. The owner accepted four that follow the issues, and later style points were accepted.", "src": "d1429c9f6ad6"},
     {"screen": "aftermerge", "keys": ["a1", "a2"], "caption": "After the merge, the owner drags tabs between panes by hand and runs the split-view crash check.", "src": "5bf852743fa4"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later. Nothing depends on these issues.", "src": "6593cf6ba1e2"},
     {"screen": "issue-a", "keys": ["1", "2", "3"], "caption": "So what's left is trying the drops and double-clicks in a real session.", "src": "c3e178a2bf04"},
@@ -100,7 +100,7 @@
     "review/b2": "3e63e81b939b",
     "review/b3": "85dfd2eb8221",
     "review/b4": "6d2eeca6cc89",
-    "review/ci-review": "944f23f30ec0",
+    "review/ci-review": "d1429c9f6ad6",
     "aftermerge/a1": "a4bc4b92cd21",
     "aftermerge/a2": "d0077f976355",
     "see/l1": "75c97cece9c6",
