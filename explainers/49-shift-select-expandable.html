@@ -182,7 +182,7 @@
     <li data-k="1"><b>You press.</b> Up or Down in list view, with Expandable folders on, plain or with Shift, Ctrl or both. Before moving, the key handler notes where the cursor was, and with Ctrl, which rows were selected.</li>
     <li data-k="2"><b>Move the cursor.</b> <code>thunar_details_view_key_up_set_cursor</code> and <code>…_key_down_set_cursor</code> run unchanged. Like any cursor move in GTK, this leaves only the new row selected.</li>
     <li data-k="3"><b>Read modifiers.</b> With no modifier nothing more happens, so plain arrows behave as before. With Ctrl, <code>thunar_details_view_select_after_move</code> puts the saved selection back, so Ctrl+Space can then add the cursor row.</li>
-    <li data-k="4"><b>Shift: a range.</b> The anchor is the row the cursor last reached any way other than a Shift or Ctrl arrow: a click, a plain arrow, Home, End or typing a name. <code>thunar_details_view_select_files_between</code> walks the visible rows from the anchor to the cursor and selects each one that has a file. With Ctrl too, the range is added to what was selected, and shrinks again when you reverse.</li>
+    <li data-k="4"><b>Shift: a range.</b> The anchor is the row the cursor last reached any way other than a Shift or Ctrl arrow: a click, a plain arrow, Home, End or typing a name. <code>thunar_details_view_select_files_between</code> walks the visible rows from the anchor to the cursor and selects each one that has a file. With Ctrl too, the range is only added to what was selected, as GTK does. Ctrl+Space also moves the anchor to the row it toggles.</li>
   </ol>
   </div>
   </section>
@@ -234,12 +234,12 @@ explainers/49-shift-select-expandable.narration.json  # its narration</pre>
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage -b -us -uc</code> on Ubuntu 24.04 in this session</td><td class="ok">5 debs, no warnings in the file</td></tr>
-    <tr data-k="c2"><td>Shift extends, both ways</td><td><code>verify/49.sh</code>: click file1, Shift+Down twice, Shift+Up; click file3, Shift+Up twice; a new Shift run after plain arrows</td><td class="ok">file1–3, file1–2, file1–3, file3–4</td></tr>
-    <tr data-k="c3"><td>Ctrl keeps the selection</td><td>Click file1, Ctrl+Down twice, Ctrl+Space</td><td class="ok">file1 and file3</td></tr>
+    <tr data-k="c2"><td>Shift extends, both ways</td><td><code>verify/49.sh</code>: click file1, Shift+Down twice, Shift+Up; click file3, Shift+Up twice; a new Shift run after plain arrows; a Ctrl move before Shift</td><td class="ok">file1–3, file1–2, file1–3, file3–4, file1–4</td></tr>
+    <tr data-k="c3"><td>Ctrl keeps the selection</td><td>Click file1, Ctrl+Down twice, Ctrl+Space, then Shift+Ctrl+Down and Shift+Down</td><td class="ok">file1 and file3; then 1, 3, 4; then 3–5</td></tr>
     <tr data-k="c4"><td>Across an open folder</td><td>Expand <code>folder</code> with Right, Shift+Down four times</td><td class="ok">folder, inner1–3, file1</td></tr>
     <tr data-k="c5"><td>Plain keys unchanged</td><td>Down, Up, Left twice, Down, then Enter on the folder</td><td class="ok">one row each time; folder opens</td></tr>
     <tr data-k="c6"><td>Expandable folders off</td><td>Turned off with <code>xfconf-query</code>, Shift+Down twice from file1</td><td class="ok">file1–3</td></tr>
-    <tr data-k="c7"><td>All sandbox tests</td><td><code>verify-proof.sh run</code> with the smoke test and #49, each under its own Xvfb</td><td class="ok">2 of 2 pass on <code>0ad37fa</code></td></tr>
+    <tr data-k="c7"><td>All sandbox tests</td><td><code>verify-proof.sh run</code> with the smoke test and #49, each under its own Xvfb</td><td class="ok">2 of 2 pass on <code>a8b6809</code></td></tr>
     <tr data-k="c8"><td>The screenshots show what they claim</td><td><code>/visual-verify</code>: a read-only auditor agent read each shot</td><td class="ok">12 of 12 OK, locally and on CI's shots of <code>0ad37fa</code></td></tr>
     <tr data-k="c9"><td>Seeing a Loading row on screen</td><td>A three-file folder loads too fast under Xvfb for the row to show; the test checks no such row ends up selected</td><td class="no">not shown</td></tr>
   </table>
@@ -260,8 +260,14 @@ explainers/49-shift-select-expandable.narration.json  # its narration</pre>
   <ul class="tight">
     <li data-k="ci1"><b>Fixed (medium):</b> the anchor now follows every cursor move except a Shift or Ctrl arrow, through GTK's cursor-changed signal, so Home, End, Page Up and typing a name also reset it (R1, R7).</li>
     <li data-k="ci2"><b>Fixed (medium):</b> Ctrl arrows keep the anchor, as GTK does, and selection updates are held back for the whole move, so the status bar never shows only the cursor row first (R2, R5).</li>
-    <li data-k="ci3"><b>Fixed (low):</b> a right-click no longer resets the anchor, and Shift+Ctrl shrinks its range when you reverse (R3, R6); plus tidy-ups to helpers, alignment and comments (R9–R12).</li>
+    <li data-k="ci3"><b>Fixed (low):</b> tidy-ups to helpers, alignment and comments (R9–R12). Its R3 (right-clicks keep the anchor) and R6 (Shift+Ctrl shrinks on reverse) were taken back in the next round.</li>
     <li data-k="ci4"><b>Not fixed:</b> R4 is the GTK anchor limit above; R8, copying the selection on each Ctrl arrow, was not shown to be slow.</li>
+  </ul>
+  <p data-k="ci-review2">CI's review of <code>0ad37fa</code> confirmed 2 more medium findings, fixed in <code>a8b6809</code> and checked in <code>verify/49.sh</code>:</p>
+  <ul class="tight">
+    <li data-k="ci5"><b>Fixed (medium):</b> Ctrl+Space toggles a row without moving the cursor, so the anchor stayed behind; it now moves to that row (R13).</li>
+    <li data-k="ci6"><b>Fixed (medium):</b> R6's shrink step also unselected rows chosen before the range began. Shift+Ctrl now only adds, as GTK does and as #49 asks (R14). Any click without Shift, right-clicks included, resets the anchor (R16).</li>
+    <li data-k="ci7"><b>Left as is (low):</b> R21 and R22 are bugs in the Right key's existing code, outside this PR; the rest are minor or unconfirmed.</li>
   </ul>
   </section>
 
