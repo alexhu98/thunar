@@ -1,0 +1,295 @@
+{
+  "title": "PR #61 · CI reliability",
+  "voice": "af_heart",
+  "lines": [
+    {
+      "screen": "title",
+      "keys": [],
+      "caption": "This is a tour of pull request 61, which makes CI's screenshot uploads and folder checks more reliable, and lets the agent merge.",
+      "from": [
+        "title",
+        "lead"
+      ],
+      "say": "This is a tour of pull request sixty-one, which makes CI's screenshot uploads and folder checks more reliable, and lets the agent merge."
+    },
+    {
+      "screen": "title",
+      "keys": [
+        "p1",
+        "p2",
+        "p3"
+      ],
+      "caption": "It has three parts: what the PR adds, how it was built and verified, and what comes later."
+    },
+    {
+      "screen": "adds",
+      "keys": [],
+      "caption": "Part 1. What this PR adds."
+    },
+    {
+      "screen": "adds",
+      "keys": [
+        "intro"
+      ],
+      "caption": "Three small fixes, each from its own issue: upload retries, gvfs in the verify job, and a merge rule."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "1"
+      ],
+      "caption": "First lane, one upload. The script commits the file, and on success prints the commit's sha, as before."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "2"
+      ],
+      "caption": "When the commit fails, the script now sorts the error: a clash, a real error, or a passing GitHub hiccup."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "3"
+      ],
+      "caption": "After a hiccup, it first checks whether the file already landed on the shots branch. If so, it uses that commit."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "4"
+      ],
+      "caption": "Otherwise it waits and tries again, with the same backoff and six attempts as before."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "5"
+      ],
+      "caption": "Second lane, the verify job. It now installs gvfs with the other test tools."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "6"
+      ],
+      "caption": "Each test's own message bus then starts the metadata store, so folder settings reach the disk."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "7"
+      ],
+      "caption": "So the search test for issue 21 runs its on-disk and restart checks instead of skipping them.",
+      "from": [
+        "7"
+      ]
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "8"
+      ],
+      "caption": "Third lane, merging. The agent checks a gate: every job green, no open findings, and a passing visual check."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "9"
+      ],
+      "caption": "When the gate holds, the agent squash-merges its own pull request, with the usual title."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "10"
+      ],
+      "caption": "Otherwise it stops and asks you, for example when a finding needs a decision or CI keeps failing."
+    },
+    {
+      "screen": "bigpic",
+      "keys": [
+        "why"
+      ],
+      "caption": "Why: on pull request 51, six of about ten runs lost screenshots, although every test passed.",
+      "from": [
+        "why"
+      ]
+    },
+    {
+      "screen": "bigpic",
+      "keys": [
+        "note"
+      ],
+      "caption": "An upload can succeed even when GitHub's answer is lost, so retrying blindly could commit the file twice."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "2"
+      ],
+      "caption": "Clashes are retried, real errors like a bad token fail at once, and everything else counts as a hiccup."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "3"
+      ],
+      "caption": "The landed check compares the file's blob on the shots branch with the local file's hash."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "8"
+      ],
+      "caption": "The gate also checks that the jobs really ran their steps, since a CI change could make a skipped job look green."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "10"
+      ],
+      "caption": "Upstream merges, and pull requests the agent didn't open, stay yours to merge."
+    },
+    {
+      "screen": "cases",
+      "keys": [
+        "e2",
+        "e3"
+      ],
+      "caption": "Before, server errors, rate limits and empty answers failed at once. Now they are retried."
+    },
+    {
+      "screen": "cases",
+      "keys": [
+        "e4"
+      ],
+      "caption": "Other client errors, such as not found or too large, still fail at once."
+    },
+    {
+      "screen": "files",
+      "keys": [
+        "tree"
+      ],
+      "caption": "The pull request changes two CI scripts and the CLAUDE.md file, and adds this page and its narration."
+    },
+    {
+      "screen": "files",
+      "keys": [
+        "undo"
+      ],
+      "caption": "Note that every merge to main makes a release that deploys to your machines, now also after an agent's merge."
+    },
+    {
+      "screen": "verified",
+      "keys": [],
+      "caption": "Part 2. How it was built and verified."
+    },
+    {
+      "screen": "refs",
+      "keys": [
+        "r1",
+        "r2"
+      ],
+      "caption": "It was built from the lost uploads on pull request 51, and keeps the retry loop from pull request 45.",
+      "say": "It was built from the lost uploads on pull request fifty-one, and keeps the retry loop from pull request forty-five."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c1",
+        "c2"
+      ],
+      "caption": "A stand-in for the GitHub tool replayed hiccups and lost answers. Each upload landed with exactly one commit."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c3",
+        "c4"
+      ],
+      "caption": "Real errors failed on the first attempt, clashes were still retried, and six hiccups in a row gave up."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c5"
+      ],
+      "caption": "In the cloud session, installing gvfs made folder metadata writable, and the value survived a new session."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c6"
+      ],
+      "caption": "[C6]"
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c7"
+      ],
+      "caption": "A real hiccup through GitHub's API wasn't tested, since it can't be caused on demand."
+    },
+    {
+      "screen": "review",
+      "keys": [
+        "summary"
+      ],
+      "caption": "[REVIEW]"
+    },
+    {
+      "screen": "aftermerge",
+      "keys": [
+        "a1",
+        "a2"
+      ],
+      "caption": "After the merge, the next real hiccup tests the retry, and the next pull request in this batch tests the merge rule."
+    },
+    {
+      "screen": "later",
+      "keys": [],
+      "caption": "Part 3. What comes later: cutting CI minutes."
+    },
+    {
+      "screen": "next",
+      "keys": [
+        "n1",
+        "n2",
+        "n3",
+        "n4"
+      ],
+      "caption": "This is the first of four pull requests: then review costs, build costs, and fewer jobs, each after the last merges."
+    },
+    {
+      "screen": "review-costs",
+      "keys": [
+        "1",
+        "2",
+        "3"
+      ],
+      "caption": "Next, CI stops reviewing its own fixes and superseded pushes, and reviews at a lighter level."
+    },
+    {
+      "screen": "build-costs",
+      "keys": [
+        "1",
+        "2"
+      ],
+      "caption": "Then build and verify skip pull requests without code, and the compiler output is cached."
+    },
+    {
+      "screen": "fold",
+      "keys": [
+        "1",
+        "2"
+      ],
+      "caption": "Last, the small jobs fold into bigger ones, and a push to main may reuse its pull request's build."
+    },
+    {
+      "screen": "title",
+      "keys": [],
+      "caption": "In short: fewer false failures in CI, a real on-disk check for folder settings, and merges that don't wait on you."
+    }
+  ]
+}
