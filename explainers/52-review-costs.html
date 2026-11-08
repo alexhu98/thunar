@@ -224,7 +224,7 @@
 
   <section class="sub" id="gate">
   <h3 class="sec">The merge rule</h3>
-  <p data-k="gate">The agent merges only once a review has covered the head. A head that is CI's own fix is now skipped. So before merging on one, the agent pushes an empty commit with a <code>Review: auto-fix</code> trailer. That review covers just the fix, at <code>high</code>.</p>
+  <p data-k="gate">The agent merges only once a review has covered the head. A head that is CI's own fix is now skipped, so the agent doesn't merge on one. Its next push, usually the explainer update that records the review, is reviewed from before the fix, so the fix gets its review then.</p>
   </section>
 
   <section class="sub" id="files">
@@ -235,7 +235,7 @@
 │   └── pr-summary.py                 # "stopped" for a cancelled or timed-out review
 └── workflows/build.yml               # REVIEW_LEVEL high; Review step 30 min, job 45
 .claude/skills/explainer/SKILL.md     # the new skips, in its CI review notes
-CLAUDE.md                             # the new skips; the merge rule's re-review after a bot fix
+CLAUDE.md                             # the new skips; no merge on CI's own fix commit
 explainers/
 ├── 52-review-costs.html              # this page
 └── 52-review-costs.narration.json    # its narration, stamped from this page</pre>
