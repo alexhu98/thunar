@@ -1017,8 +1017,7 @@ thunar_details_view_button_press_event (GtkTreeView       *tree_view,
                       if (file != NULL)
                         {
                           g_object_unref (file);
-                          gtk_tree_selection_select_path (selection, path);
-                          thunar_details_view_set_shift_anchor (details_view, model, path);
+                          gtk_tree_view_set_cursor (tree_view, path, NULL, FALSE);
                         }
                     }
                 }
@@ -1046,8 +1045,7 @@ thunar_details_view_button_press_event (GtkTreeView       *tree_view,
               if (file != NULL)
                 {
                   g_object_unref (file);
-                  gtk_tree_selection_select_path (selection, mc_path);
-                  thunar_details_view_set_shift_anchor (details_view, model, mc_path);
+                  gtk_tree_view_set_cursor (tree_view, mc_path, NULL, FALSE);
                   /* try to open the path as new window/tab, if possible */
                   _thunar_standard_view_open_on_middle_click (THUNAR_STANDARD_VIEW (details_view), mc_path, event->state);
                 }
@@ -1373,8 +1371,7 @@ thunar_details_view_key_press_event (GtkTreeView       *tree_view,
         }
 
       g_list_free_full (saved_rows, (GDestroyNotify) gtk_tree_path_free);
-      if (new_cursor != NULL)
-        gtk_tree_path_free (new_cursor);
+      gtk_tree_path_free (new_cursor);
       gtk_tree_path_free (old_cursor);
       stopPropagation = TRUE;
       break;

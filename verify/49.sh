@@ -117,6 +117,11 @@ click_row 2 2
 keys shift+Down
 selected_is file2 file3
 
+click_row 1
+click_row 4 3
+keys Escape shift+Down
+selected_is file4 file5
+
 click_row 0
 keys Right
 sleep 1

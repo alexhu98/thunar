@@ -1,7 +1,7 @@
 {
   "title": "PR #51 · Shift-select in list view",
   "voice": "af_heart",
-  "page_sha256": "319710f10cba9a452ec2d853e318f1d19346747abe7a6c6fa52bc5b389223b44",
+  "page_sha256": "d7bf559efaf525ad83da563ea42749187f890254a23cdf4e3939c15297e6810a",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 51, which makes Shift and Ctrl arrows work in list view with Expandable folders.", "say": "This is a tour of pull request 51, which makes shift and control arrows work in list view with Expandable folders.", "src": "b074fade020d"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "d62509892ffe"},
@@ -42,7 +42,7 @@
     {"screen": "review", "keys": ["ci6", "ci7"], "caption": "And Shift+Ctrl now only adds to the selection, as the issue asks; two older Right key bugs are left for later.", "say": "And shift control now only adds to the selection, as the issue asks; two older right key bugs are left for later.", "src": "94f7152bed8c"},
     {"screen": "review", "keys": ["ci-review3", "ci8"], "caption": "A third review found that a right-click on a selected row dropped the anchor again; it is kept now, and tested.", "src": "b28733114056"},
     {"screen": "review", "keys": ["ci9"], "caption": "GTK's own Ctrl+Shift arrows only move the cursor; here they add the range, as the issue specifies.", "say": "G T K's own control shift arrows only move the cursor; here they add the range, as the issue specifies.", "src": "a1c8448d6ebf"},
-    {"screen": "review", "keys": ["ci-review4"], "caption": "A fourth review found only low ones: a right- or middle-click that selects a row now anchors there.", "src": "84dc2d631032"},
+    {"screen": "review", "keys": ["ci-review4"], "caption": "The next reviews found that a right- or middle-click left the cursor behind; it now moves there, and the anchor follows.", "src": "578e703316f9"},
     {"screen": "aftermerge", "keys": ["a1", "a2"], "caption": "After the merge, try it in your own folders, and run the split view crash check.", "src": "6f70367c4d6c"},
     {"screen": "later", "keys": [], "caption": "Part 3. Nothing depends on issue 49, so only your own check remains.", "src": "a92c2095a867"},
     {"screen": "issue-a", "keys": ["1", "2"], "caption": "Shift-select across an open folder in a real session, then run the split view check.", "say": "Shift select across an open folder in a real session, then run the split view check.", "src": "f076f8e34b75"},
@@ -110,7 +110,7 @@
     "review/ci-review3": "e65e011aa3c7",
     "review/ci8": "fa6033be1616",
     "review/ci9": "a1c8448d6ebf",
-    "review/ci-review4": "84dc2d631032",
+    "review/ci-review4": "578e703316f9",
     "aftermerge/a1": "084d483f651e",
     "aftermerge/a2": "1c21d31a1ec0",
     "see/l1": "534ff1756740",
