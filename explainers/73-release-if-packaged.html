@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #76 Release gate</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #76: release only when packaged files changed</h1>
+  <p class="lead" data-k="lead">Branch <code>73-release-if-packaged</code> → <code>main</code>, closes #73. A push to main that changes only CI, agent setup or explainers no longer builds, verifies or publishes a new <code>+localN</code> release.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: #58</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">The build job's change check, which ran only on PRs, now also runs on a push to main and compares it with the latest release tag. One file changes: <code>.github/workflows/build.yml</code>.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="A push to main finds the latest release tag, diffs against it, and either skips or builds and releases">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Push to main: the change check</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Find last tag</text>
+      <text x="36" y="114" class="m">v…+localN</text>
+      <text x="36" y="134" class="b">highest N among</text>
+      <text x="36" y="154" class="b">the repo's tags</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Diff with it</text>
+      <text x="286" y="114" class="m">git diff tag HEAD</text>
+      <text x="286" y="134" class="b">fetch just that tag,</text>
+      <text x="286" y="154" class="b">list changed files</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Anything packaged?</text>
+      <text x="536" y="114" class="b">drop .github/,</text>
+      <text x="536" y="134" class="b">.claude/, explainers/,</text>
+      <text x="536" y="154" class="b">verify/, CLAUDE.md …</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-you" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Nothing: skip</text>
+      <text x="786" y="114" class="b">"No release" in the</text>
+      <text x="786" y="134" class="b">run summary; no</text>
+      <text x="786" y="154" class="b">build, verify, release</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M625,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② Something packaged, or no tag: as before</text>
+    <g data-k="5">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Build</text>
+      <text x="536" y="314" class="b">stamp +localN,</text>
+      <text x="536" y="334" class="b">build the debs</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Verify, release</text>
+      <text x="786" y="314" class="b">smoke test, publish,</text>
+      <text x="786" y="334" class="b">keep the last 10</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow" d="M730,320 H766" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new check on push</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>unchanged release path</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>what you see when it skips</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Every push to main built, verified and published a release, even when nothing that goes into the debs had changed. The last four releases, local17 to local20, held the same Thunar as local16. Each one cost about 95 Actions minutes, made the auto-deploy reinstall an identical Thunar on both machines, and added a release to read past.</p>
+  <div class="note" data-k="note">The push is compared with the latest release tag, not with the previous commit. So changes from a skipped push still count at the next push, and the next release includes them.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Push to main: the change check</div>
+  <ol class="steps">
+    <li data-k="1"><b>Find last tag.</b> The build job's <code>changes</code> step lists the repo's <code>v*</code> tags and picks the one with the highest <code>+localN</code>, the same way <code>publish-release.sh</code> does.</li>
+    <li data-k="2"><b>Diff with it.</b> The checkout is one commit deep, so the step fetches only that tag, one commit deep, and runs <code>git diff --name-only</code> between the tag and the pushed commit.</li>
+    <li data-k="3"><b>Anything packaged?</b> It removes the paths that never reach the debs: <code>.github/</code>, <code>.claude/</code>, <code>.gitlab/</code>, <code>explainers/</code>, <code>verify/</code>, <code>deploy/</code>, <code>.gitlab-ci.yml</code>, <code>CLAUDE.md</code>, <code>.clang-format</code> and <code>.gitignore</code>. Everything else counts, so a new top-level file counts by default.</li>
+    <li data-k="4"><b>Nothing: skip.</b> The step sets <code>skip=true</code> and writes “No release: no packaged files changed since &lt;tag&gt;” to the run summary. Every later build step, the version stamp and the whole verify job, which holds publish and prune, are skipped.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② Something packaged, or no tag: as before</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Build.</b> When any packaged file changed, or there is no release tag, or the fetch or diff fails, <code>skip</code> is false and the job stamps the next <code>+localN</code> and builds as before.</li>
+    <li data-k="6"><b>Verify, release.</b> The verify job installs the debs, runs the smoke test and the verify scripts, publishes the release and keeps the last 10, unchanged.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="parts">
+  <h3 class="sec">What counts as packaged</h3>
+  <div class="grid">
+    <div class="card" data-k="c1"><h3>Doesn't count</h3><p>CI and agent setup, explainers, verify scripts, deploy scripts, <code>CLAUDE.md</code> and editor config. None of them goes into a deb.</p></div>
+    <div class="card" data-k="c2"><h3>Counts</h3><p>Sources, build files, <code>debian/</code>, <code>po/</code>, <code>icons/</code>, <code>docs/</code>, and <code>README.md</code>, <code>NEWS</code> and the other docs the packaging installs.</p></div>
+    <div class="card" data-k="c3"><h3>PRs unchanged</h3><p>On a PR the old rule stays: a PR that changes CI scripts still builds and verifies, so those scripts get tested before they reach main.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">.github/workflows/build.yml          # changes step runs on push too; stamp and verify skip with it
+explainers/73-release-if-packaged.html            # this page
+explainers/73-release-if-packaged.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo it, revert this PR: every push to main releases again. To force a release while it's in place, push any packaged change, even a whitespace fix in <code>NEWS</code>.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The new step was run by hand against the real repo and its real tags, and the workflow was linted. The push path itself runs only after the merge.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>#55's change check</h3><p>The same <code>changes</code> step, <code>skip</code> output and <code>if:</code>s that skip build and verify on PRs with no code. This PR adds a push branch to it.</p></div>
+    <div class="card" data-k="r2"><h3>publish-release.sh</h3><p>Its way of finding the latest <code>+localN</code> tag is reused, so the check and the publish agree on which release is the latest.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Push identical to the last release skips</td><td>The step's script, run in this session with <code>GITHUB_EVENT_NAME=push</code> in a one-commit-deep clone of <code>main</code> at <code>5f038dc</code>, against the real tags</td><td class="ok">skip=true, “since v4.20.10+local21”</td></tr>
+    <tr data-k="c2"><td>CI-only push skips</td><td>Same clone, plus a local commit adding <code>.github/foo</code></td><td class="ok">skip=true, lists .github/foo</td></tr>
+    <tr data-k="c3"><td>CI-only then code: the second releases with both</td><td>Then a second local commit changing <code>README.md</code></td><td class="ok">skip=false, lists both files</td></tr>
+    <tr data-k="c4"><td>No release tag builds</td><td>Same script with the tag pattern changed so no tag matches</td><td class="ok">skip=false</td></tr>
+    <tr data-k="c5"><td>Shell and workflow lint</td><td><code>shellcheck</code> on the step's script; <code>actionlint</code> on <code>build.yml</code></td><td class="ok">0 warnings, 0 errors</td></tr>
+    <tr data-k="c6"><td>PR path unchanged</td><td>CI's build job on this PR</td><td class="open">see the summary comment</td></tr>
+    <tr data-k="c7"><td>Push that releases or skips on GitHub</td><td>Only a push to main runs it</td><td class="no">not run before merge</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh general-purpose agent reviewed the diff against the issue. It found no bugs, and 2 low notes, both left as they are because they only ever cause an extra release, never a missed one: a nested <code>.gitignore</code> counts as packaged, and so does a path git prints in quotes.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>CI's review:</b> its findings are in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/76">PR #76</a>.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>This merge changes only <code>.github/</code> and <code>explainers/</code>, so its push should skip, unless something packaged merged after local21</td><td>The push branch runs only on a push to main</td><td class="open">this PR's merge</td></tr>
+    <tr data-k="a2"><td>A push with packaged changes releases the next <code>+localN</code></td><td>Needs a later code PR to merge</td><td class="open">the next code merge</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/76">PR #76</a> → “Files changed”</li>
+    <li data-k="l2">After the merge: the push run's summary on the Actions tab says “No release” and names the tag.</li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: #58</h2>
+  <p class="intro" data-k="intro">This PR removes the push runs that need no release. #58 then shortens the ones that remain, by reusing the merged PR's debs.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR skips no-op releases; #58 would reuse PR debs for real ones">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">#58 Reuse the merged PR's debs</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Skip no-op pushes</text>
+      <text x="36" y="114" class="b">this PR: no build</text>
+      <text x="36" y="134" class="b">when nothing</text>
+      <text x="36" y="154" class="b">packaged changed</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Reuse PR debs</text>
+      <text x="286" y="114" class="b">#58: download the</text>
+      <text x="286" y="134" class="b">PR's debs instead</text>
+      <text x="286" y="154" class="b">of rebuilding</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-58">
+  <h3 class="sec">#58 Reuse the merged PR's debs (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Find the merged PR's build.</b> On a push that does change packaged files, look up the PR and its last good build run.</li>
+    <li data-k="2"><b>Reuse its debs.</b> When the trees match, download its debs and skip the rebuild and verify. Its open question is the version stamp, which is written at build time.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="localn"><dt>+localN</dt><dd>The suffix of this fork's release versions; N goes up by one each release.</dd></div>
+    <div data-k="tag"><dt>Release tag</dt><dd>The git tag, like v4.20.10+local21, that marks the commit a release was built from.</dd></div>
+    <div data-k="packaged"><dt>Packaged file</dt><dd>Any file that can end up in, or change, the thunar, thunar-data or libthunarx debs.</dd></div>
+    <div data-k="skip"><dt>skip output</dt><dd>The build job's true/false flag that the later steps and the verify job read.</dd></div>
+    <div data-k="summary"><dt>Run summary</dt><dd>The text a workflow run shows on its page in the Actions tab.</dd></div>
+    <div data-k="shallow"><dt>Shallow clone</dt><dd>A checkout with only the latest commit, which is why the tag is fetched separately.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
