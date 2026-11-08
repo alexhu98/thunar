@@ -2733,23 +2733,24 @@ thunar_window_notebook_page_removed (GtkWidget    *notebook,
 
 
 
-static gint
+static GtkWidget *
 thunar_window_notebook_tab_at (GtkWidget      *notebook,
                                GdkEventButton *event,
+                               gint           *page_num,
                                gboolean       *all_mapped)
 {
   GtkWidget    *page;
   GtkWidget    *label_box;
   GtkAllocation alloc;
-  gint          page_num = 0;
   gint          x, y;
 
   gdk_window_get_position (event->window, &x, &y);
   x += event->x;
   y += event->y;
-  *all_mapped = TRUE;
+  if (all_mapped != NULL)
+    *all_mapped = TRUE;
 
-  while ((page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook), page_num)) != NULL)
+  for (*page_num = 0; (page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook), *page_num)) != NULL; (*page_num)++)
     {
       label_box = gtk_notebook_get_tab_label (GTK_NOTEBOOK (notebook), page);
       if (gtk_widget_get_mapped (label_box))
@@ -2757,15 +2758,13 @@ thunar_window_notebook_tab_at (GtkWidget      *notebook,
           gtk_widget_get_allocation (label_box, &alloc);
           if (x >= alloc.x && x < alloc.x + alloc.width
               && y >= alloc.y && y < alloc.y + alloc.height)
-            return page_num;
+            return page;
         }
-      else
+      else if (all_mapped != NULL)
         *all_mapped = FALSE;
-
-      page_num++;
     }
 
-  return -1;
+  return NULL;
 }
 
 
@@ -2794,8 +2793,7 @@ thunar_window_notebook_button_press_event (GtkWidget      *notebook,
           && (event->state & gtk_accelerator_get_default_mod_mask ()) == 0
           && gtk_get_event_widget ((GdkEvent *) event) == notebook)
         {
-          page_num = thunar_window_notebook_tab_at (notebook, event, &all_mapped);
-          if (page_num >= 0)
+          if (thunar_window_notebook_tab_at (notebook, event, &page_num, &all_mapped) != NULL)
             {
               gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook), page_num);
               thunar_window_action_go_up (window);
@@ -2813,13 +2811,11 @@ thunar_window_notebook_button_press_event (GtkWidget      *notebook,
       && event->type == GDK_BUTTON_PRESS)
     {
       /* lookup the clicked tab */
-      page_num = thunar_window_notebook_tab_at (notebook, event, &all_mapped);
+      page = thunar_window_notebook_tab_at (notebook, event, &page_num, NULL);
 
       /* leave if no tab could be found */
-      if (page_num < 0)
+      if (page == NULL)
         return FALSE;
-
-      page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook), page_num);
 
       if (event->button == 2)
         {
@@ -3013,19 +3009,16 @@ thunar_window_tab_drag_motion (GtkWidget      *label_box,
   if (tab_drop->switch_timeout_id == 0)
     tab_drop->switch_timeout_id = g_timeout_add (500, thunar_window_tab_drag_switch_timeout, label_box);
 
-  if (!tab_drop->drop_data_ready)
-    {
-      if (!tab_drop->data_requested)
-        {
-          gtk_drag_get_data (label_box, context, target, timestamp);
-          tab_drop->data_requested = TRUE;
-        }
-    }
-  else
+  if (tab_drop->drop_data_ready)
     {
       directory = thunar_navigator_get_current_directory (THUNAR_NAVIGATOR (tab_drop->view));
       if (directory != NULL)
         thunar_file_accepts_drop (directory, tab_drop->drop_file_list, context, &action);
+    }
+  else if (!tab_drop->data_requested)
+    {
+      gtk_drag_get_data (label_box, context, target, timestamp);
+      tab_drop->data_requested = TRUE;
     }
 
   if (action != 0 && !tab_drop->highlighted)
