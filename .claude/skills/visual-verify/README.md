@@ -20,7 +20,7 @@ sha    num  test   result  shot           file                         proves
 
 ## Usage
 
-Audit CI's shots for a PR (needs only git):
+Audit CI's shots for a PR (needs git, plus a `pr-digest` digest of the PR's checks):
 
 ```
 /visual-verify pr:42
@@ -61,10 +61,12 @@ On a PR, post that output as a comment whose first line is `<!-- visual-verify <
 | `PASS` | every shot is present and OK, every test passed | the shots may be posted or presented as proof |
 | `FAIL` | a shot is BLANK, MISMATCH or MISSING | fix the capture or the code, run again |
 | `FAIL (test: …)` | the shots are OK but a test's assertions failed | fix the code or the test |
+| `NOT NEEDED (…)` | `pr:<n>` only: build and verify ran `No code changed`, so CI took no shots | post nothing; `CLAUDE.md`'s merge rule needs no verdict for that head |
+| `NOT YET (…)` | `pr:<n>` only: build or verify hasn't finished for the head | post nothing; run again after CI's next event |
 | `INCONCLUSIVE (cause)` | no trustworthy audit was possible (no manifest, stale shots, capture errored) | surface the cause, hand to the owner; never present the shots as proof |
 
 - **BLANK** means one colour, a view still loading, or the target out of frame. **MISMATCH** means the wrong state, or an after shot identical to its before shot. **MISSING** means no file.
-- The final line is always `VERDICT: PASS|FAIL|INCONCLUSIVE[ (cause)]`.
+- The final line is always `VERDICT: PASS|FAIL|INCONCLUSIVE|NOT NEEDED|NOT YET[ (cause)]`.
 
 ## Writing `verify/<issue>.sh` so audits pass
 
