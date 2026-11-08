@@ -115,7 +115,7 @@ click_row 1
 keys shift+Down shift+Down
 click_row 2 2
 keys shift+Down
-selected_is file2 file3 file4
+selected_is file2 file3
 
 click_row 0
 keys Right

@@ -240,8 +240,8 @@ explainers/49-shift-select-expandable.narration.json  # its narration</pre>
     <tr data-k="c4"><td>Across an open folder</td><td>Expand <code>folder</code> with Right, Shift+Down four times</td><td class="ok">folder, inner1–3, file1</td></tr>
     <tr data-k="c5"><td>Plain keys unchanged</td><td>Down, Up, Left twice, Down, then Enter on the folder</td><td class="ok">one row each time; folder opens</td></tr>
     <tr data-k="c6"><td>Expandable folders off</td><td>Turned off with <code>xfconf-query</code>, Shift+Down twice from file1</td><td class="ok">file1–3</td></tr>
-    <tr data-k="c7"><td>All sandbox tests</td><td><code>verify-proof.sh run</code> with the smoke test and #49, each under its own Xvfb</td><td class="ok">2 of 2 pass on <code>777188a</code></td></tr>
-    <tr data-k="c8"><td>The screenshots show what they claim</td><td><code>/visual-verify</code>: a read-only auditor agent read each shot</td><td class="ok">12 of 12 OK, locally and on CI's shots of each code change up to <code>777188a</code></td></tr>
+    <tr data-k="c7"><td>All sandbox tests</td><td><code>verify-proof.sh run</code> with the smoke test and #49, each under its own Xvfb</td><td class="ok">2 of 2 pass on the last code change</td></tr>
+    <tr data-k="c8"><td>The screenshots show what they claim</td><td><code>/visual-verify</code>: a read-only auditor agent read each shot</td><td class="ok">12 of 12 OK, locally and on CI's shots of <code>942653b</code>, <code>0ad37fa</code> and <code>a8b6809</code></td></tr>
     <tr data-k="c9"><td>Seeing a Loading row on screen</td><td>A three-file folder loads too fast under Xvfb for the row to show; the test checks no such row ends up selected</td><td class="no">not shown</td></tr>
   </table>
   </div>
@@ -275,6 +275,7 @@ explainers/49-shift-select-expandable.narration.json  # its narration</pre>
     <li data-k="ci8"><b>Fixed (medium):</b> the R16 change also dropped the anchor on a right-click on a selected row, which R3 had fixed; it is kept again, and <code>verify/49.sh</code> checks it (R27). Ctrl with the keypad's Space key moves the anchor too (R28), and a middle-click, which opens the row, still resets it (R32).</li>
     <li data-k="ci9"><b>Kept as #49 asks (low):</b> GTK's own Ctrl+Shift arrows only move the cursor; here Shift+Ctrl adds the range, as the issue specifies (R29).</li>
   </ul>
+  <p data-k="ci-review4">CI's review of <code>61f1a9f</code> found no medium findings; its commit <code>b77e9ff</code> fixed 4 low ones (R37–R40): a right- or middle-click that selects a row now puts the anchor there, and collapsing a folder moves an anchor inside it to the folder. Its new middle-click check expected the cursor to stay put, but the click moves it to that row, so the check was corrected to match.</p>
   </section>
 
   <section class="sub" id="aftermerge">
