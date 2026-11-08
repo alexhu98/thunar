@@ -807,19 +807,11 @@ thunar_details_view_column_header_clicked (ThunarDetailsView *details_view,
 
 
 static void
-thunar_details_view_reset_shift_anchor (ThunarDetailsView *details_view)
-{
-  g_clear_pointer (&details_view->shift_anchor, gtk_tree_row_reference_free);
-}
-
-
-
-static void
 thunar_details_view_set_shift_anchor (ThunarDetailsView *details_view,
                                       GtkTreeModel      *model,
                                       GtkTreePath       *path)
 {
-  thunar_details_view_reset_shift_anchor (details_view);
+  g_clear_pointer (&details_view->shift_anchor, gtk_tree_row_reference_free);
   if (path != NULL)
     details_view->shift_anchor = gtk_tree_row_reference_new (model, path);
 }
@@ -852,8 +844,7 @@ thunar_details_view_cursor_changed (GtkTreeView       *tree_view,
 
   gtk_tree_view_get_cursor (tree_view, &path, NULL);
   thunar_details_view_set_shift_anchor (details_view, gtk_tree_view_get_model (tree_view), path);
-  if (path != NULL)
-    gtk_tree_path_free (path);
+  gtk_tree_path_free (path);
 }
 
 
@@ -884,13 +875,13 @@ thunar_details_view_button_press_event (GtkTreeView       *tree_view,
   if (event->button == 1)
     {
       if ((event->state & GDK_SHIFT_MASK) == 0)
-        thunar_details_view_reset_shift_anchor (details_view);
+        thunar_details_view_set_shift_anchor (details_view, NULL, NULL);
     }
-  else if (event->button != 3
+  else if (event->button == 2
            || !gtk_tree_view_get_path_at_pos (tree_view, event->x, event->y, &path, NULL, NULL, NULL)
            || !gtk_tree_selection_path_is_selected (gtk_tree_view_get_selection (tree_view), path))
     {
-      thunar_details_view_reset_shift_anchor (details_view);
+      thunar_details_view_set_shift_anchor (details_view, NULL, NULL);
     }
   g_clear_pointer (&path, gtk_tree_path_free);
 
@@ -1027,6 +1018,7 @@ thunar_details_view_button_press_event (GtkTreeView       *tree_view,
                         {
                           g_object_unref (file);
                           gtk_tree_selection_select_path (selection, path);
+                          thunar_details_view_set_shift_anchor (details_view, model, path);
                         }
                     }
                 }
@@ -1055,6 +1047,7 @@ thunar_details_view_button_press_event (GtkTreeView       *tree_view,
                 {
                   g_object_unref (file);
                   gtk_tree_selection_select_path (selection, mc_path);
+                  thunar_details_view_set_shift_anchor (details_view, model, mc_path);
                   /* try to open the path as new window/tab, if possible */
                   _thunar_standard_view_open_on_middle_click (THUNAR_STANDARD_VIEW (details_view), mc_path, event->state);
                 }
@@ -1307,12 +1300,9 @@ thunar_details_view_select_after_move (ThunarDetailsView *details_view,
   if (details_view->shift_anchor != NULL)
     anchor = gtk_tree_row_reference_get_path (details_view->shift_anchor);
   if (anchor == NULL)
-    {
-      anchor = gtk_tree_path_copy (old_cursor);
-      thunar_details_view_set_shift_anchor (details_view, model, anchor);
-    }
+    thunar_details_view_set_shift_anchor (details_view, model, old_cursor);
 
-  thunar_details_view_select_files_between (tree_view, model, anchor, new_cursor);
+  thunar_details_view_select_files_between (tree_view, model, anchor != NULL ? anchor : old_cursor, new_cursor);
   gtk_tree_path_free (anchor);
 }
 
@@ -1494,6 +1484,14 @@ thunar_details_view_row_collapsed (GtkTreeView       *tree_view,
                                    GtkTreePath       *path,
                                    ThunarDetailsView *view)
 {
+  GtkTreePath *anchor = NULL;
+
+  if (view->shift_anchor != NULL)
+    anchor = gtk_tree_row_reference_get_path (view->shift_anchor);
+  if (anchor != NULL && gtk_tree_path_is_descendant (anchor, path))
+    thunar_details_view_set_shift_anchor (view, gtk_tree_view_get_model (tree_view), path);
+  gtk_tree_path_free (anchor);
+
   /* schedule a cleanup with a delay. If the row is expanded before
    * the scheduled cleanup then the cleanup is cancelled. */
   thunar_tree_view_model_schedule_unload (THUNAR_TREE_VIEW_MODEL (THUNAR_STANDARD_VIEW (view)->model), iter);

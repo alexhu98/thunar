@@ -21,7 +21,7 @@ click_row() {
   focus "$MAIN"
   xdotool mousemove --window "$MAIN" "$NAME_X" $((ROW0 + $1 * ROW_H))
   sleep 0.3
-  xdotool click 1
+  xdotool click "${2:-1}"
   sleep 0.3
 }
 
@@ -107,13 +107,15 @@ selected_is file1 file2 file3 file4
 
 click_row 1
 keys shift+Down
-focus "$MAIN"
-xdotool mousemove --window "$MAIN" "$NAME_X" $((ROW0 + 2 * ROW_H))
-sleep 0.3
-xdotool click 3
-sleep 0.5
+click_row 2 3
 keys Escape shift+Down
 selected_is file1 file2 file3
+
+click_row 1
+keys shift+Down shift+Down
+click_row 2 2
+keys shift+Down
+selected_is file2 file3 file4
 
 click_row 0
 keys Right
