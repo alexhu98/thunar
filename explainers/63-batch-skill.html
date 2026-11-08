@@ -220,7 +220,7 @@
   <div class="lane-h" style="color:var(--merge)">② Child session and check-ins</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
     <li data-k="5"><b>Child merges.</b> The child does the whole PR loop on its own, posts a line on the tracking issue when it opens the PR, merges or gets blocked, and tells the orchestrator with <code>send_message</code>.</li>
-    <li data-k="6"><b>Watch cheaply.</b> A <code>send_later</code> check-in every 90 minutes reads only <code>get_session</code>'s status and the PR's merged state. A blocked child's question reaches you once, and you answer it in the child's session. A child quiet for hours is flagged once.</li>
+    <li data-k="6"><b>Watch cheaply.</b> Each child reports its own events: PR opened, blocked with its question, resumed, merged. A blocked child's question reaches you once, and you answer it in the child's session. A <code>send_later</code> check-in every 90 minutes is only a safety net: it reads <code>get_session</code>'s status and flags a child that stopped without reporting, once, until that child speaks again.</li>
     <li data-k="7"><b>Stop.</b> At the stop point or after the last merge, it cancels the pending check-in, closes the tracking issue and reports how many groups merged.</li>
   </ol>
   </div>
@@ -286,6 +286,7 @@ explainers/63-batch-skill.narration.json  # its stamped narration</pre>
   <p data-k="ci">CI's first review found 9 more (R1–R9: 4 medium, 5 low), all fixed in one push. Each group's row in the tracking issue now holds its start time, the PR's last update and its notes; closed, failed and resumed children each have a case; and the brief asks for <code>/visual-verify</code> as CLAUDE.md says rather than for a PASS. Details are in the code review PR comment.</p>
   <p data-k="ci2">Its second review found 9 more (R10–R18), all about when the owner is told. Step 4 was rewritten around one rule: each check-in works out a child's condition (merged, closed, failed, blocked, stalled or ok) and tells the owner only when it differs from the last thing they were told. A second fresh agent traced nine scenarios through it, and its six findings are fixed in the same push. The PR is found with one GitHub search that returns no PR body.</p>
   <p data-k="ci3">The third review found 9 more (R19–R27), fixed in one push: the batch no longer runs past its stop point, a child also reports its PR number and when it resumes, a child working for hours with no PR is flagged again, and a batch where only failed or closed groups remain waits for the owner instead of checking in forever.</p>
+  <p data-k="ci4">The fourth review still found new edge cases in that inference, so the owner chose to simplify it: the children's messages now carry every event, a check-in only flags a child that stopped without reporting, and one <code>waiting on owner</code> mark per group stops repeats. The open findings from that review (R19, R23, R28–R34) were all about the inference that is now gone.</p>
   </section>
 
   <section class="sub" id="aftermerge">
