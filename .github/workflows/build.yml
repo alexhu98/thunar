@@ -35,10 +35,30 @@ jobs:
           fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
           persist-credentials: false
 
-      - name: Check what the PR changes
+      - name: Check what changed
         id: changes
-        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          if [[ $GITHUB_EVENT_NAME == push ]]; then
+            tag=$(gh api --paginate 'repos/{owner}/{repo}/git/matching-refs/tags/v' --jq '.[].ref' \
+              | sed -n 's|^refs/tags/\(.*+local\([0-9][0-9]*\)\)$|\2 \1|p' | sort -n | tail -1 | cut -d' ' -f2) || tag=
+            if [[ -n $tag ]] && git fetch --depth=1 --no-tags origin "refs/tags/$tag:refs/tags/$tag" &&
+               git diff --no-renames --name-only "$tag" HEAD > "$RUNNER_TEMP/changed.txt"; then
+              code=$(grep -Ev '^(\.github|\.claude|\.gitlab|explainers|verify|deploy)/|^(\.gitlab-ci\.yml|CLAUDE\.md|\.clang-format|\.gitignore)$' "$RUNNER_TEMP/changed.txt" || true)
+              if [[ -z $code ]]; then
+                echo skip=true >> "$GITHUB_OUTPUT"
+                echo "No release: no packaged files changed since $tag" | tee -a "$GITHUB_STEP_SUMMARY"
+              else
+                echo skip=false >> "$GITHUB_OUTPUT"
+              fi
+              echo "Changed since $tag:"
+              sed 's/^/  /' "$RUNNER_TEMP/changed.txt"
+            else
+              echo skip=false >> "$GITHUB_OUTPUT"
+            fi
+            exit 0
+          fi
           git diff --no-renames --name-only HEAD^1 HEAD > "$RUNNER_TEMP/changed.txt"
           code=$(grep -E '^(debian|verify)/|^README\.md$' "$RUNNER_TEMP/changed.txt"; grep -Ev '^(explainers/|\.claude/)|\.md$|\.narration\.json$' "$RUNNER_TEMP/changed.txt" || true)
           if [[ -s $RUNNER_TEMP/changed.txt && -z $code ]]; then
@@ -49,7 +69,7 @@ jobs:
           sed 's/^/  /' "$RUNNER_TEMP/changed.txt"
 
       - name: No code changed
-        if: steps.changes.outputs.skip == 'true'
+        if: steps.changes.outputs.skip == 'true' && github.event_name == 'pull_request'
         run: echo "Build and verify skipped, because the PR changes no code, packaging or CI files." | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Add Zorin OS PPA (Xfce 4.20 libraries)
@@ -75,7 +95,7 @@ jobs:
 
       - name: Stamp version
         id: version
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && steps.changes.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -142,6 +162,7 @@ jobs:
 
   verify:
     needs: build
+    if: github.event_name == 'pull_request' || needs.build.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     concurrency:
