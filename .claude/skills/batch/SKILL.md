@@ -43,7 +43,7 @@ Open the tracking issue with `issue_write` in `alexhu98/thunar`:
 - Title: `Batch: #<a>, #<b>, …` (every issue in the plan).
 - Body: the confirmed table, then one checklist row per group, the stop point if there is one, `Orchestrator: <parent>` and `Check-in: -`.
 
-A row: `- [ ] A: #52 #53 | branch 52-review-skip | session - | PR - | waiting on owner: no | notes: <the group's brief notes, or ->`. A ticked row is merged; an unticked row with session `-` hasn't started. `waiting on owner` is `yes` once the owner has been told about that child (step 4), and goes back to `no` at the child's next message. `Check-in:` holds the pending check-in's `trigger_id`, or `-`.
+A row: `- [ ] A: #52 #53 | branch 52-review-skip | session - | PR - | waiting on owner: no | notes: <the group's brief notes, or ->`. A ticked row is merged, a row whose status reads `skipped` (in place of `waiting on owner`) is done without a merge, and an unticked row with session `-` hasn't started. `waiting on owner` is `yes` once the owner has been told about that child (step 4), and goes back to `no` at the child's next message. `Check-in:` holds the pending check-in's `trigger_id`, or `-`.
 
 The body is the batch's state. Update it with `issue_write update` whenever a row changes. A check-in that has lost the conversation rebuilds from it.
 
@@ -55,7 +55,7 @@ For each group in order, start its child with `create_session`, with `source_url
 
 Add the group's notes from its row after "together in one PR" (e.g. "plus #58 only if its version-stamp blocker is solved", or what an earlier group already changed). Record the returned session ID in the row.
 
-Then make sure a check-in is pending (step 4) and end the turn. A group starts only when every group before it in the plan is merged or skipped, or when the plan runs it in parallel with them. A group whose child failed or stopped holds up the groups after it until it merges or the owner says to skip it; a skipped row is marked `skipped` and ticked.
+Then make sure a check-in is pending (step 4) and end the turn. A group starts only when every group before it in the plan is merged or skipped, or when the plan runs it in parallel with them; a group whose `After` names a skipped group starts only on the owner's word. A group whose child failed or stopped holds up the groups after it until it merges or the owner says to skip it; then its row reads `skipped`.
 
 ## 4. Watch cheaply
 
@@ -69,18 +69,18 @@ The children report their own events; the orchestrator records them and passes o
 
 Any message from the child also sets `waiting on owner: no` before it is handled.
 
-**A `<child-session-event>` turn** (the child's turn failed or its worker restarted): read `get_session <child>`. If its `status_bucket` is `failed`, tell the owner once, with the session's title, and set `waiting on owner: yes`; otherwise the child recovered, and nothing is needed. Never restart a child yourself.
+**A `<child-session-event>` turn** (the child's turn failed or its worker restarted): read `get_session <child>`. If its `status_bucket` is `failed`, tell the owner once, with the session's title, and set `waiting on owner: yes`; otherwise leave it to the child's messages and the next check-in. Never restart a child yourself.
 
-**A check-in**, the safety net. `send_later` with `delay_minutes: 90` and the message `/batch check-in #<t>`, its `trigger_id` stored in the `Check-in:` line. A check-in turn first sets that line to `-`, since it has fired; any other value is pending, even past its time, because a check-in waits while another turn runs. Only one is ever pending: to schedule one, `delete_trigger` the stored one if there is one, then store the new one. On a check-in, for each started, unticked row with `waiting on owner: no`, read `get_session <child>`'s `status_bucket`:
+**A check-in**, the safety net. `send_later` with `delay_minutes: 90` (240 while every row waits on the owner, below) and the message `/batch check-in #<t>`, its `trigger_id` stored in the `Check-in:` line. A check-in turn first sets that line to `-`, since it has fired; any other value is pending, even past its time, because a check-in waits while another turn runs. Only one is ever pending: to schedule one, `delete_trigger` the stored one if there is one, then store the new one. On a check-in, for each started, unticked row with `waiting on owner: no`, read `get_session <child>`'s `status_bucket`:
 - `working`: nothing. A working child is never flagged; the owner sees it in their session list.
-- `review_ready` or `completed` with a PR in the row: read that PR's state with one search that returns no body, `gh api -X GET search/issues -f q='repo:alexhu98/thunar is:pr head:<a>-<slug>' --jq '.items[] | select(.number == <n>) | "\(.state) \(.pull_request.merged_at)"'`. Merged is handled as `merged #<n>`. Otherwise the child is idle with its PR not merged: CI takes well under 90 minutes and wakes a watching child, so it has likely stopped. Tell the owner as below.
+- `review_ready` or `completed` with a PR in the row: read that PR's state with one search that returns no body, `gh api -X GET search/issues -f q='repo:alexhu98/thunar is:pr head:<a>-<slug>' --jq '.items[] | select(.number == <n>) | "\(.state) \(.pull_request.merged_at)"'`. Merged is handled as `merged #<n>`; closed unmerged is told to the owner as `PR #<n> closed unmerged`. Otherwise the child is idle with its PR not merged: CI takes well under 90 minutes and wakes a watching child, so it has likely stopped. Tell the owner as below.
 - `failed` or `blocked`, or `review_ready` or `completed` with no PR in the row, or with an unmerged PR as above: the child stopped without reporting (or its message was lost). Tell the owner, with the session's title and that word, and set `waiting on owner: yes`.
 
-On a check-in, a row with `waiting on owner: yes` gets only `get_session`: `working` means the child went on and its message was lost, so set `waiting on owner: no`.
+On a check-in, a row with `waiting on owner: yes` is read the same way but never told about again: `working` means the child went on and its message was lost, so set `waiting on owner: no`; an idle child whose PR search shows it merged is handled as `merged #<n>`.
 
 After any wake, update the tracking issue's body if a row or the `Check-in:` line changed. Keep a check-in pending while some row is started and unticked: 90 minutes out while one of them has `waiting on owner: no`, and 4 hours out while all of them wait on the owner, since the owner answers in the child's session and nothing else may wake the orchestrator. When the owner says a group's PR merged, handle it as `merged #<n>`. When they say a child is handled otherwise, leave `waiting on owner: yes`: the child's next message clears it.
 
-Go to step 5 when every group is merged or skipped, when the stop point's group and every other started group are merged, or when the owner says to end the batch.
+Go to step 5 when every group is merged or skipped, when the stop point's group and every other started group are merged or skipped, or when the owner says to end the batch.
 
 A check-in is one `get_session` per running child, plus one search for an idle child with a PR. If it needs more, such as reading a child's transcript or CI's comments, ask the owner first.
 
