@@ -114,10 +114,10 @@
   <section class="part" id="adds">
   <p class="part-label" data-k="label">Part 1</p>
   <h2 data-k="heading">What this PR adds</h2>
-  <p class="intro" data-k="intro">Two jobs folded into others, one re-run job dropped, a skip for unchanged comments, and debs reused on a push to <code>main</code>. No Thunar code changes.</p>
+  <p class="intro" data-k="intro">Release folded into build, review-report run only for a fix, one re-run job dropped, a skip for unchanged comments, and debs reused on a push to <code>main</code>. No Thunar code changes.</p>
 
   <section class="sub" id="flow">
-  <div class="diagram" role="img" aria-label="On a PR, review now pushes its fix and writes its comment itself, comments are edited only when they change, and an audit comment updates the summary directly; on a push to main, build reuses the merged PR's verified debs when the tree and version match, publishes the release itself, and verify is skipped">
+  <div class="diagram" role="img" aria-label="On a PR, review now writes its own comment unless it has a fix to push, comments are edited only when they change, and an audit comment updates the summary directly; on a push to main, build reuses the merged PR's verified debs when the tree and version match, publishes the release itself, and verify is skipped">
   <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -128,9 +128,9 @@
     <g data-k="1">
       <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
       <text x="36" y="90" class="t">Review reports</text>
-      <text x="36" y="114" class="b">push, suggestions</text>
-      <text x="36" y="134" class="b">and comment in the</text>
-      <text x="36" y="154" class="b">review job itself</text>
+      <text x="36" y="114" class="b">itself, unless it</text>
+      <text x="36" y="134" class="b">has a fix to push:</text>
+      <text x="36" y="154" class="b">then review-report</text>
       <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
     </g>
     <g data-k="2">
@@ -150,11 +150,11 @@
       <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
     </g>
     <g data-k="4">
-      <rect class="box-merge" x="770" y="60" width="210" height="120" rx="10"/>
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
       <text x="786" y="90" class="t">Same checks</text>
-      <text x="786" y="114" class="b">build, verify,</text>
-      <text x="786" y="134" class="b">explainer, review,</text>
-      <text x="786" y="154" class="b">summary</text>
+      <text x="786" y="114" class="b">review-report is</text>
+      <text x="786" y="134" class="b">skipped when there</text>
+      <text x="786" y="154" class="b">is no fix</text>
       <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
     </g>
     <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
@@ -216,14 +216,14 @@
   <div class="panel">
   <div class="lane-h" style="color:var(--accent)">① On a PR</div>
   <ol class="steps">
-    <li data-k="1"><b>Review reports.</b> The <code>review-report</code> job is now the <code>review</code> job's last steps. After the model's review step has ended, a second checkout into <code>.review-push</code>, with the push token, commits and pushes the fix, posts the suggestions and writes the review comment. The model never ran in that folder or saw the token. The review job's concurrency group already ran one review at a time per branch, so the 20-minute wait for an earlier run's report is gone.</li>
+    <li data-k="1"><b>Review reports.</b> Most reviews leave no fix to push: they found nothing to fix, ran in suggest mode, or were skipped. Then the <code>review</code> job's last step posts the suggestions and writes the review comment itself, without the push token. Only a review that left a fix starts <code>review-report</code>, on a fresh machine with the token, as before. The model never shares a machine with the token: it could have left files or a running process behind.</li>
     <li data-k="2"><b>Same body?</b> <code>pr-comment.sh put</code> reads the comment first and skips the edit when the new body is identical, link for link. Most of the summary's rewrites, such as the summary job's final one, no longer reach the watching session.</li>
     <li data-k="3"><b>Audit posted.</b> A <code>/visual-verify</code> comment used to make <code>pr-summary.yml</code> re-run the build run's summary job, a second billed job. It now runs <code>pr-summary.py</code> itself, from <code>main</code>'s scripts, once the head's build run has finished.</li>
-    <li data-k="4"><b>Same checks.</b> A PR still shows build, verify, explainer, review and summary, with the changes step, the <code>No code changed</code> steps and ccache as before. Only <code>review-report</code> is gone, so the merge rule in <code>CLAUDE.md</code> drops it.</li>
+    <li data-k="4"><b>Same checks.</b> A PR still shows build, verify, explainer, review, review-report and summary, with the changes step, the <code>No code changed</code> steps and ccache as before. <code>review-report</code> is now skipped when there is no fix, so the merge rule in <code>CLAUDE.md</code> allows that.</li>
   </ol>
   <div class="lane-h" style="color:var(--accent)">② On a push to main</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>Find PR debs.</b> <code>reuse-debs.sh find</code> looks up the PR merged as this commit and its newest build run whose build and verify passed, verify having run its tests, with a <code>debs</code> artifact not yet expired.</li>
+    <li data-k="5"><b>Find PR debs.</b> <code>reuse-debs.sh find</code> looks up the PR merged as this commit and its newest build run whose build and verify passed, verify having run its tests, with a <code>debs</code> artifact not yet expired. Only a branch of this repo counts: a fork PR's earlier push could have left compiled objects in its ccache that its final files don't show.</li>
     <li data-k="6"><b>Same tree?</b> PR builds now stamp the version the next release would get, and save the git tree they built in <code>built-tree</code>. The push reuses the debs only when that tree is this commit's tree and their version is the one it releases now. Otherwise it builds as before.</li>
     <li data-k="7"><b>Release in build.</b> The <code>release</code> job's two steps, publish and keep the newest 10, run at the end of <code>build</code> on a push, so <code>build</code> has write access to the repo's contents.</li>
     <li data-k="8"><b>Verify skipped.</b> When the debs were reused, <code>verify</code> doesn't start on the push: the PR's run already tested those exact debs.</li>
@@ -242,15 +242,16 @@
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
-<pre data-k="tree">.github/workflows/build.yml       # release folded into build, review-report into review;
-                                  # PR builds stamp the version; a push can reuse the PR's debs
+<pre data-k="tree">.github/workflows/build.yml       # release folded into build; review reports itself unless
+                                  # it has a fix; PR builds stamp the version; a push can
+                                  # reuse the PR's debs
 .github/workflows/pr-summary.yml  # writes the summary itself instead of re-running a job
 .github/scripts/reuse-debs.sh     # new: find the merged PR's verified debs, check tree and version
 .github/scripts/pr-comment.sh     # put skips an edit that changes nothing
-.github/scripts/pr-summary.py     # review is one job now
-.github/scripts/review-proof.sh   # no wait for an earlier report; report runs inside review
-.claude/agents/pr-digest.md       # no review-report check
-CLAUDE.md                         # the merge rule's job names
+.github/scripts/pr-summary.py     # notes the new caller
+.github/scripts/review-proof.sh   # report can run inside review; its time counts so far
+.claude/agents/pr-digest.md       # review-report skipped without a fix is fine
+CLAUDE.md                         # the merge rule allows that skip
 explainers/
 ├── 56-fewer-jobs.html            # this page
 └── 56-fewer-jobs.narration.json  # its narration, stamped from this page</pre>
@@ -267,7 +268,7 @@ explainers/
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
   <div class="grid">
-    <div class="card" data-k="r1"><h3>review-report job</h3><p>Its checkout with the push token, its copy of the scripts out of the tree, and its <code>if</code> guards, moved as they were.</p></div>
+    <div class="card" data-k="r1"><h3>review-report job</h3><p>Kept as it was for a fix to push; its report command, without the push, now also runs as review's last step.</p></div>
     <div class="card" data-k="r2"><h3>release job</h3><p>Its two scripts, <code>publish-release.sh</code> and <code>prune-releases.sh</code>, unchanged.</p></div>
     <div class="card" data-k="r3"><h3>pr-summary.py</h3><p>Already writes the summary from any job; <code>pr-summary.yml</code> now calls it the same way.</p></div>
   </div>
@@ -279,15 +280,20 @@ explainers/
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>Workflow and script syntax</td><td>PyYAML on both workflows, <code>bash -n</code> on every script, in the building session</td><td class="ok">all parse</td></tr>
-    <tr data-k="c2"><td>The folded review on a PR</td><td>This PR's own CI run</td><td class="open">CI_PENDING</td></tr>
-    <tr data-k="c3"><td>Jobs and billed minutes</td><td>This PR's run against PR #69's, from the run's timing</td><td class="open">CI_PENDING</td></tr>
+    <tr data-k="c2"><td>The folded review on a PR</td><td>This PR's own CI run</td><td class="no">not run yet: waits for this PR's first CI run</td></tr>
+    <tr data-k="c3"><td>Jobs and billed minutes</td><td>This PR's run against PR #69's, from the run's timing</td><td class="no">not run yet: waits for this PR's first CI run</td></tr>
   </table>
   </div>
   </section>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">REVIEW_PENDING</p>
+  <p data-k="summary">A fresh agent, given the diff and the intent, found 7: 2 high, 1 medium, 4 low. Both highs and one low, a check that could miss an artifact, are fixed. The medium, the merge rule's job names, waits on the owner's approval of the <code>CLAUDE.md</code> edit. Three lows are kept on purpose.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>The push token beside the model:</b> the first version ran the report on the review's machine. The model can write files there, such as a Python module or a git config the report would load, or leave a process running. Fixed by keeping <code>review-report</code> on its own machine whenever there is a fix to push.</li>
+    <li data-k="b2"><b>A fork's ccache into a release:</b> a fork PR's earlier push could plant objects in its ccache that a later, clean push builds into debs. Fixed: only runs from this repo's branches are reused.</li>
+    <li data-k="b3"><b>Kept:</b> <code>build</code> has write access on PRs too, since job permissions can't depend on the event; reused debs say "CI build of PR #n" in their changelog, not the merge commit; a failed summary check isn't re-run by an audit any more, though the comment itself is updated.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">

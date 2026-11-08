@@ -23,7 +23,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 ICON = {'pass': '✅', 'fail': '❌', 'running': '⏳', 'wait': '⏳', 'skip': '⏭️'}
 TRUSTED = ('OWNER', 'MEMBER', 'COLLABORATOR')
-JOBS = {'verify': ('verify',), 'review': ('review',), 'explainer': ('explainer',)}
+JOBS = {'verify': ('verify',), 'review': ('review', 'review-report'), 'explainer': ('explainer',)}
 NO_CODE_STEP = 'No code changed'
 NO_CODE = 'skipped: the PR changes no code, packaging or CI files'
 

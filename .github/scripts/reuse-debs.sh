@@ -1,6 +1,7 @@
 #!/bin/bash
 # On a push to main, reuses the debs the merged PR's CI built and verified instead of building again: reuse-debs.sh find | check VERSION
-#   find          prints run=<id> and pr=<PR #n> for the newest build run of the merged PR's head whose build and verify
+#   find          prints run=<id> and pr=<PR #n> for the newest build run of the merged PR's head, from a branch of this
+#                 repo (a fork PR's ccache could hold objects its final tree doesn't show), whose build and verify
 #                 passed (verify having run its tests, not "No code changed") and whose debs artifact hasn't expired.
 #                 Prints nothing when there is none, or when the GitHub API fails, so the push builds as before.
 #   check VERSION succeeds when dist/ holds that run's debs, built from this commit's tree (dist/built-tree) and
@@ -14,12 +15,12 @@ find_run() {
     --jq '[.[] | select(.merged_at != null and .base.ref == "main")][0] // empty | "\(.number) \(.head.sha)"') || return 0
   [[ -n ${head:-} ]] || { echo "no merged PR for ${GITHUB_SHA::12}; building" >&2; return 0; }
   for run in $(gh api "repos/{owner}/{repo}/actions/workflows/build.yml/runs?head_sha=$head&event=pull_request&per_page=20" \
-    --jq '.workflow_runs[].id'); do
+    --jq '.workflow_runs[] | select(.head_repository.full_name == .repository.full_name) | .id'); do
     ok=$(gh api "repos/{owner}/{repo}/actions/runs/$run/jobs" --jq '[.jobs[] | select(.name == "build" or .name == "verify")
       | select(.conclusion == "success" and all(.steps[]?; .name != "No code changed" or .conclusion == "skipped")) | .name] | length') || continue
     [[ $ok == 2 ]] || continue
-    gh api "repos/{owner}/{repo}/actions/runs/$run/artifacts" --jq '.artifacts[] | select(.name == "debs" and (.expired | not)) | .id' \
-      | grep -q . || continue
+    [[ -n $(gh api "repos/{owner}/{repo}/actions/runs/$run/artifacts" --jq '.artifacts[] | select(.name == "debs" and (.expired | not)) | .id') ]] \
+      || continue
     echo "run=$run"
     echo "pr=PR #$pr"
     echo "reusing the debs of PR #$pr's run $run for ${head::12}" >&2

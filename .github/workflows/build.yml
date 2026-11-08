@@ -319,6 +319,9 @@ jobs:
       contents: read
       issues: read
       pull-requests: write
+    outputs:
+      superseded: ${{ steps.plan.outputs.superseded }}
+      fix: ${{ steps.collect.outputs.fix }}
     env:
       PR: ${{ github.event.pull_request.number }}
       HEAD_REF: ${{ github.head_ref }}
@@ -363,10 +366,14 @@ jobs:
             --json-schema '${{ steps.plan.outputs.schema }}'
 
       - name: Collect the findings and the fix
+        id: collect
         if: steps.plan.outputs.skip == '0'
         env:
           FINDINGS: ${{ steps.review.outputs.structured_output }}
-        run: .github/scripts/review-proof.sh collect
+          MODE: ${{ steps.plan.outputs.mode }}
+        run: |
+          .github/scripts/review-proof.sh collect
+          if [[ $MODE == auto-fix && -s $RUNNER_TEMP/review/fix.patch ]]; then echo fix=1; else echo fix=0; fi >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -381,21 +388,8 @@ jobs:
           overwrite: true
           retention-days: 14
 
-      - name: Clear the folder for the push checkout
-        if: ${{ !cancelled() && steps.plan.outputs.superseded != '1' }}
-        run: rm -rf .review-push
-
-      - uses: actions/checkout@v4
-        if: ${{ !cancelled() && steps.plan.outputs.superseded != '1' }}
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-          path: .review-push
-          token: ${{ secrets.REVIEW_PUSH_TOKEN }}
-
-      - name: Push the fix, post suggestions and report
-        if: ${{ !cancelled() && steps.plan.outputs.superseded != '1' }}
-        working-directory: .review-push
+      - name: Post suggestions and report
+        if: ${{ !cancelled() && steps.plan.outputs.superseded != '1' && steps.collect.outputs.fix != '1' }}
         env:
           GH_TOKEN: ${{ github.token }}
           REVIEW_RESULT: ${{ job.status }}
@@ -404,8 +398,48 @@ jobs:
           export IN=$RUNNER_TEMP/review OUT=$RUNNER_TEMP/review-report
           "$RUNNER_TEMP/bin/review-proof.sh" report
 
+  review-report:
+    needs: review
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.review.result != 'cancelled' && needs.review.result != 'skipped' && needs.review.outputs.fix == '1' && needs.review.outputs.superseded != '1'
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: review-report-${{ github.ref }}
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+    env:
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_REF: ${{ github.head_ref }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      REVIEW_RESULT: ${{ needs.review.result }}
+      RUN_ID: ${{ github.run_id }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          token: ${{ secrets.REVIEW_PUSH_TOKEN }}
+
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: review
+          path: ${{ runner.temp }}/review-in
+
+      - name: Push the fix, post suggestions and report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin" && cp .github/scripts/review-proof.sh .github/scripts/review-state.py .github/scripts/pr-comment.sh .github/scripts/pr-summary.py "$RUNNER_TEMP/bin/"
+          export IN=$RUNNER_TEMP/review-in
+          [[ -f $IN/review/plan.json ]] && IN=$IN/review
+          "$RUNNER_TEMP/bin/review-proof.sh" report
+
   summary:
-    needs: [build, verify, explainer, review]
+    needs: [build, verify, explainer, review, review-report]
     if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 10
