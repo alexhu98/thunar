@@ -1,6 +1,6 @@
 ---
 name: visual-verify
-description: Visual acceptance gate for Thunar screenshots. Audits the shots from verify/<issue>.sh and the smoke test, locally or CI's from the shots branch, against each shot's stated intent and returns a machine-checkable verdict (PASS / FAIL / INCONCLUSIVE). Can run the capture first. Use before posting or presenting any screenshot, and after each CI verify run on a PR that took shots (not one whose build and verify ran `No code changed`). See README.md in this folder for usage and for writing verify scripts that pass.
+description: Visual acceptance gate for Thunar screenshots. Audits the shots from verify/<issue>.sh and the smoke test, locally or CI's from the shots branch, against each shot's stated intent and returns a machine-checkable verdict (PASS / FAIL / INCONCLUSIVE, or for `pr:<n>` the unposted NOT NEEDED / NOT YET). Can run the capture first. Use before posting or presenting any screenshot, and after each CI verify run on a PR that took shots (not one whose build and verify ran `No code changed`). See README.md in this folder for usage and for writing verify scripts that pass.
 ---
 
 ## /visual-verify
@@ -25,8 +25,8 @@ Free-form tokens. Resolve what is present, and ask only if a required input is m
 Before the preflight, check whether the PR's head ran `No code changed` in both build and verify. Read it from the `checks:` line of a `pr-digest` digest whose `head` is the PR's current head (`git ls-remote origin refs/pull/<n>/head`): the caller's if it has one, otherwise a new one (`Agent(pr-digest, "<n>")`). `CLAUDE.md` routes every read of the PR's checks through `pr-digest`, so the skill doesn't list the jobs itself.
 
 - Both build and verify show `No code changed`: stop with `VERDICT: NOT NEEDED (build and verify ran No code changed)`.
-- Build or verify is `running` or `missing` (queued, or not created yet): stop with `VERDICT: NOT YET (build or verify hasn't finished)`. The caller runs the skill again when CI's next event for the head arrives. Don't go on to Step 1, where a missing or older manifest would read as INCONCLUSIVE.
-- Anything else: go on to Step 1. Key this check on the `No code changed` step only, never on a missing or stale manifest, so a verify run that skipped its steps by mistake still ends INCONCLUSIVE there.
+- Build or verify is `running` (queued or in progress): stop with `VERDICT: NOT YET (build or verify hasn't finished)`. The caller runs the skill again when CI's next event for the head arrives. Don't go on to Step 1, where a missing or older manifest would read as INCONCLUSIVE.
+- Anything else, `missing` included: go on to Step 1. Key this check on the `No code changed` step only, never on a missing or stale manifest, so a verify run that skipped its steps by mistake still ends INCONCLUSIVE there.
 
 `NOT NEEDED` and `NOT YET` are never posted as a PR comment.
 
