@@ -1,226 +1,105 @@
 {
   "title": "PR #62 · Review costs",
   "voice": "af_heart",
+  "page_sha256": "73f03f8bbdc096b675ecf0a80457be933300803434c0d664bd31b1b2838891d5",
   "lines": [
-    {
-      "screen": "title",
-      "keys": [],
-      "caption": "This is a tour of pull request 62, which makes CI's code review skip work another review covers, and run lighter.",
-      "from": [
-        "title",
-        "lead"
-      ],
-      "say": "This is a tour of pull request sixty-two, which makes CI's code review skip work another review covers, and run lighter."
-    },
-    {
-      "screen": "title",
-      "keys": [
-        "p1",
-        "p2",
-        "p3"
-      ],
-      "caption": "It has three parts: what the PR adds, how it was built and verified, and what comes later."
-    },
-    {
-      "screen": "adds",
-      "keys": [],
-      "caption": "Part 1. What this PR adds."
-    },
-    {
-      "screen": "adds",
-      "keys": [
-        "intro"
-      ],
-      "caption": "Two new reasons to skip a review, and a lighter review with a time limit."
-    },
-    {
-      "screen": "flow",
-      "keys": [
-        "1"
-      ],
-      "caption": "First, the plan step asks GitHub for the PR's current head. If a newer push replaced it, the review is skipped at once."
-    },
-    {
-      "screen": "flow",
-      "keys": [
-        "2"
-      ],
-      "caption": "Otherwise it waits for earlier runs as before, then checks again for a newer push."
-    },
-    {
-      "screen": "flow",
-      "keys": [
-        "3"
-      ],
-      "caption": "A head that is CI's own fix commit, on top of the reviewed head, is skipped too."
-    },
-    {
-      "screen": "flow",
-      "keys": [
-        "4"
-      ],
-      "caption": "The older rules still apply: an already reviewed head, or a push that changes only explainers."
-    },
-    {
-      "screen": "flow",
-      "keys": [
-        "5"
-      ],
-      "caption": "Reviews now run at high instead of xhigh, and the job stops after 30 minutes.",
-      "say": "Reviews now run at high instead of extra high, and the job stops after thirty minutes."
-    },
-    {
-      "screen": "flow",
-      "keys": [
-        "6"
-      ],
-      "caption": "A skipped review keeps the last reviewed commit, so the next review still covers what was skipped."
-    },
-    {
-      "screen": "flow",
-      "keys": [
-        "7"
-      ],
-      "caption": "And when a review is stopped, the summary says so, instead of just not run."
-    },
-    {
-      "screen": "bigpic",
-      "keys": [
-        "why"
-      ],
-      "caption": "Why: the review job billed 899 of about 2,000 minutes, much of it on fixes and replaced pushes.",
-      "say": "Why: the review job billed eight hundred ninety-nine of about two thousand minutes, much of it on fixes and replaced pushes."
-    },
-    {
-      "screen": "bigpic",
-      "keys": [
-        "note"
-      ],
-      "caption": "Nothing goes unreviewed: the next review diffs from the last reviewed commit."
-    },
-    {
-      "screen": "steps",
-      "keys": [
-        "3"
-      ],
-      "caption": "The fix commit must be claude bot's, with its usual subject, and sit right on the reviewed head."
-    },
-    {
-      "screen": "gate",
-      "keys": [
-        "gate"
-      ],
-      "caption": "Before merging on a head that is CI's own fix, the agent forces a small review of just that fix."
-    },
-    {
-      "screen": "files",
-      "keys": [
-        "tree"
-      ],
-      "caption": "The PR changes the review script, the summary script, the workflow, and two instruction files."
-    },
-    {
-      "screen": "files",
-      "keys": [
-        "undo"
-      ],
-      "caption": "To go back to deeper reviews, set the level back to xhigh in the workflow.",
-      "say": "To go back to deeper reviews, set the level back to extra high in the workflow."
-    },
-    {
-      "screen": "verified",
-      "keys": [],
-      "caption": "Part 2. How it was built and verified."
-    },
-    {
-      "screen": "refs",
-      "keys": [
-        "r1",
-        "r2"
-      ],
-      "caption": "The new rules sit beside the existing skip rules, and the review state needed no change."
-    },
-    {
-      "screen": "checks",
-      "keys": [
-        "c1",
-        "c2"
-      ],
-      "caption": "The two new checks were tested against a scratch repository and a stand-in for GitHub. Each gave the right answer."
-    },
-    {
-      "screen": "checks",
-      "keys": [
-        "c3",
-        "c4"
-      ],
-      "caption": "The whole plan step decided right in five cases, and the push after a fix is reviewed from before the fix."
-    },
-    {
-      "screen": "checks",
-      "keys": [
-        "c5"
-      ],
-      "caption": "The summary says stopped only when the review job was cancelled."
-    },
-    {
-      "screen": "checks",
-      "keys": [
-        "c6"
-      ],
-      "caption": "How many minutes and findings the lighter review gives wasn't measured yet."
-    },
-    {
-      "screen": "review",
-      "keys": [
-        "summary"
-      ],
-      "caption": "[REVIEW]"
-    },
-    {
-      "screen": "aftermerge",
-      "keys": [
-        "a1",
-        "a2",
-        "a3"
-      ],
-      "caption": "After the merge, the next fix commit and the next quick double push show the skips, and billing shows the savings."
-    },
-    {
-      "screen": "later",
-      "keys": [],
-      "caption": "Part 3. What comes later: build and job costs."
-    },
-    {
-      "screen": "next",
-      "keys": [
-        "n1",
-        "n2",
-        "n3",
-        "n4"
-      ],
-      "caption": "This is the second of four pull requests. Build costs come next, then fewer jobs."
-    },
-    {
-      "screen": "build-costs",
-      "keys": [
-        "1",
-        "2"
-      ],
-      "caption": "Next, build and verify skip pull requests without code, and the compiler output is cached."
-    },
-    {
-      "screen": "fold",
-      "keys": [
-        "1",
-        "2"
-      ],
-      "caption": "Last, the small jobs fold into bigger ones, and a push to main may reuse its pull request's build."
-    },
-    {
-      "screen": "title",
-      "keys": [],
-      "caption": "In short: the review skips work that's already covered, and every review is cheaper and capped."
-    }
-  ]
+    {"screen": "title", "keys": [], "caption": "This is a tour of pull request 62, which makes CI's code review skip work another review covers, and run lighter.", "from": ["title", "lead"], "say": "This is a tour of pull request sixty-two, which makes CI's code review skip work another review covers, and run lighter.", "src": "e5e5552fc288"},
+    {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what the PR adds, how it was built and verified, and what comes later.", "src": "1f4b85509513"},
+    {"screen": "adds", "keys": [], "caption": "Part 1. What this PR adds.", "src": "4b036af520c8"},
+    {"screen": "adds", "keys": ["intro"], "caption": "Two new reasons to skip a review, and a lighter review with a time limit.", "src": "ac3a2effa669"},
+    {"screen": "flow", "keys": ["1"], "caption": "First, the plan step asks GitHub for the PR's current head. If a newer push replaced it, the review is skipped at once.", "src": "3cb542109739"},
+    {"screen": "flow", "keys": ["2"], "caption": "Otherwise it waits up to 10 minutes for earlier runs, then checks again for a newer push.", "say": "Otherwise it waits up to ten minutes for earlier runs, then checks again for a newer push.", "src": "1c9788bb7597"},
+    {"screen": "flow", "keys": ["3"], "caption": "A head that is CI's own fix commit, on top of the reviewed head, is skipped too.", "src": "2d8351edd3d7"},
+    {"screen": "flow", "keys": ["4"], "caption": "The older rules still apply: an already reviewed head, or a push that changes only explainers.", "src": "414c91dce1c6"},
+    {"screen": "flow", "keys": ["5"], "caption": "Reviews now run at high instead of xhigh, and the review step stops after 30 minutes.", "say": "Reviews now run at high instead of extra high, and the review step stops after thirty minutes.", "src": "890b702009ed"},
+    {"screen": "flow", "keys": ["6"], "caption": "A skipped review keeps the last reviewed commit, so the next review still covers what was skipped.", "src": "9c8e15a73af8"},
+    {"screen": "flow", "keys": ["7"], "caption": "And when a review is stopped, the summary says so, instead of just not run.", "src": "b548989367b2"},
+    {"screen": "bigpic", "keys": ["why"], "caption": "Why: the review job billed 899 of about 2,000 minutes, much of it on fixes and replaced pushes.", "say": "Why: the review job billed eight hundred ninety-nine of about two thousand minutes, much of it on fixes and replaced pushes.", "src": "be1ac58781fc"},
+    {"screen": "bigpic", "keys": ["note"], "caption": "Nothing goes unreviewed: the next review diffs from the last reviewed commit.", "src": "219fb0acb76e"},
+    {"screen": "steps", "keys": ["3"], "caption": "The fix commit must be claude bot's, with its usual subject, and sit right on the reviewed head.", "src": "211cffa824f0"},
+    {"screen": "gate", "keys": ["gate"], "caption": "Before merging on a head that is CI's own fix, the agent forces a small review of just that fix.", "src": "51b88edcf8ff"},
+    {"screen": "files", "keys": ["tree"], "caption": "The PR changes the review script, the summary script, the workflow, and two instruction files.", "src": "d2b4b1ffbd1d"},
+    {"screen": "files", "keys": ["undo"], "caption": "To go back to deeper reviews, set the level back to xhigh in the workflow.", "say": "To go back to deeper reviews, set the level back to extra high in the workflow.", "src": "d68f20734b77"},
+    {"screen": "verified", "keys": [], "caption": "Part 2. How it was built and verified.", "src": "662e0a548e71"},
+    {"screen": "refs", "keys": ["r1", "r2"], "caption": "The new rules sit beside the existing skip rules, and the review state needed no change.", "src": "ea13162fb367"},
+    {"screen": "checks", "keys": ["c1", "c2"], "caption": "The two new checks were tested against a scratch repository and a stand-in for GitHub. Each gave the right answer.", "src": "9ee8e0047cb7"},
+    {"screen": "checks", "keys": ["c3", "c4"], "caption": "The whole plan step decided right in seven cases, and the push after a fix is reviewed from before the fix.", "src": "607e59dda599"},
+    {"screen": "checks", "keys": ["c5"], "caption": "The summary says stopped only when the review job was cancelled.", "src": "c17cde573efb"},
+    {"screen": "checks", "keys": ["c6"], "caption": "How many minutes and findings the lighter review gives wasn't measured yet.", "src": "44ee8cb5b913"},
+    {"screen": "review", "keys": ["summary"], "caption": "A fresh review found two low findings and one hardening point. All were fixed.", "src": "4b301cb50df0"},
+    {"screen": "review", "keys": ["b1"], "caption": "The main one: waiting for earlier runs could eat the review's time, so each now has its own limit.", "src": "e70c60223ccb"},
+    {"screen": "aftermerge", "keys": ["a1", "a2", "a3"], "caption": "After the merge, the next fix commit and the next quick double push show the skips, and billing shows the savings.", "src": "4a29cafa1d03"},
+    {"screen": "later", "keys": [], "caption": "Part 3. What comes later: build and job costs.", "src": "db682c35dc11"},
+    {"screen": "next", "keys": ["n1", "n2", "n3", "n4"], "caption": "This is the second of four pull requests. Build costs come next, then fewer jobs.", "src": "88856c91c9a4"},
+    {"screen": "build-costs", "keys": ["1", "2"], "caption": "Next, build and verify skip pull requests without code, and the compiler output is cached.", "src": "f3ee1e39aaeb"},
+    {"screen": "fold", "keys": ["1", "2"], "caption": "Last, the small jobs fold into bigger ones, and a push to main may reuse its pull request's build.", "src": "3309c264164f"},
+    {"screen": "title", "keys": [], "caption": "In short: the review skips work that's already covered, and every review is cheaper and capped.", "src": "d7d44fc5d8dd"}
+  ],
+  "page_text": {
+    "title/title": "189305496cda",
+    "title/lead": "11058605227c",
+    "title/p1": "e2dcca34ab6e",
+    "title/p2": "0d01b98be0dc",
+    "title/p3": "3e4a348e7b7c",
+    "adds/label": "d30d052ce036",
+    "adds/heading": "3bf5e3f0972a",
+    "adds/intro": "ac3a2effa669",
+    "flow/1": "3cb542109739",
+    "flow/2": "1c9788bb7597",
+    "flow/3": "2d8351edd3d7",
+    "flow/4": "414c91dce1c6",
+    "flow/5": "890b702009ed",
+    "flow/6": "9c8e15a73af8",
+    "flow/7": "b548989367b2",
+    "bigpic/why": "be1ac58781fc",
+    "bigpic/note": "219fb0acb76e",
+    "steps/1": "3db8c680b15b",
+    "steps/2": "fbcdffa1b462",
+    "steps/3": "211cffa824f0",
+    "steps/4": "23639a900673",
+    "steps/5": "62e2fba52e9b",
+    "steps/6": "00ee57f126d4",
+    "steps/7": "79490639a96b",
+    "gate/gate": "51b88edcf8ff",
+    "files/tree": "d2b4b1ffbd1d",
+    "files/undo": "d68f20734b77",
+    "verified/label": "5a01db6f2d60",
+    "verified/heading": "f0387d007bb6",
+    "verified/intro": "57e7d8318f07",
+    "refs/r1": "d449115002cf",
+    "refs/r2": "f6d06fc2e293",
+    "checks/c1": "2fc3fbee1adb",
+    "checks/c2": "d3c5865a1017",
+    "checks/c3": "939a1a9c1b6d",
+    "checks/c4": "4b496a33f852",
+    "checks/c5": "c17cde573efb",
+    "checks/c6": "44ee8cb5b913",
+    "review/summary": "4b301cb50df0",
+    "review/b1": "e70c60223ccb",
+    "review/b2": "f2b461f5e7f4",
+    "review/b3": "9b2802b1ed42",
+    "review/ci": "6524a7c4230d",
+    "aftermerge/a1": "86ee7b5f5d51",
+    "aftermerge/a2": "96cbec0b9160",
+    "aftermerge/a3": "d6161f1171de",
+    "see/l1": "de84a371d7a3",
+    "see/l2": "a18e69170dd8",
+    "later/label": "090b293c4121",
+    "later/heading": "19f97ed90cb4",
+    "later/intro": "5a657153ccec",
+    "next/n1": "a2fc6f2c515b",
+    "next/n2": "c62dff2ac8a3",
+    "next/n3": "a62ea1c5ad2e",
+    "next/n4": "5674788461ed",
+    "build-costs/1": "6487f98303bc",
+    "build-costs/2": "e6cdb5c371de",
+    "fold/1": "d0b63f9bbef0",
+    "fold/2": "ea165a234c83",
+    "glossary/bot": "5d236abea994",
+    "glossary/head": "4a5179e3098c",
+    "glossary/superseded": "d2c27010dcf6",
+    "glossary/level": "7588ec7a0f63",
+    "glossary/state": "54098bc170a0",
+    "glossary/trailer": "485cc316eb05"
+  }
 }

@@ -59,7 +59,7 @@ def job_states(run_id):
         elif j['status'] != 'completed':
             state = 'running'
         else:
-            state = {'success': 'pass', 'skipped': 'skip', 'cancelled': 'cancelled'}.get(j['conclusion'], 'fail')
+            state = {'success': 'pass', 'skipped': 'skip', 'cancelled': 'cancelled', 'timed_out': 'cancelled'}.get(j['conclusion'], 'fail')
         jobs[j['name']] = (state, j.get('html_url', ''))
     return jobs
 
@@ -93,7 +93,7 @@ def section_state(name, st, head, jobs):
     if name == 'verify' and jobs.get('build', ('',))[0] != 'pass':
         return 'skip', 'not run: the build did not pass'
     if name == 'review' and jobs.get('review', ('',))[0] == 'cancelled':
-        return 'fail', 'stopped: the review job was cancelled or ran past its 30-minute limit'
+        return 'fail', 'stopped: the review job was cancelled or ran past its time limit'
     if st:
         return 'fail', f"not run for `{head[:12]}` (last: {st['text']} for `{st['sha'][:12]}`)"
     return 'fail', 'not run'

@@ -1,7 +1,7 @@
 #!/bin/bash
 # CI code review of a PR: review-proof.sh plan | collect | report
 #   plan     before the review: picks the mode from the head commit's Review: trailer (default auto-fix, or suggest
-#            for an upstream release merge), waits (up to 30 min) until earlier runs on the branch have written their
+#            for an upstream release merge), waits (up to 10 min) until earlier runs on the branch have written their
 #            review state, skips when a newer push replaced the head, the head was already reviewed, is CI's own fix
 #            commit on top of the last reviewed one, or only explainers/ changed since the last reviewed commit, and writes the diff (for a release merge, only the fork's side), the issue, the open
 #            findings with the commits since each was found, the accepted findings and the prompt to $OUT. Prints its decisions as key=value lines for $GITHUB_OUTPUT.
@@ -63,8 +63,8 @@ wait_for_earlier_runs() {
       echo "::warning::the GitHub API failed 3 times in a row while checking earlier runs; reviewing anyway" >&2
       return 0
     fi
-    if (( waited >= 1800 )); then
-      echo "::warning::an earlier run's review still hasn't finished after 30 min; reviewing anyway" >&2
+    if (( waited >= 600 )); then
+      echo "::warning::an earlier run's review still hasn't finished after 10 min; reviewing anyway" >&2
       return 0
     fi
     (( waited == 0 )) && echo "waiting for an earlier run's review to finish" >&2
@@ -78,6 +78,7 @@ superseded() {
   [[ -n ${PR:-} ]] || return 1
   now=$(gh api "repos/{owner}/{repo}/pulls/$PR" --jq .head.sha 2>/dev/null) || return 1
   [[ $now =~ ^[0-9a-f]{40}$ && $now != "$HEAD_SHA" ]] || return 1
+  ! git merge-base --is-ancestor "$now" "$HEAD_SHA" 2>/dev/null || return 1
   echo "$now"
 }
 
