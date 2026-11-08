@@ -8,12 +8,13 @@
 #            findings with the commits since each was found, the accepted findings and the prompt to $OUT. Prints its decisions as key=value lines for $GITHUB_OUTPUT.
 #   collect  after the review: saves the findings ($FINDINGS, the action's structured_output) and the working-tree
 #            fix as a patch, for the report job.
-#   report   when the review left a fix to push, in the separate review-report job holding the push token: commits and
-#            pushes the fix as claude[bot]. Otherwise as the review job's last step, without that token. Either way posts the other
+#   report   as the review job's last step, without the push token, when the review left no fix to push. Otherwise, or when
+#            that step didn't write the review comment, in the separate review-report job holding the push token, which
+#            commits and pushes the fix (if any) as claude[bot]. Either way posts the other
 #            findings as suggested changes, writes the review comment through pr-comment.sh and then the summary
 #            through pr-summary.py, and fails while confirmed medium or high findings stay unresolved.
 # Env: PR, HEAD_SHA, HEAD_REF, BASE (default origin/main), OUT, IN (report: the collected files), REVIEW_RESULT
-# (report: the review job's result), RUN_ID, RUN_NUMBER (plan), RUN_URL, REVIEW_LEVEL, REVIEW_MODEL. DRY_RUN=1 makes report print the
+# (report: the result of the review job's steps before the report), RUN_ID, RUN_NUMBER (plan), RUN_URL, REVIEW_LEVEL, REVIEW_MODEL. DRY_RUN=1 makes report print the
 # commit, the suggestions and the section instead of pushing and posting them.
 set -euo pipefail
 
@@ -449,6 +450,7 @@ EOF
   fi
   unresolved=$(python3 "$HERE/review-state.py" render "$OUT" "$GH_REPO" "$HEAD_SHA" "$result" "$note" "${failed[@]}")
   OUT="$OUT/comment" "$HERE/pr-comment.sh" put review "$OUT/section.md"
+  [[ -z ${GITHUB_OUTPUT:-} ]] || echo reported=1 >> "$GITHUB_OUTPUT"
   "$HERE/pr-comment.sh" legacy delete || echo "::warning::could not delete the old single PR comment" >&2
   OUT="$OUT/summary" python3 "$HERE/pr-summary.py" || echo "::warning::could not update the summary comment" >&2
   if (( unresolved > 0 )) || [[ $result == failure ]]; then

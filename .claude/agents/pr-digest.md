@@ -30,8 +30,8 @@ never fix anything you find.
    counts as `yes`. For a merged or closed PR, write `n/a`.
 2. **Checks.** `pull_request_read get_check_runs` for the head: build, verify, explainer, review, review-report
    and summary, each as pass, fail, running, skipped or missing. A job that concluded `skipped` is `skipped`, never
-   pass. review-report runs when the review left a fix to push, or when the review job couldn't report itself;
-   otherwise the review job reports itself and review-report is `skipped`, which the merge rule allows. For build, verify and explainer, also `actions_list list_workflow_jobs` on the build run (its ID is in the
+   pass. review-report runs when the review left a fix to push, or when the review job's own report step didn't
+   write the review comment; otherwise review-report is `skipped`, which the merge rule allows. For build, verify and explainer, also `actions_list list_workflow_jobs` on the build run (its ID is in the
    check run's `details_url`) and say whether each ran its steps or skipped them all.
 3. **CI's comments.** `pull_request_read get_comments`, `perPage: 10`, every page. A result too large to show is
    saved to a file; `Read` it, with `allow_large` when it is one long line. CI's four comments are by `github-actions[bot]` and start with

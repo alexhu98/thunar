@@ -292,8 +292,8 @@ jobs:
       pull-requests: write
     outputs:
       superseded: ${{ steps.plan.outputs.superseded }}
-      fix: ${{ steps.collect.outputs.fix }}
-      report: ${{ steps.report.outcome }}
+      result: ${{ steps.result.outputs.result }}
+      reported: ${{ steps.report.outputs.reported }}
     env:
       PR: ${{ github.event.pull_request.number }}
       HEAD_REF: ${{ github.head_ref }}
@@ -347,6 +347,11 @@ jobs:
           .github/scripts/review-proof.sh collect
           if [[ $MODE == auto-fix && -s $RUNNER_TEMP/review/fix.patch ]]; then echo fix=1; else echo fix=0; fi >> "$GITHUB_OUTPUT"
 
+      - name: Record the review's result
+        id: result
+        if: always()
+        run: echo "result=${{ job.status }}" >> "$GITHUB_OUTPUT"
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -379,14 +384,14 @@ jobs:
         working-directory: .review-report
         env:
           GH_TOKEN: ${{ github.token }}
-          REVIEW_RESULT: ${{ job.status }}
+          REVIEW_RESULT: ${{ steps.result.outputs.result }}
           IN: ${{ runner.temp }}/review
           OUT: ${{ runner.temp }}/review-report
         run: .github/scripts/review-proof.sh report
 
   review-report:
     needs: review
-    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.review.result != 'cancelled' && needs.review.result != 'skipped' && needs.review.outputs.superseded != '1' && (needs.review.outputs.fix == '1' || (needs.review.outputs.report != 'success' && needs.review.outputs.report != 'failure'))
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.review.result != 'cancelled' && needs.review.result != 'skipped' && needs.review.outputs.superseded != '1' && needs.review.outputs.reported != '1'
     runs-on: ubuntu-24.04
     concurrency:
       group: review-report-${{ github.ref }}
@@ -399,7 +404,7 @@ jobs:
       PR: ${{ github.event.pull_request.number }}
       HEAD_REF: ${{ github.head_ref }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      REVIEW_RESULT: ${{ needs.review.result }}
+      REVIEW_RESULT: ${{ needs.review.outputs.result || needs.review.result }}
       RUN_ID: ${{ github.run_id }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
