@@ -1,7 +1,7 @@
 {
   "title": "PR #72 · Batch skill",
   "voice": "af_heart",
-  "page_sha256": "f3736674f5525cb881862dd8e338596f9860db1cf015cb771ce0a4974cae4afb",
+  "page_sha256": "fcc5aec8b56134b50e6e3e2fd87b6501dbd026c6048c3e04cc1d754e7598cdd4",
   "lines": [
     {"screen": "title", "keys": [], "from": ["title", "lead"], "caption": "This is a tour of pull request 72, which adds a batch skill that runs several issues as grouped PRs.", "say": "This is a tour of pull request seventy-two, which adds a batch skill that runs several issues as grouped pull requests.", "src": "5a89d11e13b4"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what the PR adds, how it was built and verified, and what comes later.", "src": "69ee23940a96"},
@@ -34,6 +34,7 @@
     {"screen": "review", "keys": ["b3"], "caption": "And the child's brief now says to merge only when the merge rule allows it.", "src": "927090ea16e4"},
     {"screen": "review", "keys": ["ci"], "caption": "CI's first review found nine more. All were fixed in one push.", "src": "4ddbe2963245"},
     {"screen": "review", "keys": ["ci"], "caption": "The tracking issue now holds each group's start time, last PR update and notes, and closed or failed children each have a case.", "src": "4ddbe2963245"},
+    {"screen": "review", "keys": ["ci2"], "caption": "Its second review found nine more about when you get told. The check-in now tells you only when a child's condition changes.", "src": "5591fc14e7ad"},
     {"screen": "aftermerge", "keys": ["a1", "a2"], "caption": "A full batch, and a blocked child's question, can only be seen once you run it.", "src": "15da2ce01ea2"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later.", "src": "7fa20632c3eb"},
     {"screen": "later", "keys": ["intro"], "caption": "No issue depends on this one. The next step is a small first batch.", "src": "befcdeb94aff"},
@@ -87,6 +88,7 @@
     "review/b4": "2760ac10c518",
     "review/b5": "009b9a4bf4b9",
     "review/ci": "4ddbe2963245",
+    "review/ci2": "5591fc14e7ad",
     "aftermerge/a1": "c9e25935773d",
     "aftermerge/a2": "25e3e2997ba7",
     "see/l1": "31006ec9852d",
