@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #72 Batch skill</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #72: a /batch skill that runs several issues as grouped PRs</h1>
+  <p class="lead" data-k="lead">Branch <code>63-batch-skill</code> → <code>main</code>, closes #63. Once merged, the owner can hand a list of issues to one small session, which plans them into groups and runs each group in its own fresh session.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: a first real batch</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">One new skill file, <code>.claude/skills/batch/SKILL.md</code>: an orchestrator that plans, tracks and starts child sessions, and checks on them without reading any PR noise.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="The orchestrator plans groups, the owner confirms, it opens a tracking issue and starts one child session per group; each child builds and merges its PR, while the orchestrator checks in every 90 minutes and stops when all are merged.">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Orchestrator: /batch 48 52-60</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Plan</text>
+      <text x="36" y="114" class="m">issue_read</text>
+      <text x="36" y="134" class="b">groups, order, files</text>
+      <text x="36" y="154" class="b">and the PR count</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">You confirm</text>
+      <text x="286" y="114" class="b">one reply, e.g. "1A"</text>
+      <text x="286" y="134" class="b">and a stop point</text>
+      <text x="286" y="154" class="b">if you want one</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Track</text>
+      <text x="536" y="114" class="m">Batch: #52, #53…</text>
+      <text x="536" y="134" class="b">one checklist row</text>
+      <text x="536" y="154" class="b">per group</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Run a group</text>
+      <text x="786" y="114" class="m">create_session</text>
+      <text x="786" y="134" class="b">fixed brief, one</text>
+      <text x="786" y="154" class="b">group at a time</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② Child session, and cheap check-ins</text>
+    <g data-k="5">
+      <rect class="box-merge" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Child merges</text>
+      <text x="786" y="314" class="b">follows CLAUDE.md:</text>
+      <text x="786" y="334" class="b">PR, CI, review,</text>
+      <text x="786" y="354" class="b">squash-merge</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-pr" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Watch cheaply</text>
+      <text x="536" y="314" class="m">send_later 90 min</text>
+      <text x="536" y="334" class="b">status_bucket and</text>
+      <text x="536" y="354" class="b">PR merged, no more</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-pr" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Stop</text>
+      <text x="286" y="314" class="b">close the tracking</text>
+      <text x="286" y="334" class="b">issue, cancel the</text>
+      <text x="286" y="354" class="b">check-in, report</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M520,320 H484" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M625,260 C625,220 830,220 840,184" marker-end="url(#ah-flow)"/>
+    <text x="560" y="214" class="b" style="fill:var(--muted)">next group</text>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>the orchestrator session</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>a child session, one per group</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">On 8 November one session handled ten CI issues in grouped PRs and reached 654 thousand tokens of context for two PRs. Most of it was PR noise the next group never needed: GitHub notifications, CI's comments and review rounds. With <code>/batch</code>, each group gets a fresh session that carries that noise and ends when its PR merges, and the session you talk to keeps only a status line per group.</p>
+  <div class="note" data-k="note">The orchestrator never subscribes to a PR and never reads CI's comments. It looks only at each child's status and whether its PR merged, the way <code>/visual-verify</code> keeps only the shot auditor's verdict.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Orchestrator</div>
+  <ol class="steps">
+    <li data-k="1"><b>Plan.</b> <code>/batch 48 52-60</code> reads each open issue, notes the files it touches and what it depends on, and prints one table of groups, branches and order, with the number of PRs (each costs CI minutes).</li>
+    <li data-k="2"><b>You confirm.</b> The turn ends with one "What I need from you" question. You reply with one number or letter, and can add a stop point such as "stop after group B".</li>
+    <li data-k="3"><b>Track.</b> It opens a tracking issue titled <code>Batch: #…</code>, with one checklist row per group: issues, branch, session, PR and status. The body is the batch's state, so a check-in can rebuild from it.</li>
+    <li data-k="4"><b>Run a group.</b> <code>create_session</code> starts a child with a fixed brief, copied from the brief that ran #56 and #66: follow CLAUDE.md, one branch from <code>origin/main</code>, a stamped explainer, a local review, merge under the merge rule, and report back in one line.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② Child session and check-ins</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Child merges.</b> The child does the whole PR loop on its own, posts a line on the tracking issue when it opens the PR, merges or gets blocked, and tells the orchestrator with <code>send_message</code>.</li>
+    <li data-k="6"><b>Watch cheaply.</b> Each child reports its own events: PR opened, blocked with its question, resumed, merged. A blocked child's question reaches you once, and you answer it in the child's session. A <code>send_later</code> check-in every 90 minutes is only a safety net: it reads <code>get_session</code>'s status and flags a child that stopped without reporting, once, until that child speaks again.</li>
+    <li data-k="7"><b>Stop.</b> At the stop point or after the last merge, it cancels the pending check-in, closes the tracking issue and reports how many groups merged.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="parts">
+  <h3 class="sec">Rules the skill keeps</h3>
+  <div class="grid">
+    <div class="card" data-k="c1"><h3>One group at a time</h3><p>The next group starts only after the last one merges. Two run at once only when the plan you confirmed says their files don't overlap.</p></div>
+    <div class="card" data-k="c2"><h3>You answer the child</h3><p>A child's permission check may refuse an approval relayed from another session, so the orchestrator points you to the child instead of passing answers on.</p></div>
+    <div class="card" data-k="c3"><h3>No PR work here</h3><p>The orchestrator never commits, reviews or merges. A check-in that would need more than a few calls asks you first.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">.claude/skills/batch/
+└── SKILL.md                         # new: the /batch skill, steps 1-5 and its rules
+explainers/63-batch-skill.html       # this page
+explainers/63-batch-skill.narration.json  # its stamped narration</pre>
+  <div class="note" data-k="undo">To undo, delete the skill folder. Nothing else reads it, and CLAUDE.md is unchanged: the skill's own description is how a session finds it.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">It was modelled on the skills already in the repo and on the batch that just ran, reviewed by a fresh agent, and not yet run for real.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>upstream-merge</h3><p>A skill that opens an issue and a PR on its own. <code>/batch</code> copies its layout: placeholders, rules, numbered steps, a one-line report.</p></div>
+    <div class="card" data-k="r2"><h3>visual-verify and shot-audit</h3><p>Bulky work handed to someone else, with only the verdict coming back. Here the child carries the PR and the orchestrator keeps its status.</p></div>
+    <div class="card" data-k="r3"><h3>The last batch's brief</h3><p>The child brief is the wording that ran PR #70, with the orchestrator's lessons: 90-minute check-ins and children reporting back.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Issue #63's five steps and three risks</td><td>Read against the skill, step by step, in the building session</td><td class="ok">all covered</td></tr>
+    <tr data-k="c2"><td>Tool names and fields</td><td>Compared with the claude-code-remote and GitHub tool schemas this session has</td><td class="ok">match</td></tr>
+    <tr data-k="c3"><td>A real batch run</td><td>The issue's dry run on two doc-only issues starts sessions and PRs, so it is left for the owner</td><td class="no">not run</td></tr>
+    <tr data-k="c4"><td>Build and verify</td><td>The PR changes no code, so CI runs <code>No code changed</code> and takes no screenshots</td><td class="ok">no shots to audit</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh agent, given only the skill and the issue, found 9 problems: 2 high, 4 medium, 3 low. 8 are fixed; one was kept on purpose.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Check-ins:</b> they could pile up, and a check-in message could start a new batch. Now only one is ever pending, and <code>check-in #&lt;t&gt;</code> is its own argument.</li>
+    <li data-k="b2"><b>Finding the PR:</b> a PR merged between check-ins was missed. The lookup now includes merged PRs.</li>
+    <li data-k="b3"><b>Child brief:</b> "owner-approved" could read as leave to merge anything. It now says merge when the merge rule allows it, and ask the owner otherwise.</li>
+    <li data-k="b4"><b>Smaller fixes:</b> PR numbers in a range are skipped, a stall needs the PR to stop changing, and the tracking issue closes as completed.</li>
+    <li data-k="b5"><b>Kept:</b> the brief's local fresh-agent review. The explainer skill already expects one, and the brief that ran #70 asked for it.</li>
+  </ul>
+  <p data-k="ci">CI's first review found 9 more (R1–R9: 4 medium, 5 low), all fixed in one push. Each group's row in the tracking issue now holds its start time, the PR's last update and its notes; closed, failed and resumed children each have a case; and the brief asks for <code>/visual-verify</code> as CLAUDE.md says rather than for a PASS. Details are in the code review PR comment.</p>
+  <p data-k="ci2">Its second review found 9 more (R10–R18), all about when the owner is told. Step 4 was rewritten around one rule: each check-in works out a child's condition (merged, closed, failed, blocked, stalled or ok) and tells the owner only when it differs from the last thing they were told. A second fresh agent traced nine scenarios through it, and its six findings are fixed in the same push. The PR is found with one GitHub search that returns no PR body.</p>
+  <p data-k="ci3">The third review found 9 more (R19–R27), fixed in one push: the batch no longer runs past its stop point, a child also reports its PR number and when it resumes, a child working for hours with no PR is flagged again, and a batch where only failed or closed groups remain waits for the owner instead of checking in forever.</p>
+  <p data-k="ci4">The fourth review still found new edge cases in that inference, so the owner chose to simplify it: the children's messages now carry every event, a check-in only flags a child that stopped without reporting, and one <code>waiting on owner</code> mark per group stops repeats. The open findings from that review (R19, R23, R28–R34) were all about the inference that is now gone.</p>
+  <p data-k="ci5">CI's review of the simpler design found 8 more (R35–R42). Fixed: the merge message records the PR number, a recovered restart no longer alerts you, the PR is read with a search that returns no body, a slow 4-hour check-in keeps running while every child waits on you, an idle child whose PR isn't merged is flagged, and a failed group can be skipped. A child that is still working is never flagged (R36); you accepted it.</p>
+  <p data-k="ci6">The next review found 9 more (R43–R51). Fixed: a skipped group is marked as skipped rather than merged, groups that depend on it wait for your word, a waiting child that merged is still noticed, and a closed PR is named as closed. Three are limits of a safety net that only looks every 90 minutes (R41, R43, R49): at worst you get one extra flag. You accepted them with R36.</p>
+  <p data-k="ci7">The review of those fixes found 7 more about skipped groups (R52–R58), all fixed: a skipped group stays skipped if its child speaks again, stops the check-ins, counts at the stop point, and you are asked whether the groups after it should start.</p>
+  <p data-k="ci8">The last review found 6 more (R59–R64), fixed: skipping a group starts the groups that may now start, a group you decline to start is skipped too, and the closed tracking issue names the skipped groups. You accepted four findings as limits of a safety net that only looks every 90 minutes (R36, R41, R43, R49): at worst you get one extra flag, and a child that keeps working without a PR shows in your session list.</p>
+  <p data-k="ci9">Its review of that push found 6 more (R65–R70), fixed: one rule in step 3 decides when a group may start, so neither a merge nor a skip can pass the stop point; skipping a group tells you to stop its session; the check-in delay is stated once. The review after that found 7 more (R71–R77): a group that runs in parallel but comes after the stop point no longer starts, and a resumed child brings back the 90-minute check-in. The next 6 (R78–R83) were fixed too: skipping the stop point's group no longer drops the groups before it, and the check-in delay follows the rows after every wake.</p>
+  <p data-k="ci10">The review after that found no new confirmed problem: only five low, unconfirmed findings (R84–R88), two of which CI itself refuted. They are accepted under the review rules (wording of the <code>Check-in:</code> line, notes in the brief, deleting the check-in at the end, and two refuted cases), together with the four you accepted (R36, R41, R43, R49).</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>A full batch: plan, two children, both merged, orchestrator under about 100 thousand tokens</td><td>Needs the skill on <code>main</code> for the children, and your go-ahead for real PRs</td><td class="open">your first /batch</td></tr>
+    <tr data-k="a2"><td>A blocked child's question reaching you once</td><td>Needs a child that really gets blocked</td><td class="open">the first blocked child</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/72">PR #72</a> → “Files changed”</li>
+    <li data-k="l2">The issue: <a href="https://github.com/alexhu98/thunar/issues/63">#63</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: a first real batch</h2>
+  <p class="intro" data-k="intro">No open issue depends on this one. The next step is running it: a small batch first, as the issue's test plan says.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR adds the skill; the owner then runs a dry batch of two doc-only issues, then larger batches.">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">/batch skill</text>
+      <text x="36" y="114" class="b">this PR</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Dry run</text>
+      <text x="286" y="114" class="b">two doc-only issues,</text>
+      <text x="286" y="134" class="b">you start it</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Larger batches</text>
+      <text x="536" y="114" class="b">several groups,</text>
+      <text x="536" y="134" class="b">some in parallel</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not run yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="dryrun">
+  <h3 class="sec">The dry run (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Two small doc-only issues.</b> Run <code>/batch</code> on them in a new session, confirm the plan, and let both children merge one after the other.</li>
+    <li data-k="2"><b>What to look for.</b> The tracking issue ends complete, a blocked child's question shows up once, and the orchestrator's context stays under about 100 thousand tokens.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="orch"><dt>Orchestrator</dt><dd>The session you run /batch in. It plans and tracks, and never touches a PR.</dd></div>
+    <div data-k="child"><dt>Child session</dt><dd>A fresh cloud session started for one group, which builds and merges that group's PR.</dd></div>
+    <div data-k="bucket"><dt>status_bucket</dt><dd>A session's state in one word: working, blocked, review_ready, completed or failed.</dd></div>
+    <div data-k="later"><dt>send_later</dt><dd>A one-shot message back into this session at a set time, used for check-ins.</dd></div>
+    <div data-k="track"><dt>Tracking issue</dt><dd>The GitHub issue holding the batch's checklist, one row per group.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
