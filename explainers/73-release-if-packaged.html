@@ -270,6 +270,7 @@ explainers/73-release-if-packaged.narration.json  # its narration</pre>
     <li data-k="b1"><b>CI's first review:</b> 7 low findings. Fixed: the tag lookup was copied from <code>publish-release.sh</code> (R1, now one helper); <code>|| tag=</code> did nothing without pipefail (R2, now it catches a failed lookup); no explainer yet (R7, added).</li>
     <li data-k="b2"><b>Left as they are:</b> R3 to R6, which CI's own check disproved against the issue: <code>.github/</code> doesn't count, a failed fetch builds, everything not listed counts, and the PR rule stays. All findings are in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/76">PR #76</a>.</li>
     <li data-k="b3"><b>CI's second review:</b> it resolved R1 and found 4 new lows. Fixed: a header comment in <code>latest-tag.sh</code> (R11), against the repo's no-new-comments rule. Accepted: R8 (the helper is called by a path from the repo root, where both callers run), R9 (an annotated tag would give a tag object, but CI makes only lightweight tags) and R10 (<code>next-version.sh</code> keeps its own listing, because it also counts release names).</li>
+    <li data-k="b4"><b>Owner's call:</b> the forced re-review resolved R12, a misplaced accept trailer, and added R13 (no credentials on the tag fetch, moot on a public repo, where a failed fetch builds as #73 asks) and R14 (two path lists, kept apart on purpose like R6). The owner accepted R3 to R6 and R13; R14, a later low, is accepted too.</li>
   </ul>
   </section>
 
