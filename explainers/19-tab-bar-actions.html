@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PR #NN Tab bar actions</title>
+<title>PR #79 Tab bar actions</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -100,7 +100,7 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">PR #NN: Drop on a tab, double-click a tab to go up</h1>
+  <h1 data-k="title">PR #79: Drop on a tab, double-click a tab to go up</h1>
   <p class="lead" data-k="lead">Branch <code>19-tab-bar-actions</code> → <code>main</code>, closes #19 and #24. Once merged, files dropped on a tab's label land in that tab's folder, as in Nemo, and a double-click on a tab opens its parent folder. Two new Preferences checkboxes control the tab bar.</p>
 
   <nav class="parts" aria-label="Parts of this page">
@@ -283,7 +283,7 @@ explainers/19-tab-bar-actions.narration.json  # its narration</pre>
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage -b -us -uc</code> on Ubuntu 24.04 in this session, maintainer mode as <code>debian/rules</code> sets it</td><td class="ok">debs built, no warnings in changed files</td></tr>
-    <tr data-k="c2"><td>A drop on a tab label moves the file</td><td><code>verify/19.sh</code>: drags <code>moved.txt</code> from alpha's list onto beta's tab; asserts it is in beta, gone from alpha, contents unchanged</td><td class="ok">pass, local run</td></tr>
+    <tr data-k="c2"><td>A drop on a tab label moves the file</td><td><code>verify/19.sh</code>: drags <code>moved.txt</code> from alpha's list onto beta's tab; asserts it is in beta, gone from alpha, contents unchanged</td><td class="ok">pass, local run after the review fixes</td></tr>
     <tr data-k="c3"><td>Double-click on a tab that isn't current</td><td>Double-click beta's tab while alpha is current; the title becomes the parent folder, and alpha's tab still shows alpha</td><td class="ok">pass</td></tr>
     <tr data-k="c4"><td>Split view: only the clicked pane</td><td>F3, double-click the right pane's only tab; it goes up, then a click in the left pane shows it still on alpha</td><td class="ok">pass</td></tr>
     <tr data-k="c5"><td>Always show tabs, at once</td><td>Alt+A in Preferences; <code>xfconf-query</code> reads <code>true</code>, and the right pane's single tab gets a tab bar in the running window</td><td class="ok">pass</td></tr>
@@ -299,7 +299,13 @@ explainers/19-tab-bar-actions.narration.json  # its narration</pre>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">REVIEW_SUMMARY</p>
+  <p data-k="summary">Before the first code push, a fresh <code>general-purpose</code> agent in this session, given only the diff and the two issues, reviewed it at high effort: 0 high, 2 medium and 3 low findings. Both mediums and one low are fixed; the build and <code>verify/19.sh</code> were run again after the fixes.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed, medium:</b> a quick double-click on the tab bar's scroll arrows, or on the spot of a tab scrolled out of view, could take a tab up. Hidden tabs are now skipped, and the empty-bar case only counts when every tab is in view.</li>
+    <li data-k="b2"><b>Fixed, medium (test):</b> with #3's blank-space double-click on, a click that missed the tab bar could still go up and pass. <code>verify/19.sh</code> now turns that setting off first.</li>
+    <li data-k="b3"><b>Fixed, low:</b> a file list that arrives after the pointer left a tab could linger into the next drag's cursor. Late replies are now dropped.</li>
+    <li data-k="b4"><b>Kept, low:</b> the always-show-tabs listener is released the same way as the split-pane listener next to it, and one shot's wording credits the switch to the double-click, though the first press already does it.</li>
+  </ul>
   <p data-k="ci-review">CI's own review of every push is in the code review PR comment.</p>
   </section>
 
@@ -317,9 +323,9 @@ explainers/19-tab-bar-actions.narration.json  # its narration</pre>
   <section class="sub" id="see">
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
-    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/NN">PR #NN</a> → “Files changed”</li>
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/79">PR #79</a> → “Files changed”</li>
     <li data-k="l2">The issues: <a href="https://github.com/alexhu98/thunar/issues/19">#19</a> and <a href="https://github.com/alexhu98/thunar/issues/24">#24</a></li>
-    <li data-k="l3">CI's screenshots: the verify PR comment, stored on the <code>shots</code> branch under <code>pr-NN/</code></li>
+    <li data-k="l3">CI's screenshots: the verify PR comment, stored on the <code>shots</code> branch under <code>pr-79/</code></li>
   </ul>
   </section>
   </section>

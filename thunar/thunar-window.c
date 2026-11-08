@@ -38,6 +38,7 @@
 #include "thunar/thunar-details-view.h"
 #include "thunar/thunar-device-monitor.h"
 #include "thunar/thunar-dialogs.h"
+#include "thunar/thunar-dnd.h"
 #include "thunar/thunar-gio-extensions.h"
 #include "thunar/thunar-gobject-extensions.h"
 #include "thunar/thunar-gtk-extensions.h"
@@ -113,6 +114,20 @@ typedef struct
   gchar        *action_name;
 } UCAActivation;
 
+typedef struct
+{
+  GtkWidget *view;
+  GList     *drop_file_list;
+  guint      drop_data_ready : 1;
+  guint      drop_occurred : 1;
+  guint      highlighted : 1;
+  guint      switch_timeout_id;
+} ThunarWindowTabDrop;
+
+static const GtkTargetEntry tab_drop_targets[] = {
+  { "text/uri-list", 0, 0 },
+};
+
 
 
 static void
@@ -175,6 +190,8 @@ thunar_window_notebook_page_removed (GtkWidget    *notebook,
                                      GtkWidget    *page,
                                      guint         page_num,
                                      ThunarWindow *window);
+static void
+thunar_window_notebook_show_tabs (ThunarWindow *window);
 static gboolean
 thunar_window_notebook_button_press_event (GtkWidget      *notebook,
                                            GdkEventButton *event,
@@ -190,6 +207,32 @@ thunar_window_notebook_create_window (GtkWidget    *notebook,
                                       ThunarWindow *window);
 static void
 thunar_window_notebook_update_title (GtkWidget *label);
+static void
+thunar_window_tab_drop_free (gpointer data);
+static gboolean
+thunar_window_tab_drag_motion (GtkWidget      *label_box,
+                               GdkDragContext *context,
+                               gint            x,
+                               gint            y,
+                               guint           timestamp);
+static void
+thunar_window_tab_drag_leave (GtkWidget      *label_box,
+                              GdkDragContext *context,
+                              guint           timestamp);
+static gboolean
+thunar_window_tab_drag_drop (GtkWidget      *label_box,
+                             GdkDragContext *context,
+                             gint            x,
+                             gint            y,
+                             guint           timestamp);
+static void
+thunar_window_tab_drag_data_received (GtkWidget        *label_box,
+                                      GdkDragContext   *context,
+                                      gint              x,
+                                      gint              y,
+                                      GtkSelectionData *selection_data,
+                                      guint             info,
+                                      guint             timestamp);
 static GtkWidget *
 thunar_window_create_view (ThunarWindow *window,
                            ThunarFile   *directory,
@@ -1159,6 +1202,7 @@ thunar_window_init (ThunarWindow *window)
   /* split view: Create panes where the two notebooks */
   window->paned_notebooks = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
   g_signal_connect_swapped (window->preferences, "notify::misc-vertical-split-pane", G_CALLBACK (thunar_window_paned_notebooks_update_orientation), window);
+  g_signal_connect_swapped (window->preferences, "notify::misc-always-show-tabs", G_CALLBACK (thunar_window_notebook_show_tabs), window);
   thunar_window_paned_notebooks_update_orientation (window);
 
   window->view_box = gtk_grid_new ();
@@ -2696,6 +2740,8 @@ thunar_window_notebook_button_press_event (GtkWidget      *notebook,
   GtkAllocation alloc;
   gint          x, y;
   gboolean      close_tab;
+  gboolean      go_up;
+  gboolean      all_mapped;
 
   /* switch focus to parent notebook */
   if (window->notebook_selected != notebook)
@@ -2704,7 +2750,48 @@ thunar_window_notebook_button_press_event (GtkWidget      *notebook,
   /* do not forward double-click events to the parent widget "paned_notebooks"
    * to avoid resetting the split view separator when the clicks occurred on a tab */
   if (event->button == 1 && event->type == GDK_2BUTTON_PRESS)
-    return TRUE;
+    {
+      g_object_get (window->preferences, "misc-double-click-tab-go-up", &go_up, NULL);
+      if (go_up
+          && (event->state & gtk_accelerator_get_default_mod_mask ()) == 0
+          && gtk_get_event_widget ((GdkEvent *) event) == notebook
+          && window->notebook_selected == notebook)
+        {
+          gdk_window_get_position (event->window, &x, &y);
+          x += event->x;
+          y += event->y;
+          all_mapped = TRUE;
+
+          while ((page = gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook), page_num)) != NULL)
+            {
+              label_box = gtk_notebook_get_tab_label (GTK_NOTEBOOK (notebook), page);
+              if (gtk_widget_get_mapped (label_box))
+                {
+                  gtk_widget_get_allocation (label_box, &alloc);
+
+                  if (x >= alloc.x && x < alloc.x + alloc.width
+                      && y >= alloc.y && y < alloc.y + alloc.height)
+                    break;
+                }
+              else
+                all_mapped = FALSE;
+
+              page_num++;
+            }
+
+          if (page != NULL)
+            {
+              gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook), page_num);
+              thunar_window_action_go_up (window);
+            }
+          else if (all_mapped)
+            {
+              thunar_window_action_go_up (window);
+            }
+        }
+
+      return TRUE;
+    }
 
   if ((event->button == 2 || event->button == 3)
       && event->type == GDK_BUTTON_PRESS)
@@ -2867,6 +2954,195 @@ thunar_window_notebook_update_title (GtkWidget *label)
 
 
 
+static void
+thunar_window_tab_drop_free (gpointer data)
+{
+  ThunarWindowTabDrop *tab_drop = data;
+
+  if (tab_drop->switch_timeout_id != 0)
+    g_source_remove (tab_drop->switch_timeout_id);
+  thunar_g_list_free_full (tab_drop->drop_file_list);
+  g_free (tab_drop);
+}
+
+
+
+static gboolean
+thunar_window_tab_drag_switch_timeout (gpointer user_data)
+{
+  GtkWidget           *label_box = user_data;
+  ThunarWindowTabDrop *tab_drop = g_object_get_data (G_OBJECT (label_box), "thunar-tab-drop");
+  GtkWidget           *notebook = gtk_widget_get_parent (label_box);
+  gint                 page_num;
+
+  tab_drop->switch_timeout_id = 0;
+
+  if (GTK_IS_NOTEBOOK (notebook))
+    {
+      page_num = gtk_notebook_page_num (GTK_NOTEBOOK (notebook), tab_drop->view);
+      if (page_num >= 0)
+        gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook), page_num);
+    }
+
+  return G_SOURCE_REMOVE;
+}
+
+
+
+static gboolean
+thunar_window_tab_drag_motion (GtkWidget      *label_box,
+                               GdkDragContext *context,
+                               gint            x,
+                               gint            y,
+                               guint           timestamp)
+{
+  ThunarWindowTabDrop *tab_drop = g_object_get_data (G_OBJECT (label_box), "thunar-tab-drop");
+  ThunarFile          *directory;
+  GdkDragAction        action = 0;
+  GdkAtom              target;
+
+  target = gtk_drag_dest_find_target (label_box, context, NULL);
+  if (target != gdk_atom_intern_static_string ("text/uri-list"))
+    return FALSE;
+
+  if (!tab_drop->highlighted)
+    {
+      gtk_drag_highlight (label_box);
+      tab_drop->highlighted = TRUE;
+    }
+
+  if (tab_drop->switch_timeout_id == 0)
+    tab_drop->switch_timeout_id = g_timeout_add (500, thunar_window_tab_drag_switch_timeout, label_box);
+
+  if (!tab_drop->drop_data_ready)
+    {
+      gtk_drag_get_data (label_box, context, target, timestamp);
+    }
+  else
+    {
+      directory = thunar_navigator_get_current_directory (THUNAR_NAVIGATOR (tab_drop->view));
+      if (directory != NULL)
+        thunar_file_accepts_drop (directory, tab_drop->drop_file_list, context, &action);
+    }
+
+  gdk_drag_status (context, action, timestamp);
+  return TRUE;
+}
+
+
+
+static void
+thunar_window_tab_drag_leave (GtkWidget      *label_box,
+                              GdkDragContext *context,
+                              guint           timestamp)
+{
+  ThunarWindowTabDrop *tab_drop = g_object_get_data (G_OBJECT (label_box), "thunar-tab-drop");
+
+  if (tab_drop->highlighted)
+    {
+      gtk_drag_unhighlight (label_box);
+      tab_drop->highlighted = FALSE;
+    }
+
+  if (tab_drop->switch_timeout_id != 0)
+    {
+      g_source_remove (tab_drop->switch_timeout_id);
+      tab_drop->switch_timeout_id = 0;
+    }
+
+  thunar_g_list_free_full (tab_drop->drop_file_list);
+  tab_drop->drop_file_list = NULL;
+  tab_drop->drop_data_ready = FALSE;
+}
+
+
+
+static gboolean
+thunar_window_tab_drag_drop (GtkWidget      *label_box,
+                             GdkDragContext *context,
+                             gint            x,
+                             gint            y,
+                             guint           timestamp)
+{
+  ThunarWindowTabDrop *tab_drop = g_object_get_data (G_OBJECT (label_box), "thunar-tab-drop");
+  GdkAtom              target;
+
+  target = gtk_drag_dest_find_target (label_box, context, NULL);
+  if (target != gdk_atom_intern_static_string ("text/uri-list"))
+    return FALSE;
+
+  tab_drop->drop_occurred = TRUE;
+  gtk_drag_get_data (label_box, context, target, timestamp);
+  return TRUE;
+}
+
+
+
+static void
+thunar_window_tab_drag_data_received (GtkWidget        *label_box,
+                                      GdkDragContext   *context,
+                                      gint              x,
+                                      gint              y,
+                                      GtkSelectionData *selection_data,
+                                      guint             info,
+                                      guint             timestamp)
+{
+  ThunarWindowTabDrop *tab_drop = g_object_get_data (G_OBJECT (label_box), "thunar-tab-drop");
+  ThunarFile          *directory;
+  GList               *file_list;
+  GdkDragAction        actions;
+  GdkDragAction        action = 0;
+  gboolean             succeed = FALSE;
+
+  if (!tab_drop->highlighted && !tab_drop->drop_occurred)
+    return;
+
+  if (!tab_drop->drop_data_ready)
+    {
+      if (gtk_selection_data_get_format (selection_data) == 8 && gtk_selection_data_get_length (selection_data) > 0)
+        tab_drop->drop_file_list = thunar_g_file_list_new_from_string ((const gchar *) gtk_selection_data_get_data (selection_data));
+      tab_drop->drop_data_ready = TRUE;
+    }
+
+  if (!tab_drop->drop_occurred)
+    return;
+
+  tab_drop->drop_occurred = FALSE;
+
+  file_list = tab_drop->drop_file_list;
+  tab_drop->drop_file_list = NULL;
+  tab_drop->drop_data_ready = FALSE;
+
+  directory = thunar_navigator_get_current_directory (THUNAR_NAVIGATOR (tab_drop->view));
+  if (directory != NULL)
+    {
+      g_object_ref (directory);
+      g_object_ref (label_box);
+
+      actions = thunar_file_accepts_drop (directory, file_list, context, &action);
+      if ((actions & (GDK_ACTION_COPY | GDK_ACTION_MOVE | GDK_ACTION_LINK)) != 0)
+        {
+          action = (gdk_drag_context_get_selected_action (context) == GDK_ACTION_ASK)
+                   ? thunar_dnd_ask (label_box, directory, file_list, actions)
+                   : gdk_drag_context_get_selected_action (context);
+
+          if (action != 0)
+            succeed = thunar_dnd_perform (label_box, directory, file_list, action, NULL);
+        }
+    }
+
+  gtk_drag_finish (context, succeed, FALSE, timestamp);
+
+  if (directory != NULL)
+    {
+      g_object_unref (label_box);
+      g_object_unref (directory);
+    }
+  thunar_g_list_free_full (file_list);
+}
+
+
+
 static GtkWidget *
 thunar_window_create_view (ThunarWindow *window,
                            ThunarFile   *directory,
@@ -2914,8 +3190,9 @@ thunar_window_notebook_insert_page (ThunarWindow *window,
   GtkWidget *label;
   GtkWidget *label_box;
   GtkWidget *button;
-  GtkWidget *spinner;
-  GtkWidget *icon;
+  GtkWidget           *spinner;
+  GtkWidget           *icon;
+  ThunarWindowTabDrop *tab_drop;
 
   _thunar_return_if_fail (THUNAR_IS_WINDOW (window));
 
@@ -2964,6 +3241,16 @@ thunar_window_notebook_insert_page (ThunarWindow *window,
   icon = gtk_image_new_from_icon_name ("window-close-symbolic", GTK_ICON_SIZE_MENU);
   gtk_container_add (GTK_CONTAINER (button), icon);
   gtk_widget_show (icon);
+
+  tab_drop = g_new0 (ThunarWindowTabDrop, 1);
+  tab_drop->view = view;
+  g_object_set_data_full (G_OBJECT (label_box), I_ ("thunar-tab-drop"), tab_drop, thunar_window_tab_drop_free);
+  gtk_drag_dest_set (label_box, 0, tab_drop_targets, G_N_ELEMENTS (tab_drop_targets),
+                     GDK_ACTION_ASK | GDK_ACTION_COPY | GDK_ACTION_LINK | GDK_ACTION_MOVE);
+  g_signal_connect (G_OBJECT (label_box), "drag-motion", G_CALLBACK (thunar_window_tab_drag_motion), NULL);
+  g_signal_connect (G_OBJECT (label_box), "drag-leave", G_CALLBACK (thunar_window_tab_drag_leave), NULL);
+  g_signal_connect (G_OBJECT (label_box), "drag-drop", G_CALLBACK (thunar_window_tab_drag_drop), NULL);
+  g_signal_connect (G_OBJECT (label_box), "drag-data-received", G_CALLBACK (thunar_window_tab_drag_data_received), NULL);
 
   /* insert the new page */
   gtk_notebook_insert_page (GTK_NOTEBOOK (window->notebook_selected), view, label_box, position);
