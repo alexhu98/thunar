@@ -114,7 +114,7 @@
   <section class="part" id="adds">
   <p class="part-label" data-k="label">Part 1</p>
   <h2 data-k="heading">What this PR adds</h2>
-  <p class="intro" data-k="intro">The build job's change check, which ran only on PRs, now also runs on a push to main and compares it with the latest release tag. One file changes: <code>.github/workflows/build.yml</code>.</p>
+  <p class="intro" data-k="intro">The build job's change check, which ran only on PRs, now also runs on a push to main and compares it with the latest release tag. It changes <code>.github/workflows/build.yml</code>, and moves the latest-tag lookup into <code>latest-tag.sh</code>.</p>
 
   <section class="sub" id="flow">
   <div class="diagram" role="img" aria-label="A push to main finds the latest release tag, diffs against it, and either skips or builds and releases">
@@ -199,7 +199,7 @@
   <div class="panel">
   <div class="lane-h" style="color:var(--accent)">① Push to main: the change check</div>
   <ol class="steps">
-    <li data-k="1"><b>Find last tag.</b> The build job's <code>changes</code> step lists the repo's <code>v*</code> tags and picks the one with the highest <code>+localN</code>, the same way <code>publish-release.sh</code> does.</li>
+    <li data-k="1"><b>Find last tag.</b> The build job's <code>changes</code> step lists the repo's <code>v*</code> tags and picks the one with the highest <code>+localN</code>, with <code>latest-tag.sh</code>, the same helper <code>publish-release.sh</code> now uses.</li>
     <li data-k="2"><b>Diff with it.</b> The checkout is one commit deep, so the step fetches only that tag, one commit deep, and runs <code>git diff --name-only</code> between the tag and the pushed commit.</li>
     <li data-k="3"><b>Packaged files?</b> It removes the paths that never reach the debs: <code>.github/</code>, <code>.claude/</code>, <code>.gitlab/</code>, <code>explainers/</code>, <code>verify/</code>, <code>deploy/</code>, <code>.gitlab-ci.yml</code>, <code>CLAUDE.md</code>, <code>.clang-format</code> and <code>.gitignore</code>. Everything else counts, so a new top-level file counts by default.</li>
     <li data-k="4"><b>Nothing: skip.</b> The step sets <code>skip=true</code> and writes “No release: no packaged files changed since &lt;tag&gt;” to the run summary. Every later build step, the version stamp and the whole verify job, which holds publish and prune, are skipped.</li>
@@ -224,6 +224,8 @@
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">.github/workflows/build.yml          # changes step runs on push too; stamp and verify skip with it
+.github/scripts/latest-tag.sh        # new: prints the highest +localN tag and its commit
+.github/scripts/publish-release.sh   # uses latest-tag.sh instead of its own copy
 explainers/73-release-if-packaged.html            # this page
 explainers/73-release-if-packaged.narration.json  # its narration</pre>
   <div class="note" data-k="undo">To undo it, revert this PR: every push to main releases again. To force a release while it's in place, push any packaged change, even a whitespace fix in <code>NEWS</code>.</div>
@@ -240,7 +242,7 @@ explainers/73-release-if-packaged.narration.json  # its narration</pre>
   <h3 class="sec">Built on 2 known-good references</h3>
   <div class="grid">
     <div class="card" data-k="r1"><h3>#55's change check</h3><p>The same <code>changes</code> step, <code>skip</code> output and <code>if:</code>s that skip build and verify on PRs with no code. This PR adds a push branch to it.</p></div>
-    <div class="card" data-k="r2"><h3>publish-release.sh</h3><p>Its way of finding the latest <code>+localN</code> tag is reused, so the check and the publish agree on which release is the latest.</p></div>
+    <div class="card" data-k="r2"><h3>publish-release.sh</h3><p>Its way of finding the latest <code>+localN</code> tag moved into <code>latest-tag.sh</code>, so the check and the publish agree on which release is the latest.</p></div>
   </div>
   </section>
 
@@ -253,7 +255,8 @@ explainers/73-release-if-packaged.narration.json  # its narration</pre>
     <tr data-k="c2"><td>CI-only push skips</td><td>Same clone, plus a local commit adding <code>.github/foo</code></td><td class="ok">skip=true, lists .github/foo</td></tr>
     <tr data-k="c3"><td>CI-only then code: the second releases with both</td><td>Then a second local commit changing <code>README.md</code></td><td class="ok">skip=false, lists both files</td></tr>
     <tr data-k="c4"><td>No release tag builds</td><td>Same script with the tag pattern changed so no tag matches</td><td class="ok">skip=false</td></tr>
-    <tr data-k="c5"><td>Shell and workflow lint</td><td><code>shellcheck</code> on the step's script; <code>actionlint</code> on <code>build.yml</code></td><td class="ok">0 warnings, 0 errors</td></tr>
+    <tr data-k="c5"><td>Shell and workflow lint</td><td><code>shellcheck</code> on the step's script, <code>latest-tag.sh</code> and <code>publish-release.sh</code>; <code>actionlint</code> on <code>build.yml</code></td><td class="ok">0 warnings, 0 errors</td></tr>
+    <tr data-k="c8"><td>Shared lookup after the review fix</td><td>The step re-run on the clone: as is, after a <code>po/</code> commit, and with the tag lookup failing; <code>publish-release.sh</code> with <code>DRY_RUN=1</code></td><td class="ok">skip=true; skip=false; skip=false; “would publish +local22”</td></tr>
     <tr data-k="c6"><td>PR path unchanged</td><td>CI's build job on this PR</td><td class="open">see the summary comment</td></tr>
     <tr data-k="c7"><td>Push that releases or skips on GitHub</td><td>Only a push to main runs it</td><td class="no">not run before merge</td></tr>
   </table>
@@ -264,7 +267,8 @@ explainers/73-release-if-packaged.narration.json  # its narration</pre>
   <h3 class="sec">Code review</h3>
   <p data-k="summary">Before the first push, a fresh general-purpose agent reviewed the diff against the issue. It found no bugs, and 2 low notes, both left as they are because they only ever cause an extra release, never a missed one: a nested <code>.gitignore</code> counts as packaged, and so does a path git prints in quotes.</p>
   <ul class="tight">
-    <li data-k="b1"><b>CI's review:</b> its findings are in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/76">PR #76</a>.</li>
+    <li data-k="b1"><b>CI's first review:</b> 7 low findings. Fixed: the tag lookup was copied from <code>publish-release.sh</code> (R1, now one helper); <code>|| tag=</code> did nothing without pipefail (R2, now it catches a failed lookup); no explainer yet (R7, added).</li>
+    <li data-k="b2"><b>Left as they are:</b> R3 to R6, which CI's own check disproved against the issue: <code>.github/</code> doesn't count, a failed fetch builds, everything not listed counts, and the PR rule stays. All findings are in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/76">PR #76</a>.</li>
   </ul>
   </section>
 

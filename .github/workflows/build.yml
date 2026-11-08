@@ -41,8 +41,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [[ $GITHUB_EVENT_NAME == push ]]; then
-            tag=$(gh api --paginate 'repos/{owner}/{repo}/git/matching-refs/tags/v' --jq '.[].ref' \
-              | sed -n 's|^refs/tags/\(.*+local\([0-9][0-9]*\)\)$|\2 \1|p' | sort -n | tail -1 | cut -d' ' -f2) || tag=
+            tag=$(.github/scripts/latest-tag.sh) || tag=
+            tag=${tag%% *}
             if [[ -n $tag ]] && git fetch --depth=1 --no-tags origin "refs/tags/$tag:refs/tags/$tag" &&
                git diff --no-renames --name-only "$tag" HEAD > "$RUNNER_TEMP/changed.txt"; then
               code=$(grep -Ev '^(\.github|\.claude|\.gitlab|explainers|verify|deploy)/|^(\.gitlab-ci\.yml|CLAUDE\.md|\.clang-format|\.gitignore)$' "$RUNNER_TEMP/changed.txt" || true)

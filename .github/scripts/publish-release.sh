@@ -8,11 +8,10 @@ set -euo pipefail
 sha=${GITHUB_SHA:-$(git rev-parse HEAD)}
 tag="v${VERSION%%-*}+local${VERSION##*+local}"
 
-latest=$(gh api --paginate 'repos/{owner}/{repo}/git/matching-refs/tags/v' --jq '.[] | "\(.ref) \(.object.sha)"' \
-  | sed -n 's|^refs/tags/\(.*+local\([0-9][0-9]*\)\) \([0-9a-f]*\)$|\2 \1 \3|p' | sort -n | tail -1)
+latest=$(.github/scripts/latest-tag.sh)
 
 if [[ -n $latest ]]; then
-  read -r _ latest_tag latest_sha <<<"$latest"
+  read -r latest_tag latest_sha <<<"$latest"
   status=$(gh api "repos/{owner}/{repo}/compare/${latest_sha}...${sha}" --jq .status)
   case $status in
     ahead) ;;
