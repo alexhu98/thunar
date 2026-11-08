@@ -38,10 +38,12 @@ never fix anything you find.
    - `<!-- pr-proof:status {"sha":…,"state":…,"text":…} -->` in the review, verify and explainer comments: that
      check's state, its text and the SHA it covers. A status whose `sha` isn't the head is stale; say so.
    - `<!-- review:state {...} -->` in the review comment: `sha` (the last head a review ran on), `reason`, and
-     `findings`, each with `id`, `severity`, `verdict`, `status`, `file`, `line`, `summary`, `detail`, `commit`.
+     `findings`, each with `id`, `sha` (the head it was found on), `severity`, `verdict`, `status`, `file`, `line`, `summary`, `detail`, `commit`.
      CI writes each `>` inside the JSON as the six characters `\u003e`, which any JSON parser reads back. Findings whose text
-     was cut to fit the comment keep only `id` and `status`; report them by ID. A trimmed `fixed` or `resolved` one is
-     settled; since any other one's severity and review can't be read, count it as not settled, marked `trimmed`.
+     was cut to fit the comment keep only `id` and `status`; report them by ID. Take a trimmed one's severity and verdict
+     from its row in the comment's table of every finding, when the row is there. A trimmed one is settled when it
+     is `fixed` or `resolved`, when its row shows it settled under step 7, or when a commit's `Review-accept` or
+     `Fixes` line names it; otherwise count it as not settled, marked `trimmed`.
    - The review comment's one Markdown line you do read: `Skipped <sha>: <reason>.`, the reason the review skipped
      the head. `state.sha` and `state.reason` only change when a review runs.
    A finding with `"new": true` appeared or changed status since the last review that ran; a skipped review
