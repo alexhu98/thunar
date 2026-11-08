@@ -1,7 +1,7 @@
 {
   "title": "PR #70 · Fewer jobs",
   "voice": "af_heart",
-  "page_sha256": "b309a508d6608639da1fe233e3fb9a73f7245b31f84c66469d3d45bb67156dd8",
+  "page_sha256": "761ebfbf5cf88256c75acf78a0dabb7c9cd00b89ee094c4362a2f99f6271c434",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 70, which runs fewer CI jobs and edits CI's PR comments less often.", "from": ["title", "lead"], "say": "This is a tour of pull request seventy, which runs fewer CI jobs and edits CI's PR comments less often.", "src": "ec2c4100889e"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what the PR adds, how it was built and verified, and what comes later.", "src": "e7fece3382b9"},
@@ -48,6 +48,7 @@
     {"screen": "review", "keys": ["ci4"], "caption": "The fourth review passed; the report job now also covers a failed checkout, and one small finding was accepted.", "src": "1b8c9711e6d4"},
     {"screen": "review", "keys": ["ci5"], "caption": "The fifth review found that fallback still wrong, so one explicit output now hands the report over.", "src": "f061b16fc1c0"},
     {"screen": "review", "keys": ["ci6"], "caption": "The sixth review found three edge cases in that hand-over, and all three are fixed.", "src": "af9d792efbc6"},
+    {"screen": "review", "keys": ["ci7"], "caption": "The seventh review passed; four small fixes went in, and three small findings were accepted.", "src": "fda4e8f6f2c0"},
     {"screen": "aftermerge", "keys": ["a1"], "caption": "The release from verify first runs when this PR merges.", "src": "7d56b67aee8e"},
     {"screen": "aftermerge", "keys": ["a3"], "caption": "The summary workflow's new path first runs on the next audit after the merge.", "src": "1bf55be2ba8c"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later.", "src": "06d3107df253"},
@@ -108,6 +109,7 @@
     "review/ci4": "1b8c9711e6d4",
     "review/ci5": "f061b16fc1c0",
     "review/ci6": "af9d792efbc6",
+    "review/ci7": "fda4e8f6f2c0",
     "aftermerge/a1": "7d56b67aee8e",
     "aftermerge/a3": "1bf55be2ba8c",
     "see/l1": "4f7ec85ae96a",
