@@ -1,0 +1,51 @@
+sha	num	test	result	shot	file	proves
+0a4181c792f7d4dbd2298742f5724b69444dbd49	1	21	pass	before-off	verify-21-before-off.png	Searching top for match with the global default (Always): the Include subfolders toggle is pressed and both match-top.txt and sub/match-sub.txt are listed
+0a4181c792f7d4dbd2298742f5724b69444dbd49	1	21	pass	after-off	verify-21-after-off.png	With the Include subfolders toggle released, the same search in top lists only match-top.txt
+0a4181c792f7d4dbd2298742f5724b69444dbd49	2	21	pass	other-default	verify-21-other-default.png	Searching another folder, other, still follows the global default: the toggle is pressed and match-other.txt and deep/match-deep.txt are both listed
+0a4181c792f7d4dbd2298742f5724b69444dbd49	3	21	pass	before-reopen	verify-21-before-reopen.png	Back in folder top with no search running (match-top.txt and the sub folder)
+0a4181c792f7d4dbd2298742f5724b69444dbd49	3	21	pass	after-reopen	verify-21-after-reopen.png	A new search in top comes back with the toggle released and lists only match-top.txt
+0a4181c792f7d4dbd2298742f5724b69444dbd49	4	21	pass	before-clear	verify-21-before-clear.png	The whole screen: folder top with its saved choice off, and the View menu open, listing Clear Saved Folder View Settings
+0a4181c792f7d4dbd2298742f5724b69444dbd49	4	21	pass	after-clear	verify-21-after-clear.png	After Clear Saved Folder View Settings, a search in top follows the global default again: the toggle is pressed and both files are listed
+0a4181c792f7d4dbd2298742f5724b69444dbd49	5	21	pass	before-typed	verify-21-before-typed.png	Search: match typed by hand into the location bar of top runs the search with the Include subfolders toggle pressed, listing both match-top.txt and sub/match-sub.txt
+0a4181c792f7d4dbd2298742f5724b69444dbd49	5	21	pass	after-typed	verify-21-after-typed.png	Clicking the toggle re-runs the hand-typed search in top without subfolders: only match-top.txt is listed
+0a4181c792f7d4dbd2298742f5724b69444dbd49	6	22	pass	before-exclude	verify-22-before-exclude.png	Searching files for - lists only the two names with a dash: a-b.txt and draft-report.txt
+0a4181c792f7d4dbd2298742f5724b69444dbd49	6	22	pass	after-exclude	verify-22-after-exclude.png	Searching files for !- lists only the names without a dash: ab.txt, report.txt and bang!name.txt
+0a4181c792f7d4dbd2298742f5724b69444dbd49	7	22	pass	before-report	verify-22-before-report.png	Searching files for report lists both draft-report.txt and report.txt
+0a4181c792f7d4dbd2298742f5724b69444dbd49	7	22	pass	after-report	verify-22-after-report.png	Searching files for report !draft lists only report.txt
+0a4181c792f7d4dbd2298742f5724b69444dbd49	8	22	pass	literal	verify-22-literal.png	Searching files for \!name lists only bang!name.txt: an escaped ! is searched as literal text
+0a4181c792f7d4dbd2298742f5724b69444dbd49	9	3	pass	before-icon	verify-3-before-icon.png	Icon view shows folder charlie (delta, one.txt, two.txt, three.txt), with the path bar ending in charlie
+0a4181c792f7d4dbd2298742f5724b69444dbd49	9	3	pass	after-icon	verify-3-after-icon.png	Icon view now shows folder bravo, the parent of charlie, after a double-click on blank space
+0a4181c792f7d4dbd2298742f5724b69444dbd49	10	3	pass	before-compact	verify-3-before-compact.png	Compact view shows folder charlie, with the path bar ending in charlie
+0a4181c792f7d4dbd2298742f5724b69444dbd49	10	3	pass	after-compact	verify-3-after-compact.png	Compact view now shows folder bravo, the parent of charlie, after a double-click on blank space
+0a4181c792f7d4dbd2298742f5724b69444dbd49	11	3	pass	before-details	verify-3-before-details.png	Details view shows folder charlie as rows, with the path bar ending in charlie
+0a4181c792f7d4dbd2298742f5724b69444dbd49	11	3	pass	after-details	verify-3-after-details.png	Details view now shows folder bravo, the parent of charlie, after a double-click on the blank space below the rows
+0a4181c792f7d4dbd2298742f5724b69444dbd49	12	3	pass	before-details-folder	verify-3-before-details-folder.png	Details view shows folder charlie with delta as its first row
+0a4181c792f7d4dbd2298742f5724b69444dbd49	12	3	pass	after-details-folder	verify-3-after-details-folder.png	A double-click on the delta row opened delta (inside.txt shown) and did not go back up to charlie
+0a4181c792f7d4dbd2298742f5724b69444dbd49	13	3	pass	before-folder	verify-3-before-folder.png	Icon view shows folder charlie with the delta folder as its first item
+0a4181c792f7d4dbd2298742f5724b69444dbd49	13	3	pass	after-folder	verify-3-after-folder.png	A double-click on the delta folder opened delta (inside.txt shown), not the parent folder
+0a4181c792f7d4dbd2298742f5724b69444dbd49	14	3	pass	before-rubber-band	verify-3-before-rubber-band.png	Icon view of folder charlie with nothing selected
+0a4181c792f7d4dbd2298742f5724b69444dbd49	14	3	pass	after-rubber-band	verify-3-after-rubber-band.png	A drag from blank space selected only the delta folder and left the window on charlie
+0a4181c792f7d4dbd2298742f5724b69444dbd49	15	3	pass	before-split-right	verify-3-before-split-right.png	Split view with both panes on folder charlie, the right pane active
+0a4181c792f7d4dbd2298742f5724b69444dbd49	15	3	pass	after-split-right	verify-3-after-split-right.png	Two double-clicks in the right pane took it up twice to alpha: the active right pane shows folder bravo, alpha's only item
+0a4181c792f7d4dbd2298742f5724b69444dbd49	16	3	pass	before-split-left	verify-3-before-split-left.png	Split view with the left pane active on folder charlie (delta, one.txt, three.txt, two.txt)
+0a4181c792f7d4dbd2298742f5724b69444dbd49	16	3	pass	after-split-left	verify-3-after-split-left.png	A double-click in the left pane took only that pane up to bravo (it shows folder charlie)
+0a4181c792f7d4dbd2298742f5724b69444dbd49	17	3	pass	before-root	verify-3-before-root.png	The whole screen: Thunar shows the root folder / in icon view and no other window is open
+0a4181c792f7d4dbd2298742f5724b69444dbd49	17	3	pass	after-root	verify-3-after-root.png	The whole screen after a double-click on blank space at /: Thunar still shows / and no dialog opened
+0a4181c792f7d4dbd2298742f5724b69444dbd49	18	3	pass	before-pref	verify-3-before-pref.png	Preferences, Behavior tab: the checkbox Double-click on a blank area to open the parent folder is ticked
+0a4181c792f7d4dbd2298742f5724b69444dbd49	18	3	pass	after-pref	verify-3-after-pref.png	After Alt+P the checkbox Double-click on a blank area to open the parent folder is unticked (the script asserts xfconf then reads false)
+0a4181c792f7d4dbd2298742f5724b69444dbd49	19	3	pass	before-off	verify-3-before-off.png	With the checkbox unticked, the same running Thunar shows folder charlie in icon view
+0a4181c792f7d4dbd2298742f5724b69444dbd49	19	3	pass	after-off	verify-3-after-off.png	With the setting off, a double-click on blank space left the window on folder charlie
+0a4181c792f7d4dbd2298742f5724b69444dbd49	20	3	pass	before-single	verify-3-before-single.png	Single-click mode, blank double-click turned back on: icon view shows folder charlie with delta first
+0a4181c792f7d4dbd2298742f5724b69444dbd49	20	3	pass	after-single	verify-3-after-single.png	In single-click mode a double-click on delta left the window on delta (inside.txt), not back on charlie
+0a4181c792f7d4dbd2298742f5724b69444dbd49	21	49	pass	before-shift-down	verify-49-before-shift-down.png	List view with Expandable folders on: file1 is clicked and is the only selected row (status bar: file1 selected)
+0a4181c792f7d4dbd2298742f5724b69444dbd49	21	49	pass	after-shift-down	verify-49-after-shift-down.png	Two Shift+Down presses from file1 selected file1, file2 and file3 (status bar: 3 files selected)
+0a4181c792f7d4dbd2298742f5724b69444dbd49	22	49	pass	shift-up-shrinks	verify-49-shift-up-shrinks.png	Shift+Up after that shrank the selection back to file1 and file2 (status bar: 2 files selected)
+0a4181c792f7d4dbd2298742f5724b69444dbd49	23	49	pass	shift-up-from-below	verify-49-shift-up-from-below.png	Clicking file3 and pressing Shift+Up twice selected file1 to file3, with the anchor on file3 below
+0a4181c792f7d4dbd2298742f5724b69444dbd49	24	49	pass	before-ctrl-down	verify-49-before-ctrl-down.png	file1 is clicked and is the only selected row
+0a4181c792f7d4dbd2298742f5724b69444dbd49	24	49	pass	after-ctrl-down	verify-49-after-ctrl-down.png	Ctrl+Down twice kept file1 selected and moved only the cursor; Ctrl+Space added file3 (2 files selected, file2 not)
+0a4181c792f7d4dbd2298742f5724b69444dbd49	25	49	pass	before-expanded	verify-49-before-expanded.png	The folder row is clicked and expanded with Right: inner1, inner2 and inner3 show under it, above file1
+0a4181c792f7d4dbd2298742f5724b69444dbd49	25	49	pass	after-expanded	verify-49-after-expanded.png	Four Shift+Down presses selected folder, its children inner1 to inner3 and file1 (5 items selected)
+0a4181c792f7d4dbd2298742f5724b69444dbd49	26	49	pass	plain-keys	verify-49-plain-keys.png	Plain keys still move a single selection: Left went from inner3 to folder, Left again collapsed it, and Down selected only file1
+0a4181c792f7d4dbd2298742f5724b69444dbd49	27	49	pass	enter-opens	verify-49-enter-opens.png	Enter on the folder row still opens the folder: the window shows inner1, inner2 and inner3
+0a4181c792f7d4dbd2298742f5724b69444dbd49	28	49	pass	expandable-off	verify-49-expandable-off.png	With Expandable folders off (no expanders), Shift+Down twice from file1 still selects file1 to file3
+0a4181c792f7d4dbd2298742f5724b69444dbd49	29	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
