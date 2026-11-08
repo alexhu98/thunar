@@ -33,10 +33,6 @@ list() {  # -> "ID NAME BODY" (BODY in base64) for every marked comment by the b
     | "\(.id) \(.body | capture("^<!-- pr-proof:(?<n>[a-z]+) -->").n) \(.body | @base64)"' | sort -n
 }
 
-id_of() {
-  list | awk -v n="$1" '$2 == n {print $1; exit}'
-}
-
 legacy() {
   local id
   [[ -n ${PR:-} ]] || return 0
@@ -50,9 +46,9 @@ legacy() {
 }
 
 get() {
-  local id
-  id=$(id_of "${1:?name}")
-  [[ -z $id ]] || api "repos/{owner}/{repo}/issues/comments/$id" --jq .body
+  local body
+  body=$(list | awk -v n="${1:?name}" '$2 == n {print $3; exit}')
+  [[ -z $body ]] || { printf '%s' "$body" | base64 -d; echo; }
 }
 
 placeholder() {

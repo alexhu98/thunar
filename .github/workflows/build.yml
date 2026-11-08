@@ -359,8 +359,21 @@ jobs:
           overwrite: true
           retention-days: 14
 
+      - name: Clear the folder for the report checkout
+        if: ${{ !cancelled() && steps.plan.outputs.superseded != '1' && steps.collect.outputs.fix != '1' }}
+        run: rm -rf .review-report
+
+      - uses: actions/checkout@v4
+        if: ${{ !cancelled() && steps.plan.outputs.superseded != '1' && steps.collect.outputs.fix != '1' }}
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          path: .review-report
+          persist-credentials: false
+
       - name: Post suggestions and report
         if: ${{ !cancelled() && steps.plan.outputs.superseded != '1' && steps.collect.outputs.fix != '1' }}
+        working-directory: .review-report
         env:
           GH_TOKEN: ${{ github.token }}
           REVIEW_RESULT: ${{ job.status }}
@@ -403,10 +416,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p "$RUNNER_TEMP/bin" && cp .github/scripts/review-proof.sh .github/scripts/review-state.py .github/scripts/pr-comment.sh .github/scripts/pr-summary.py "$RUNNER_TEMP/bin/"
           export IN=$RUNNER_TEMP/review-in
           [[ -f $IN/review/plan.json ]] && IN=$IN/review
-          "$RUNNER_TEMP/bin/review-proof.sh" report
+          .github/scripts/review-proof.sh report
 
   summary:
     needs: [build, verify, explainer, review, review-report]
