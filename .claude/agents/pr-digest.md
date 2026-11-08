@@ -21,14 +21,14 @@ never fix anything you find.
 
 1. **The PR.** `pull_request_read get`: state (open, merged or closed), head SHA, base, mergeable state, title.
    `list_commits` on `main` with `perPage: 1`: the current head of `main`. `main` moved since CI ran when that SHA
-   isn't the PR's `base.sha` and isn't an ancestor of the head (`list_commits` with `sha:` the head). Skip this
-   for a merged PR.
+   isn't the PR's `base.sha` and isn't an ancestor of the head (`list_commits` with `sha:` the head). For a merged
+   or closed PR, write `n/a`.
 2. **Checks.** `pull_request_read get_check_runs` for the head: build, verify, explainer, review, review-report
    and summary, each as pass, fail, running, skipped or missing. A job that concluded `skipped` is `skipped`, never
    pass. For build, verify and explainer, also `actions_list list_workflow_jobs` on the build run (its ID is in the
    check run's `details_url`) and say whether each ran its steps or skipped them all.
 3. **CI's comments.** `pull_request_read get_comments`, `perPage: 10`, every page. A result too large to show is
-   saved to a file; `Read` it in parts. CI's four comments are by `github-actions[bot]` and start with
+   saved to a file; `Read` it, with `allow_large` when it is one long line. CI's four comments are by `github-actions[bot]` and start with
    `<!-- pr-proof:summary -->`, `review`, `verify` or `explainer`. Parse the hidden markers, not the tables:
    - `<!-- pr-proof:status {"sha":…,"state":…,"text":…} -->` in the review, verify and explainer comments: that
      check's state, its text and the SHA it covers. A status whose `sha` isn't the head is stale; say so.
@@ -64,7 +64,7 @@ Return exactly this, and nothing else: no preamble, no recommendations.
 
 ```
 PR #<n> <title> (<open|merged|closed>)
-head <sha12> · base main <sha12> · mergeable <state> · main moved since CI: yes|no
+head <sha12> · base main <sha12> · mergeable <state> · main moved since CI: yes|no|n/a
 checks: build <s> · verify <s> · explainer <s> · review <s> · review-report <s> · summary <s> (steps: ran|skipped)
 review: last ran on <sha12> · head <reviewed|skipped: reason>
 findings: <total> total · highest <Rn> · fixed <IDs> · resolved <IDs> · accepted <IDs> · unconfirmed <IDs> · open <IDs>

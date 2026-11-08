@@ -114,7 +114,7 @@
   <section class="part" id="adds">
   <p class="part-label" data-k="label">Part 1</p>
   <h2 data-k="heading">What this PR adds</h2>
-  <p class="intro" data-k="intro">A read-only <code>pr-digest</code> agent in <code>.claude/agents/</code>, and five rules in <code>CLAUDE.md</code> on how the agent reads and answers CI's reviews.</p>
+  <p class="intro" data-k="intro">A read-only <code>pr-digest</code> agent in <code>.claude/agents/</code>, and four rules in <code>CLAUDE.md</code> on how the agent reads and answers CI's reviews.</p>
 
   <section class="sub" id="flow">
   <div class="diagram" role="img" aria-label="The session asks pr-digest for a PR's state and gets about 20 lines back; each review round's fixes go out in one push, later low unconfirmed findings are accepted on an explainer-only commit, and the rest are fixed or go to the owner">
@@ -191,8 +191,8 @@
       <rect class="box-pr" x="20" y="260" width="210" height="120" rx="10"/>
       <text x="36" y="290" class="t">Merge rule</text>
       <text x="36" y="314" class="b">every finding is</text>
-      <text x="36" y="334" class="b">fixed, or accepted</text>
-      <text x="36" y="354" class="b">under these rules</text>
+      <text x="36" y="334" class="b">fixed, resolved or</text>
+      <text x="36" y="354" class="b">accepted by rule</text>
       <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">8</text>
     </g>
     <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
@@ -208,7 +208,7 @@
 
   <section class="sub" id="bigpic">
   <h3 class="sec">The big picture</h3>
-  <p data-k="why">On PR #62, CI's review raised 36 findings over 7 pushes, none of them confirmed. The session read the 60,000-character review comment in full several times just to find each round's new ones, and every fix push drew about 7 new low findings. It took three owner decisions to end that loop.</p>
+  <p data-k="why">On PR #62, CI's review raised 36 findings over 7 pushes, none of them confirmed. The session read the review comment, up to 60,000 characters, in full several times just to find each round's new ones, and every fix push drew about 7 new low findings. It took three owner decisions to end that loop.</p>
   <div class="note" data-k="note">CI writes its state as JSON in hidden comment markers. The digest reads those, so it counts every finding even when the Markdown table is cut to fit, and it always prints the totals, so a finding it leaves out is still counted.</div>
   </section>
 
@@ -219,15 +219,15 @@
   <ol class="steps">
     <li data-k="1"><b>Ask the digest.</b> Whenever the session needs a PR's CI state, it starts the <code>pr-digest</code> agent with the PR number and, after the first time, the last digest's head SHA and highest finding ID. <code>CLAUDE.md</code> now forbids a full <code>get_comments</code> in the main session.</li>
     <li data-k="2"><b>Read in full.</b> The agent has only GitHub read tools, plus Read and Grep for <code>CLAUDE.md</code>. It reads the PR, its check runs, its commits, every comment and the review threads, in its own context.</li>
-    <li data-k="3"><b>Parse markers.</b> It parses <code>&lt;!-- review:state {...} --&gt;</code> for each finding's ID, severity, verdict and status, and <code>&lt;!-- pr-proof:status {...} --&gt;</code> for each check's state and the commit it covers. It also reads each commit's <code>Review-accept</code> trailer and flags a range like <code>R30-R36</code>.</li>
+    <li data-k="3"><b>Parse markers.</b> It parses <code>&lt;!-- review:state {...} --&gt;</code> for each finding's ID, severity, verdict and status, and <code>&lt;!-- pr-proof:status {...} --&gt;</code> for each check's state and the commit it covers. It also reads each commit's <code>Review-accept</code> trailer and flags a range like <code>R30-R36</code>, and checks whether build, verify and explainer ran their steps.</li>
     <li data-k="4"><b>About 20 lines.</b> Head, base and whether <code>main</code> moved; each check; finding totals by status; the new findings, one line each; the open ones split by low-unconfirmed and the rest; the latest <code>/visual-verify</code> verdict; unanswered owner comments; and one line on the merge rule.</li>
   </ol>
   <div class="lane-h" style="color:var(--accent)">② Answering a review round</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
     <li data-k="5"><b>One push.</b> All the fixes for one review's findings go out together, so each round costs one CI run and one new review.</li>
-    <li data-k="6"><b>Accept the lows.</b> After that one fix round, a finding that is <code>low</code> and not CONFIRMED is accepted, unless reading it shows a real bug that's quick to fix. It is accepted on a commit that changes only <code>explainers/</code>, which CI doesn't review, with <code>Review-accept: R30, R31</code>, each ID listed. A finding already marked <code>unconfirmed</code> counts as accepted with no trailer.</li>
-    <li data-k="7"><b>The rest.</b> A <code>medium</code> or <code>high</code> finding, or a CONFIRMED one, is fixed or brought to the owner, as before.</li>
-    <li data-k="8"><b>Merge rule.</b> "Every review finding is fixed" becomes "fixed or accepted under the CI review rules, none closed by a <code>Review-accept</code> the agent added outside them".</li>
+    <li data-k="6"><b>Accept the lows.</b> After that one fix round, a finding that is <code>low</code> and not CONFIRMED is accepted, unless reading it shows a real bug that's quick to fix. It is accepted on a commit that changes only <code>explainers/</code>, which CI doesn't review, with <code>Review-accept: R30, R31</code>, each ID listed. A low finding already marked <code>unconfirmed</code> counts as accepted with no trailer.</li>
+    <li data-k="7"><b>The rest.</b> A <code>medium</code> or <code>high</code> finding, or a CONFIRMED one, is fixed or brought to the owner, as before. That includes <code>unconfirmed</code> ones: CI stops re-checking them, so the explainer names the commit that fixed each.</li>
+    <li data-k="8"><b>Merge rule.</b> "Every review finding is fixed" becomes "fixed, resolved or accepted under the CI review rules, none closed by a <code>Review-accept</code> the agent added outside them".</li>
   </ol>
   </div>
   </section>
@@ -264,9 +264,9 @@ explainers/
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr data-k="c1"><td>The digest on PR #62</td><td>CHECK_C1</td><td class="ok">RESULT_C1</td></tr>
-    <tr data-k="c2"><td>The digest on this PR</td><td>CHECK_C2</td><td class="ok">RESULT_C2</td></tr>
-    <tr data-k="c3"><td>The rules on this PR's own review</td><td>CHECK_C3</td><td class="ok">RESULT_C3</td></tr>
+    <tr data-k="c1"><td>The digest on PR #62</td><td>A general agent told to follow <code>pr-digest.md</code>, on PR #62's final state, twice: before and after the review fixes</td><td class="ok">18 lines; R30–R36 accepted, R1–R29 unconfirmed, PASS for <code>05cc45a</code>; merge rule fails on R12, a medium the owner accepted off the PR</td></tr>
+    <tr data-k="c2"><td>The digest on this PR</td><td>The same agent, after each CI run of this PR, in place of reading its comments</td><td class="open">after this push's CI</td></tr>
+    <tr data-k="c3"><td>The rules on this PR's own review</td><td>One push per round; lows not confirmed accepted after one fix round</td><td class="open">after this push's CI</td></tr>
     <tr data-k="c4"><td>The agent bound by name</td><td>Needs a session started after the merge</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -274,7 +274,12 @@ explainers/
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">REVIEW_SUMMARY</p>
+  <p data-k="summary">A fresh agent, given only the diff and the two issues, found 8: 2 high, 3 medium, 3 low. All 8 are fixed. The first test run on PR #62 also showed the digest listing all 36 findings and judging the merge rule by the old wording; both are fixed.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Unconfirmed isn't always low:</b> CI marks any plausible finding <code>unconfirmed</code> after a round, medium and high too. Only low ones now count as accepted; the rest still need a fix or the owner.</li>
+    <li data-k="b2"><b>What the digest can see:</b> the review's skip reason is read from its one Markdown line, and whether jobs ran their steps comes from the run's job list.</li>
+    <li data-k="b3"><b>Smaller ones:</b> <code>main</code> moved is judged by ancestry, not dates; the trailer goes in the message's last paragraph; the merge rule names <code>resolved</code> findings too; an escape note had lost its backslash.</li>
+  </ul>
   <p data-k="ci">CI's own review of each push is in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/67">PR #67</a>.</p>
   </section>
 
