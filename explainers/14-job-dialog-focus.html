@@ -271,7 +271,7 @@ explainers/14-job-dialog-focus.narration.json  # its narration</pre>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage -b -us -uc</code> on Ubuntu 24.04 in this session</td><td class="ok">5 debs, no new warnings</td></tr>
     <tr data-k="c2"><td>What xfwm4 focuses</td><td>The GTK test program under Xvfb and xfwm4, with an xev window focused</td><td class="ok">modal on map: focused; raised parent: focused; mapped, then modal: not</td></tr>
-    <tr data-k="c3"><td>Dialogs open without the focus</td><td><code>verify/14.sh</code>: an xev window holds the focus while Thunar is asked over D-Bus to copy a 2 GB file, a file onto an existing one (three times) and a missing file</td><td class="ok">xev still focused every time</td></tr>
+    <tr data-k="c3"><td>Dialogs open without the focus</td><td><code>verify/14.sh</code>: an xev window holds the focus while Thunar is asked over D-Bus to copy a 3 GB file and, while its progress window shows, a 1 GB file, a file onto an existing one (three times) and a missing file</td><td class="ok">xev still focused every time</td></tr>
     <tr data-k="c4"><td>Typing goes to the other app</td><td>Typed text and Return after the replace dialog, and Return after the error dialog, opened</td><td class="ok">xev got Return; both dialogs still open, file unchanged</td></tr>
     <tr data-k="c5"><td>Enter in the dialog does nothing</td><td>Focused the replace dialog, pressed Return</td><td class="ok">dialog open, file unchanged</td></tr>
     <tr data-k="c6"><td>Cancel, Escape and Replace</td><td>Tab Tab Return; Escape on the second copy; Alt+R on the third</td><td class="ok">cancelled, cancelled, replaced</td></tr>
@@ -289,7 +289,7 @@ explainers/14-job-dialog-focus.narration.json  # its narration</pre>
   <ul class="tight">
     <li data-k="b1"><b>Fixed (medium):</b> the wait before making the dialog modal ended at once, because GTK marks a window as shown before the window manager maps it. It now waits for the real map, and closing the parent window can't destroy the dialog during that wait.</li>
     <li data-k="b2"><b>Fixed (medium):</b> the job error message still took the focus. It now opens through the same code, and <code>verify/14.sh</code> checks it.</li>
-    <li data-k="b3"><b>Fixed (low):</b> the test never showed the progress window without a question; it now copies a 2 GB file first.</li>
+    <li data-k="b3"><b>Fixed (low):</b> the test never showed the progress window without a question; it now copies a large file first.</li>
     <li data-k="b4"><b>Kept (low):</b> a progress window that is already open was no longer raised when a job needs attention. CI's review raised it again (R3, below), and that is now fixed.</li>
     <li data-k="b5"><b>Kept (low):</b> the question the Properties dialog asks when changing permissions of a folder's contents also opens without the focus and without a default button, since it uses the same dialog.</li>
   </ul>
@@ -297,8 +297,13 @@ explainers/14-job-dialog-focus.narration.json  # its narration</pre>
   <ul class="tight">
     <li data-k="ci1"><b>Fixed (medium):</b> the wait for the map still ended after one pass, because Thunar runs no <code>gtk_main</code> loop; it now runs the main context itself (R1).</li>
     <li data-k="ci2"><b>Fixed (low):</b> the job error dialog is titled "Error", and the test finds it by that title (R2, R10). The progress window is raised again when none of its dialogs is open, which a test program showed keeps the focus (R3).</li>
-    <li data-k="ci3"><b>Fixed (low):</b> no new doc comment or comments in the test (R7, R8), and the test copies 2 GB instead of 3 (R9).</li>
+    <li data-k="ci3"><b>Fixed (low):</b> no new doc comment or comments in the test (R7, R8), and the test copies 2 GB instead of 3 (R9); a later review put it back to 3 GB for margin (R16).</li>
     <li data-k="ci4"><b>Kept (low):</b> the permissions question follows the same rules, as #14 asks (R4); an input can't arrive while the dialog is not yet on screen (R5); and the focus handling stays in the one shared helper (R6).</li>
+  </ul>
+  <p data-k="ci-review2">CI's review of <code>db02bdf</code> confirmed both fixes and reported 7 more findings. It pushed its own fix for one (R11): a second copy started while the progress window is shown, which raises it. That test lost the race locally, so the first copy is 3 GB again and the second starts as soon as the window appears.</p>
+  <ul class="tight">
+    <li data-k="ci5"><b>Accepted (low):</b> no urgency hint or workspace switch (R13), a non-modal response loop instead of the map wait (R14), a reference held during the wait (R15), and un-minimizing a window whose dialog is open (R17). None shows a failure in Thunar.</li>
+    <li data-k="ci6"><b>For you to decide:</b> the question dialogs are still modal once they are on screen, as before #14 (R12), and R4 to R6 above.</li>
   </ul>
   </section>
 
