@@ -1,0 +1,326 @@
+{
+ "title": "PR #70 · Fewer jobs",
+ "voice": "af_heart",
+ "lines": [
+  {
+   "screen": "title",
+   "keys": [],
+   "caption": "This is a tour of pull request 70, which runs fewer CI jobs, edits fewer comments, and stops rebuilding after a merge.",
+   "from": [
+    "title",
+    "lead"
+   ],
+   "say": "This is a tour of pull request seventy, which runs fewer CI jobs, edits fewer comments, and stops rebuilding after a merge."
+  },
+  {
+   "screen": "title",
+   "keys": [
+    "p1",
+    "p2",
+    "p3"
+   ],
+   "caption": "It has three parts: what the PR adds, how it was built and verified, and what comes later."
+  },
+  {
+   "screen": "adds",
+   "keys": [],
+   "caption": "Part 1. What this PR adds."
+  },
+  {
+   "screen": "adds",
+   "keys": [
+    "intro"
+   ],
+   "caption": "Two jobs folded into others, a re-run job dropped, unchanged comments left alone, and debs reused after a merge."
+  },
+  {
+   "screen": "flow",
+   "keys": [
+    "1"
+   ],
+   "caption": "On a PR, the review job now pushes its fix and writes its comment itself, with no separate report job."
+  },
+  {
+   "screen": "flow",
+   "keys": [
+    "2"
+   ],
+   "caption": "When a comment's new text is the same as the old, CI skips the edit, so nobody is woken."
+  },
+  {
+   "screen": "flow",
+   "keys": [
+    "3"
+   ],
+   "caption": "A screenshot audit comment now updates the summary directly, instead of re-running a job."
+  },
+  {
+   "screen": "flow",
+   "keys": [
+    "4"
+   ],
+   "caption": "The PR still shows the same checks, minus the old report job."
+  },
+  {
+   "screen": "flow",
+   "keys": [
+    "5"
+   ],
+   "caption": "On a push to main, build looks for the merged PR's run whose build and verify passed."
+  },
+  {
+   "screen": "flow",
+   "keys": [
+    "6"
+   ],
+   "caption": "It reuses that run's debs only when they were built from the same files, with the same version."
+  },
+  {
+   "screen": "flow",
+   "keys": [
+    "7"
+   ],
+   "caption": "The release is now published at the end of the build job."
+  },
+  {
+   "screen": "flow",
+   "keys": [
+    "8"
+   ],
+   "caption": "And when the debs were reused, verify doesn't run again."
+  },
+  {
+   "screen": "bigpic",
+   "keys": [
+    "why"
+   ],
+   "caption": "Actions ran out of minutes on 7 November, partly because GitHub rounds every short job up to a whole minute.",
+   "say": "Actions ran out of minutes on the seventh of November, partly because GitHub rounds every short job up to a whole minute."
+  },
+  {
+   "screen": "bigpic",
+   "keys": [
+    "note"
+   ],
+   "caption": "So folding a ten-second job into one that already runs saves a whole billed minute."
+  },
+  {
+   "screen": "steps",
+   "keys": [
+    "1"
+   ],
+   "caption": "The report now runs from a second, fresh checkout holding the push token, which the model never touched."
+  },
+  {
+   "screen": "steps",
+   "keys": [
+    "1"
+   ],
+   "caption": "And since reviews already ran one at a time per branch, the twenty-minute wait for an earlier report is gone.",
+   "from": [
+    "1"
+   ]
+  },
+  {
+   "screen": "steps",
+   "keys": [
+    "2"
+   ],
+   "caption": "The comment script reads the comment first, and skips the edit when the new body is identical."
+  },
+  {
+   "screen": "steps",
+   "keys": [
+    "3"
+   ],
+   "caption": "The summary workflow now runs the summary script itself, once the head's build run has finished."
+  },
+  {
+   "screen": "steps",
+   "keys": [
+    "4"
+   ],
+   "caption": "The changes step, the no-code markers and ccache all stay, and the merge rule drops only the report job."
+  },
+  {
+   "screen": "steps",
+   "keys": [
+    "5"
+   ],
+   "caption": "A new script finds the merged PR's newest run with verified debs that haven't expired."
+  },
+  {
+   "screen": "steps",
+   "keys": [
+    "6"
+   ],
+   "caption": "PR builds now stamp the next release version and record their file tree, so the push can compare both."
+  },
+  {
+   "screen": "steps",
+   "keys": [
+    "7"
+   ],
+   "caption": "The release steps run at the end of build on a push, so build may now write to the repo."
+  },
+  {
+   "screen": "steps",
+   "keys": [
+    "8"
+   ],
+   "caption": "Reused debs skip verify, since the PR's run already tested those exact packages."
+  },
+  {
+   "screen": "stamp",
+   "keys": [
+    "s1"
+   ],
+   "caption": "Before, only a push stamped the version, so a PR's packages could never be released as they were."
+  },
+  {
+   "screen": "stamp",
+   "keys": [
+    "s2"
+   ],
+   "caption": "Now a PR build stamps the version the next release would get."
+  },
+  {
+   "screen": "stamp",
+   "keys": [
+    "s3"
+   ],
+   "caption": "If a release happened in between, or main moved, the versions or files differ, and the push builds its own."
+  },
+  {
+   "screen": "files",
+   "keys": [
+    "tree"
+   ],
+   "caption": "The PR changes the two workflows, four CI scripts, the digest agent and the merge rule, plus this page."
+  },
+  {
+   "screen": "files",
+   "keys": [
+    "undo"
+   ],
+   "caption": "To undo it, revert the PR. A new commit on main always builds its own packages."
+  },
+  {
+   "screen": "verified",
+   "keys": [],
+   "caption": "Part 2. How it was built and verified."
+  },
+  {
+   "screen": "verified",
+   "keys": [
+    "intro"
+   ],
+   "caption": "It was built from the jobs it folds and checked by a fresh review and this PR's own CI run. Thunar's code doesn't change."
+  },
+  {
+   "screen": "refs",
+   "keys": [
+    "r1"
+   ],
+   "caption": "The report steps moved from the old report job as they were, including its token checkout."
+  },
+  {
+   "screen": "refs",
+   "keys": [
+    "r2"
+   ],
+   "caption": "The release steps reuse the same two scripts, unchanged."
+  },
+  {
+   "screen": "refs",
+   "keys": [
+    "r3"
+   ],
+   "caption": "And the summary script already ran from any job, so the summary workflow calls it the same way."
+  },
+  {
+   "screen": "checks",
+   "keys": [
+    "c1"
+   ],
+   "caption": "Both workflows and every script were checked for syntax in the building session."
+  },
+  {
+   "screen": "checks",
+   "keys": [
+    "c2"
+   ],
+   "caption": "PLACEHOLDER_C2"
+  },
+  {
+   "screen": "checks",
+   "keys": [
+    "c3"
+   ],
+   "caption": "PLACEHOLDER_C3"
+  },
+  {
+   "screen": "review",
+   "keys": [
+    "summary"
+   ],
+   "caption": "PLACEHOLDER_REVIEW"
+  },
+  {
+   "screen": "aftermerge",
+   "keys": [
+    "a1",
+    "a2"
+   ],
+   "caption": "The release from build, and reusing a merged PR's debs, first run when this PR merges."
+  },
+  {
+   "screen": "aftermerge",
+   "keys": [
+    "a3"
+   ],
+   "caption": "The summary workflow's new path first runs on the next audit after the merge."
+  },
+  {
+   "screen": "later",
+   "keys": [],
+   "caption": "Part 3. What comes later."
+  },
+  {
+   "screen": "later",
+   "keys": [
+    "intro"
+   ],
+   "caption": "No open issue depends on this one; it closes the last of the minute-saving issues."
+  },
+  {
+   "screen": "next",
+   "keys": [
+    "n1",
+    "n2"
+   ],
+   "caption": "Together with pull request 69, CI now skips, caches, folds and reuses wherever it can.",
+   "say": "Together with pull request sixty-nine, CI now skips, caches, folds and reuses wherever it can."
+  },
+  {
+   "screen": "watch",
+   "keys": [
+    "1"
+   ],
+   "caption": "After the merge, its own run should reuse this PR's debs, publish from build and skip verify."
+  },
+  {
+   "screen": "watch",
+   "keys": [
+    "2"
+   ],
+   "caption": "The explainer job stays separate, since its check is part of the merge rule."
+  },
+  {
+   "screen": "title",
+   "keys": [],
+   "caption": "In short: the same checks, fewer billed minutes, and quieter PR comments.",
+   "from": []
+  }
+ ]
+}

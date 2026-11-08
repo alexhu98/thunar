@@ -28,7 +28,7 @@ never fix anything you find.
    `main` moved is `no` only when that SHA is among the head's ancestors (`list_commits` with `sha:` the head,
    paging back until you reach it or pass the PR's first commit), and `yes` otherwise. Anything you can't read
    counts as `yes`. For a merged or closed PR, write `n/a`.
-2. **Checks.** `pull_request_read get_check_runs` for the head: build, verify, explainer, review, review-report
+2. **Checks.** `pull_request_read get_check_runs` for the head: build, verify, explainer, review
    and summary, each as pass, fail, running, skipped or missing. A job that concluded `skipped` is `skipped`, never
    pass. For build, verify and explainer, also `actions_list list_workflow_jobs` on the build run (its ID is in the
    check run's `details_url`) and say whether each ran its steps or skipped them all.
@@ -81,7 +81,7 @@ Return exactly this, plus the `detail` lines when asked for, and nothing else: n
 ```
 PR #<n> <title> (<open|merged|closed>)
 head <sha12> · base main <sha12> · mergeable <state> · main moved since CI: yes|no|n/a (yes when unknown)
-checks: build <s> · verify <s> · explainer <s> · review <s> · review-report <s> · summary <s> (steps: ran|skipped)
+checks: build <s> · verify <s> · explainer <s> · review <s> · summary <s> (steps: ran|skipped)
 review: last ran on <sha12> · head <reviewed|skipped: reason>
 findings: <total> total · highest <Rn> · fixed <IDs> · resolved <IDs> · accepted <IDs> · unconfirmed <IDs, each with any mark> · open <IDs>
 new since <since or "the last review">:

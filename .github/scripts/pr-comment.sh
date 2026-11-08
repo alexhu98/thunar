@@ -4,7 +4,8 @@
 #   legacy delete deletes it
 #   get NAME      prints that comment's body (nothing if it doesn't exist yet)
 #   put NAME FILE makes sure all four exist, creating the missing ones as placeholders in the order summary, review,
-#                 verify, explainer, then replaces NAME's body with its marker and FILE.
+#                 verify, explainer, then replaces NAME's body with its marker and FILE, unless it already is that, so
+#                 an unchanged comment isn't edited and doesn't notify anyone.
 # A name's comment is its oldest comment by github-actions[bot] with that marker; the newer duplicates are deleted.
 # Env: PR (number), GH_REPO, OUT. DRY_RUN=1 prints the new comment instead of writing it.
 set -euo pipefail
@@ -94,6 +95,10 @@ put() {
   ensure
   id=$(id_of "$name")
   [[ -n $id ]] || { echo "::error::the $name comment is missing after creating it" >&2; exit 1; }
+  if [[ $(api "repos/{owner}/{repo}/issues/comments/$id" --jq .body 2>/dev/null) == "$(cat "$OUT/comment.md")" ]]; then
+    echo "the $name comment is unchanged"
+    return
+  fi
   api -X PATCH "repos/{owner}/{repo}/issues/comments/$id" -F body=@"$OUT/comment.md" --jq '"updated \(.html_url)"'
 }
 

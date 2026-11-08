@@ -19,14 +19,20 @@ jobs:
       group: pr-summary-${{ github.event.issue.number }}
       cancel-in-progress: false
     permissions:
-      actions: write
-      pull-requests: read
+      actions: read
+      contents: read
+      pull-requests: write
     env:
       GH_REPO: ${{ github.repository }}
       GH_TOKEN: ${{ github.token }}
       PR: ${{ github.event.issue.number }}
     steps:
-      - name: Re-run the summary job of the head's build run once it has finished
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Write the summary comment once the head's build run has finished
         run: |
           read -r repo base sha < <(gh api "repos/$GH_REPO/pulls/$PR" --jq '[.head.repo.full_name, .base.ref, .head.sha] | @tsv')
           if [[ $repo != "$GH_REPO" || $base != main ]]; then
@@ -36,17 +42,14 @@ jobs:
           run=$(gh api "repos/$GH_REPO/actions/workflows/build.yml/runs?head_sha=$sha&event=pull_request" --jq '.workflow_runs[0].id // empty')
           [[ -n $run ]] || { echo "::warning::no build run for ${sha::12}"; exit 0; }
           for ((i = 0; i < 110; i++)); do
-            read -r status job < <(gh api "repos/$GH_REPO/actions/runs/$run/jobs" \
-              --jq '[.jobs[] | select(.name == "summary")][0] // {} | "\(.status // "none") \(.id // "")"')
+            status=$(gh api "repos/$GH_REPO/actions/runs/$run/jobs" --jq '[.jobs[] | select(.name == "summary")][0].status // "none"')
             run_status=$(gh api "repos/$GH_REPO/actions/runs/$run" --jq .status)
             if [[ $status == none || $status == queued || $status == waiting || $status == pending ]] && [[ $run_status != completed ]]; then
               echo "the summary job of run $run hasn't started; it will read the audit when it runs"
               exit 0
             fi
             if [[ $run_status == completed ]]; then
-              [[ -n $job ]] || { echo "::warning::run $run has no summary job"; exit 0; }
-              gh api -X POST "repos/$GH_REPO/actions/jobs/$job/rerun"
-              echo "re-running job $job of run $run"
+              RUN_ID=$run HEAD_SHA=$sha python3 .github/scripts/pr-summary.py
               exit 0
             fi
             sleep 10
