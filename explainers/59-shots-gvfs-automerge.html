@@ -309,7 +309,7 @@ explainers/
     <tr data-k="c3"><td>Real errors fail at once</td><td>The stand-in answers HTTP 403, 404 and 413</td><td class="ok">3 of 3: 1 attempt, exit 1</td></tr>
     <tr data-k="c4"><td>Clashes still retried; six hiccups give up</td><td>A 409 then success; six 502s in a row; the run's next upload after that</td><td class="ok">uploaded; exit 1 after 6; next got 1 attempt</td></tr>
     <tr data-k="c5"><td>gvfs makes metadata writable</td><td>gvfs 1.54.4 from noble installed in the sandbox; <code>gio info -w</code>, <code>gio set</code> and a read back in a new D-Bus session, with a fresh <code>HOME</code> as verify uses</td><td class="ok">metadata writable; value kept</td></tr>
-    <tr data-k="c6"><td>The whole verify suite with gvfs</td><td>[SUITE-HOW]</td><td class="[SUITE-CLASS]">[SUITE-RESULT]</td></tr>
+    <tr data-k="c6"><td>The whole verify suite with gvfs</td><td>Debs built in the sandbox with <code>dpkg-buildpackage</code>, then <code>verify-proof.sh install</code> and <code>run</code>, as CI does: the smoke test, 3, 21, 22 and 49</td><td class="ok">5 of 5 pass; 21 ran its on-disk checks</td></tr>
     <tr data-k="c7"><td>The real Contents API under a hiccup</td><td>The sandbox can't write through the API, and a hiccup can't be caused on demand</td><td class="no">not run</td></tr>
   </table>
   </div>
