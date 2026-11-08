@@ -16,12 +16,14 @@ never fix anything you find.
 - `pr`: the PR number.
 - `since` (optional): the highest finding ID the caller has already seen, such as `R29`.
 - `last_head` (optional): the head SHA of the caller's previous digest.
+- `detail` (optional): finding IDs whose full `summary` and `detail` the caller needs, to fix them. Add one
+  line per ID below the digest.
 
 ## Method
 
 1. **The PR.** `pull_request_read get`: state (open, merged or closed), head SHA, base, mergeable state, title.
-   `list_commits` on `main` with `perPage: 1`: the current head of `main`. `main` moved since CI ran when that SHA
-   isn't the PR's `base.sha` and isn't an ancestor of the head (`list_commits` with `sha:` the head). For a merged
+   `list_commits` on `main` with `perPage: 1`: the current head of `main` and its committer date. `main` moved
+   since CI ran when that committer date is later than the build check run's `started_at` (step 2). For a merged
    or closed PR, write `n/a`.
 2. **Checks.** `pull_request_read get_check_runs` for the head: build, verify, explainer, review, review-report
    and summary, each as pass, fail, running, skipped or missing. A job that concluded `skipped` is `skipped`, never
@@ -34,15 +36,16 @@ never fix anything you find.
      check's state, its text and the SHA it covers. A status whose `sha` isn't the head is stale; say so.
    - `<!-- review:state {...} -->` in the review comment: `sha` (the last head a review ran on), `reason`, and
      `findings`, each with `id`, `severity`, `verdict`, `status`, `file`, `line`, `summary`, `detail`, `commit`.
-     CI writes `>` inside the JSON as the escape `>`, which any JSON parser reads back. Findings whose text
+     CI writes each `>` inside the JSON as the six characters `\u003e`, which any JSON parser reads back. Findings whose text
      was cut to fit the comment keep `id` and `status`; report them by ID.
    - The review comment's one Markdown line you do read: `Skipped <sha>: <reason>.`, the reason the review skipped
      the head. `state.sha` and `state.reason` only change when a review runs.
    A finding with `"new": true` appeared or changed status since the last review that ran; a skipped review
    doesn't clear it.
    Statuses: `fixed`, `resolved` and `accepted` are closed. `suggested` and `not fixed` are open. `unconfirmed` is
-   a finding that wasn't CONFIRMED, stayed open for a round and is no longer re-checked, whatever its severity: CI
-   won't record a later fix of it.
+   a finding that wasn't CONFIRMED, stayed open through the next review and is no longer re-checked, whatever its
+   severity: CI won't record a later fix of it, and a `Review-accept` trailer no longer changes it. It is neither
+   open nor closed; it has its own list.
 4. **Commits.** `pull_request_read get_commits`: each commit's `Review-accept:` trailer and the IDs it names, one
    by one. A range such as `R30-R36` closes only R30 and R36: flag it. When the review skipped the head, check
    with `get_commit` whether the head changes only `explainers/`.
@@ -54,8 +57,10 @@ never fix anything you find.
    thread isn't resolved. Note any owner comment that accepts or decides on a finding ID.
 7. **The merge rule.** Read the merge rule and the CI review section in `CLAUDE.md` and check each condition
    against what you found. Under those rules a finding is settled when it is `fixed` or `resolved`; `accepted` or
-   `unconfirmed` while `low` and not CONFIRMED; or `accepted` or `unconfirmed` at any other severity when an
-   owner comment decided it or a later PR commit names it as fixed. List every finding that isn't settled. This
+   `unconfirmed` while `low` and not CONFIRMED; `unconfirmed` at any other severity when a later commit's message
+   names its ID as fixed (`Fixes R4`) or an owner comment decided it; or `accepted` at any other severity only
+   when an owner comment decided it, since a trailer the agent added can't settle it. List every finding that
+   isn't settled. This
    line is your judgement; the caller checks the gate again before merging.
 
 ## Output
@@ -70,7 +75,7 @@ review: last ran on <sha12> · head <reviewed|skipped: reason>
 findings: <total> total · highest <Rn> · fixed <IDs> · resolved <IDs> · accepted <IDs> · unconfirmed <IDs> · open <IDs>
 new since <since or "the last review">:
   <Rn> <severity> <verdict> <file>:<line> <status> <summary, one line>
-low, not CONFIRMED, open: <IDs or "none">
+low, not CONFIRMED, open (`suggested` or `not fixed`): <IDs or "none">
 medium/high or CONFIRMED, not settled: <IDs, each with its status, or "none">
 Review-accept trailers: <commit12>: <IDs> … (or "none"; flag any range)
 visual-verify: <VERDICT> for <sha12> (head|not head) (or "none")
@@ -78,7 +83,8 @@ owner comments unanswered: <n> — <link or one-line quote each> (or "none")
 merge rule: holds | fails: <each condition that fails, one line>
 ```
 
-Write ID lists compactly: `R1–R29` for a consecutive run, with an en dash, `none` for an empty one. Without
+Write ID lists compactly: `R1–R29` for a consecutive run, with an en dash, `none` for an empty one. These ranges
+are for reading only; a `Review-accept` trailer lists each ID. Without
 `since`, list the findings with `"new": true`; with it, the findings numbered above it plus those up to it with
 `"new": true`. When `last_head` isn't the head, say on the head line how many commits came after it. The ID lists
 cover every finding, so one you don't list on its own line is still counted. Keep the digest near 20 lines; when

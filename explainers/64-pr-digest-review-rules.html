@@ -225,8 +225,8 @@
   <div class="lane-h" style="color:var(--accent)">② Answering a review round</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
     <li data-k="5"><b>One push.</b> All the fixes for one review's findings go out together, so each round costs one CI run and one new review.</li>
-    <li data-k="6"><b>Accept the lows.</b> After that one fix round, a finding that is <code>low</code> and not CONFIRMED is accepted, unless reading it shows a real bug that's quick to fix. It is accepted on a commit that changes only <code>explainers/</code>, which CI doesn't review, with <code>Review-accept: R30, R31</code>, each ID listed. A low finding already marked <code>unconfirmed</code> counts as accepted with no trailer.</li>
-    <li data-k="7"><b>The rest.</b> A <code>medium</code> or <code>high</code> finding, or a CONFIRMED one, is fixed or brought to the owner, as before. That includes <code>unconfirmed</code> ones: CI stops re-checking them, so the explainer names the commit that fixed each.</li>
+    <li data-k="6"><b>Accept the lows.</b> After that one fix round, a <code>low</code> finding that isn't CONFIRMED, from any later review, is accepted, unless reading it shows a real bug that's quick to fix. It is accepted on a commit that changes only <code>explainers/</code>, which CI doesn't review, with <code>Review-accept: R30, R31</code>, each ID listed. A low finding already marked <code>unconfirmed</code> counts as accepted with no trailer.</li>
+    <li data-k="7"><b>The rest.</b> A <code>medium</code> or <code>high</code> finding, or a CONFIRMED one, is fixed or brought to the owner, as before. That includes <code>unconfirmed</code> ones: CI stops re-checking them, so the fixing commit's message names each ID, as in <code>Fixes R4</code>.</li>
     <li data-k="8"><b>Merge rule.</b> "Every review finding is fixed" becomes "fixed, resolved or accepted under the CI review rules, none closed by a <code>Review-accept</code> the agent added outside them".</li>
   </ol>
   </div>
@@ -265,8 +265,8 @@ explainers/
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>The digest on PR #62</td><td>A general agent told to follow <code>pr-digest.md</code>, on PR #62's final state, twice: before and after the review fixes</td><td class="ok">18 lines; R30–R36 accepted, R1–R29 unconfirmed, PASS for <code>05cc45a</code>; merge rule fails on R12, a medium the owner accepted off the PR</td></tr>
-    <tr data-k="c2"><td>The digest on this PR</td><td>The same agent, after each CI run of this PR, in place of reading its comments</td><td class="open">after this push's CI</td></tr>
-    <tr data-k="c3"><td>The rules on this PR's own review</td><td>One push per round; lows not confirmed accepted after one fix round</td><td class="open">after this push's CI</td></tr>
+    <tr data-k="c2"><td>The digest on this PR</td><td><code>pr-digest</code>, bound by name once the session picked it up, after CI's first review</td><td class="ok">23 lines: 9 findings, 1 CONFIRMED, each on one line</td></tr>
+    <tr data-k="c3"><td>The rules on this PR's own review</td><td>CI's first review found 9; all fixed in one push whose message names each ID</td><td class="ok">round 1: 1 push for 9 findings</td></tr>
     <tr data-k="c4"><td>The agent bound by name</td><td>Needs a session started after the merge</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -278,9 +278,9 @@ explainers/
   <ul class="tight">
     <li data-k="b1"><b>Unconfirmed isn't always low:</b> CI marks any plausible finding <code>unconfirmed</code> after a round, medium and high too. Only low ones now count as accepted; the rest still need a fix or the owner.</li>
     <li data-k="b2"><b>What the digest can see:</b> the review's skip reason is read from its one Markdown line, and whether jobs ran their steps comes from the run's job list.</li>
-    <li data-k="b3"><b>Smaller ones:</b> <code>main</code> moved is judged by ancestry, not dates; the trailer goes in the message's last paragraph; the merge rule names <code>resolved</code> findings too; an escape note had lost its backslash.</li>
+    <li data-k="b3"><b>Smaller ones:</b> whether <code>main</code> moved has a defined test; the trailer goes in the message's last paragraph; the merge rule names <code>resolved</code> findings too; an escape note had lost its backslash.</li>
   </ul>
-  <p data-k="ci">CI's own review of each push is in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/67">PR #67</a>.</p>
+  <p data-k="ci">CI's first review, at <code>high</code> in 4 minutes, found 9 more: 5 medium, 4 low, one of them confirmed. All 9 are fixed in one push. The digest now reads which commit fixed an <code>unconfirmed</code> finding from its message, judges whether <code>main</code> moved by dates, and can return a finding's full text. The rules now say which reviews' lows are accepted, and that scripts reading a comment themselves are unaffected. Its code review comment on <a href="https://github.com/alexhu98/thunar/pull/67">PR #67</a> has every finding.</p>
   </section>
 
   <section class="sub" id="aftermerge">
