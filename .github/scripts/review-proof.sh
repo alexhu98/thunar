@@ -8,7 +8,7 @@
 #            findings with the commits since each was found, the accepted findings and the prompt to $OUT. Prints its decisions as key=value lines for $GITHUB_OUTPUT.
 #   collect  after the review: saves the findings ($FINDINGS, the action's structured_output) and the working-tree
 #            fix as a patch, for the report job.
-#   report   runs from a copy of these scripts outside the tree, which the fix changes. When the review left a fix to push, in the separate review-report job holding the push token: commits and
+#   report   when the review left a fix to push, in the separate review-report job holding the push token: commits and
 #            pushes the fix as claude[bot]. Otherwise as the review job's last step, without that token. Either way posts the other
 #            findings as suggested changes, writes the review comment through pr-comment.sh and then the summary
 #            through pr-summary.py, and fails while confirmed medium or high findings stay unresolved.
@@ -355,12 +355,6 @@ for f, rs in fork.items():
 
 report() {
   : "${HEAD_SHA:?}" "${HEAD_REF:?}"
-  if [[ -z ${REVIEW_PROOF_COPY:-} ]]; then
-    REVIEW_PROOF_COPY=$(mktemp -d)
-    cp "$HERE"/{review-proof.sh,review-state.py,pr-comment.sh,pr-summary.py} "$REVIEW_PROOF_COPY/"
-    export REVIEW_PROOF_COPY
-    exec "$REVIEW_PROOF_COPY/review-proof.sh" report
-  fi
   local result=${REVIEW_RESULT:-success} commit= note= mins= failed=() ids i unresolved
   state > "$OUT/state.json"
   rm -f "$OUT/fixed-files.txt" "$OUT/fixed.json"

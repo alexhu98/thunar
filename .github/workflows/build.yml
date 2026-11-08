@@ -364,6 +364,7 @@ jobs:
         run: rm -rf .review-report
 
       - uses: actions/checkout@v4
+        id: report-checkout
         if: ${{ !cancelled() && steps.plan.outputs.superseded != '1' && steps.collect.outputs.fix != '1' }}
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -372,7 +373,7 @@ jobs:
           persist-credentials: false
 
       - name: Post suggestions and report
-        if: ${{ !cancelled() && steps.plan.outputs.superseded != '1' && steps.collect.outputs.fix != '1' }}
+        if: ${{ !cancelled() && steps.report-checkout.outcome == 'success' }}
         working-directory: .review-report
         env:
           GH_TOKEN: ${{ github.token }}

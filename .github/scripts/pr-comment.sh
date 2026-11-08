@@ -47,7 +47,7 @@ legacy() {
 
 get() {
   local body
-  body=$(list | awk -v n="${1:?name}" '$2 == n {print $3; exit}')
+  body=$(list | awk -v n="${1:?name}" '$2 == n && !f {print $3; f = 1}')
   [[ -z $body ]] || { printf '%s' "$body" | base64 -d; echo; }
 }
 
