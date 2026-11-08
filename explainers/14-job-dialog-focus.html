@@ -143,9 +143,9 @@
     <g data-k="3">
       <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
       <text x="536" y="90" class="t">Needs attention</text>
-      <text x="536" y="114" class="b">raised, but only</text>
-      <text x="536" y="134" class="b">un-minimized while</text>
-      <text x="536" y="154" class="b">its dialog is open</text>
+      <text x="536" y="114" class="b">un-minimized only,</text>
+      <text x="536" y="134" class="b">never raised, so</text>
+      <text x="536" y="154" class="b">it can't take focus</text>
       <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
     </g>
     <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
@@ -197,7 +197,7 @@
   <section class="sub" id="bigpic">
   <h3 class="sec">The big picture</h3>
   <p data-k="why">During a long copy, Thunar's progress window popped up and took the keyboard away from the app you were typing in. When the copy hit a file that already existed, the replace dialog did the same, and its default button answered the next Enter: in the question dialog that was Cancel, so a stray Enter cancelled the whole copy.</p>
-  <div class="note" data-k="note">Asking not to be focused is not enough for a modal dialog: xfwm4 focuses a modal dialog when it is mapped, and when its parent is raised, whatever the dialog asks. So the dialog is mapped before it becomes modal, and the progress window is not raised while a dialog of its own is open.</div>
+  <div class="note" data-k="note">Asking not to be focused is not enough for a modal dialog: xfwm4 focuses a modal dialog when it is mapped, and when its parent is raised, whatever the dialog asks. So the dialog is mapped before it becomes modal, and a progress window already on screen is never raised.</div>
   </section>
 
   <section class="sub" id="steps">
@@ -207,7 +207,7 @@
   <ol class="steps">
     <li data-k="1"><b>You copy files.</b> You start a copy or move in Thunar and go back to typing in another app.</li>
     <li data-k="2"><b>After 500 ms.</b> If the job is still running, <code>thunar_application_show_progress_dialog_timeout</code> now calls the new <code>thunar_progress_dialog_raise</code> instead of <code>gtk_window_present</code>. A hidden window is shown with <code>gtk_widget_show</code>; the window already asks not to be focused when it appears.</li>
-    <li data-k="3"><b>Needs attention.</b> When a job asks a question, the progress window is shown the same way. If it is already visible, it is raised without the focus, unless one of its own dialogs is open: then it is only un-minimized (<code>gdk_window_show_unraised</code>), because raising it made xfwm4 focus that dialog.</li>
+    <li data-k="3"><b>Needs attention.</b> When a job asks a question, the progress window is shown the same way. If it is already visible, it is only un-minimized (<code>gdk_window_show_unraised</code>): raising it made xfwm4 give it the focus whenever another app's window covered it, or focus its dialog.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② When the job asks a question or fails</div>
   <ol class="steps" start="4" style="counter-reset: s 3">
@@ -237,7 +237,7 @@
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
-<pre data-k="tree">thunar/thunar-progress-dialog.c   # new thunar_progress_dialog_raise: show and raise without focus
+<pre data-k="tree">thunar/thunar-progress-dialog.c   # new thunar_progress_dialog_raise: show without focus, never raise
 thunar/thunar-progress-dialog.h   # its declaration
 thunar/thunar-application.c       # the 500 ms timer calls it instead of gtk_window_present
 thunar/thunar-dialogs.c           # no default buttons; thunar_dialogs_run_job_dialog runs the job dialogs
@@ -290,13 +290,13 @@ explainers/14-job-dialog-focus.narration.json  # its narration</pre>
     <li data-k="b1"><b>Fixed (medium):</b> the wait before making the dialog modal ended at once, because GTK marks a window as shown before the window manager maps it. It now waits for the real map, and closing the parent window can't destroy the dialog during that wait.</li>
     <li data-k="b2"><b>Fixed (medium):</b> the job error message still took the focus. It now opens through the same code, and <code>verify/14.sh</code> checks it.</li>
     <li data-k="b3"><b>Fixed (low):</b> the test never showed the progress window without a question; it now copies a folder of 30000 empty files first.</li>
-    <li data-k="b4"><b>Kept (low):</b> a progress window that is already open was no longer raised when a job needs attention. CI's review raised it again (R3, below), and that is now fixed.</li>
+    <li data-k="b4"><b>Kept (low):</b> a progress window that is already open is no longer raised when a job needs attention, because raising it can move the focus (R3, below).</li>
     <li data-k="b5"><b>Kept (low):</b> the question the Properties dialog asks when changing permissions of a folder's contents also opens without the focus and without a default button, since it uses the same dialog.</li>
   </ul>
   <p data-k="ci-review">CI's review of <code>0483279</code> (level high) reported 10 findings, 1 of them medium. They are in the code review PR comment, the second of CI's comments. The fixes are in the next commit, and the build and <code>verify/14.sh</code> were run again on it.</p>
   <ul class="tight">
     <li data-k="ci1"><b>Fixed (medium):</b> the wait for the map still ended after one pass, because Thunar runs no <code>gtk_main</code> loop; it now runs the main context itself (R1).</li>
-    <li data-k="ci2"><b>Fixed (low):</b> the job error dialog is titled "Error", and the test finds it by that title (R2, R10). The progress window is raised again when none of its dialogs is open, which a test program showed keeps the focus (R3).</li>
+    <li data-k="ci2"><b>Fixed (low):</b> the job error dialog is titled "Error", and the test finds it by that title (R2, R10). The progress window was raised again when none of its dialogs was open (R3); that was taken back in the next round.</li>
     <li data-k="ci3"><b>Fixed (low):</b> no new doc comment or comments in the test (R7, R8), and the test no longer writes gigabytes (R9, R16): a 2 GB file copied in under 500 ms on CI, so it copies 30000 empty files instead.</li>
     <li data-k="ci4"><b>Kept (low):</b> the permissions question follows the same rules, as #14 asks (R4); an input can't arrive while the dialog is not yet on screen (R5); and the focus handling stays in the one shared helper (R6).</li>
   </ul>
@@ -304,6 +304,11 @@ explainers/14-job-dialog-focus.narration.json  # its narration</pre>
   <ul class="tight">
     <li data-k="ci5"><b>Accepted (low):</b> no urgency hint or workspace switch (R13), a non-modal response loop instead of the map wait (R14), a reference held during the wait (R15), and un-minimizing a window whose dialog is open (R17). None shows a failure in Thunar.</li>
     <li data-k="ci6"><b>For you to decide:</b> the question dialogs are still modal once they are on screen, as before #14 (R12), and R4 to R6 above.</li>
+  </ul>
+  <p data-k="ci-review3">CI's review of <code>b5ad18b</code> pushed a fix to the test that checks the progress window is raised above another window (R18 to R20, R22). Run here, that check showed the R3 change was wrong: when the editor covered the progress window, raising it gave it the focus. The raise was taken out again, and the test now checks that a covered progress window keeps the focus off it.</p>
+  <ul class="tight">
+    <li data-k="ci7"><b>Accepted (low):</b> the 60 s wait leaves enough margin for the 35000-file copies (R24), and counting files with <code>ls</code> is fine in a fresh folder (R25).</li>
+    <li data-k="ci8"><b>For you to decide:</b> whether a progress window already on screen should be raised at all (R3, R19), since raising it can take the focus.</li>
   </ul>
   </section>
 
