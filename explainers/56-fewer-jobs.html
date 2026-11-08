@@ -302,7 +302,7 @@ explainers/
   <p data-k="ci7">CI's seventh review passed with 7 lows. The 3 confirmed ones and one more are fixed: <code>suggested</code> is set only once suggestions were posted (R32, R34), a failed report checkout prints its warning (R33), and the report clears its marker when it starts (R37). R35 (the merge rule, with the owner), R36 and R38 are accepted.</p>
   <p data-k="ci8">CI's eighth review passed with 4 lows. Holding <code>suggested</code> back after a partial post would make <code>review-report</code> post the whole batch again (R39), so it is now set once posting was tried, and the IDs that failed travel in <code>suggest_failed</code>. The dead marker cleanup is gone (R40) and the header says what the output means (R41). R42, the extra warning step, is accepted.</p>
   <p data-k="ci9">CI's ninth review passed with 3 lows, none confirmed, all about the same suggestions hand-over in the rare case the in-job report fails between posting and writing the comment: R43, R44 and R45 are accepted, which ends the rounds.</p>
-  <p data-k="owner">The owner decided the rest: the <code>CLAUDE.md</code> merge rule now allows <code>review-report</code> to be skipped when the review reported itself (R3), and R4, R5 and R20, the costs of the in-job report, are accepted.</p>
+  <p data-k="owner">The owner decided the rest: the <code>CLAUDE.md</code> merge rule now allows <code>review-report</code> to be skipped when the review reported itself (R3), and R4, R5 and R20, the costs of the in-job report, are accepted. The review of that edit found one unconfirmed low, R46, on how a session tells why review-report skipped; it is accepted.</p>
   </section>
 
   <section class="sub" id="aftermerge">

@@ -1,7 +1,7 @@
 {
   "title": "PR #70 · Fewer jobs",
   "voice": "af_heart",
-  "page_sha256": "d03dba8db2b7323a9dda4f63af9fcff323e98d7d9a0a7c20274a919de3b85519",
+  "page_sha256": "27da09525f9575b00b4955538b04d4a5b902701ca352ecdb2fc0182386aad8e0",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 70, which runs fewer CI jobs and edits CI's PR comments less often.", "from": ["title", "lead"], "say": "This is a tour of pull request seventy, which runs fewer CI jobs and edits CI's PR comments less often.", "src": "ec2c4100889e"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what the PR adds, how it was built and verified, and what comes later.", "src": "e7fece3382b9"},
@@ -51,7 +51,7 @@
     {"screen": "review", "keys": ["ci7"], "caption": "The seventh review passed; four small fixes went in, and three small findings were accepted.", "src": "824e8593a59a"},
     {"screen": "review", "keys": ["ci8"], "caption": "The eighth review passed; the suggestions hand-over now passes on which ones failed, so nothing is posted twice.", "src": "0d9834953d11"},
     {"screen": "review", "keys": ["ci9"], "caption": "The ninth review passed with three unconfirmed small findings, which are accepted, ending the rounds.", "src": "884917e87ac0"},
-    {"screen": "review", "keys": ["owner"], "caption": "The owner approved the merge rule change and accepted the in-job report's three known costs.", "src": "99e1352c926e"},
+    {"screen": "review", "keys": ["owner"], "caption": "The owner approved the merge rule change and accepted the in-job report's three known costs; one small finding on that edit was accepted too.", "src": "1af8314b33b6"},
     {"screen": "aftermerge", "keys": ["a1"], "caption": "The release from verify first runs when this PR merges.", "src": "7d56b67aee8e"},
     {"screen": "aftermerge", "keys": ["a3"], "caption": "The summary workflow's new path first runs on the next audit after the merge.", "src": "1bf55be2ba8c"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later.", "src": "06d3107df253"},
@@ -115,7 +115,7 @@
     "review/ci7": "824e8593a59a",
     "review/ci8": "0d9834953d11",
     "review/ci9": "884917e87ac0",
-    "review/owner": "99e1352c926e",
+    "review/owner": "1af8314b33b6",
     "aftermerge/a1": "7d56b67aee8e",
     "aftermerge/a3": "1bf55be2ba8c",
     "see/l1": "4f7ec85ae96a",
