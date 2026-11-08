@@ -357,6 +357,7 @@ for f, rs in fork.items():
 report() {
   : "${HEAD_SHA:?}" "${HEAD_REF:?}"
   local result=${REVIEW_RESULT:-success} commit= note= mins= failed=() ids i unresolved
+  rm -f "$OUT/reported"
   state > "$OUT/state.json"
   rm -f "$OUT/fixed-files.txt" "$OUT/fixed.json"
   if [[ ! -s $IN/plan.json ]]; then
@@ -447,8 +448,10 @@ EOF
       done
       (( ${#failed[@]} == 0 )) || echo "::warning::suggestions ${failed[*]} could not be posted" >&2
     fi
+    if [[ -n ${GITHUB_OUTPUT:-} && ${DRY_RUN:-0} != 1 ]] && (( ${#failed[@]} == 0 )); then
+      echo suggested=1 >> "$GITHUB_OUTPUT"
+    fi
   fi
-  [[ -z ${GITHUB_OUTPUT:-} || ${DRY_RUN:-0} == 1 ]] || echo suggested=1 >> "$GITHUB_OUTPUT"
   unresolved=$(python3 "$HERE/review-state.py" render "$OUT" "$GH_REPO" "$HEAD_SHA" "$result" "$note" "${failed[@]}")
   OUT="$OUT/comment" "$HERE/pr-comment.sh" put review "$OUT/section.md"
   if [[ -n ${GITHUB_OUTPUT:-} && ${DRY_RUN:-0} != 1 ]]; then

@@ -380,6 +380,10 @@ jobs:
           path: .review-report
           persist-credentials: false
 
+      - name: Report checkout failed
+        if: ${{ !cancelled() && steps.report-checkout.outcome == 'failure' }}
+        run: echo "::warning::the report checkout failed; review-report reports instead"
+
       - name: Post suggestions and report
         id: report
         if: ${{ !cancelled() && steps.report-checkout.outcome == 'success' }}
