@@ -1,7 +1,7 @@
 {
   "title": "PR #72 · Batch skill",
   "voice": "af_heart",
-  "page_sha256": "7b569e6cc02afbf385a8d1300bcf0ed15f03d2f8417eb91a3925bd2ef302b49f",
+  "page_sha256": "0320f42bb76cadd3669937a303917d4a8ef959cf8d8e4dfbf913961a3c69730a",
   "lines": [
     {"screen": "title", "keys": [], "from": ["title", "lead"], "caption": "This is a tour of pull request 72, which adds a batch skill that runs several issues as grouped PRs.", "say": "This is a tour of pull request seventy-two, which adds a batch skill that runs several issues as grouped pull requests.", "src": "5a89d11e13b4"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what the PR adds, how it was built and verified, and what comes later.", "src": "69ee23940a96"},
@@ -42,6 +42,7 @@
     {"screen": "review", "keys": ["ci6"], "caption": "The review after that found nine more. Six were fixed, and you accepted three as limits of a safety net.", "src": "7da8e7e40bfd"},
     {"screen": "review", "keys": ["ci7"], "caption": "The review after that found seven more about skipped groups, all fixed.", "src": "37ceef3d83f1"},
     {"screen": "review", "keys": ["ci8"], "caption": "The last review found six more, all fixed. You accepted four as limits of a safety net that looks every 90 minutes.", "say": "The last review found six more, all fixed. You accepted four as limits of a safety net that looks every ninety minutes.", "src": "12f96f3557e4"},
+    {"screen": "review", "keys": ["ci9"], "caption": "The next review found six more. Now one rule decides when a group may start, so nothing passes the stop point.", "src": "d443cc149f77"},
     {"screen": "aftermerge", "keys": ["a1", "a2"], "caption": "A full batch, and a blocked child's question, can only be seen once you run it.", "src": "15da2ce01ea2"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later.", "src": "7fa20632c3eb"},
     {"screen": "later", "keys": ["intro"], "caption": "No issue depends on this one. The next step is a small first batch.", "src": "befcdeb94aff"},
@@ -102,6 +103,7 @@
     "review/ci6": "7da8e7e40bfd",
     "review/ci7": "37ceef3d83f1",
     "review/ci8": "12f96f3557e4",
+    "review/ci9": "d443cc149f77",
     "aftermerge/a1": "c9e25935773d",
     "aftermerge/a2": "25e3e2997ba7",
     "see/l1": "31006ec9852d",
