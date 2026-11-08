@@ -1,7 +1,7 @@
 {
   "title": "PR #72 · Batch skill",
   "voice": "af_heart",
-  "page_sha256": "49152311625dc924546c3f9833df4ff7040770632419f14c13a5da78f5ba9f1d",
+  "page_sha256": "0e9808bbc569866f7f6d31c42344b673f69ed3442d9b4c7c89565c3653cdba81",
   "lines": [
     {"screen": "title", "keys": [], "from": ["title", "lead"], "caption": "This is a tour of pull request 72, which adds a batch skill that runs several issues as grouped PRs.", "say": "This is a tour of pull request seventy-two, which adds a batch skill that runs several issues as grouped pull requests.", "src": "5a89d11e13b4"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what the PR adds, how it was built and verified, and what comes later.", "src": "69ee23940a96"},
@@ -38,6 +38,7 @@
     {"screen": "review", "keys": ["ci2"], "caption": "Its second review found nine more about when you get told. The check-in now tells you only when a child's condition changes.", "src": "5591fc14e7ad"},
     {"screen": "review", "keys": ["ci3"], "caption": "The third review found nine more. Now the batch stops at its stop point, and children report their PR and when they resume.", "src": "36a43bed3e5e"},
     {"screen": "review", "keys": ["ci4"], "caption": "The fourth review still found edge cases, so you chose to simplify: the children's messages now carry every event.", "src": "dc59c60102a9"},
+    {"screen": "review", "keys": ["ci5"], "caption": "Its next review found eight more small gaps. Seven were fixed, and one was accepted as part of the design you chose.", "src": "acdcf5b93175"},
     {"screen": "aftermerge", "keys": ["a1", "a2"], "caption": "A full batch, and a blocked child's question, can only be seen once you run it.", "src": "15da2ce01ea2"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later.", "src": "7fa20632c3eb"},
     {"screen": "later", "keys": ["intro"], "caption": "No issue depends on this one. The next step is a small first batch.", "src": "befcdeb94aff"},
@@ -94,6 +95,7 @@
     "review/ci2": "5591fc14e7ad",
     "review/ci3": "36a43bed3e5e",
     "review/ci4": "dc59c60102a9",
+    "review/ci5": "acdcf5b93175",
     "aftermerge/a1": "c9e25935773d",
     "aftermerge/a2": "25e3e2997ba7",
     "see/l1": "31006ec9852d",
