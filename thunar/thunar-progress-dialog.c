@@ -443,13 +443,39 @@ thunar_progress_dialog_n_jobs (ThunarProgressDialog *dialog)
 
 
 
+static gboolean
+thunar_progress_dialog_has_visible_transient (ThunarProgressDialog *dialog)
+{
+  gboolean found = FALSE;
+  GList   *toplevels;
+  GList   *lp;
+
+  toplevels = gtk_window_list_toplevels ();
+  for (lp = toplevels; lp != NULL && !found; lp = lp->next)
+    found = gtk_window_get_transient_for (lp->data) == GTK_WINDOW (dialog) && gtk_widget_get_visible (lp->data);
+  g_list_free (toplevels);
+
+  return found;
+}
+
+
+
 void
 thunar_progress_dialog_raise (ThunarProgressDialog *dialog)
 {
+  GdkWindow *window;
+
   _thunar_return_if_fail (THUNAR_IS_PROGRESS_DIALOG (dialog));
 
-  if (gtk_widget_get_visible (GTK_WIDGET (dialog)))
-    gdk_window_show_unraised (gtk_widget_get_window (GTK_WIDGET (dialog)));
+  if (!gtk_widget_get_visible (GTK_WIDGET (dialog)))
+    {
+      gtk_widget_show (GTK_WIDGET (dialog));
+      return;
+    }
+
+  window = gtk_widget_get_window (GTK_WIDGET (dialog));
+  if (thunar_progress_dialog_has_visible_transient (dialog))
+    gdk_window_show_unraised (window);
   else
-    gtk_widget_show (GTK_WIDGET (dialog));
+    gdk_window_show (window);
 }

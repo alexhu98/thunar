@@ -608,8 +608,7 @@ thunar_dialogs_run_job_dialog (GtkDialog *dialog)
   handler_id = g_signal_connect (dialog, "map-event", G_CALLBACK (thunar_dialogs_job_dialog_mapped), &mapped);
   gtk_widget_show (GTK_WIDGET (dialog));
   while (!mapped && gtk_widget_get_visible (GTK_WIDGET (dialog)))
-    if (gtk_main_iteration ())
-      break;
+    g_main_context_iteration (NULL, TRUE);
   g_signal_handler_disconnect (dialog, handler_id);
   gtk_window_set_destroy_with_parent (GTK_WINDOW (dialog), destroy_with_parent);
 
@@ -618,15 +617,6 @@ thunar_dialogs_run_job_dialog (GtkDialog *dialog)
 
 
 
-/**
- * thunar_dialogs_show_job_error:
- * @parent       : the parent #GtkWindow or %NULL.
- * @error        : the #GError of the job.
- * @primary_text : the primary text of the dialog.
- *
- * Utility function to display an error dialog for the ThunarJob::error
- * signal.
- **/
 void
 thunar_dialogs_show_job_error (GtkWindow    *parent,
                                const GError *error,
@@ -636,7 +626,7 @@ thunar_dialogs_show_job_error (GtkWindow    *parent,
 
   _thunar_return_if_fail (parent == NULL || GTK_IS_WINDOW (parent));
 
-  dialog = xfce_message_dialog_new (parent, NULL, "dialog-error", primary_text,
+  dialog = xfce_message_dialog_new (parent, _("Error"), "dialog-error", primary_text,
                                     error != NULL ? error->message : NULL,
                                     XFCE_BUTTON_TYPE_MIXED, "window-close-symbolic", _("_Close"), GTK_RESPONSE_CLOSE,
                                     NULL);
