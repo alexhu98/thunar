@@ -16,15 +16,18 @@ never fix anything you find.
 - `pr`: the PR number.
 - `since` (optional): the highest finding ID the caller has already seen, such as `R29`.
 - `last_head` (optional): the head SHA of the caller's previous digest.
-- `detail` (optional): finding IDs whose full `summary` and `detail` the caller needs, to fix them. Add one
-  line per ID below the digest.
+- `detail` (optional): finding IDs the caller needs in full, to fix them. Below the digest, give each one's
+  `summary` and `detail` from the review state and, when it has one, the text of its review thread (the suggested
+  change and its failure scenario).
 
 ## Method
 
 1. **The PR.** `pull_request_read get`: state (open, merged or closed), head SHA, base, mergeable state, title.
-   `list_commits` on `main` with `perPage: 1`: the current head of `main` and its committer date. `main` moved
-   since CI ran when that committer date is later than the build check run's `started_at` (step 2). For a merged
-   or closed PR, write `n/a`.
+   `list_commits` on `main` with `perPage: 1`: the current head of `main`. CI builds the PR merged with the `main`
+   of the moment it was triggered, which no API records, so judge whether the branch contains `main` instead:
+   `main` moved is `no` only when that SHA is among the head's ancestors (`list_commits` with `sha:` the head,
+   paging back until you reach it or pass the PR's first commit), and `yes` otherwise. Anything you can't read
+   counts as `yes`. For a merged or closed PR, write `n/a`.
 2. **Checks.** `pull_request_read get_check_runs` for the head: build, verify, explainer, review, review-report
    and summary, each as pass, fail, running, skipped or missing. A job that concluded `skipped` is `skipped`, never
    pass. For build, verify and explainer, also `actions_list list_workflow_jobs` on the build run (its ID is in the
@@ -47,8 +50,9 @@ never fix anything you find.
    severity: CI won't record a later fix of it, and a `Review-accept` trailer no longer changes it. It is neither
    open nor closed; it has its own list.
 4. **Commits.** `pull_request_read get_commits`: each commit's `Review-accept:` trailer and the IDs it names, one
-   by one. A range such as `R30-R36` closes only R30 and R36: flag it. When the review skipped the head, check
-   with `get_commit` whether the head changes only `explainers/`.
+   by one. A range such as `R30-R36` closes only R30 and R36: flag it. Each commit message's `Fixes R4, R6` line,
+   and with `get_commit` whether that commit changes each named finding's file. When the review skipped the head,
+   check with `get_commit` whether the head changes only `explainers/`.
 5. **The screenshot audit.** The latest comment holding `<!-- visual-verify <sha> -->` and a `VERDICT:` line, by
    the owner, a collaborator or `claude[bot]`. Report its verdict and SHA, and whether that SHA is the head.
 6. **The owner's comments.** Comments by `alexhu98` (issue comments and `get_review_comments` threads) that don't
@@ -56,20 +60,22 @@ never fix anything you find.
    when no comment with that footer follows it (in its thread, for review comments) and, for review threads, the
    thread isn't resolved. Note any owner comment that accepts or decides on a finding ID.
 7. **The merge rule.** Read the merge rule and the CI review section in `CLAUDE.md` and check each condition
-   against what you found. Under those rules a finding is settled when it is `fixed` or `resolved`; `accepted` or
-   `unconfirmed` while `low` and not CONFIRMED; `unconfirmed` at any other severity when a later commit's message
-   names its ID as fixed (`Fixes R4`) or an owner comment decided it; or `accepted` at any other severity only
-   when an owner comment decided it, since a trailer the agent added can't settle it. List every finding that
-   isn't settled. This
-   line is your judgement; the caller checks the gate again before merging.
+   against what you found. The first review's findings are those with the earliest `sha` in the state; the
+   others came from later reviews. Under those rules a finding is settled when it is:
+   - `fixed` or `resolved`;
+   - `accepted` or `unconfirmed`, `low`, not CONFIRMED, and from a later review;
+   - `unconfirmed` otherwise, when a later commit's `Fixes` line names it and that commit changes its file;
+   - `accepted` otherwise, only when an owner comment decided it, since a trailer the agent added can't.
+   List every finding that isn't settled. This line is your judgement; the caller checks the gate again before
+   merging.
 
 ## Output
 
-Return exactly this, and nothing else: no preamble, no recommendations.
+Return exactly this, plus the `detail` lines when asked for, and nothing else: no preamble, no recommendations.
 
 ```
 PR #<n> <title> (<open|merged|closed>)
-head <sha12> · base main <sha12> · mergeable <state> · main moved since CI: yes|no|n/a
+head <sha12> · base main <sha12> · mergeable <state> · main moved since CI: yes|no|n/a (yes when unknown)
 checks: build <s> · verify <s> · explainer <s> · review <s> · review-report <s> · summary <s> (steps: ran|skipped)
 review: last ran on <sha12> · head <reviewed|skipped: reason>
 findings: <total> total · highest <Rn> · fixed <IDs> · resolved <IDs> · accepted <IDs> · unconfirmed <IDs> · open <IDs>
