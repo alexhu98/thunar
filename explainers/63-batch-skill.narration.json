@@ -1,9 +1,9 @@
 {
-  "title": "PR #71 · Batch skill",
+  "title": "PR #72 · Batch skill",
   "voice": "af_heart",
-  "page_sha256": "eff19067aef7ee144674f65b550bf9f7ffcba3111647417b6f27ec911572fb6d",
+  "page_sha256": "2a0d88257cc95b36967769e63ddca2c1be028a5f969c7dff1a6c97bb409cae3d",
   "lines": [
-    {"screen": "title", "keys": [], "from": ["title", "lead"], "caption": "This is a tour of pull request 71, which adds a batch skill that runs several issues as grouped PRs.", "say": "This is a tour of pull request seventy-one, which adds a batch skill that runs several issues as grouped pull requests.", "src": "ee98466d1a66"},
+    {"screen": "title", "keys": [], "from": ["title", "lead"], "caption": "This is a tour of pull request 72, which adds a batch skill that runs several issues as grouped PRs.", "say": "This is a tour of pull request seventy-two, which adds a batch skill that runs several issues as grouped pull requests.", "src": "5a89d11e13b4"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what the PR adds, how it was built and verified, and what comes later.", "src": "69ee23940a96"},
     {"screen": "adds", "keys": [], "caption": "Part 1. What this PR adds.", "src": "ad559dc5c403"},
     {"screen": "adds", "keys": ["intro"], "caption": "One new skill: an orchestrator that plans, tracks and starts child sessions, and checks on them without reading PR noise.", "src": "b350cf049aba"},
@@ -37,10 +37,10 @@
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later.", "src": "7fa20632c3eb"},
     {"screen": "later", "keys": ["intro"], "caption": "No issue depends on this one. The next step is a small first batch.", "src": "befcdeb94aff"},
     {"screen": "dryrun", "keys": ["1", "2"], "caption": "Run it on two doc-only issues, and check the tracking issue ends complete and the orchestrator stays small.", "src": "b64b298e8b71"},
-    {"screen": "title", "keys": [], "from": ["title"], "caption": "That's the PR: one small session that runs many issues, each in a fresh session of its own.", "src": "d83f6f2b402a"}
+    {"screen": "title", "keys": [], "from": ["title"], "caption": "That's the PR: one small session that runs many issues, each in a fresh session of its own.", "src": "491aa66f32ff"}
   ],
   "page_text": {
-    "title/title": "d83f6f2b402a",
+    "title/title": "491aa66f32ff",
     "title/lead": "59d510299827",
     "title/p1": "e2dcca34ab6e",
     "title/p2": "0d01b98be0dc",
@@ -88,7 +88,7 @@
     "review/ci": "973e61c3d66e",
     "aftermerge/a1": "c9e25935773d",
     "aftermerge/a2": "25e3e2997ba7",
-    "see/l1": "a4bcf2933a4f",
+    "see/l1": "31006ec9852d",
     "see/l2": "587b0f01f45c",
     "later/label": "090b293c4121",
     "later/heading": "afdcd57591d9",
