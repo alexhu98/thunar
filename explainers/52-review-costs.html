@@ -224,7 +224,7 @@
 
   <section class="sub" id="gate">
   <h3 class="sec">The merge rule</h3>
-  <p data-k="gate">The agent merges only once a review has covered the head. A head that is CI's own fix is now skipped, so the agent doesn't merge on one. Its next push, usually the explainer update that records the review, is reviewed from before the fix, so the fix gets its review then.</p>
+  <p data-k="gate">The agent merges only once a review has covered the head, and a head that is CI's own fix is now skipped, so the agent never merges on one. The agent's next push is reviewed from before the fix, so the fix gets its review then. With nothing left to push, the agent asks you instead.</p>
   </section>
 
   <section class="sub" id="files">
@@ -236,7 +236,7 @@
 │   └── pr-summary.py                 # "stopped" for a cancelled review; waits for a review of CI's fix
 └── workflows/build.yml               # REVIEW_LEVEL high; Review step 30 min, job 55; no report when superseded
 .claude/skills/explainer/SKILL.md     # the new skips, in its CI review notes
-CLAUDE.md                             # the new skips; no merge on CI's own fix commit
+CLAUDE.md                             # the new skips; ask the owner when stuck on CI's own fix
 explainers/
 ├── 52-review-costs.html              # this page
 └── 52-review-costs.narration.json    # its narration, stamped from this page</pre>
