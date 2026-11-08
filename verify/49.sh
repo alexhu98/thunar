@@ -139,6 +139,14 @@ selected_is folder inner1 inner2 inner3 file1
 shot "$MAIN" after-expanded "Four Shift+Down presses selected folder, its children inner1 to inner3 and file1 (5 items selected)"
 pair expanded "Expanded folder, then pressed Shift+Down four times from it" "Shift+Down steps into the expanded folder and selects its children, never a placeholder" "folder expanded, folder selected" "folder, inner1-3 and file1 selected" "$E"
 
+click_row 3
+keys shift+Down ctrl+Up ctrl+Up ctrl+Up ctrl+Up Left shift+Down
+selected_is folder file1
+click_row 0
+keys Right
+sleep 1
+click_row 4
+
 keys Down
 selected_is file2
 keys Up Up
