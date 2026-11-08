@@ -8,8 +8,9 @@ VERDICT: line; the latest posted wins). Without RUN_ID it uses the latest build 
 (ready for review, or the first failing, running or awaited check), the checks table, the key result and the shots
 table from the verify comment's data, through pr-comment.sh. Does nothing when HEAD_SHA is no longer the PR's head, so
 an older run can't overwrite a newer summary. Every job that writes a comment calls it and the summary job calls it
-last; the pr-summary workflow re-runs that summary job when an audit comment is posted or edited. After writing it
-reads everything again and writes again, up to twice, if anything changed meanwhile.
+last; when an audit comment is posted or edited, the pr-summary workflow calls it too, once the head's build run has
+finished. After writing it reads everything again and writes again, up to twice, if anything changed meanwhile;
+pr-comment.sh leaves the comment alone when the new body is the same.
 Env: PR, GH_REPO, HEAD_SHA, RUN_ID, RUN_URL, BUILD_RESULT, OUT. DRY_RUN=1 prints the comment instead of writing it.
 """
 import json

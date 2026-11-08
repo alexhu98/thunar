@@ -4,7 +4,8 @@
 #   legacy delete deletes it
 #   get NAME      prints that comment's body (nothing if it doesn't exist yet)
 #   put NAME FILE makes sure all four exist, creating the missing ones as placeholders in the order summary, review,
-#                 verify, explainer, then replaces NAME's body with its marker and FILE.
+#                 verify, explainer, then replaces NAME's body with its marker and FILE, unless it already is that, so
+#                 an unchanged comment isn't edited and doesn't notify anyone.
 # A name's comment is its oldest comment by github-actions[bot] with that marker; the newer duplicates are deleted.
 # Env: PR (number), GH_REPO, OUT. DRY_RUN=1 prints the new comment instead of writing it.
 set -euo pipefail
@@ -25,15 +26,11 @@ api() {
   return 1
 }
 
-list() {  # -> "ID NAME" for every marked comment by the bot, oldest first
+list() {  # -> "ID NAME BODY" (BODY in base64) for every marked comment by the bot, oldest first
   [[ -n ${PR:-} ]] || return 0
   api --paginate "repos/{owner}/{repo}/issues/$PR/comments" --jq '.[]
     | select(.user.login == "github-actions[bot]" and (.body | test("^<!-- pr-proof:[a-z]+ -->")))
-    | "\(.id) \(.body | capture("^<!-- pr-proof:(?<n>[a-z]+) -->").n)"' | sort -n
-}
-
-id_of() {
-  list | awk -v n="$1" '$2 == n {print $1; exit}'
+    | "\(.id) \(.body | capture("^<!-- pr-proof:(?<n>[a-z]+) -->").n) \(.body | @base64)"' | sort -n
 }
 
 legacy() {
@@ -49,9 +46,9 @@ legacy() {
 }
 
 get() {
-  local id
-  id=$(id_of "${1:?name}")
-  [[ -z $id ]] || api "repos/{owner}/{repo}/issues/comments/$id" --jq .body
+  local body
+  body=$(list | awk -v n="${1:?name}" '$2 == n && !f {print $3; f = 1}')
+  [[ -z $body ]] || { printf '%s' "$body" | base64 -d; echo; }
 }
 
 placeholder() {
@@ -82,7 +79,7 @@ ensure() {
 }
 
 put() {
-  local name=${1:?name} file=${2:?file} id
+  local name=${1:?name} file=${2:?file} id body
   [[ " ${NAMES[*]} " == *" $name "* ]] || { echo "unknown comment $name; one of ${NAMES[*]}" >&2; exit 2; }
   { printf '<!-- pr-proof:%s -->\n' "$name"; cat "$file"; } > "$OUT/comment.md"
   if [[ ${DRY_RUN:-0} == 1 ]]; then
@@ -92,8 +89,12 @@ put() {
   fi
   [[ -n ${PR:-} ]] || { echo "put needs PR" >&2; exit 1; }
   ensure
-  id=$(id_of "$name")
-  [[ -n $id ]] || { echo "::error::the $name comment is missing after creating it" >&2; exit 1; }
+  read -r id _ body < <(awk -v n="$name" '$2 == n {print; exit}' "$OUT/list") || true
+  [[ -n ${id:-} ]] || { echo "::error::the $name comment is missing after creating it" >&2; exit 1; }
+  if [[ $(printf '%s' "${body:-}" | base64 -d) == "$(cat "$OUT/comment.md")" ]]; then
+    echo "the $name comment is unchanged"
+    return
+  fi
   api -X PATCH "repos/{owner}/{repo}/issues/comments/$id" -F body=@"$OUT/comment.md" --jq '"updated \(.html_url)"'
 }
 
