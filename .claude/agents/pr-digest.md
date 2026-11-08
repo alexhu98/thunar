@@ -32,7 +32,8 @@ never fix anything you find.
    and summary, each as pass, fail, running, skipped or missing. A job that concluded `skipped` is `skipped`, never
    pass. review-report runs when the review left a fix to push, or when the review job's own report step didn't
    write the review comment; otherwise review-report is `skipped`, which the merge rule allows. For build, verify and explainer, also `actions_list list_workflow_jobs` on the build run (its ID is in the
-   check run's `details_url`) and say whether each ran its steps or skipped them all.
+   check run's `details_url`) and say whether each ran its steps, ran `No code changed` (the job and its `No code changed` step both
+   concluded `success`; it skipped its other build steps), or skipped them all.
 3. **CI's comments.** `pull_request_read get_comments`, `perPage: 10`, every page. A result too large to show is
    saved to a file; `Read` it, with `allow_large` when it is one long line. CI's four comments are by `github-actions[bot]` and start with
    `<!-- pr-proof:summary -->`, `review`, `verify` or `explainer`. Parse the hidden markers, not the tables:
@@ -82,7 +83,7 @@ Return exactly this, plus the `detail` lines when asked for, and nothing else: n
 ```
 PR #<n> <title> (<open|merged|closed>)
 head <sha12> · base main <sha12> · mergeable <state> · main moved since CI: yes|no|n/a (yes when unknown)
-checks: build <s> · verify <s> · explainer <s> · review <s> · review-report <s> · summary <s> (steps: ran|skipped)
+checks: build <s> · verify <s> · explainer <s> · review <s> · review-report <s> · summary <s> (steps: build <ran|No code changed|skipped> · verify <…> · explainer <…>)
 review: last ran on <sha12> · head <reviewed|skipped: reason>
 findings: <total> total · highest <Rn> · fixed <IDs> · resolved <IDs> · accepted <IDs> · unconfirmed <IDs, each with any mark> · open <IDs>
 new since <since or "the last review">:

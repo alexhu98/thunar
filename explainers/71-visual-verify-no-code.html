@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #77 Audit skip</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #77: no screenshot audit when CI took no shots</h1>
+  <p class="lead" data-k="lead">Branch <code>71-visual-verify-no-code</code> → <code>main</code>, closes #71. On a PR whose build and verify ran <code>No code changed</code>, <code>/visual-verify</code> now says “not needed” instead of returning INCONCLUSIVE, so a docs-only PR no longer lands on the owner.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">A new Step 0 in the skill, before its preflight, for <code>pr:&lt;n&gt;</code>, fed by the <code>pr-digest</code> agent, which now names the <code>No code changed</code> step in its checks line.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="visual-verify asks pr-digest how build and verify ran, and stops with not needed when both ran No code changed">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① /visual-verify pr:&lt;n&gt;: the new Step 0</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Ask the digest</text>
+      <text x="36" y="114" class="m">pr-digest &lt;n&gt;</text>
+      <text x="36" y="134" class="b">for the PR's</text>
+      <text x="36" y="154" class="b">current head</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Read the steps</text>
+      <text x="286" y="114" class="b">build and verify:</text>
+      <text x="286" y="134" class="b">ran, No code</text>
+      <text x="286" y="154" class="b">changed, or skipped</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Both no code?</text>
+      <text x="536" y="114" class="b">keyed on that step,</text>
+      <text x="536" y="134" class="b">never on a missing</text>
+      <text x="536" y="154" class="b">manifest</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-you" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Not needed</text>
+      <text x="786" y="114" class="b">prints one line;</text>
+      <text x="786" y="134" class="b">no verdict, no</text>
+      <text x="786" y="154" class="b">PR comment</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M625,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② Otherwise: the audit as before</text>
+    <g data-k="5">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Preflight</text>
+      <text x="536" y="314" class="b">manifest, head SHA;</text>
+      <text x="536" y="334" class="b">INCONCLUSIVE only</text>
+      <text x="536" y="354" class="b">for real problems</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Audit, verdict</text>
+      <text x="786" y="314" class="b">shot-audit, then</text>
+      <text x="786" y="334" class="b">PASS, FAIL or</text>
+      <text x="786" y="354" class="b">INCONCLUSIVE</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow" d="M730,320 H766" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new check</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>unchanged audit</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>what you see when it stops</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Since #55, a PR that changes only explainers, agent setup or Markdown builds nothing: build and verify each run a <code>No code changed</code> step instead of their real steps, and no shots reach the <code>shots</code> branch. <code>CLAUDE.md</code> already says no audit is needed then, but the skill still said to run after every verify run. Run anyway, it found no manifest for the head and returned INCONCLUSIVE, which sends the PR to the owner.</p>
+  <div class="note" data-k="note">The skill can't call the GitHub API itself, so it gets the step names from <code>pr-digest</code>, which already reads the build run's jobs.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① /visual-verify pr:&lt;n&gt;: the new Step 0</div>
+  <ol class="steps">
+    <li data-k="1"><b>Ask the digest.</b> Before reading any manifest, the skill takes the <code>checks:</code> line of a <code>pr-digest</code> digest whose head is the PR's current head: the caller's, or a new one it starts.</li>
+    <li data-k="2"><b>Read the steps.</b> <code>pr-digest</code> now writes, for build, verify and explainer, whether each ran its steps, ran <code>No code changed</code>, or skipped them all, from the build run's job list. While build or verify is still running, the skill waits and asks again.</li>
+    <li data-k="3"><b>Both no code?</b> The skill stops only when build and verify both ran <code>No code changed</code>. A missing or stale manifest alone never counts, so a verify run that skipped by mistake still gives INCONCLUSIVE.</li>
+    <li data-k="4"><b>Not needed.</b> It prints “not needed: build and verify ran <code>No code changed</code>, so CI took no shots” and stops, with no <code>VERDICT:</code> line and no PR comment. The summary already shows “not needed” for that head.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② Otherwise: the audit as before</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Preflight.</b> Step 1's existing checks follow unchanged: the manifest exists, every shot has its intent, and its SHA is the head's.</li>
+    <li data-k="6"><b>Audit, verdict.</b> <code>shot-audit</code> reads every PNG, and the skill prints the table and its verdict for the PR comment, as before.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">.claude/skills/visual-verify/SKILL.md  # description, the Step 0 check, the callers' contract
+.claude/agents/pr-digest.md            # names the No code changed step per job
+explainers/71-visual-verify-no-code.html            # this page
+explainers/71-visual-verify-no-code.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo it, revert this PR. Agents then skip the skill on such PRs by <code>CLAUDE.md</code>'s rule alone, as before.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The change is instructions for agents, so it was checked by review and by this PR's own CI run, which is itself a no-code run.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>pr-summary.py</h3><p>Its <code>job_states()</code> already detects a job whose <code>No code changed</code> step succeeded, and prints “not needed: verify took no shots” as the audit row.</p></div>
+    <div class="card" data-k="r2"><h3>CLAUDE.md's merge rule</h3><p>It already needs no verdict when build and verify ran <code>No code changed</code>. The skill now says the same.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Step name matches CI's</td><td><code>grep</code> in this session: <code>NO_CODE_STEP</code> in <code>pr-summary.py</code> and the step in <code>build.yml</code></td><td class="ok">same: “No code changed”</td></tr>
+    <tr data-k="c2"><td>This PR runs no code</td><td>CI's build and verify on this PR, which changes only <code>.claude/</code> and <code>explainers/</code></td><td class="open">see the summary comment</td></tr>
+    <tr data-k="c3"><td>A docs-only PR gets “not needed” from the skill</td><td>Needs the merged skill on a later docs-only PR</td><td class="no">not run before merge</td></tr>
+    <tr data-k="c4"><td>A code PR still gets a full audit</td><td>Needs the merged skill on a later code PR</td><td class="no">not run before merge</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh general-purpose agent reviewed the diff against the issue and found 6 problems, all fixed:</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Ambiguous wording in <code>pr-digest</code>:</b> “ran only its step” is false for build, which also checks out and checks what changed; and which of job or step must succeed. It now says the job and the step both succeed.</li>
+    <li data-k="b2"><b>Contradictions in the skill:</b> Step 1 says every failure is INCONCLUSIVE, and the contract says the last line is always <code>VERDICT:</code>. The check moved to its own Step 0, and the contract names the exception.</li>
+    <li data-k="b3"><b>Gaps:</b> a caller's old digest could be reused, and a run still in progress fell through to INCONCLUSIVE. The digest must now match the head, and the skill waits for a running build or verify.</li>
+  </ul>
+  <p data-k="ci">CI's own review is in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/77">PR #77</a>.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>The skill prints “not needed” on a docs-only PR and posts nothing</td><td>Agents load the skill from <code>main</code></td><td class="open">the next docs-only PR</td></tr>
+    <tr data-k="a2"><td>A code PR still gets its audit and posted verdict</td><td>Same</td><td class="open">the next code PR</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/77">PR #77</a> → “Files changed”</li>
+    <li data-k="l2">Its summary comment: build and verify say “skipped: the PR changes no code”, and the audit row says “not needed”.</li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later</h2>
+  <p class="intro" data-k="intro">No open issue builds on this one. The next docs-only PR is the first to use it.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR, then the next docs-only PR uses it">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">After the merge</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Skill knows</text>
+      <text x="36" y="114" class="b">this PR: “not</text>
+      <text x="36" y="134" class="b">needed” on no-code</text>
+      <text x="36" y="154" class="b">CI runs</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Next docs PR</text>
+      <text x="286" y="114" class="b">merges by the rule,</text>
+      <text x="286" y="134" class="b">with no owner ask</text>
+      <text x="286" y="154" class="b">for the audit</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not happened yet</span>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="nocode"><dt>No code changed</dt><dd>The step build and verify run, instead of their real steps, on a PR that changes no code, packaging or CI files.</dd></div>
+    <div data-k="vv"><dt>/visual-verify</dt><dd>The skill that audits CI's screenshots and posts a PASS, FAIL or INCONCLUSIVE verdict.</dd></div>
+    <div data-k="digest"><dt>pr-digest</dt><dd>A read-only agent that sums up a PR's CI state in about 20 lines.</dd></div>
+    <div data-k="inc"><dt>INCONCLUSIVE</dt><dd>The verdict when the audit can't be trusted; it sends the PR to the owner.</dd></div>
+    <div data-k="manifest"><dt>verify.tsv</dt><dd>The manifest of shots CI writes to the shots branch, one row per shot.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
