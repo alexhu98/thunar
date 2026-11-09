@@ -319,6 +319,7 @@ explainers/14-job-dialog-focus.narration.json  # its narration</pre>
   <p data-k="ci-review5">CI's review of the branch merged with <code>main</code> (<code>432b16d</code>) covered the whole PR again and reported 7 more findings. The function is renamed <code>thunar_progress_dialog_show_unraised</code>, since it never raises a shown window (R40); the buttons lose a leftover "can be default" flag (R39); and the permissions job error opens without the focus too (R37).</p>
   <ul class="tight">
     <li data-k="ci11"><b>Accepted (low):</b> the worst case of the retry path (R35), the short wait before the dialog is modal (R36), and keeping <code>gtk_dialog_run</code> rather than a custom loop (R38).</li>
+    <li data-k="ci12"><b>Kept, as you decided:</b> a minimized progress window is mapped again without being raised, and the window manager restores it (R34); un-minimizing it explicitly would raise it and could take the focus.</li>
   </ul>
   </section>
 
