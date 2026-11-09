@@ -199,7 +199,7 @@
   <div class="panel">
   <div class="lane-h" style="color:var(--accent)">① Each frame: build() picks the zoom</div>
   <ol class="steps">
-    <li data-k="1"><b>Widen the box.</b> Video mode lays a screen out in a 1060 px box. <code>build()</code> now finds the largest overflow among the highlighted elements and the boxes around them, the most any one's content is wider than its own box, and widens the box by that much, again while each step at least halves the overflow, so a wide table fits across. Overflow elsewhere on the screen is left alone, and overflow that remains is a problem.</li>
+    <li data-k="1"><b>Widen the box.</b> Video mode lays a screen out in a 1060 px box. <code>build()</code> now finds the largest overflow among the highlighted elements and the boxes around them, the most any one's content is wider than its own box, and widens the box by that much, again while each step makes progress, so a wide table fits across. Overflow elsewhere on the screen is left alone, and overflow that remains is a problem.</li>
     <li data-k="2"><b>Pick the zoom.</b> Unchanged: the largest zoom that fits the stage, up to 1.9 for a subsection, and at least 1.55 when the width allows it. It now uses the widened box's width.</li>
     <li data-k="3"><b>Fit highlights.</b> New: the highlighted elements' combined height, plus room for their outline, must fit the 733 px stage. If not, the zoom goes down until it does, even below 1.55.</li>
     <li data-k="4"><b>Check the frame.</b> Each highlighted element must be fully on screen and the caption at most 2 lines, as before. New: a zoom below 1, too small to read, is also a problem.</li>
@@ -282,6 +282,7 @@ explainers/83-make-video-fit.narration.json  # its narration</pre>
     <li data-k="r3"><b>Accepted by the owner:</b> R4, CI's fonts can differ from your Chrome's, so a frame near the edge may pass in one and fail in the other. #83 asked for CI to check the frames, so this is by design.</li>
     <li data-k="r4"><b>Later reviews:</b> 12 more findings, none confirmed. Fixed: widening is kept when it shrinks the overflow, even if some remains (R9, R10); <code>render --force</code> again stops on a missing key (R16); the zoom message rounds down (R13); “run stamp” isn't suggested when stamping won't fix it (R19); the skill notes mention the zoom limit (R12). The other lows are accepted.</li>
     <li data-k="r5"><b>Fourth review:</b> 2 confirmed mediums and 2 confirmed lows, all fixed. Widening now repeats while each step at least halves the overflow, and what still overflows is a problem, so a table is never cut off silently (R21, R22). <code>status</code> says “run stamp once the video mode problems are fixed” (R23), and keeps a missing line's other problems (R24).</li>
+    <li data-k="r6"><b>Fifth review:</b> passed, with 3 confirmed lows, all fixed: widening keeps going while it makes progress and is undone if overflow remains (R25), only the missing-key message is dropped (R24), and the skill notes list the overflow problem (R26). R27, unconfirmed, is accepted.</li>
   </ul>
   </section>
 

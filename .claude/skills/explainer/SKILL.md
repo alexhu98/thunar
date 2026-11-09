@@ -78,7 +78,7 @@ Written and stamped in the session that builds the PR, from the final page. `sta
 4. After any later page edit, including a review fix: run `status`, rewrite the stale lines and add lines for new text, then `stamp` again. Leave unchanged lines byte-for-byte as they are, so their cached voice clips are reused.
 5. In the PR description, list any word you're unsure how Kokoro will say (names, abbreviations, numbers), so the owner checks it with `phonemes`.
 
-CI's explainer job runs `make-video.py status` for the branch's issue and for every explainer page or narration the PR adds or changes, and for every narration when the PR changes `make-video.py`. It fails when a narration is missing, stale (page text changed after the stamp), names keys the page no longer has, or has a video mode problem that `render` would refuse (a highlighted element that can't be fully on screen, a zoom below 1, a caption over 2 lines), and reports each result in the explainer PR comment.
+CI's explainer job runs `make-video.py status` for the branch's issue and for every explainer page or narration the PR adds or changes, and for every narration when the PR changes `make-video.py`. It fails when a narration is missing, stale (page text changed after the stamp), names keys the page no longer has, or has a video mode problem that `render` would refuse (a highlighted element that can't be fully on screen, content that still overflows its frame, a zoom below 1, a caption over 2 lines), and reports each result in the explainer PR comment.
 
 All commands are `.claude/skills/explainer/make-video.py <cmd> <n>`. Chrome comes from `$CHROME`, default `google-chrome`. In the cloud container, full Chromium hangs on `--dump-dom`; use the Playwright headless shell:
 

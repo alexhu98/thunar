@@ -235,14 +235,15 @@ function build(f) {
   const st = stage.getBoundingClientRect();
   const wide = [...zoom.querySelectorAll('*')].filter(e => !hl.length || hl.some(h => e.contains(h) || h.contains(e)));
   const overflow = () => Math.max(0, ...wide.map(e => e.scrollWidth - e.clientWidth));
+  const start = zoom.style.width;
   let over = overflow();
   while (over > 1) {
-    const base = zoom.style.width;
     zoom.style.width = (zoom.getBoundingClientRect().width + over) + 'px';
     const left = overflow();
-    if (left > over / 2) { zoom.style.width = base; break; }
+    if (left >= over - 1) break;
     over = left;
   }
+  if (over > 1) { zoom.style.width = start; over = overflow(); }
   if (over > 1) problems.push(`content of "${f.screen}" overflows by ${Math.ceil(over)} px`);
   const nat = zoom.getBoundingClientRect();
   const fitWidth = st.width / nat.width;
@@ -354,7 +355,7 @@ def page_text(texts):
 
 def video_problems(pr, missing=()):
     return [f'line {i}: {p}' for i, fr in enumerate(pr['frames']) for p in fr['problems']
-            if i not in missing or not p.startswith(('key ', 'screen '))]
+            if i not in missing or not re.fullmatch(r'key ".*" not in screen ".*"|screen ".*" not found', p)]
 
 
 def status(n, quiet=False):
