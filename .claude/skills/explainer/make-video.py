@@ -237,10 +237,10 @@ function build(f) {
   const overflow = () => Math.max(0, ...wide.map(e => e.scrollWidth - e.clientWidth));
   const start = zoom.style.width;
   let over = overflow();
-  while (over > 1) {
+  for (let step = 0; over > 1 && step < 50; step++) {
     zoom.style.width = (zoom.getBoundingClientRect().width + over) + 'px';
     const left = overflow();
-    if (left >= over - 1) break;
+    if (left >= over) break;
     over = left;
   }
   if (over > 1) { zoom.style.width = start; over = overflow(); }
