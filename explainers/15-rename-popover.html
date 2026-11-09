@@ -312,6 +312,11 @@ explainers/15-rename-popover.narration.json  # its narration</pre>
     <li data-k="ci12"><b>Fixed (low):</b> the rename callback may be empty and owns the job (R25); one check for an open popover instead of two (R28); a named key instead of a repeated string (R29); the popover reads the name the same way as the dialog (R31).</li>
     <li data-k="ci13"><b>Accepted (low):</b> handlers and destroying the popover from its own signals are safe in GTK, as CI's own check found (R26, R27), and the flag that ignores the second close is kept (R30).</li>
   </ul>
+  <p data-k="ci-review5">CI's review of <code>4ff44f4</code> reported 4 more findings, all fixed in the next commit.</p>
+  <ul class="tight">
+    <li data-k="ci14"><b>Fixed (medium):</b> after R23, Enter on an untouched popover could rename a file that was renamed elsewhere meanwhile. A popover now renames only when the typed name differs both from the name it opened with and from the file's current name (R32).</li>
+    <li data-k="ci15"><b>Fixed (low):</b> a closing popover clears only its own mark on the window (R33); the rename callback is required instead of an unused empty case (R34); one field less in the popover's data (R35).</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">

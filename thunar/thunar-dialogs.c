@@ -51,11 +51,11 @@ typedef struct
 {
   GtkWindow                  *window;
   GtkWidget                  *popover;
-  GtkWidget                  *entry;
   GtkWidget                  *rename_button;
   GtkWidget                  *focus;
   XfceFilenameInput          *filename_input;
   ThunarFile                 *file;
+  gchar                      *filename;
   ThunarOperationLogMode      log_mode;
   ThunarDialogsRenameCallback callback;
   gpointer                    user_data;
@@ -446,10 +446,7 @@ thunar_dialogs_rename_start (ThunarFile                 *file,
   /* try to rename the file */
   job = thunar_io_jobs_rename_file (file, text, log_mode);
   exo_job_launch (EXO_JOB (job));
-  if (callback != NULL)
-    callback (job, file, screen, user_data);
-  else
-    g_object_unref (job);
+  callback (job, file, screen, user_data);
 }
 
 
@@ -458,12 +455,15 @@ static void
 thunar_dialogs_rename_popover_finish (ThunarDialogsRenamePopover *data,
                                       gboolean                    rename)
 {
+  const gchar *text;
+
   if (data->done)
     return;
   data->done = TRUE;
 
-  if (rename)
-    thunar_dialogs_rename_start (data->file, thunar_file_get_basename (data->file), xfce_filename_input_get_text (data->filename_input),
+  text = xfce_filename_input_get_text (data->filename_input);
+  if (rename && g_strcmp0 (text, data->filename) != 0)
+    thunar_dialogs_rename_start (data->file, thunar_file_get_basename (data->file), text,
                                  gtk_widget_get_screen (data->popover), data->log_mode, data->callback, data->user_data);
 
   gtk_widget_hide (data->popover);
@@ -494,11 +494,13 @@ thunar_dialogs_rename_popover_cancel (ThunarDialogsRenamePopover *data)
 static void
 thunar_dialogs_rename_popover_destroyed (ThunarDialogsRenamePopover *data)
 {
-  g_object_set_qdata (G_OBJECT (data->window), thunar_dialogs_rename_popover_quark (), NULL);
+  if (g_object_get_qdata (G_OBJECT (data->window), thunar_dialogs_rename_popover_quark ()) == data)
+    g_object_set_qdata (G_OBJECT (data->window), thunar_dialogs_rename_popover_quark (), NULL);
   if (data->focus != NULL)
     g_object_remove_weak_pointer (G_OBJECT (data->focus), (gpointer *) &data->focus);
   g_object_unref (data->window);
   g_object_unref (data->file);
+  g_free (data->filename);
   g_free (data);
 }
 
@@ -507,7 +509,7 @@ thunar_dialogs_rename_popover_destroyed (ThunarDialogsRenamePopover *data)
 static void
 thunar_dialogs_rename_popover_focused (ThunarDialogsRenamePopover *data)
 {
-  thunar_dialogs_rename_file_select (GTK_ENTRY (data->entry), data->file);
+  thunar_dialogs_rename_file_select (xfce_filename_input_get_entry (data->filename_input), data->file);
 }
 
 
@@ -515,7 +517,7 @@ thunar_dialogs_rename_popover_focused (ThunarDialogsRenamePopover *data)
 static void
 thunar_dialogs_rename_popover_mapped (ThunarDialogsRenamePopover *data)
 {
-  gtk_widget_grab_focus (data->entry);
+  gtk_widget_grab_focus (GTK_WIDGET (xfce_filename_input_get_entry (data->filename_input)));
 }
 
 
@@ -545,6 +547,7 @@ thunar_dialogs_rename_file_popover (GtkWidget                  *view,
   data = g_new0 (ThunarDialogsRenamePopover, 1);
   data->window = g_object_ref (window);
   data->file = g_object_ref (file);
+  data->filename = g_strdup (filename);
   data->log_mode = log_mode;
   data->callback = callback;
   data->user_data = user_data;
@@ -560,7 +563,6 @@ thunar_dialogs_rename_file_popover (GtkWidget                  *view,
   grid = thunar_dialogs_rename_file_content (view, gtk_widget_get_scale_factor (view), file, filename, &filename_input);
   gtk_box_pack_start (GTK_BOX (box), grid, TRUE, TRUE, 0);
   entry = xfce_filename_input_get_entry (filename_input);
-  data->entry = GTK_WIDGET (entry);
   data->filename_input = filename_input;
 
   button_box = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
@@ -638,7 +640,7 @@ thunar_dialogs_rename_popover_is_open (gpointer parent)
  * @file      : the #ThunarFile we're going to rename.
  * @log_mode  : a #ThunarOperationLogMode to control logging of the operation.
  * @callback  : called with the #ThunarJob when a rename starts; it takes the job's
- *              reference. May be %NULL.
+ *              reference.
  * @user_data : data passed to @callback.
  *
  * Asks the user for a new name for a single file. A rename dialog returns once it
@@ -658,6 +660,7 @@ thunar_dialogs_show_rename_file (gpointer                    parent,
 
   _thunar_return_if_fail (parent == NULL || GDK_IS_SCREEN (parent) || GTK_IS_WIDGET (parent));
   _thunar_return_if_fail (THUNAR_IS_FILE (file));
+  _thunar_return_if_fail (callback != NULL);
 
   /* parse the parent window and screen */
   screen = thunar_util_parse_parent (parent, &window);
