@@ -57,7 +57,7 @@ stack_pos() {
     [[ $w == "$hex" ]] && { echo "$i"; return 0; }
     i=$((i + 1))
   done
-  echo -1
+  return 1
 }
 
 progress_shown() {
@@ -75,30 +75,48 @@ EDITOR_WID=$(find_window editor) || fail "the xev window (the other app being ty
 focus "$EDITOR_WID"
 sleep 0.5
 [[ $(xdotool getactivewindow) == "$EDITOR_WID" ]] || fail "the editor window could not be focused"
-mkdir -p "$WORK/many" "$WORK/more" "$WORK/copies"
-(cd "$WORK/many" && seq -f 'file-%g' 30000 | xargs touch)
-(cd "$WORK/more" && seq -f 'file-%g' 5000 | xargs touch)
-copy_into "$WORK/many" "$WORK/copies" "for the folder of 30000 files"
-LONG_PROGRESS=$(find_window 'File Operation Progress') || fail "the progress window did not appear during the copy of 30000 files"
-ACTIVE=$(xdotool getactivewindow)
-[[ $ACTIVE == "$EDITOR_WID" ]] || fail "the progress window of a long copy took the focus: window $ACTIVE ('$(xdotool getwindowname "$ACTIVE")') is active"
-focus "$EDITOR_WID"
-sleep 0.5
-(( $(stack_pos "$EDITOR_WID") > $(stack_pos "$LONG_PROGRESS") )) || fail "the progress window could not be lowered under the editor before the second copy"
-progress_shown "$LONG_PROGRESS" || fail "the progress window closed before the second copy started"
-copy_into "$WORK/more" "$WORK/copies" "for the second folder"
-sleep 1
-ACTIVE=$(xdotool getactivewindow)
-[[ $ACTIVE == "$EDITOR_WID" ]] || fail "a second copy started with the progress window shown took the focus: window $ACTIVE ('$(xdotool getwindowname "$ACTIVE")') is active"
-(( $(ls "$WORK/copies/many" | wc -l) < 30000 )) || fail "the copy of 30000 files ended before the second copy's progress window was checked, so the raise of a shown window was not exercised"
-shot root progress-without-focus "During a copy of 30000 files with no question, the File Operation Progress window appeared after 500 ms, a second copy started while the editor covered it, and the editor kept the focus"
-progress_shown "$LONG_PROGRESS" || fail "the progress window closed before the progress-without-focus shot was taken"
-for ((i = 0; i < 300; i++)); do
-  xdotool search --onlyvisible --name '^File Operation Progress$' >/dev/null 2>&1 || break
-  sleep 0.2
+wait_copies_done() {
+  local i
+  for ((i = 0; i < 450; i++)); do
+    xdotool search --onlyvisible --name '^File Operation Progress$' >/dev/null 2>&1 || return 0
+    sleep 0.2
+  done
+  fail "the long copies did not finish within 90 s"
+}
+
+long_copy() {
+  local n=$1 active editor_pos progress_pos
+  rm -rf "$WORK/many" "$WORK/more" "$WORK/copies"
+  mkdir -p "$WORK/many" "$WORK/more" "$WORK/copies"
+  (cd "$WORK/many" && seq -f 'file-%g' "$n" | xargs touch)
+  (cd "$WORK/more" && seq -f 'file-%g' 5000 | xargs touch)
+  copy_into "$WORK/many" "$WORK/copies" "for the folder of $n files"
+  LONG_PROGRESS=$(find_window 'File Operation Progress') || return 1
+  active=$(xdotool getactivewindow)
+  [[ $active == "$EDITOR_WID" ]] || fail "the progress window of a long copy took the focus: window $active ('$(xdotool getwindowname "$active")') is active"
+  focus "$EDITOR_WID"
+  sleep 0.5
+  editor_pos=$(stack_pos "$EDITOR_WID") || fail "the editor window is not in the window manager's stacking list"
+  progress_pos=$(stack_pos "$LONG_PROGRESS") || return 1
+  (( editor_pos > progress_pos )) || fail "the progress window could not be lowered under the editor before the second copy"
+  progress_shown "$LONG_PROGRESS" || return 1
+  copy_into "$WORK/more" "$WORK/copies" "for the second folder"
+  sleep 1
+  active=$(xdotool getactivewindow)
+  [[ $active == "$EDITOR_WID" ]] || fail "a second copy started with the progress window shown took the focus: window $active ('$(xdotool getwindowname "$active")') is active"
+  progress_shown "$LONG_PROGRESS" && (( $(ls "$WORK/copies/many" | wc -l) < n / 2 ))
+}
+
+LONG_N=
+for n in 30000 90000; do
+  if long_copy "$n"; then LONG_N=$n; break; fi
+  wait_copies_done
 done
-(( i < 300 )) || fail "the copies of 30000 and 5000 files did not finish within 60 s"
-(( $(ls "$WORK/copies/many" | wc -l) == 30000 && $(ls "$WORK/copies/more" | wc -l) == 5000 )) || fail "the copies of 30000 and 5000 files are incomplete"
+[[ -n $LONG_N ]] || fail "the progress window of a 90000-file copy did not appear, or the copy was more than half done before the second copy's check"
+shot root progress-without-focus "During a copy of $LONG_N files with no question, the File Operation Progress window appeared after 500 ms, a second copy started while the editor covered it, and the editor kept the focus"
+progress_shown "$LONG_PROGRESS" || fail "the progress window closed before the progress-without-focus shot was taken"
+wait_copies_done
+(( $(ls "$WORK/copies/many" | wc -l) == LONG_N && $(ls "$WORK/copies/more" | wc -l) == 5000 )) || fail "the copies of $LONG_N and 5000 files are incomplete"
 rm -rf "$WORK/many" "$WORK/more" "$WORK/copies"
 [[ $(xdotool getactivewindow) == "$EDITOR_WID" ]] || fail "the editor lost the focus during the long copy"
 

@@ -179,7 +179,7 @@ thunar_progress_dialog_view_needs_attention (ThunarProgressDialog *dialog,
 
   /* TODO scroll to the view */
 
-  /* raise the dialog */
+  /* show the dialog, un-minimizing it if needed */
   thunar_progress_dialog_raise (dialog);
 }
 
