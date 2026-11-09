@@ -65,7 +65,7 @@ Look only at titles of this run's kind, with `[test] ` in a test run and without
 
 With the GitHub MCP `issue_write` tool, in `alexhu98/thunar`:
 - Title: `<title>`.
-- Body: the tag and its link, `https://gitlab.xfce.org/xfce/thunar/-/tags/<tag>` (in a test run, "a fake release from `fake-upstream.sh`" instead); the tag's section of upstream's `NEWS`, from `git show refs/upstream-tags/<tag>:NEWS`; `Refs #30`; and a Done-when list: merged with green checks, screenshots reviewed, the split-view crash check done by hand after installing (`CLAUDE.md`).
+- Body: the tag and its link, `https://gitlab.xfce.org/xfce/thunar/-/tags/<tag>` (in a test run, "a fake release from `fake-upstream.sh`" instead); the tag's section of upstream's `NEWS`, from `git show refs/upstream-tags/<tag>:NEWS`; `Refs #30`; and a Done-when list: merged with green checks, screenshots reviewed.
 
 ## 4. Merge
 
@@ -100,7 +100,7 @@ git push -u origin <n>-<tag>
 
 With the GitHub MCP `create_pull_request` tool, from `<n>-<tag>` into `main`, as a draft in a test run:
 - Title: `<title>`.
-- Body: `Closes #<n>` and `Refs #30`; upstream's `NEWS` section; the conflicts and their resolutions, or "merged cleanly"; that no `verify/<n>.sh` is added because the existing `verify/*.sh` run as the regression suite, with the `# | Shot | Proves` table filled from CI's verify comment once it runs; the split-view crash check left to the owner; and any word in the narration Kokoro may mispronounce.
+- Body: `Closes #<n>` and `Refs #30`; upstream's `NEWS` section; the conflicts and their resolutions, or "merged cleanly"; that no `verify/<n>.sh` is added because the existing `verify/*.sh` run as the regression suite, with the `# | Shot | Proves` table filled from CI's verify comment once it runs; and any word in the narration Kokoro may mispronounce.
 
 ## 7. Follow CI
 

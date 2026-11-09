@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Narrated video of an explainer page: explainers/<n>-<slug>.html + .narration.json -> .mp4
 
-  make-video.py status <n>          lines whose page text changed since the last stamp
+  make-video.py status <n>          lines whose page text changed since the last stamp, and video mode problems
   make-video.py stamp <n>           record the page's current text in the narration file
   make-video.py phonemes <n> [--all] Kokoro phonemes for lines not voiced yet (or all)
   make-video.py render <n>          voice, screenshot and join into explainers/<n>-<slug>.mp4
@@ -233,10 +233,28 @@ function build(f) {
     f.keys.forEach(k => { if (m[k]) { m[k].classList.add('vm-hl'); hl.push(m[k]); } else problems.push(`key "${k}" not in screen "${f.screen}"`); });
   }
   const st = stage.getBoundingClientRect();
+  const wide = [...zoom.querySelectorAll('*')].filter(e => !hl.length || hl.some(h => e.contains(h) || h.contains(e)));
+  const overflow = () => Math.max(0, ...wide.map(e => e.scrollWidth - e.clientWidth));
+  const start = zoom.style.width;
+  let over = overflow();
+  while (over > 1) {
+    zoom.style.width = (zoom.getBoundingClientRect().width + over) + 'px';
+    const left = overflow();
+    if (left >= over) break;
+    over = left;
+  }
+  if (over > 1) { zoom.style.width = start; over = overflow(); }
+  if (over > 1) problems.push(`content of "${f.screen}" overflows by ${Math.ceil(over)} px`);
   const nat = zoom.getBoundingClientRect();
   const fitWidth = st.width / nat.width;
   let z = Math.min(fitWidth, st.height / nat.height, sc.kind === 'sub' ? 1.9 : 2.0);
   if (z < 1.45) z = Math.min(fitWidth, 1.55);
+  if (hl.length) {
+    const rs = hl.map(e => e.getBoundingClientRect());
+    const hlH = Math.max(...rs.map(r => r.bottom)) - Math.min(...rs.map(r => r.top)) + 16;
+    z = Math.min(z, st.height / hlH);
+  }
+  if (z < 1) problems.push(`zoom ${Math.floor(z * 100) / 100} of "${f.screen}" is too small to read`);
   zoom.style.zoom = z;
   const zr = zoom.getBoundingClientRect();
   let y;
@@ -335,6 +353,11 @@ def page_text(texts):
 
 # ---------------------------------------------------------------- status / stamp
 
+def video_problems(pr, missing=()):
+    return [f'line {i}: {p}' for i, fr in enumerate(pr['frames']) for p in fr['problems']
+            if i not in missing or not re.fullmatch(r'key ".*" not in screen ".*"|screen ".*" not found', p)]
+
+
 def status(n, quiet=False):
     page, narp, _, work = paths(n)
     nar = load_narration(narp)
@@ -355,6 +378,7 @@ def status(n, quiet=False):
     loose = [k for k in now if old and k not in narrated and old.get(k) != now[k]]
     gone = [k for k in old if k not in now]
     same_page = nar.get('page_sha256') == page_sha(page)
+    problems = video_problems(pr, {i for i, _, why in stale if why == 'missing'})
     if not quiet:
         print(f'page {"unchanged" if same_page else "changed"} since the last stamp')
         for i, ln, why in stale:
@@ -363,13 +387,17 @@ def status(n, quiet=False):
             print(f'  {"new" if k not in old else "changed"} page text no line narrates: {k} = {pr["texts"][k.split("/")[0]][k.split("/", 1)[1]][:90]}')
         for k in gone:
             print(f'  removed from the page: {k}')
-        if not stale and not loose and not gone:
-            print('narration matches the page' if same_page else 'no narrated text changed; run stamp')
-    return page, narp, nar, pr, stale, loose, same_page
+        for p in problems:
+            print(f'  video mode problem: {p}')
+        if not stale and not loose and not gone and not same_page:
+            print('no narrated text changed; run stamp' + (' once the video mode problems are fixed' if problems else ''))
+        elif not stale and not loose and not gone and not problems:
+            print('narration matches the page')
+    return page, narp, nar, pr, stale, loose, same_page, problems
 
 
 def stamp(n):
-    page, narp, nar, pr, stale, loose, _ = status(n, quiet=True)
+    page, narp, nar, pr, stale, loose, _, problems = status(n, quiet=True)
     for i, ln, why in stale:
         if why == 'missing':
             die(f'line {i} names a screen or key the page doesn\'t have: {ln["screen"]} {ln.get("from", ln["keys"])}')
@@ -379,6 +407,8 @@ def stamp(n):
     nar['page_text'] = page_text(pr['texts'])
     save_narration(narp, nar)
     print(f'stamped {len(nar["lines"])} lines ({len(stale)} were stale) against {os.path.basename(page)}')
+    for p in problems:
+        print(f'  video mode problem: {p}')
     for k in loose:
         print(f'  note: {k} changed and no line narrates it')
 
@@ -470,11 +500,11 @@ def chapters_of(frames, total):
 
 def render(n, force):
     need_kokoro()
-    page, narp, nar, pr, stale, loose, same_page = status(n, quiet=True)
+    page, narp, nar, pr, stale, loose, same_page, _ = status(n, quiet=True)
     if (stale or not same_page) and not force:
         status(n)
         die('the narration is older than the page: rewrite the stale lines, run stamp, then render')
-    problems = [f'line {i}: {p}' for i, fr in enumerate(pr['frames']) for p in fr['problems']]
+    problems = video_problems(pr)
     if problems:
         die('video mode problems:\n  ' + '\n  '.join(problems))
     _, _, out, work = paths(n)
@@ -551,8 +581,8 @@ if __name__ == '__main__':
         sys.exit(__doc__)
     cmd, n = a[0], a[1]
     if cmd == 'status':
-        _, _, _, _, stale, loose, same = status(n)
-        sys.exit(1 if stale or loose or not same else 0)
+        _, _, _, _, stale, loose, same, problems = status(n)
+        sys.exit(1 if stale or loose or not same or problems else 0)
     elif cmd == 'stamp':
         stamp(n)
     elif cmd == 'phonemes':
