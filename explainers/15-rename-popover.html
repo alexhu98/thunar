@@ -262,7 +262,7 @@ explainers/15-rename-popover.narration.json  # its narration</pre>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage -b -us -uc</code> on Ubuntu 24.04 in this session</td><td class="ok">[build]</td></tr>
+    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage -b -us -uc</code> on Ubuntu 24.04 in this session</td><td class="ok">5 debs, no compiler warnings</td></tr>
     <tr data-k="c2"><td>Popover below a top row, above the last row</td><td><code>verify/15.sh</code>: F2 on the first row, then End and F2 on the last row of 40</td><td class="ok">below, then above; no dialog window</td></tr>
     <tr data-k="c3"><td>Name selected without the extension; a second F2 ignored</td><td>Pressed F2 twice, typed a new name, pressed Enter</td><td class="ok">file-01.txt → renamed-01.txt</td></tr>
     <tr data-k="c4"><td>Focus goes back to the file list</td><td>End and F2 with no click after the first rename</td><td class="ok">file-40.txt renamed</td></tr>
@@ -271,7 +271,7 @@ explainers/15-rename-popover.narration.json  # its narration</pre>
     <tr data-k="c7"><td>Width</td><td>A 109- and a 253-character name in a 1280 px window</td><td class="ok">whole name shown; capped at 90%, scrolls</td></tr>
     <tr data-k="c8"><td>Icon and compact views</td><td>F2 in each view</td><td class="ok">popover at the view's middle</td></tr>
     <tr data-k="c9"><td>.desktop question and D-Bus dialog</td><td><code>WM_TRANSIENT_FOR</code> of each window; then renamed over D-Bus</td><td class="ok">both on the Thunar window; renamed</td></tr>
-    <tr data-k="c10"><td>All sandbox tests</td><td><code>verify-proof.sh run</code>: the smoke test and every <code>verify/*.sh</code>, on the last code change</td><td class="ok">[all]</td></tr>
+    <tr data-k="c10"><td>All sandbox tests</td><td><code>verify-proof.sh run</code>: the smoke test and every <code>verify/*.sh</code>, on the last code change</td><td class="ok">8 of 8 pass</td></tr>
     <tr data-k="c11"><td>Second monitor; a 2000 px window</td><td>Xvfb has one 1280×800 screen</td><td class="no">not run</td></tr>
   </table>
   </div>
