@@ -23,6 +23,7 @@ Name=Launcher
 Exec=true
 EOF
 echo dbus > "$APPS/notes.txt"
+echo first > "$APPS/zz-first.txt"
 xfconf-query -c thunar -p /default-view -n -t string -s ThunarDetailsView
 
 P='Rename popover in the details view'
@@ -223,10 +224,10 @@ xdotool key Escape
 sleep 0.5
 
 click_first_row
-xdotool key Down
+xdotool key End
 sleep 0.3
 f2
-no_dialog "F2 on notes.txt"
+no_dialog "F2 on zz-first.txt"
 xdotool type --delay 20 from-first-window
 open_thunar "$LONG"
 SECOND=$WID
@@ -242,10 +243,10 @@ xdotool key F2
 sleep 1
 no_dialog "F2 in a second window while the first has a rename popover open"
 xdotool type --delay 20 from-second-window
-shot root two-windows "Each window has its own rename popover open at once: the first on notes.txt with 'from-first-window' typed, the second on the long file with 'from-second-window' typed"
+shot root two-windows "Each window has its own rename popover open at once: the first on zz-first.txt with 'from-first-window' typed, the second on the long file with 'from-second-window' typed"
 xdotool key Return
 exists "$LONG/from-second-window.txt" "renaming in the second window's popover"
-exists "$APPS/notes.txt" "after renaming in the second window, before Enter in the first"
+exists "$APPS/zz-first.txt" "after renaming in the second window, before Enter in the first"
 focus "$MAIN"
 xdotool key Return
 exists "$APPS/from-first-window.txt" "Enter in the first window's popover after the second window's rename: the typed name was lost"
@@ -253,7 +254,6 @@ focus "$SECOND"
 xdotool key ctrl+w
 sleep 1
 WID=$MAIN
-mv "$APPS/from-first-window.txt" "$APPS/notes.txt"
 
 shot root before-dbus-dialog "Thunar shows the apps folder with notes.txt and no rename UI open, before a rename is requested over D-Bus"
 dbus-send --session --print-reply --reply-timeout=60000 --dest=org.xfce.FileManager /org/xfce/FileManager \
