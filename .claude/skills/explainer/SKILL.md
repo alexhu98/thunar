@@ -78,7 +78,7 @@ Written and stamped in the session that builds the PR, from the final page. `sta
 4. After any later page edit, including a review fix: run `status`, rewrite the stale lines and add lines for new text, then `stamp` again. Leave unchanged lines byte-for-byte as they are, so their cached voice clips are reused.
 5. In the PR description, list any word you're unsure how Kokoro will say (names, abbreviations, numbers), so the owner checks it with `phonemes`.
 
-CI's explainer job runs `make-video.py status` for the branch's issue and for every explainer page or narration the PR adds or changes, and for every narration when the PR changes `make-video.py`. It fails when a narration is missing, stale (page text changed after the stamp), or names keys the page no longer has, and reports each result in the explainer PR comment.
+CI's explainer job runs `make-video.py status` for the branch's issue and for every explainer page or narration the PR adds or changes, and for every narration when the PR changes `make-video.py`. It fails when a narration is missing, stale (page text changed after the stamp), names keys the page no longer has, or has a video mode problem that `render` would refuse (a highlighted element that can't be fully on screen, a caption over 2 lines), and reports each result in the explainer PR comment.
 
 All commands are `.claude/skills/explainer/make-video.py <cmd> <n>`. Chrome comes from `$CHROME`, default `google-chrome`. In the cloud container, full Chromium hangs on `--dump-dom`; use the Playwright headless shell:
 
@@ -103,7 +103,7 @@ export CHROME=$(ls /opt/pw-browsers/chromium_headless_shell-*/chrome-headless-sh
 ```
 
 - `screen` is what is shown: `title` (the header as a title card), a part id (a card with the part's label, heading and intro), or a `section.sub` id (that subsection, zoomed to fill the frame).
-- `keys` are highlighted. Everything else keyed on that screen is dimmed, and a tall screen scrolls to the highlight. Use no keys only on short screens or card screens.
+- `keys` are highlighted. Everything else keyed on that screen is dimmed, and a tall screen scrolls to the highlight. The zoom shrinks, below its usual 1.55 floor if needed, until the highlighted elements fit the frame and content wider than its column (a wide table) fits across. Use no keys only on short screens or card screens.
 - `from` names the keys whose text the line narrates, if different from `keys`. With neither, the line is tied to the screen's heading. This is what `status` uses to find stale lines, so tie each line to what it actually says.
 - `caption` is the on-screen text, exact as on the page (`v4.20.10+local2`, `explainer-proof.sh`). At most 2 lines at 1920×1080, about 140 characters. `render` refuses longer ones.
 - `say` (optional) is the spoken text, respelled for the ear. Use it for numbers, versions and paths: "plus local two", "twelve hundred", "in the explainers folder". The pronunciation table below is applied after it.
@@ -136,7 +136,7 @@ Output `explainers/<n>-<slug>.mp4` (ignored by git). Needs Kokoro, so it runs on
 3. `make-video.py render <n>`, then audit the frames (below). The next `videos-all.sh` run replaces this video with the gallery's unless it runs with `--no-copy`.
 
 ### "/explainer video <n>"
-1. `make-video.py status <n>` lists the stale lines (their page text changed), any changed page text that no line narrates, and keys that no longer exist.
+1. `make-video.py status <n>` lists the stale lines (their page text changed), any changed page text that no line narrates, keys that no longer exist, and video mode problems.
 2. Rewrite only those lines and add lines for new text that should be narrated. Leave every other line byte-for-byte unchanged, so its cached voice clip is reused.
 3. Run `stamp`, `phonemes` and `render` as above. `render` refuses to run while the narration is older than the page, and it reports how many clips were newly voiced. That count should equal the number of lines you changed.
 

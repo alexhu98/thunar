@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Narrated video of an explainer page: explainers/<n>-<slug>.html + .narration.json -> .mp4
 
-  make-video.py status <n>          lines whose page text changed since the last stamp
+  make-video.py status <n>          lines whose page text changed since the last stamp, and video mode problems
   make-video.py stamp <n>           record the page's current text in the narration file
   make-video.py phonemes <n> [--all] Kokoro phonemes for lines not voiced yet (or all)
   make-video.py render <n>          voice, screenshot and join into explainers/<n>-<slug>.mp4
@@ -233,10 +233,17 @@ function build(f) {
     f.keys.forEach(k => { if (m[k]) { m[k].classList.add('vm-hl'); hl.push(m[k]); } else problems.push(`key "${k}" not in screen "${f.screen}"`); });
   }
   const st = stage.getBoundingClientRect();
+  const over = Math.max(0, ...[...zoom.querySelectorAll('*')].map(e => e.scrollWidth - e.clientWidth));
+  if (over > 1) zoom.style.width = (zoom.getBoundingClientRect().width + over) + 'px';
   const nat = zoom.getBoundingClientRect();
   const fitWidth = st.width / nat.width;
   let z = Math.min(fitWidth, st.height / nat.height, sc.kind === 'sub' ? 1.9 : 2.0);
   if (z < 1.45) z = Math.min(fitWidth, 1.55);
+  if (hl.length) {
+    const rs = hl.map(e => e.getBoundingClientRect());
+    const hlH = Math.max(...rs.map(r => r.bottom)) - Math.min(...rs.map(r => r.top)) + 16;
+    z = Math.min(z, st.height / hlH);
+  }
   zoom.style.zoom = z;
   const zr = zoom.getBoundingClientRect();
   let y;
@@ -335,6 +342,10 @@ def page_text(texts):
 
 # ---------------------------------------------------------------- status / stamp
 
+def video_problems(pr):
+    return [f'line {i}: {p}' for i, fr in enumerate(pr['frames']) for p in fr['problems']]
+
+
 def status(n, quiet=False):
     page, narp, _, work = paths(n)
     nar = load_narration(narp)
@@ -363,7 +374,10 @@ def status(n, quiet=False):
             print(f'  {"new" if k not in old else "changed"} page text no line narrates: {k} = {pr["texts"][k.split("/")[0]][k.split("/", 1)[1]][:90]}')
         for k in gone:
             print(f'  removed from the page: {k}')
-        if not stale and not loose and not gone:
+        problems = video_problems(pr)
+        for p in problems:
+            print(f'  video mode problem: {p}')
+        if not stale and not loose and not gone and not problems:
             print('narration matches the page' if same_page else 'no narrated text changed; run stamp')
     return page, narp, nar, pr, stale, loose, same_page
 
@@ -474,7 +488,7 @@ def render(n, force):
     if (stale or not same_page) and not force:
         status(n)
         die('the narration is older than the page: rewrite the stale lines, run stamp, then render')
-    problems = [f'line {i}: {p}' for i, fr in enumerate(pr['frames']) for p in fr['problems']]
+    problems = video_problems(pr)
     if problems:
         die('video mode problems:\n  ' + '\n  '.join(problems))
     _, _, out, work = paths(n)
@@ -551,8 +565,8 @@ if __name__ == '__main__':
         sys.exit(__doc__)
     cmd, n = a[0], a[1]
     if cmd == 'status':
-        _, _, _, _, stale, loose, same = status(n)
-        sys.exit(1 if stale or loose or not same else 0)
+        _, _, _, pr, stale, loose, same = status(n)
+        sys.exit(1 if stale or loose or not same or video_problems(pr) else 0)
     elif cmd == 'stamp':
         stamp(n)
     elif cmd == 'phonemes':
