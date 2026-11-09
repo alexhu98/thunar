@@ -198,7 +198,7 @@
     <li data-k="1"><b>You press F2.</b> The window's action manager now passes its current view to <code>thunar_application_rename_file</code>, instead of only the screen. The side pane and the location bar pass themselves, so they still get the dialog.</li>
     <li data-k="2"><b>Find the row.</b> The new <code>thunar_view_get_file_rect</code> asks the view where the file's name is. The details view takes the row's Name cell and, if the row is partly or fully out of view, scrolls it in first. The icon and compact views can't say where an item is yet, so the popover points at the middle of the view.</li>
     <li data-k="3"><b>Popover.</b> <code>thunar_dialogs_show_rename_file</code> builds the same icon, label, entry and Cancel / Rename buttons as the dialog, in a <code>GtkPopover</code> placed below the name; GTK flips it above when it doesn't fit. Its width fits the whole name, at least 300 px and at most 90% of the window; longer names scroll inside the entry.</li>
-    <li data-k="4"><b>You answer.</b> The name is selected without its extension. Enter renames, Escape or a click outside cancels, and Rename is greyed out while the name is invalid. The function waits in a nested main loop, as the dialog did, so it still returns the rename job, and the keyboard focus goes back to the file list.</li>
+    <li data-k="4"><b>You answer.</b> The name is selected without its extension. Enter renames, Escape or a click outside cancels, and Rename is greyed out while the name is invalid. The popover doesn't block anything while it waits: the rename starts when you answer, through a callback that sets up the same error handling as before, and the keyboard focus goes back to the file list. Each window can have its own popover open, and a second F2 in the same window is ignored.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② The cases that keep a window</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
@@ -225,7 +225,7 @@
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
-<pre data-k="tree">thunar/thunar-dialogs.c          # the rename UI: shared content, the popover with its nested loop, the dialog
+<pre data-k="tree">thunar/thunar-dialogs.c          # the rename UI: shared content, the popover, the dialog
 thunar/thunar-application.c      # rename_file takes a view, widget or screen; finds a window for D-Bus
 thunar/thunar-application.h      # its new signature
 thunar/thunar-action-manager.c   # F2 in a window passes the window's current view
@@ -252,7 +252,7 @@ explainers/15-rename-popover.narration.json  # its narration</pre>
   <h3 class="sec">Built on 3 known-good references</h3>
   <div class="grid">
     <div class="card" data-k="r1"><h3>The old rename dialog</h3><p>The popover reuses its content, its name-without-extension selection and its validity check, moved into shared functions.</p></div>
-    <div class="card" data-k="r2"><h3>gtk_dialog_run</h3><p>The popover waits the same way: a nested main loop that ends on a button, Enter, Escape, a click outside, or the file going away.</p></div>
+    <div class="card" data-k="r2"><h3>The rename job</h3><p>A popover answer starts the same rename job as the dialog, with the same error dialog and undo, through a callback instead of a return value.</p></div>
     <div class="card" data-k="r3"><h3>The view's scroll_to_file</h3><p>Finding the file's row reuses the same lookup the views already use to scroll to a file.</p></div>
   </div>
   </section>
@@ -271,7 +271,7 @@ explainers/15-rename-popover.narration.json  # its narration</pre>
     <tr data-k="c7"><td>Width</td><td>A 109- and a 253-character name in a 1280 px window</td><td class="ok">whole name shown; capped at 90%, scrolls</td></tr>
     <tr data-k="c8"><td>Icon and compact views</td><td>F2 in each view</td><td class="ok">popover at the view's middle</td></tr>
     <tr data-k="c9"><td>.desktop question and D-Bus dialog</td><td><code>WM_TRANSIENT_FOR</code> of each window; then renamed over D-Bus</td><td class="ok">both on the Thunar window; renamed</td></tr>
-    <tr data-k="c12"><td>Two windows</td><td>F2 in a second window while the first has a popover open; typed a name, Enter</td><td class="ok">first closed, second renamed</td></tr>
+    <tr data-k="c12"><td>Two windows</td><td>A name typed in the first window's popover, then F2, a name and Enter in a second window, then Enter in the first</td><td class="ok">both popovers open at once; both renamed</td></tr>
     <tr data-k="c10"><td>All sandbox tests</td><td><code>verify-proof.sh run</code>: the smoke test and every <code>verify/*.sh</code>, on the last code change</td><td class="ok">8 of 8 pass</td></tr>
     <tr data-k="c11"><td>Second monitor; a 2000 px window</td><td>Xvfb has one 1280×800 screen</td><td class="no">not run</td></tr>
   </table>
@@ -296,10 +296,15 @@ explainers/15-rename-popover.narration.json  # its narration</pre>
   </ul>
   <p data-k="ci-review2">CI's review of <code>fbd4ada</code> reported 6 more findings. The fixes are in the next commit, and <code>verify/15.sh</code> was run again on it.</p>
   <ul class="tight">
-    <li data-k="ci5"><b>Fixed (medium):</b> with one popover per window, two windows could each wait on the other's popover (R10). Now F2 in a second window closes the first popover and opens one in the second window once the first has closed; <code>verify/15.sh</code> checks it.</li>
+    <li data-k="ci5"><b>Fixed (medium):</b> with one popover per window, two windows could each wait on the other's popover (R10). That first closed the open popover when F2 was pressed in a second window; the next round replaced this.</li>
     <li data-k="ci6"><b>Fixed (medium):</b> the window found for a D-Bus rename is held while the launcher question is open (R11).</li>
     <li data-k="ci7"><b>Fixed (low):</b> a Name cell starting at the right edge is scrolled fully in (R12); a second F2 on a launcher no longer asks its question again (R13); the name selection lives in one function (R14).</li>
     <li data-k="ci8"><b>Accepted (low):</b> the selection is made again each time the entry gets the focus (R15), like GTK's own select-on-focus.</li>
+  </ul>
+  <p data-k="ci-review3">CI's review of <code>af9a56e</code> confirmed 4 findings: the close-and-retry of step R10 lost a name you were typing and could retry before the first popover was gone (R16, R17, R19), and the two-window test couldn't tell (R18). You chose to drop the nested main loop instead.</p>
+  <ul class="tight">
+    <li data-k="ci9"><b>Fixed, as you decided:</b> the popover no longer waits in a nested main loop, so each window renames on its own and nothing is cancelled (R16, R17, R19, and R20 and R21, whose code is gone). The test now types a name in both popovers and checks both renames (R18).</li>
+    <li data-k="ci10"><b>Accepted (low):</b> the rename popover's name selection skips the create dialog's extension rules on purpose, since a folder or a name without an extension is selected whole (R22).</li>
   </ul>
   </section>
 
@@ -395,7 +400,7 @@ explainers/15-rename-popover.narration.json  # its narration</pre>
   <h2>Glossary</h2>
   <dl class="gloss">
     <div data-k="popover"><dt>Popover</dt><dd>A small bubble drawn inside a window, with an arrow pointing at the thing it belongs to.</dd></div>
-    <div data-k="loop"><dt>Nested main loop</dt><dd>Running GTK's event loop again inside a function, so it can wait for an answer and still return it.</dd></div>
+    <div data-k="loop"><dt>Nested main loop</dt><dd>Running GTK's event loop again inside a function, so it can wait for an answer; this PR stopped using one for the popover.</dd></div>
     <div data-k="transient"><dt>Transient dialog</dt><dd>A dialog tied to a parent window; the window manager keeps it over that window.</dd></div>
     <div data-k="dbus"><dt>D-Bus</dt><dd>The message bus other programs use to ask Thunar to do things, such as rename a file.</dd></div>
     <div data-k="desktop"><dt>.desktop file</dt><dd>A launcher: a text file describing an app, with its own display name.</dd></div>
