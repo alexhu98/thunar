@@ -234,10 +234,11 @@ function build(f) {
   }
   const st = stage.getBoundingClientRect();
   const wide = [...zoom.querySelectorAll('*')].filter(e => !hl.length || hl.some(h => e.contains(h) || h.contains(e)));
-  const over = Math.max(0, ...wide.map(e => e.scrollWidth - e.clientWidth));
+  const overflow = () => Math.max(0, ...wide.map(e => e.scrollWidth - e.clientWidth));
+  const over = overflow();
   if (over > 1) {
     zoom.style.width = (zoom.getBoundingClientRect().width + over) + 'px';
-    if (wide.some(e => e.scrollWidth - e.clientWidth > 1)) zoom.style.width = '';
+    if (overflow() >= over - 1) zoom.style.width = '';
   }
   const nat = zoom.getBoundingClientRect();
   const fitWidth = st.width / nat.width;
@@ -248,7 +249,7 @@ function build(f) {
     const hlH = Math.max(...rs.map(r => r.bottom)) - Math.min(...rs.map(r => r.top)) + 16;
     z = Math.min(z, st.height / hlH);
   }
-  if (z < 1) problems.push(`zoom ${Math.round(z * 100) / 100} of "${f.screen}" is too small to read`);
+  if (z < 1) problems.push(`zoom ${Math.floor(z * 100) / 100} of "${f.screen}" is too small to read`);
   zoom.style.zoom = z;
   const zr = zoom.getBoundingClientRect();
   let y;
@@ -382,7 +383,7 @@ def status(n, quiet=False):
             print(f'  removed from the page: {k}')
         for p in problems:
             print(f'  video mode problem: {p}')
-        if not stale and not loose and not gone and not same_page:
+        if not stale and not loose and not gone and not same_page and not problems:
             print('no narrated text changed; run stamp')
         elif not stale and not loose and not gone and not problems:
             print('narration matches the page')
@@ -493,10 +494,11 @@ def chapters_of(frames, total):
 
 def render(n, force):
     need_kokoro()
-    page, narp, nar, pr, stale, loose, same_page, problems = status(n, quiet=True)
+    page, narp, nar, pr, stale, loose, same_page, _ = status(n, quiet=True)
     if (stale or not same_page) and not force:
         status(n)
         die('the narration is older than the page: rewrite the stale lines, run stamp, then render')
+    problems = video_problems(pr)
     if problems:
         die('video mode problems:\n  ' + '\n  '.join(problems))
     _, _, out, work = paths(n)

@@ -103,7 +103,7 @@ export CHROME=$(ls /opt/pw-browsers/chromium_headless_shell-*/chrome-headless-sh
 ```
 
 - `screen` is what is shown: `title` (the header as a title card), a part id (a card with the part's label, heading and intro), or a `section.sub` id (that subsection, zoomed to fill the frame).
-- `keys` are highlighted. Everything else keyed on that screen is dimmed, and a tall screen scrolls to the highlight. The zoom shrinks, below its usual 1.55 floor if needed, until the highlighted elements fit the frame and content wider than its column (a wide table) fits across. Use no keys only on short screens or card screens.
+- `keys` are highlighted. Everything else keyed on that screen is dimmed, and a tall screen scrolls to the highlight. The zoom shrinks, below its usual 1.55 floor if needed, until the highlighted elements fit the frame and content around them that is wider than its column (a wide table) fits across. A zoom below 1 is a video mode problem. Use no keys only on short screens or card screens.
 - `from` names the keys whose text the line narrates, if different from `keys`. With neither, the line is tied to the screen's heading. This is what `status` uses to find stale lines, so tie each line to what it actually says.
 - `caption` is the on-screen text, exact as on the page (`v4.20.10+local2`, `explainer-proof.sh`). At most 2 lines at 1920×1080, about 140 characters. `render` refuses longer ones.
 - `say` (optional) is the spoken text, respelled for the ear. Use it for numbers, versions and paths: "plus local two", "twelve hundred", "in the explainers folder". The pronunciation table below is applied after it.
