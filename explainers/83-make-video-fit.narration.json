@@ -1,7 +1,7 @@
 {
   "title": "PR #84 · Video fit",
   "voice": "af_heart",
-  "page_sha256": "003bf444e3d431721906a00082876d2ecc28465bfd11ae0c9dbac27d141d0a36",
+  "page_sha256": "3ec788849c25eef81d1e640c015e37689e2819988a6daae20ae37d64a433a5e0",
   "lines": [
     {"screen": "title", "keys": [], "from": ["title", "lead"], "caption": "This is a tour of pull request 84, where tall or wide highlights fit the video frame, and the crash check goes.", "src": "72e7d0e8aff0"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what the PR adds, how it was checked, and what comes later.", "src": "e7fece3382b9"},
@@ -40,6 +40,7 @@
     {"screen": "review", "keys": ["r4"], "caption": "Two later reviews found twelve more, none confirmed. The real ones were fixed, and the rest accepted.", "src": "96cddad9cd79"},
     {"screen": "review", "keys": ["r5"], "caption": "A fourth review confirmed two medium findings about widening, and two small ones. All four were fixed.", "src": "ca486c6c53ce"},
     {"screen": "review", "keys": ["r6"], "caption": "The fifth and sixth reviews passed, and their small findings about widening were fixed too.", "src": "e414ccda1698"},
+    {"screen": "review", "keys": ["r7"], "caption": "You accepted one more: a stalled widening is undone, since that frame fails either way.", "src": "75a5fbd89037"},
     {"screen": "aftermerge", "keys": ["a1"], "caption": "After the merge, you re-render videos 23, 55 and 64 on your machine.", "say": "After the merge, you re-render videos twenty three, fifty five and sixty four on your machine.", "src": "69d48ead78c5"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later.", "src": "4abd3fe31b5c"},
     {"screen": "next", "keys": ["n1", "n2"], "caption": "No open issue builds on this one. What's left is that render.", "src": "7d1164c787bc"},
@@ -99,6 +100,7 @@
     "review/r4": "96cddad9cd79",
     "review/r5": "ca486c6c53ce",
     "review/r6": "e414ccda1698",
+    "review/r7": "75a5fbd89037",
     "aftermerge/a1": "69d48ead78c5",
     "see/l1": "9c2313fcf79c",
     "see/l2": "37b8e6bbbff0",
