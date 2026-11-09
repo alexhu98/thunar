@@ -1,7 +1,7 @@
 {
   "title": "PR #84 · Video fit",
   "voice": "af_heart",
-  "page_sha256": "e0cffe7f8dabda6d609302ec97a2c3b881cc2b28d326c0fe4939ec84f6ac86c6",
+  "page_sha256": "8dae8a9988d7c422e043412a732ee8af0278f94121a10d727143f375d2fdf106",
   "lines": [
     {"screen": "title", "keys": [], "from": ["title", "lead"], "caption": "This is a tour of pull request 84, where tall or wide highlights fit the video frame, and the crash check goes.", "src": "72e7d0e8aff0"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what the PR adds, how it was checked, and what comes later.", "src": "e7fece3382b9"},
@@ -36,7 +36,7 @@
     {"screen": "review", "keys": ["ci"], "caption": "CI's first review found eight findings, one of them a confirmed medium.", "src": "0e83312124d1"},
     {"screen": "review", "keys": ["r1"], "caption": "The medium, a zoom with no lower bound, was already fixed by the second push, along with stamp.", "src": "743890a3dfeb"},
     {"screen": "review", "keys": ["r2"], "caption": "Five more were fixed: only the highlights can widen the frame, and the messages are clearer.", "src": "ae04eab27062"},
-    {"screen": "review", "keys": ["r3"], "caption": "One is left to you: CI's fonts can differ from yours, so a frame near the edge may disagree.", "src": "2dd0a697c315"},
+    {"screen": "review", "keys": ["r3"], "caption": "You accepted the last one: CI's fonts can differ from yours, so a frame near the edge may disagree.", "src": "68149c5a1445"},
     {"screen": "aftermerge", "keys": ["a1"], "caption": "After the merge, you re-render videos 23, 55 and 64 on your machine.", "say": "After the merge, you re-render videos twenty three, fifty five and sixty four on your machine.", "src": "69d48ead78c5"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later.", "src": "4abd3fe31b5c"},
     {"screen": "next", "keys": ["n1", "n2"], "caption": "No open issue builds on this one. What's left is that render.", "src": "7d1164c787bc"},
@@ -92,7 +92,7 @@
     "review/ci": "0e83312124d1",
     "review/r1": "743890a3dfeb",
     "review/r2": "ae04eab27062",
-    "review/r3": "2dd0a697c315",
+    "review/r3": "68149c5a1445",
     "aftermerge/a1": "69d48ead78c5",
     "see/l1": "9c2313fcf79c",
     "see/l2": "37b8e6bbbff0",
