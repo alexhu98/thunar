@@ -227,6 +227,7 @@ xdotool key Down
 sleep 0.3
 f2
 no_dialog "F2 on notes.txt"
+xdotool type --delay 20 from-first-window
 open_thunar "$LONG"
 SECOND=$WID
 xdotool windowsize --sync "$SECOND" 640 360
@@ -240,15 +241,19 @@ sleep 0.5
 xdotool key F2
 sleep 1
 no_dialog "F2 in a second window while the first has a rename popover open"
-shot root two-windows "With a rename popover open on notes.txt in the first window, F2 in a second window closed it and opened the popover in the second window, at the long file's name"
-xdotool type --delay 20 second-window
+xdotool type --delay 20 from-second-window
+shot root two-windows "Each window has its own rename popover open at once: the first on notes.txt with 'from-first-window' typed, the second on the long file with 'from-second-window' typed"
 xdotool key Return
-exists "$LONG/second-window.txt" "renaming in the second window's popover"
-exists "$APPS/notes.txt" "after F2 in the second window"
+exists "$LONG/from-second-window.txt" "renaming in the second window's popover"
+exists "$APPS/notes.txt" "after renaming in the second window, before Enter in the first"
+focus "$MAIN"
+xdotool key Return
+exists "$APPS/from-first-window.txt" "Enter in the first window's popover after the second window's rename: the typed name was lost"
 focus "$SECOND"
 xdotool key ctrl+w
 sleep 1
 WID=$MAIN
+mv "$APPS/from-first-window.txt" "$APPS/notes.txt"
 
 shot root before-dbus-dialog "Thunar shows the apps folder with notes.txt and no rename UI open, before a rename is requested over D-Bus"
 dbus-send --session --print-reply --reply-timeout=60000 --dest=org.xfce.FileManager /org/xfce/FileManager \

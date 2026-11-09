@@ -49,26 +49,23 @@
 
 typedef struct
 {
-  GMainLoop  *loop;
-  GtkWindow  *window;
-  GtkWidget  *entry;
-  GtkWidget  *rename_button;
-  ThunarFile *file;
-  gint        response;
-  gboolean    destroyed;
+  GtkWindow                  *window;
+  GtkWidget                  *popover;
+  GtkWidget                  *entry;
+  GtkWidget                  *rename_button;
+  GtkWidget                  *focus;
+  ThunarFile                 *file;
+  gchar                      *filename;
+  ThunarOperationLogMode      log_mode;
+  ThunarDialogsRenameCallback callback;
+  gpointer                    user_data;
+  gboolean                    done;
 } ThunarDialogsRenamePopover;
-
-
-
-static ThunarDialogsRenamePopover *thunar_dialogs_rename_popover = NULL;
 
 
 
 static void
 thunar_dialogs_select_filename (GtkWidget *entry);
-static void
-thunar_dialogs_rename_popover_respond (ThunarDialogsRenamePopover *data,
-                                       gint                        response);
 static void
 thunar_dialogs_shrink_height (GtkWidget *dialog);
 static gint
@@ -420,14 +417,44 @@ thunar_dialogs_rename_file_dialog (GdkScreen   *screen,
 
 
 static void
-thunar_dialogs_rename_popover_respond (ThunarDialogsRenamePopover *data,
-                                       gint                        response)
+thunar_dialogs_rename_start (ThunarFile                 *file,
+                             const gchar                *filename,
+                             const gchar                *text,
+                             GdkScreen                  *screen,
+                             ThunarOperationLogMode      log_mode,
+                             ThunarDialogsRenameCallback callback,
+                             gpointer                    user_data)
 {
-  if (g_main_loop_is_running (data->loop))
-    {
-      data->response = response;
-      g_main_loop_quit (data->loop);
-    }
+  ThunarJob *job;
+
+  /* check if we have a new name here */
+  if (text == NULL || g_strcmp0 (filename, text) == 0)
+    return;
+
+  /* try to rename the file */
+  job = thunar_io_jobs_rename_file (file, text, log_mode);
+  exo_job_launch (EXO_JOB (job));
+  callback (job, file, screen, user_data);
+}
+
+
+
+static void
+thunar_dialogs_rename_popover_finish (ThunarDialogsRenamePopover *data,
+                                      gboolean                    rename)
+{
+  if (data->done)
+    return;
+  data->done = TRUE;
+
+  if (rename)
+    thunar_dialogs_rename_start (data->file, data->filename, gtk_entry_get_text (GTK_ENTRY (data->entry)),
+                                 gtk_widget_get_screen (data->popover), data->log_mode, data->callback, data->user_data);
+
+  gtk_widget_hide (data->popover);
+  if (data->focus != NULL)
+    gtk_widget_grab_focus (data->focus);
+  gtk_widget_destroy (data->popover);
 }
 
 
@@ -436,7 +463,7 @@ static void
 thunar_dialogs_rename_popover_rename (ThunarDialogsRenamePopover *data)
 {
   if (gtk_widget_get_sensitive (data->rename_button))
-    thunar_dialogs_rename_popover_respond (data, GTK_RESPONSE_OK);
+    thunar_dialogs_rename_popover_finish (data, TRUE);
 }
 
 
@@ -444,7 +471,7 @@ thunar_dialogs_rename_popover_rename (ThunarDialogsRenamePopover *data)
 static void
 thunar_dialogs_rename_popover_cancel (ThunarDialogsRenamePopover *data)
 {
-  thunar_dialogs_rename_popover_respond (data, GTK_RESPONSE_CANCEL);
+  thunar_dialogs_rename_popover_finish (data, FALSE);
 }
 
 
@@ -452,8 +479,13 @@ thunar_dialogs_rename_popover_cancel (ThunarDialogsRenamePopover *data)
 static void
 thunar_dialogs_rename_popover_destroyed (ThunarDialogsRenamePopover *data)
 {
-  data->destroyed = TRUE;
-  thunar_dialogs_rename_popover_respond (data, GTK_RESPONSE_NONE);
+  g_object_set_data (G_OBJECT (data->window), "thunar-rename-popover", NULL);
+  if (data->focus != NULL)
+    g_object_remove_weak_pointer (G_OBJECT (data->focus), (gpointer *) &data->focus);
+  g_object_unref (data->window);
+  g_object_unref (data->file);
+  g_free (data->filename);
+  g_free (data);
 }
 
 
@@ -474,56 +506,60 @@ thunar_dialogs_rename_popover_mapped (ThunarDialogsRenamePopover *data)
 
 
 
-static gchar *
-thunar_dialogs_rename_file_popover (GtkWidget   *view,
-                                    GtkWindow   *window,
-                                    ThunarFile  *file,
-                                    const gchar *filename)
+static void
+thunar_dialogs_rename_file_popover (GtkWidget                  *view,
+                                    GtkWindow                  *window,
+                                    ThunarFile                 *file,
+                                    const gchar                *filename,
+                                    ThunarOperationLogMode      log_mode,
+                                    ThunarDialogsRenameCallback callback,
+                                    gpointer                    user_data)
 {
-  ThunarDialogsRenamePopover data = { NULL, window, NULL, NULL, file, GTK_RESPONSE_CANCEL, FALSE };
-  GtkWidget                 *popover;
-  GtkWidget                 *box;
-  GtkWidget                 *grid;
-  GtkWidget                 *button_box;
-  GtkWidget                 *cancel_button;
-  XfceFilenameInput         *filename_input;
-  GtkEntry                  *entry;
-  GtkWidget                 *focus;
-  GdkRectangle               rect;
-  gchar                     *text = NULL;
-  gint                       window_width;
-  gint                       max_width;
-  gint                       natural;
-  gint                       chars;
+  ThunarDialogsRenamePopover *data;
+  GtkWidget                  *box;
+  GtkWidget                  *grid;
+  GtkWidget                  *button_box;
+  GtkWidget                  *cancel_button;
+  XfceFilenameInput          *filename_input;
+  GtkEntry                   *entry;
+  GdkRectangle                rect;
+  gint                        window_width;
+  gint                        max_width;
+  gint                        natural;
+  gint                        chars;
 
-  if (thunar_dialogs_rename_popover != NULL)
-    return NULL;
-  g_object_ref (window);
-  thunar_dialogs_rename_popover = &data;
+  data = g_new0 (ThunarDialogsRenamePopover, 1);
+  data->window = g_object_ref (window);
+  data->file = g_object_ref (file);
+  data->filename = g_strdup (filename);
+  data->log_mode = log_mode;
+  data->callback = callback;
+  data->user_data = user_data;
+  g_object_set_data (G_OBJECT (window), "thunar-rename-popover", data);
 
-  popover = g_object_ref_sink (gtk_popover_new (view));
-  gtk_popover_set_position (GTK_POPOVER (popover), GTK_POS_BOTTOM);
+  data->popover = gtk_popover_new (view);
+  gtk_popover_set_position (GTK_POPOVER (data->popover), GTK_POS_BOTTOM);
 
   box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
   gtk_container_set_border_width (GTK_CONTAINER (box), 6);
-  gtk_container_add (GTK_CONTAINER (popover), box);
+  gtk_container_add (GTK_CONTAINER (data->popover), box);
 
   grid = thunar_dialogs_rename_file_content (view, gtk_widget_get_scale_factor (view), file, filename, &filename_input);
   gtk_box_pack_start (GTK_BOX (box), grid, TRUE, TRUE, 0);
   entry = xfce_filename_input_get_entry (filename_input);
-  data.entry = GTK_WIDGET (entry);
+  data->entry = GTK_WIDGET (entry);
 
   button_box = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
   gtk_button_box_set_layout (GTK_BUTTON_BOX (button_box), GTK_BUTTONBOX_END);
   gtk_box_set_spacing (GTK_BOX (button_box), 6);
   cancel_button = gtk_button_new_with_mnemonic (_("_Cancel"));
   gtk_container_add (GTK_CONTAINER (button_box), cancel_button);
-  data.rename_button = gtk_button_new_with_mnemonic (_("_Rename"));
-  gtk_container_add (GTK_CONTAINER (button_box), data.rename_button);
+  data->rename_button = gtk_button_new_with_mnemonic (_("_Rename"));
+  gtk_container_add (GTK_CONTAINER (button_box), data->rename_button);
   gtk_box_pack_start (GTK_BOX (box), button_box, FALSE, FALSE, 0);
   gtk_widget_show_all (box);
 
-  thunar_dialogs_rename_file_connect_button (filename_input, data.rename_button);
+  thunar_dialogs_rename_file_connect_button (filename_input, data->rename_button);
 
   gtk_window_get_size (window, &window_width, NULL);
   max_width = window_width * 0.90f;
@@ -545,98 +581,68 @@ thunar_dialogs_rename_file_popover (GtkWidget   *view,
       rect.width = 1;
       rect.height = 1;
     }
-  gtk_popover_set_pointing_to (GTK_POPOVER (popover), &rect);
+  gtk_popover_set_pointing_to (GTK_POPOVER (data->popover), &rect);
 
-  data.loop = g_main_loop_new (NULL, FALSE);
-  g_signal_connect_swapped (data.rename_button, "clicked", G_CALLBACK (thunar_dialogs_rename_popover_rename), &data);
-  g_signal_connect_swapped (entry, "activate", G_CALLBACK (thunar_dialogs_rename_popover_rename), &data);
-  g_signal_connect_swapped (cancel_button, "clicked", G_CALLBACK (thunar_dialogs_rename_popover_cancel), &data);
-  g_signal_connect_swapped (popover, "closed", G_CALLBACK (thunar_dialogs_rename_popover_cancel), &data);
-  g_signal_connect_swapped (popover, "destroy", G_CALLBACK (thunar_dialogs_rename_popover_destroyed), &data);
-  g_signal_connect_data (popover, "map", G_CALLBACK (thunar_dialogs_rename_popover_mapped), &data, NULL, G_CONNECT_SWAPPED | G_CONNECT_AFTER);
-  g_signal_connect_data (entry, "grab-focus", G_CALLBACK (thunar_dialogs_rename_popover_focused), &data, NULL, G_CONNECT_SWAPPED | G_CONNECT_AFTER);
-  g_signal_connect_object (file, "destroy", G_CALLBACK (gtk_widget_destroy), popover, G_CONNECT_SWAPPED);
+  g_signal_connect_swapped (data->rename_button, "clicked", G_CALLBACK (thunar_dialogs_rename_popover_rename), data);
+  g_signal_connect_swapped (entry, "activate", G_CALLBACK (thunar_dialogs_rename_popover_rename), data);
+  g_signal_connect_swapped (cancel_button, "clicked", G_CALLBACK (thunar_dialogs_rename_popover_cancel), data);
+  g_signal_connect_swapped (data->popover, "closed", G_CALLBACK (thunar_dialogs_rename_popover_cancel), data);
+  g_signal_connect_swapped (data->popover, "destroy", G_CALLBACK (thunar_dialogs_rename_popover_destroyed), data);
+  g_signal_connect_data (data->popover, "map", G_CALLBACK (thunar_dialogs_rename_popover_mapped), data, NULL, G_CONNECT_SWAPPED | G_CONNECT_AFTER);
+  g_signal_connect_data (entry, "grab-focus", G_CALLBACK (thunar_dialogs_rename_popover_focused), data, NULL, G_CONNECT_SWAPPED | G_CONNECT_AFTER);
+  g_signal_connect_object (file, "destroy", G_CALLBACK (gtk_widget_destroy), data->popover, G_CONNECT_SWAPPED);
+  g_signal_connect_object (view, "unmap", G_CALLBACK (gtk_widget_destroy), data->popover, G_CONNECT_SWAPPED);
 
-  focus = gtk_window_get_focus (window);
-  if (focus != NULL)
-    g_object_add_weak_pointer (G_OBJECT (focus), (gpointer *) &focus);
+  data->focus = gtk_window_get_focus (window);
+  if (data->focus != NULL)
+    g_object_add_weak_pointer (G_OBJECT (data->focus), (gpointer *) &data->focus);
 
-  gtk_popover_popup (GTK_POPOVER (popover));
-  g_main_loop_run (data.loop);
-
-  if (data.response == GTK_RESPONSE_OK)
-    text = g_strdup (xfce_filename_input_get_text (filename_input));
-
-  g_signal_handlers_disconnect_by_data (popover, &data);
-  if (!data.destroyed)
-    {
-      g_signal_handlers_disconnect_by_data (data.rename_button, &data);
-      g_signal_handlers_disconnect_by_data (entry, &data);
-      g_signal_handlers_disconnect_by_data (cancel_button, &data);
-      gtk_widget_hide (popover);
-      gtk_widget_destroy (popover);
-    }
-  g_object_unref (popover);
-  g_main_loop_unref (data.loop);
-
-  if (focus != NULL)
-    {
-      g_object_remove_weak_pointer (G_OBJECT (focus), (gpointer *) &focus);
-      gtk_widget_grab_focus (focus);
-    }
-
-  thunar_dialogs_rename_popover = NULL;
-  g_object_unref (window);
-
-  return text;
+  gtk_popover_popup (GTK_POPOVER (data->popover));
 }
 
 
 
-ThunarDialogsRenameState
-thunar_dialogs_close_rename_popover (gpointer parent)
+gboolean
+thunar_dialogs_rename_popover_is_open (gpointer parent)
 {
-  GtkWidget *toplevel = NULL;
+  GtkWidget *toplevel;
 
-  if (thunar_dialogs_rename_popover == NULL)
-    return THUNAR_DIALOGS_RENAME_NONE;
+  if (!GTK_IS_WIDGET (parent))
+    return FALSE;
 
-  if (GTK_IS_WIDGET (parent))
-    toplevel = gtk_widget_get_toplevel (parent);
-  if (toplevel == GTK_WIDGET (thunar_dialogs_rename_popover->window))
-    return THUNAR_DIALOGS_RENAME_SAME_WINDOW;
-
-  thunar_dialogs_rename_popover_respond (thunar_dialogs_rename_popover, GTK_RESPONSE_CANCEL);
-  return THUNAR_DIALOGS_RENAME_CLOSED;
+  toplevel = gtk_widget_get_toplevel (parent);
+  return GTK_IS_WINDOW (toplevel) && g_object_get_data (G_OBJECT (toplevel), "thunar-rename-popover") != NULL;
 }
 
 
 
 /**
  * thunar_dialogs_show_rename_file:
- * @parent : the #ThunarView that shows the @file, to rename it in a popover pointing at it,
- *           or a #GtkWidget or #GdkScreen for a rename dialog. May also be %NULL, in
- *           which case the default #GdkScreen will be used.
- * @file   : the #ThunarFile we're going to rename.
+ * @parent    : the #ThunarView that shows the @file, to rename it in a popover pointing at it,
+ *              or a #GtkWidget or #GdkScreen for a rename dialog. May also be %NULL, in
+ *              which case the default #GdkScreen will be used.
+ * @file      : the #ThunarFile we're going to rename.
+ * @log_mode  : a #ThunarOperationLogMode to control logging of the operation.
+ * @callback  : called with the #ThunarJob when a rename starts.
+ * @user_data : data passed to @callback.
  *
- * Asks the user for a new name for a single file.
- *
- * Return value: The #ThunarJob responsible for renaming the file or
- *               %NULL if there was no renaming required.
+ * Asks the user for a new name for a single file. A rename dialog returns once it
+ * is answered; a popover returns at once, and @callback runs when it is answered.
  **/
-ThunarJob *
-thunar_dialogs_show_rename_file (gpointer               parent,
-                                 ThunarFile            *file,
-                                 ThunarOperationLogMode log_mode)
+void
+thunar_dialogs_show_rename_file (gpointer                    parent,
+                                 ThunarFile                 *file,
+                                 ThunarOperationLogMode      log_mode,
+                                 ThunarDialogsRenameCallback callback,
+                                 gpointer                    user_data)
 {
   gchar     *filename;
   gchar     *text;
-  ThunarJob *job = NULL;
   GtkWindow *window = NULL;
   GdkScreen *screen;
 
-  _thunar_return_val_if_fail (parent == NULL || GDK_IS_SCREEN (parent) || GTK_IS_WIDGET (parent), NULL);
-  _thunar_return_val_if_fail (THUNAR_IS_FILE (file), NULL);
+  _thunar_return_if_fail (parent == NULL || GDK_IS_SCREEN (parent) || GTK_IS_WIDGET (parent));
+  _thunar_return_if_fail (THUNAR_IS_FILE (file));
 
   /* parse the parent window and screen */
   screen = thunar_util_parse_parent (parent, &window);
@@ -646,22 +652,18 @@ thunar_dialogs_show_rename_file (gpointer               parent,
   filename = g_strdup (thunar_file_get_basename (file));
 
   if (window != NULL && THUNAR_IS_VIEW (parent) && gtk_widget_get_mapped (GTK_WIDGET (parent)))
-    text = thunar_dialogs_rename_file_popover (GTK_WIDGET (parent), window, file, filename);
-  else
-    text = thunar_dialogs_rename_file_dialog (screen, window, file, filename);
-
-  /* check if we have a new name here */
-  if (text != NULL && g_strcmp0 (filename, text) != 0)
     {
-      /* try to rename the file */
-      job = thunar_io_jobs_rename_file (file, text, log_mode);
-      exo_job_launch (EXO_JOB (job));
+      if (!thunar_dialogs_rename_popover_is_open (parent))
+        thunar_dialogs_rename_file_popover (GTK_WIDGET (parent), window, file, filename, log_mode, callback, user_data);
+    }
+  else
+    {
+      text = thunar_dialogs_rename_file_dialog (screen, window, file, filename);
+      thunar_dialogs_rename_start (file, filename, text, screen, log_mode, callback, user_data);
+      g_free (text);
     }
 
-  g_free (text);
   g_free (filename);
-
-  return job;
 }
 
 

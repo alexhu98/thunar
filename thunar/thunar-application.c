@@ -1960,29 +1960,26 @@ thunar_application_rename_file_finished (ExoJob  *job,
 
 
 
-typedef struct
+static void
+thunar_application_rename_file_started (ThunarJob  *job,
+                                        ThunarFile *file,
+                                        GdkScreen  *screen,
+                                        gpointer    user_data)
 {
-  ThunarApplication     *application;
-  ThunarFile            *file;
-  GObject               *parent;
-  ThunarOperationLogMode log_mode;
-} ThunarApplicationRenameLater;
+  ThunarApplication *application = THUNAR_APPLICATION (user_data);
 
+  /* remember the screen and file */
+  g_object_set_qdata (G_OBJECT (job), thunar_application_screen_quark, screen);
+  g_object_set_qdata_full (G_OBJECT (job), thunar_application_file_quark,
+                           g_object_ref (file), g_object_unref);
 
+  /* handle rename errors */
+  g_signal_connect (job, "error",
+                    G_CALLBACK (thunar_application_rename_file_error), application);
 
-static gboolean
-thunar_application_rename_file_later (gpointer user_data)
-{
-  ThunarApplicationRenameLater *later = user_data;
-
-  thunar_application_rename_file (later->application, later->file, later->parent, NULL, later->log_mode);
-
-  g_object_unref (later->parent);
-  g_object_unref (later->file);
-  g_object_unref (later->application);
-  g_free (later);
-
-  return G_SOURCE_REMOVE;
+  /* destroy the job when it has finished */
+  g_signal_connect (job, "finished",
+                    G_CALLBACK (thunar_application_rename_file_finished), NULL);
 }
 
 
@@ -2006,36 +2003,19 @@ thunar_application_rename_file (ThunarApplication     *application,
                                 const gchar           *startup_id,
                                 ThunarOperationLogMode log_mode)
 {
-  ThunarJob                    *job;
-  GtkWindow                    *window = NULL;
-  GdkScreen                    *screen;
-  GObject                      *parent_ref;
-  GtkWindow                    *window_ref = NULL;
-  GList                        *lp;
-  gint                          response;
-  ThunarApplicationRenameLater *later;
+  GtkWindow *window = NULL;
+  GdkScreen *screen;
+  GObject   *parent_ref;
+  GtkWindow *window_ref = NULL;
+  GList     *lp;
+  gint       response;
 
   _thunar_return_if_fail (THUNAR_IS_APPLICATION (application));
   _thunar_return_if_fail (THUNAR_IS_FILE (file));
   _thunar_return_if_fail (GDK_IS_SCREEN (parent) || GTK_IS_WIDGET (parent));
 
-  switch (thunar_dialogs_close_rename_popover (parent))
-    {
-    case THUNAR_DIALOGS_RENAME_SAME_WINDOW:
-      return;
-
-    case THUNAR_DIALOGS_RENAME_CLOSED:
-      later = g_new0 (ThunarApplicationRenameLater, 1);
-      later->application = g_object_ref (application);
-      later->file = g_object_ref (file);
-      later->parent = g_object_ref (parent);
-      later->log_mode = log_mode;
-      g_idle_add (thunar_application_rename_file_later, later);
-      return;
-
-    case THUNAR_DIALOGS_RENAME_NONE:
-      break;
-    }
+  if (thunar_dialogs_rename_popover_is_open (parent))
+    return;
 
   g_object_ref (file);
   parent_ref = g_object_ref (parent);
@@ -2075,22 +2055,7 @@ thunar_application_rename_file (ThunarApplication     *application,
     }
 
   /* run the rename dialog */
-  job = thunar_dialogs_show_rename_file (parent, file, log_mode);
-  if (G_LIKELY (job != NULL))
-    {
-      /* remember the screen and file */
-      g_object_set_qdata (G_OBJECT (job), thunar_application_screen_quark, screen);
-      g_object_set_qdata_full (G_OBJECT (job), thunar_application_file_quark,
-                               g_object_ref (file), g_object_unref);
-
-      /* handle rename errors */
-      g_signal_connect (job, "error",
-                        G_CALLBACK (thunar_application_rename_file_error), application);
-
-      /* destroy the job when it has finished */
-      g_signal_connect (job, "finished",
-                        G_CALLBACK (thunar_application_rename_file_finished), NULL);
-    }
+  thunar_dialogs_show_rename_file (parent, file, log_mode, thunar_application_rename_file_started, application);
 
 out:
   if (window_ref != NULL)
