@@ -779,7 +779,6 @@ thunar_dialogs_show_job_ask (GtkWindow        *parent,
         }
 
       button = gtk_button_new_with_mnemonic (mnemonic);
-      gtk_widget_set_can_default (button, TRUE);
       gtk_dialog_add_action_widget (GTK_DIALOG (message), button, response);
       gtk_widget_show (button);
     }
@@ -787,7 +786,6 @@ thunar_dialogs_show_job_ask (GtkWindow        *parent,
   if (has_cancel)
     {
       button = gtk_button_new_with_mnemonic (_("_Cancel"));
-      gtk_widget_set_can_default (button, TRUE);
       gtk_dialog_add_action_widget (GTK_DIALOG (message), button, GTK_RESPONSE_CANCEL);
       gtk_widget_show (button);
     }

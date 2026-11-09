@@ -1231,7 +1231,7 @@ thunar_application_show_progress_dialog_timeout (gpointer user_data)
 
   /* Only show the dialog if the new job is still present after the timeout */
   if (show_progress_dialog_n_jobs_now != application->show_progress_dialog_n_jobs_before)
-    thunar_progress_dialog_raise (THUNAR_PROGRESS_DIALOG (application->progress_dialog));
+    thunar_progress_dialog_show_unraised (THUNAR_PROGRESS_DIALOG (application->progress_dialog));
 
   return FALSE;
 }

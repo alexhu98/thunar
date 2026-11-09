@@ -54,7 +54,7 @@ thunar_progress_dialog_has_jobs (ThunarProgressDialog *dialog);
 guint
 thunar_progress_dialog_n_jobs (ThunarProgressDialog *dialog);
 void
-thunar_progress_dialog_raise (ThunarProgressDialog *dialog);
+thunar_progress_dialog_show_unraised (ThunarProgressDialog *dialog);
 
 G_END_DECLS;
 

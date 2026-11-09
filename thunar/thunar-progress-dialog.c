@@ -180,7 +180,7 @@ thunar_progress_dialog_view_needs_attention (ThunarProgressDialog *dialog,
   /* TODO scroll to the view */
 
   /* show the dialog, un-minimizing it if needed */
-  thunar_progress_dialog_raise (dialog);
+  thunar_progress_dialog_show_unraised (dialog);
 }
 
 
@@ -444,7 +444,7 @@ thunar_progress_dialog_n_jobs (ThunarProgressDialog *dialog)
 
 
 void
-thunar_progress_dialog_raise (ThunarProgressDialog *dialog)
+thunar_progress_dialog_show_unraised (ThunarProgressDialog *dialog)
 {
   _thunar_return_if_fail (THUNAR_IS_PROGRESS_DIALOG (dialog));
 
