@@ -234,7 +234,10 @@ function build(f) {
   }
   const st = stage.getBoundingClientRect();
   const over = Math.max(0, ...[...zoom.querySelectorAll('*')].map(e => e.scrollWidth - e.clientWidth));
-  if (over > 1) zoom.style.width = (zoom.getBoundingClientRect().width + over) + 'px';
+  if (over > 1) {
+    zoom.style.width = (zoom.getBoundingClientRect().width + over) + 'px';
+    if ([...zoom.querySelectorAll('*')].some(e => e.scrollWidth - e.clientWidth > 1)) zoom.style.width = '';
+  }
   const nat = zoom.getBoundingClientRect();
   const fitWidth = st.width / nat.width;
   let z = Math.min(fitWidth, st.height / nat.height, sc.kind === 'sub' ? 1.9 : 2.0);
@@ -244,6 +247,7 @@ function build(f) {
     const hlH = Math.max(...rs.map(r => r.bottom)) - Math.min(...rs.map(r => r.top)) + 16;
     z = Math.min(z, st.height / hlH);
   }
+  if (z < 1) problems.push(`zoom ${Math.round(z * 100) / 100} of "${f.screen}" is too small to read`);
   zoom.style.zoom = z;
   const zr = zoom.getBoundingClientRect();
   let y;
@@ -393,6 +397,8 @@ def stamp(n):
     nar['page_text'] = page_text(pr['texts'])
     save_narration(narp, nar)
     print(f'stamped {len(nar["lines"])} lines ({len(stale)} were stale) against {os.path.basename(page)}')
+    for p in video_problems(pr):
+        print(f'  video mode problem: {p}')
     for k in loose:
         print(f'  note: {k} changed and no line narrates it')
 
