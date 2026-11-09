@@ -235,11 +235,15 @@ function build(f) {
   const st = stage.getBoundingClientRect();
   const wide = [...zoom.querySelectorAll('*')].filter(e => !hl.length || hl.some(h => e.contains(h) || h.contains(e)));
   const overflow = () => Math.max(0, ...wide.map(e => e.scrollWidth - e.clientWidth));
-  const over = overflow();
-  if (over > 1) {
+  let over = overflow();
+  while (over > 1) {
+    const base = zoom.style.width;
     zoom.style.width = (zoom.getBoundingClientRect().width + over) + 'px';
-    if (overflow() >= over - 1) zoom.style.width = '';
+    const left = overflow();
+    if (left > over / 2) { zoom.style.width = base; break; }
+    over = left;
   }
+  if (over > 1) problems.push(`content of "${f.screen}" overflows by ${Math.ceil(over)} px`);
   const nat = zoom.getBoundingClientRect();
   const fitWidth = st.width / nat.width;
   let z = Math.min(fitWidth, st.height / nat.height, sc.kind === 'sub' ? 1.9 : 2.0);
@@ -348,8 +352,9 @@ def page_text(texts):
 
 # ---------------------------------------------------------------- status / stamp
 
-def video_problems(pr, skip=()):
-    return [f'line {i}: {p}' for i, fr in enumerate(pr['frames']) if i not in skip for p in fr['problems']]
+def video_problems(pr, missing=()):
+    return [f'line {i}: {p}' for i, fr in enumerate(pr['frames']) for p in fr['problems']
+            if i not in missing or not p.startswith(('key ', 'screen '))]
 
 
 def status(n, quiet=False):
@@ -383,8 +388,8 @@ def status(n, quiet=False):
             print(f'  removed from the page: {k}')
         for p in problems:
             print(f'  video mode problem: {p}')
-        if not stale and not loose and not gone and not same_page and not problems:
-            print('no narrated text changed; run stamp')
+        if not stale and not loose and not gone and not same_page:
+            print('no narrated text changed; run stamp' + (' once the video mode problems are fixed' if problems else ''))
         elif not stale and not loose and not gone and not problems:
             print('narration matches the page')
     return page, narp, nar, pr, stale, loose, same_page, problems
