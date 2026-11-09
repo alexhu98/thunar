@@ -62,6 +62,9 @@ struct _ThunarViewIface
                           gboolean    use_align,
                           gfloat      row_align,
                           gfloat      col_align);
+  gboolean (*get_file_rect) (ThunarView   *view,
+                             ThunarFile   *file,
+                             GdkRectangle *rect);
   GList *(*get_selected_files) (ThunarView *view);
   void (*set_selected_files) (ThunarView *view,
                               GList      *path_list);
@@ -103,6 +106,10 @@ thunar_view_scroll_to_file (ThunarView *view,
                             gboolean    use_align,
                             gfloat      row_align,
                             gfloat      col_align);
+gboolean
+thunar_view_get_file_rect (ThunarView   *view,
+                           ThunarFile   *file,
+                           GdkRectangle *rect);
 GList *
 thunar_view_get_selected_files (ThunarView *view);
 void

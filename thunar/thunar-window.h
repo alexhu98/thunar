@@ -156,6 +156,8 @@ gboolean
 thunar_window_has_tree_view_sidepane (ThunarWindow *window);
 GtkWidget *
 thunar_window_get_sidepane (ThunarWindow *window);
+GtkWidget *
+thunar_window_get_view (ThunarWindow *window);
 void
 thunar_window_append_menu_item (ThunarWindow      *window,
                                 GtkMenuShell      *menu,

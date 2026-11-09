@@ -2204,6 +2204,21 @@ thunar_window_get_sidepane (ThunarWindow *window)
 
 
 
+/**
+ * thunar_window_get_view:
+ * @window : a #ThunarWindow instance.
+ *
+ * Return value: (transfer none): The active #ThunarView of this window, or NULL if there is none
+ **/
+GtkWidget *
+thunar_window_get_view (ThunarWindow *window)
+{
+  _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), NULL);
+  return window->view;
+}
+
+
+
 static gboolean
 thunar_window_toggle_sidepane (ThunarWindow *window)
 {

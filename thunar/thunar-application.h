@@ -99,7 +99,7 @@ thunar_application_process_filenames (ThunarApplication             *application
 void
 thunar_application_rename_file (ThunarApplication     *application,
                                 ThunarFile            *file,
-                                GdkScreen             *screen,
+                                gpointer               parent,
                                 const gchar           *startup_id,
                                 ThunarOperationLogMode log_mode);
 

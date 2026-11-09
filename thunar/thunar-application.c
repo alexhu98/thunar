@@ -1964,8 +1964,8 @@ thunar_application_rename_file_finished (ExoJob  *job,
  * thunar_application_rename_file:
  * @application : a #ThunarApplication.
  * @file        : a #ThunarFile to be renamed.
- * @screen      : the #GdkScreen on which to open the window
- *                to open on the default screen.
+ * @parent      : the #ThunarView showing the @file, another #GtkWidget, or
+ *                the #GdkScreen on which to ask for the new name.
  * @startup_id  : startup id from startup notification passed along
  *                with dbus to make focus stealing work properly. Ignored if NULL.
  * @log_mode    : a #ThunarOperationLogMode to control logging of the operation
@@ -1975,22 +1975,37 @@ thunar_application_rename_file_finished (ExoJob  *job,
 void
 thunar_application_rename_file (ThunarApplication     *application,
                                 ThunarFile            *file,
-                                GdkScreen             *screen,
+                                gpointer               parent,
                                 const gchar           *startup_id,
                                 ThunarOperationLogMode log_mode)
 {
   ThunarJob *job;
+  GtkWindow *window = NULL;
+  GdkScreen *screen;
+  GList     *lp;
   gint       response;
 
   _thunar_return_if_fail (THUNAR_IS_APPLICATION (application));
   _thunar_return_if_fail (THUNAR_IS_FILE (file));
-  _thunar_return_if_fail (GDK_IS_SCREEN (screen));
+  _thunar_return_if_fail (GDK_IS_SCREEN (parent) || GTK_IS_WIDGET (parent));
+
+  screen = thunar_util_parse_parent (parent, &window);
+  if (window == NULL)
+    {
+      for (lp = gtk_application_get_windows (GTK_APPLICATION (application)); lp != NULL; lp = lp->next)
+        if (THUNAR_IS_WINDOW (lp->data) && gtk_widget_get_visible (lp->data) && gtk_widget_get_screen (lp->data) == screen)
+          {
+            window = lp->data;
+            parent = window;
+            break;
+          }
+    }
 
   /* TODO pass the startup ID to the rename dialog */
 
   if (thunar_file_is_desktop_file (file))
     {
-      response = xfce_message_dialog (NULL,
+      response = xfce_message_dialog (window,
                                       _("Rename Launcher Options"),
                                       "dialog-question",
                                       NULL,
@@ -2008,7 +2023,7 @@ thunar_application_rename_file (ThunarApplication     *application,
     }
 
   /* run the rename dialog */
-  job = thunar_dialogs_show_rename_file (screen, file, log_mode);
+  job = thunar_dialogs_show_rename_file (parent, file, log_mode);
   if (G_LIKELY (job != NULL))
     {
       /* remember the screen and file */

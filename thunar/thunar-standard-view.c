@@ -196,6 +196,10 @@ thunar_standard_view_scroll_to_file (ThunarView *view,
                                      gboolean    use_align,
                                      gfloat      row_align,
                                      gfloat      col_align);
+static gboolean
+thunar_standard_view_get_file_rect (ThunarView   *view,
+                                    ThunarFile   *file,
+                                    GdkRectangle *rect);
 static GdkDragAction
 thunar_standard_view_get_dest_actions (ThunarStandardView *standard_view,
                                        GdkDragContext     *context,
@@ -921,6 +925,7 @@ thunar_standard_view_view_init (ThunarViewIface *iface)
   iface->reload = thunar_standard_view_reload;
   iface->get_visible_range = thunar_standard_view_get_visible_range;
   iface->scroll_to_file = thunar_standard_view_scroll_to_file;
+  iface->get_file_rect = thunar_standard_view_get_file_rect;
   iface->get_selected_files = thunar_standard_view_get_selected_files_view;
   iface->set_selected_files = thunar_standard_view_set_selected_files_view;
 }
@@ -2282,6 +2287,35 @@ thunar_standard_view_scroll_to_file (ThunarView *view,
           g_list_free_full (paths, (GDestroyNotify) gtk_tree_path_free);
         }
     }
+}
+
+
+
+static gboolean
+thunar_standard_view_get_file_rect (ThunarView   *view,
+                                    ThunarFile   *file,
+                                    GdkRectangle *rect)
+{
+  ThunarStandardView *standard_view = THUNAR_STANDARD_VIEW (view);
+  GList               files;
+  GList              *paths;
+  gboolean            result;
+
+  if (THUNAR_STANDARD_VIEW_GET_CLASS (standard_view)->get_path_rect == NULL || thunar_view_get_loading (view))
+    return FALSE;
+
+  files.data = file;
+  files.next = NULL;
+  files.prev = NULL;
+
+  paths = thunar_standard_view_model_get_paths_for_files (standard_view->model, &files);
+  if (paths == NULL)
+    return FALSE;
+
+  result = (*THUNAR_STANDARD_VIEW_GET_CLASS (standard_view)->get_path_rect) (standard_view, paths->data, rect);
+  g_list_free_full (paths, (GDestroyNotify) gtk_tree_path_free);
+
+  return result;
 }
 
 
