@@ -2024,7 +2024,8 @@ thunar_application_rename_file (ThunarApplication     *application,
   if (window == NULL)
     {
       for (lp = gtk_application_get_windows (GTK_APPLICATION (application)); lp != NULL; lp = lp->next)
-        if (THUNAR_IS_WINDOW (lp->data) && gtk_widget_get_visible (lp->data) && gtk_widget_get_screen (lp->data) == screen)
+        if (THUNAR_IS_WINDOW (lp->data) && gtk_widget_get_visible (lp->data) && gtk_widget_get_screen (lp->data) == screen
+            && !thunar_dialogs_rename_popover_is_open (lp->data))
           {
             window = lp->data;
             window_ref = g_object_ref (window);
