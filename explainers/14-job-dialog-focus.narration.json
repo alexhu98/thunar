@@ -1,7 +1,7 @@
 {
   "title": "PR #80 · Dialog focus",
   "voice": "af_heart",
-  "page_sha256": "54265c2cc75bb4d64c2650c926ae5888f068d3132affad190d070a2960468d1d",
+  "page_sha256": "1886a15bb73a0d80136442a1594d1cb14b09ac35dfb4d97771aecbc58c2b962c",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 80, which stops Thunar's file-operation dialogs from stealing the focus.", "src": "ea7ec4864832"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "9ebb2bff57c3"},
@@ -54,6 +54,7 @@
     {"screen": "review", "keys": ["ci11"], "caption": "Three more low findings were accepted.", "src": "66771bf82530"},
     {"screen": "review", "keys": ["ci13"], "caption": "One more low finding, about a window manager that might focus a restored window, was accepted.", "src": "7c6006b82c4d"},
     {"screen": "review", "keys": ["ci12"], "caption": "You also chose to let the window manager restore a minimized progress window, rather than raise it.", "src": "f612d3ba8baa"},
+    {"screen": "review", "keys": ["ci-review6"], "caption": "A screenshot audit caught two shots where the dialog hid the progress window, so the test now moves that window aside first.", "src": "287844335ac9"},
     {"screen": "aftermerge", "keys": ["a1", "a2"], "caption": "After the merge, try a long copy while typing under GNOME, and run the split-view crash check.", "src": "d34fa259d04c"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later: nothing depends on issue 14.", "say": "Part 3. What comes later: nothing depends on issue fourteen.", "src": "61e673d04e4a"},
     {"screen": "next", "keys": ["n1", "n2"], "caption": "Once this merges, only your own check in a real session remains.", "src": "f53160922407"},
@@ -132,6 +133,7 @@
     "review/ci11": "66771bf82530",
     "review/ci13": "7c6006b82c4d",
     "review/ci12": "f612d3ba8baa",
+    "review/ci-review6": "287844335ac9",
     "aftermerge/a1": "3aa34f9add6f",
     "aftermerge/a2": "1c21d31a1ec0",
     "see/l1": "d23f12b2515c",

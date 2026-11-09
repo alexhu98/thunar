@@ -321,6 +321,7 @@ explainers/14-job-dialog-focus.narration.json  # its narration</pre>
     <li data-k="ci13"><b>Accepted (low):</b> a window manager might focus a minimized progress window when it restores it (R43); none of the tested ones does.</li>
     <li data-k="ci12"><b>Kept, as you decided:</b> a minimized progress window is mapped again without being raised, and the window manager restores it (R34); un-minimizing it explicitly would raise it and could take the focus.</li>
   </ul>
+  <p data-k="ci-review6">The screenshot audit of <code>885f7a2</code> failed two shots: the replace dialog covered the progress window, so the shots couldn't show both. The test now moves the progress window to the top right before those shots. CI's review of that change reported 4 small points about the move (R45 to R48), accepted: the shots themselves show where the window landed.</p>
   </section>
 
   <section class="sub" id="aftermerge">
