@@ -303,17 +303,17 @@ explainers/14-job-dialog-focus.narration.json  # its narration</pre>
   <p data-k="ci-review2">CI's review of <code>db02bdf</code> confirmed both fixes and reported 7 more findings. It pushed its own fix for one (R11): a second copy started while the progress window is shown, which raises it. That test lost the race locally, so the second copy now starts as soon as the window appears.</p>
   <ul class="tight">
     <li data-k="ci5"><b>Accepted (low):</b> no urgency hint or workspace switch (R13), a non-modal response loop instead of the map wait (R14), a reference held during the wait (R15), and un-minimizing a window whose dialog is open (R17). None shows a failure in Thunar.</li>
-    <li data-k="ci6"><b>For you to decide:</b> the question dialogs are still modal once they are on screen, as before #14 (R12), and R4 to R6 above.</li>
+    <li data-k="ci6"><b>Kept, as you decided:</b> the question dialogs are still modal once they are on screen, as before #14 (R12), and R4 to R6 above.</li>
   </ul>
   <p data-k="ci-review3">CI's review of <code>b5ad18b</code> pushed a fix to the test that checks the progress window is raised above another window (R18 to R20, R22). Run here, that check showed the R3 change was wrong: when the editor covered the progress window, raising it gave it the focus. The raise was taken out again, and the test now checks that a covered progress window keeps the focus off it.</p>
   <ul class="tight">
     <li data-k="ci7"><b>Accepted (low):</b> the 60 s wait leaves enough margin for the 35000-file copies (R24), and counting files with <code>ls</code> is fine in a fresh folder (R25).</li>
-    <li data-k="ci8"><b>For you to decide:</b> whether a progress window already on screen should be raised at all (R3, R19), since raising it can take the focus.</li>
+    <li data-k="ci8"><b>Kept, as you decided:</b> a progress window already on screen is never raised (R3, R19), since raising it can take the focus.</li>
   </ul>
   <p data-k="ci-review4">CI's review of <code>02b78a2</code> reported 8 more findings, none confirmed. The test could still lose its race on a fast machine (R28), as it once did here: it now starts with 30000 files and, if that copy is already half done, waits and tries again with 90000. It also no longer passes when a window is missing from the stacking list (R30), and two comments that said "raise" were updated (R32).</p>
   <ul class="tight">
     <li data-k="ci9"><b>Accepted (low):</b> un-minimizing through <code>gdk_window_show_unraised</code> (R27), the test's remaining checks and the shot with the editor over the progress window (R29, R31), and a repeated window search (R33).</li>
-    <li data-k="ci10"><b>For you to decide:</b> a covered progress window isn't brought forward when its job asks a question, so the dialog can open out of sight (R26); this is the same choice as R3 and R19.</li>
+    <li data-k="ci10"><b>Kept, as you decided:</b> a covered progress window isn't brought forward when its job asks a question, so the dialog can open out of sight (R26); this is the same choice as R3 and R19.</li>
   </ul>
   </section>
 
