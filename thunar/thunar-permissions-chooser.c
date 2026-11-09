@@ -1309,7 +1309,7 @@ thunar_permissions_chooser_job_error (ThunarPermissionsChooser *chooser,
     return;
 
   /* popup the error message dialog */
-  thunar_dialogs_show_job_error (GTK_WINDOW (toplevel), error, _("Error while changing file permissions"));
+  xfce_dialog_show_error (GTK_WINDOW (toplevel), error, _("Error while changing file permissions"));
 }
 
 
