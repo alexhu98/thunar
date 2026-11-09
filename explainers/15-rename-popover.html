@@ -286,7 +286,13 @@ explainers/15-rename-popover.narration.json  # its narration</pre>
     <li data-k="b2"><b>Fixed (low):</b> the dialog, now tied to a window, could be destroyed with it and leave a stale handler on the file; the handler now goes away with the dialog.</li>
     <li data-k="b3"><b>Fixed (low):</b> closing the window while the launcher question or the popover is open could free the file or the view; the rename now holds both until it ends.</li>
   </ul>
-  <p data-k="ci-review">CI's own review is in the code review PR comment, the second of CI's comments.</p>
+  <p data-k="ci-review">CI's review of <code>f79a85a</code> (level high) reported 9 findings, in the code review PR comment, the second of CI's comments. The fixes are in the next commit, and <code>verify/15.sh</code> was run again on it.</p>
+  <ul class="tight">
+    <li data-k="ci1"><b>Fixed (high):</b> for a D-Bus rename, the reference taken on the screen was released on the window instead (R1).</li>
+    <li data-k="ci2"><b>Fixed (medium):</b> an open popover blocked F2 in every Thunar window; now only in its own window, as each window already works on its own (R2). A folder's name is now selected whole (R3).</li>
+    <li data-k="ci3"><b>Fixed (low):</b> a Name column scrolled out sideways is scrolled back in (R4), and the new comments are gone (R9).</li>
+    <li data-k="ci4"><b>Kept (low):</b> scrolling by hand, because GTK's own scroll is animated (R5); the window search, which nothing else does (R6); the middle of the icon views, as the issue asks (R7); the width fit, which jumps straight to the right size (R8).</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">

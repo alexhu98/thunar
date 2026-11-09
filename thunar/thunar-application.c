@@ -1982,6 +1982,7 @@ thunar_application_rename_file (ThunarApplication     *application,
   ThunarJob *job;
   GtkWindow *window = NULL;
   GdkScreen *screen;
+  GObject   *parent_ref;
   GList     *lp;
   gint       response;
 
@@ -1990,7 +1991,7 @@ thunar_application_rename_file (ThunarApplication     *application,
   _thunar_return_if_fail (GDK_IS_SCREEN (parent) || GTK_IS_WIDGET (parent));
 
   g_object_ref (file);
-  g_object_ref (parent);
+  parent_ref = g_object_ref (parent);
 
   screen = thunar_util_parse_parent (parent, &window);
   if (window == NULL)
@@ -2044,7 +2045,7 @@ thunar_application_rename_file (ThunarApplication     *application,
     }
 
 out:
-  g_object_unref (parent);
+  g_object_unref (parent_ref);
   g_object_unref (file);
 }
 

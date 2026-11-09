@@ -294,18 +294,6 @@ thunar_view_scroll_to_file (ThunarView *view,
 
 
 
-/**
- * thunar_view_get_file_rect:
- * @view : a #ThunarView instance.
- * @file : a #ThunarFile shown in the @view.
- * @rect : return location for the area of the @file's name.
- *
- * Scrolls the @file into view and places the area of its name, in
- * coordinates relative to the @view widget, into @rect.
- *
- * Return value: %TRUE if @rect was set, %FALSE if the @view cannot
- *               tell where the @file is.
- **/
 gboolean
 thunar_view_get_file_rect (ThunarView   *view,
                            ThunarFile   *file,

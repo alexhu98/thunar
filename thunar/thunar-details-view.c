@@ -741,7 +741,9 @@ thunar_details_view_get_path_rect (ThunarStandardView *standard_view,
   GtkTreeView       *tree_view = GTK_TREE_VIEW (gtk_bin_get_child (GTK_BIN (standard_view)));
   GtkTreeViewColumn *column = THUNAR_DETAILS_VIEW (standard_view)->columns[THUNAR_COLUMN_NAME];
   GtkAdjustment     *vadjustment = gtk_scrollable_get_vadjustment (GTK_SCROLLABLE (tree_view));
+  GtkAdjustment     *hadjustment = gtk_scrollable_get_hadjustment (GTK_SCROLLABLE (tree_view));
   GdkRectangle       visible;
+  gint               tree_x;
   gint               tree_y;
 
   _thunar_return_val_if_fail (THUNAR_IS_DETAILS_VIEW (standard_view), FALSE);
@@ -751,11 +753,13 @@ thunar_details_view_get_path_rect (ThunarStandardView *standard_view,
 
   gtk_tree_view_get_cell_area (tree_view, path, column, rect);
   gtk_tree_view_get_visible_rect (tree_view, &visible);
-  gtk_tree_view_convert_bin_window_to_tree_coords (tree_view, rect->x, rect->y, NULL, &tree_y);
+  gtk_tree_view_convert_bin_window_to_tree_coords (tree_view, rect->x, rect->y, &tree_x, &tree_y);
   if (tree_y < visible.y)
     gtk_adjustment_set_value (vadjustment, tree_y);
   else if (tree_y + rect->height > visible.y + visible.height)
     gtk_adjustment_set_value (vadjustment, tree_y + rect->height - visible.height);
+  if (tree_x < visible.x || tree_x >= visible.x + visible.width)
+    gtk_adjustment_set_value (hadjustment, tree_x);
 
   gtk_tree_view_get_cell_area (tree_view, path, column, rect);
   gtk_tree_view_convert_bin_window_to_widget_coords (tree_view, rect->x, rect->y, &rect->x, &rect->y);

@@ -116,9 +116,6 @@ struct _ThunarStandardViewClass
                                  GtkTreePath       **start_path,
                                  GtkTreePath       **end_path);
 
-  /* Scrolls the item/row into view and returns the area of its name,
-   * relative to the standard view. May be NULL.
-   */
   gboolean (*get_path_rect) (ThunarStandardView *standard_view,
                              GtkTreePath        *path,
                              GdkRectangle       *rect);

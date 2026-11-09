@@ -457,6 +457,8 @@ thunar_dialogs_rename_popover_focused (ThunarDialogsRenamePopover *data)
   ext = thunar_file_is_directory (data->file) ? NULL : thunar_util_str_get_extension (text);
   if (ext != NULL && ext != text)
     gtk_editable_select_region (GTK_EDITABLE (data->entry), 0, g_utf8_pointer_to_offset (text, ext));
+  else
+    gtk_editable_select_region (GTK_EDITABLE (data->entry), 0, -1);
 }
 
 
@@ -490,11 +492,11 @@ thunar_dialogs_rename_file_popover (GtkWidget   *view,
   gint                       max_width;
   gint                       natural;
   gint                       chars;
-  static gboolean            open = FALSE;
 
-  if (open)
+  if (g_object_get_data (G_OBJECT (window), "thunar-rename-popover") != NULL)
     return NULL;
-  open = TRUE;
+  g_object_ref (window);
+  g_object_set_data (G_OBJECT (window), "thunar-rename-popover", GINT_TO_POINTER (TRUE));
 
   popover = g_object_ref_sink (gtk_popover_new (view));
   gtk_popover_set_position (GTK_POPOVER (popover), GTK_POS_BOTTOM);
@@ -580,7 +582,8 @@ thunar_dialogs_rename_file_popover (GtkWidget   *view,
       gtk_widget_grab_focus (focus);
     }
 
-  open = FALSE;
+  g_object_set_data (G_OBJECT (window), "thunar-rename-popover", NULL);
+  g_object_unref (window);
 
   return text;
 }
