@@ -448,7 +448,7 @@ thunar_dialogs_rename_popover_finish (ThunarDialogsRenamePopover *data,
   data->done = TRUE;
 
   if (rename)
-    thunar_dialogs_rename_start (data->file, data->filename, gtk_entry_get_text (GTK_ENTRY (data->entry)),
+    thunar_dialogs_rename_start (data->file, thunar_file_get_basename (data->file), gtk_entry_get_text (GTK_ENTRY (data->entry)),
                                  gtk_widget_get_screen (data->popover), data->log_mode, data->callback, data->user_data);
 
   gtk_widget_hide (data->popover);
