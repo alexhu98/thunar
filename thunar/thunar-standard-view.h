@@ -116,6 +116,10 @@ struct _ThunarStandardViewClass
                                  GtkTreePath       **start_path,
                                  GtkTreePath       **end_path);
 
+  gboolean (*get_path_rect) (ThunarStandardView *standard_view,
+                             GtkTreePath        *path,
+                             GdkRectangle       *rect);
+
   /* Sets the item/row that is highlighted for feedback. NULL is
    * passed for path to disable the highlighting.
    */

@@ -26,15 +26,24 @@
 
 G_BEGIN_DECLS;
 
+typedef void (*ThunarDialogsRenameCallback) (ThunarJob  *job,
+                                             ThunarFile *file,
+                                             GdkScreen  *screen,
+                                             gpointer    user_data);
+
 gchar *
 thunar_dialogs_show_create (gpointer     parent,
                             const gchar *content_type,
                             const gchar *filename,
                             const gchar *title);
-ThunarJob *
-thunar_dialogs_show_rename_file (gpointer               parent,
-                                 ThunarFile            *file,
-                                 ThunarOperationLogMode log_mode);
+gboolean
+thunar_dialogs_rename_popover_is_open (gpointer parent);
+void
+thunar_dialogs_show_rename_file (gpointer                    parent,
+                                 ThunarFile                 *file,
+                                 ThunarOperationLogMode      log_mode,
+                                 ThunarDialogsRenameCallback callback,
+                                 gpointer                    user_data);
 void
 thunar_dialogs_show_about (GtkWindow   *parent,
                            const gchar *title,

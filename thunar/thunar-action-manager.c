@@ -2547,7 +2547,7 @@ static gboolean
 thunar_action_manager_action_rename (ThunarActionManager *action_mgr)
 {
   GtkWidget         *window;
-  GdkScreen         *screen;
+  GtkWidget         *parent;
   ThunarApplication *application;
 
   _thunar_return_val_if_fail (THUNAR_IS_ACTION_MANAGER (action_mgr), FALSE);
@@ -2557,17 +2557,20 @@ thunar_action_manager_action_rename (ThunarActionManager *action_mgr)
   if (action_mgr->files_are_selected == FALSE || thunar_file_is_trash (action_mgr->current_directory))
     return TRUE;
 
-  /* get the window and the screen */
+  /* get the window */
   window = gtk_widget_get_toplevel (action_mgr->widget);
-  screen = thunar_util_parse_parent (window, NULL);
 
   /* start renaming if we have exactly one selected file */
   if (g_list_length (action_mgr->files_to_process) == 1)
     {
+      parent = action_mgr->widget;
+      if (THUNAR_IS_WINDOW (parent) && thunar_window_get_view (THUNAR_WINDOW (parent)) != NULL)
+        parent = thunar_window_get_view (THUNAR_WINDOW (parent));
+
       application = thunar_application_get ();
       thunar_application_rename_file (application,
                                       action_mgr->files_to_process->data,
-                                      screen,
+                                      parent,
                                       NULL,
                                       THUNAR_OPERATION_LOG_OPERATIONS);
       g_object_unref (G_OBJECT (application));

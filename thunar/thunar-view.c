@@ -294,6 +294,23 @@ thunar_view_scroll_to_file (ThunarView *view,
 
 
 
+gboolean
+thunar_view_get_file_rect (ThunarView   *view,
+                           ThunarFile   *file,
+                           GdkRectangle *rect)
+{
+  _thunar_return_val_if_fail (THUNAR_IS_VIEW (view), FALSE);
+  _thunar_return_val_if_fail (THUNAR_IS_FILE (file), FALSE);
+  _thunar_return_val_if_fail (rect != NULL, FALSE);
+
+  if (THUNAR_VIEW_GET_IFACE (view)->get_file_rect == NULL)
+    return FALSE;
+
+  return (*THUNAR_VIEW_GET_IFACE (view)->get_file_rect) (view, file, rect);
+}
+
+
+
 GList *
 thunar_view_get_selected_files (ThunarView *view)
 {

@@ -1960,12 +1960,36 @@ thunar_application_rename_file_finished (ExoJob  *job,
 
 
 
+static void
+thunar_application_rename_file_started (ThunarJob  *job,
+                                        ThunarFile *file,
+                                        GdkScreen  *screen,
+                                        gpointer    user_data)
+{
+  ThunarApplication *application = THUNAR_APPLICATION (user_data);
+
+  /* remember the screen and file */
+  g_object_set_qdata (G_OBJECT (job), thunar_application_screen_quark, screen);
+  g_object_set_qdata_full (G_OBJECT (job), thunar_application_file_quark,
+                           g_object_ref (file), g_object_unref);
+
+  /* handle rename errors */
+  g_signal_connect (job, "error",
+                    G_CALLBACK (thunar_application_rename_file_error), application);
+
+  /* destroy the job when it has finished */
+  g_signal_connect (job, "finished",
+                    G_CALLBACK (thunar_application_rename_file_finished), NULL);
+}
+
+
+
 /**
  * thunar_application_rename_file:
  * @application : a #ThunarApplication.
  * @file        : a #ThunarFile to be renamed.
- * @screen      : the #GdkScreen on which to open the window
- *                to open on the default screen.
+ * @parent      : the #ThunarView showing the @file, another #GtkWidget, or
+ *                the #GdkScreen on which to ask for the new name.
  * @startup_id  : startup id from startup notification passed along
  *                with dbus to make focus stealing work properly. Ignored if NULL.
  * @log_mode    : a #ThunarOperationLogMode to control logging of the operation
@@ -1975,22 +1999,46 @@ thunar_application_rename_file_finished (ExoJob  *job,
 void
 thunar_application_rename_file (ThunarApplication     *application,
                                 ThunarFile            *file,
-                                GdkScreen             *screen,
+                                gpointer               parent,
                                 const gchar           *startup_id,
                                 ThunarOperationLogMode log_mode)
 {
-  ThunarJob *job;
+  GtkWindow *window = NULL;
+  GdkScreen *screen;
+  GObject   *parent_ref;
+  GtkWindow *window_ref = NULL;
+  GList     *lp;
   gint       response;
 
   _thunar_return_if_fail (THUNAR_IS_APPLICATION (application));
   _thunar_return_if_fail (THUNAR_IS_FILE (file));
-  _thunar_return_if_fail (GDK_IS_SCREEN (screen));
+  _thunar_return_if_fail (GDK_IS_SCREEN (parent) || GTK_IS_WIDGET (parent));
+
+  if (thunar_dialogs_rename_popover_is_open (parent))
+    return;
+
+  g_object_ref (file);
+  parent_ref = g_object_ref (parent);
+
+  screen = thunar_util_parse_parent (parent, &window);
+  if (window == NULL)
+    {
+      for (lp = gtk_application_get_windows (GTK_APPLICATION (application)); lp != NULL; lp = lp->next)
+        if (THUNAR_IS_WINDOW (lp->data) && gtk_widget_get_visible (lp->data) && gtk_widget_get_screen (lp->data) == screen
+            && !thunar_dialogs_rename_popover_is_open (lp->data))
+          {
+            window = lp->data;
+            window_ref = g_object_ref (window);
+            parent = window;
+            break;
+          }
+    }
 
   /* TODO pass the startup ID to the rename dialog */
 
   if (thunar_file_is_desktop_file (file))
     {
-      response = xfce_message_dialog (NULL,
+      response = xfce_message_dialog (window,
                                       _("Rename Launcher Options"),
                                       "dialog-question",
                                       NULL,
@@ -2001,29 +2049,20 @@ thunar_application_rename_file (ThunarApplication     *application,
       if (response == THUNAR_RESPONSE_LAUNCHERNAME)
         {
           thunar_dialog_show_launcher_props (file, screen);
-          return;
+          goto out;
         }
       else if (response != THUNAR_RESPONSE_FILENAME)
-        return;
+        goto out;
     }
 
   /* run the rename dialog */
-  job = thunar_dialogs_show_rename_file (screen, file, log_mode);
-  if (G_LIKELY (job != NULL))
-    {
-      /* remember the screen and file */
-      g_object_set_qdata (G_OBJECT (job), thunar_application_screen_quark, screen);
-      g_object_set_qdata_full (G_OBJECT (job), thunar_application_file_quark,
-                               g_object_ref (file), g_object_unref);
+  thunar_dialogs_show_rename_file (parent, file, log_mode, thunar_application_rename_file_started, application);
 
-      /* handle rename errors */
-      g_signal_connect (job, "error",
-                        G_CALLBACK (thunar_application_rename_file_error), application);
-
-      /* destroy the job when it has finished */
-      g_signal_connect (job, "finished",
-                        G_CALLBACK (thunar_application_rename_file_finished), NULL);
-    }
+out:
+  if (window_ref != NULL)
+    g_object_unref (window_ref);
+  g_object_unref (parent_ref);
+  g_object_unref (file);
 }
 
 
