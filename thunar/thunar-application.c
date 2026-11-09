@@ -1960,6 +1960,33 @@ thunar_application_rename_file_finished (ExoJob  *job,
 
 
 
+typedef struct
+{
+  ThunarApplication     *application;
+  ThunarFile            *file;
+  GObject               *parent;
+  ThunarOperationLogMode log_mode;
+} ThunarApplicationRenameLater;
+
+
+
+static gboolean
+thunar_application_rename_file_later (gpointer user_data)
+{
+  ThunarApplicationRenameLater *later = user_data;
+
+  thunar_application_rename_file (later->application, later->file, later->parent, NULL, later->log_mode);
+
+  g_object_unref (later->parent);
+  g_object_unref (later->file);
+  g_object_unref (later->application);
+  g_free (later);
+
+  return G_SOURCE_REMOVE;
+}
+
+
+
 /**
  * thunar_application_rename_file:
  * @application : a #ThunarApplication.
@@ -1979,16 +2006,36 @@ thunar_application_rename_file (ThunarApplication     *application,
                                 const gchar           *startup_id,
                                 ThunarOperationLogMode log_mode)
 {
-  ThunarJob *job;
-  GtkWindow *window = NULL;
-  GdkScreen *screen;
-  GObject   *parent_ref;
-  GList     *lp;
-  gint       response;
+  ThunarJob                    *job;
+  GtkWindow                    *window = NULL;
+  GdkScreen                    *screen;
+  GObject                      *parent_ref;
+  GtkWindow                    *window_ref = NULL;
+  GList                        *lp;
+  gint                          response;
+  ThunarApplicationRenameLater *later;
 
   _thunar_return_if_fail (THUNAR_IS_APPLICATION (application));
   _thunar_return_if_fail (THUNAR_IS_FILE (file));
   _thunar_return_if_fail (GDK_IS_SCREEN (parent) || GTK_IS_WIDGET (parent));
+
+  switch (thunar_dialogs_close_rename_popover (parent))
+    {
+    case THUNAR_DIALOGS_RENAME_SAME_WINDOW:
+      return;
+
+    case THUNAR_DIALOGS_RENAME_CLOSED:
+      later = g_new0 (ThunarApplicationRenameLater, 1);
+      later->application = g_object_ref (application);
+      later->file = g_object_ref (file);
+      later->parent = g_object_ref (parent);
+      later->log_mode = log_mode;
+      g_idle_add (thunar_application_rename_file_later, later);
+      return;
+
+    case THUNAR_DIALOGS_RENAME_NONE:
+      break;
+    }
 
   g_object_ref (file);
   parent_ref = g_object_ref (parent);
@@ -2000,6 +2047,7 @@ thunar_application_rename_file (ThunarApplication     *application,
         if (THUNAR_IS_WINDOW (lp->data) && gtk_widget_get_visible (lp->data) && gtk_widget_get_screen (lp->data) == screen)
           {
             window = lp->data;
+            window_ref = g_object_ref (window);
             parent = window;
             break;
           }
@@ -2045,6 +2093,8 @@ thunar_application_rename_file (ThunarApplication     *application,
     }
 
 out:
+  if (window_ref != NULL)
+    g_object_unref (window_ref);
   g_object_unref (parent_ref);
   g_object_unref (file);
 }

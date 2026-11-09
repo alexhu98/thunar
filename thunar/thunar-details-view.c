@@ -758,7 +758,7 @@ thunar_details_view_get_path_rect (ThunarStandardView *standard_view,
     gtk_adjustment_set_value (vadjustment, tree_y);
   else if (tree_y + rect->height > visible.y + visible.height)
     gtk_adjustment_set_value (vadjustment, tree_y + rect->height - visible.height);
-  if (tree_x < visible.x || tree_x >= visible.x + visible.width)
+  if (tree_x < visible.x || tree_x + MIN (rect->width, visible.width) > visible.x + visible.width)
     gtk_adjustment_set_value (hadjustment, tree_x);
 
   gtk_tree_view_get_cell_area (tree_view, path, column, rect);

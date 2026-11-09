@@ -222,6 +222,34 @@ focus "$Q"
 xdotool key Escape
 sleep 0.5
 
+click_first_row
+xdotool key Down
+sleep 0.3
+f2
+no_dialog "F2 on notes.txt"
+open_thunar "$LONG"
+SECOND=$WID
+xdotool windowsize --sync "$SECOND" 640 360
+xdotool windowmove --sync "$SECOND" 640 420
+wait_title "$SECOND" long
+focus "$SECOND"
+xdotool mousemove --window "$SECOND" "$NAME_X" "$ROW0"
+sleep 0.3
+xdotool click 1
+sleep 0.5
+xdotool key F2
+sleep 1
+no_dialog "F2 in a second window while the first has a rename popover open"
+shot root two-windows "With a rename popover open on notes.txt in the first window, F2 in a second window closed it and opened the popover in the second window, at the long file's name"
+xdotool type --delay 20 second-window
+xdotool key Return
+exists "$LONG/second-window.txt" "renaming in the second window's popover"
+exists "$APPS/notes.txt" "after F2 in the second window"
+focus "$SECOND"
+xdotool key ctrl+w
+sleep 1
+WID=$MAIN
+
 shot root before-dbus-dialog "Thunar shows the apps folder with notes.txt and no rename UI open, before a rename is requested over D-Bus"
 dbus-send --session --print-reply --reply-timeout=60000 --dest=org.xfce.FileManager /org/xfce/FileManager \
   org.xfce.FileManager.RenameFile string:"file://$APPS/notes.txt" string:"" string:"" >/dev/null 2>&1 &
