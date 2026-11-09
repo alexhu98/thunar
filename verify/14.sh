@@ -64,6 +64,12 @@ progress_shown() {
   grep -qx "$1" <<<"$(xdotool search --onlyvisible --name '^File Operation Progress$' 2>/dev/null || true)"
 }
 
+move_progress_aside() {
+  xdotool windowmove --sync "$PROGRESS" 810 0 || fail "could not move the progress window aside"
+  sleep 0.5
+  [[ $(xdotool getactivewindow) == "$EDITOR_WID" ]] || fail "moving the progress window aside moved the focus"
+}
+
 open_thunar "$DST"
 MAIN=$WID
 xdotool windowsize --sync "$MAIN" 700 450
@@ -137,7 +143,8 @@ sleep 1
 find_window 'Confirm to replace files' >/dev/null || fail "the Return typed in the editor closed the replace dialog"
 dst_is "old version of the report" "after typing in the editor"
 [[ $(xdotool getactivewindow) == "$EDITOR_WID" ]] || fail "the editor lost the focus while typing"
-shot root after-replace-dialog "The replace dialog and the progress window are open above Thunar, the editor kept the focus, and the Return typed there reached it"
+move_progress_aside
+shot root after-replace-dialog "The replace dialog is open above Thunar, the progress window (moved to the top right) is open too, the editor kept the focus, and the Return typed there reached it"
 pair replace-dialog "Asked Thunar over D-Bus to copy report.txt onto an existing one, then typed text and Return in the editor" "The progress window and the replace dialog open without taking the focus, and Enter typed elsewhere leaves the job alone" "editor focused" "dialogs open, editor still focused" "$F"
 
 focus "$ASK"
@@ -159,14 +166,15 @@ next_copy() {
   sleep 0.5
   copy_into_dst
   ASK=$(find_window 'Confirm to replace files') || fail "the replace dialog did not appear $1"
-  find_window 'File Operation Progress' >/dev/null || fail "the progress window did not reappear $1"
+  PROGRESS=$(find_window 'File Operation Progress') || fail "the progress window did not reappear $1"
   sleep 1
   ACTIVE=$(xdotool getactivewindow)
   [[ $ACTIVE == "$EDITOR_WID" ]] || fail "$1, the focus moved to window $ACTIVE ('$(xdotool getwindowname "$ACTIVE")')"
 }
 
 next_copy "the second time"
-shot root reopened-without-focus "After the first job was cancelled and its progress window closed, a second copy shows the progress window and replace dialog again, and the editor keeps the focus"
+move_progress_aside
+shot root reopened-without-focus "After the first job was cancelled and its progress window closed, a second copy shows the replace dialog and the progress window (moved to the top right) again, and the editor keeps the focus"
 focus "$ASK"
 xdotool key Escape
 gone 'Confirm to replace files' || fail "Escape did not close the replace dialog"
