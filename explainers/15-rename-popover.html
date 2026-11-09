@@ -271,6 +271,7 @@ explainers/15-rename-popover.narration.json  # its narration</pre>
     <tr data-k="c7"><td>Width</td><td>A 109- and a 253-character name in a 1280 px window</td><td class="ok">whole name shown; capped at 90%, scrolls</td></tr>
     <tr data-k="c8"><td>Icon and compact views</td><td>F2 in each view</td><td class="ok">popover at the view's middle</td></tr>
     <tr data-k="c9"><td>.desktop question and D-Bus dialog</td><td><code>WM_TRANSIENT_FOR</code> of each window; then renamed over D-Bus</td><td class="ok">both on the Thunar window; renamed</td></tr>
+    <tr data-k="c12"><td>Two windows</td><td>F2 in a second window while the first has a popover open; typed a name, Enter</td><td class="ok">first closed, second renamed</td></tr>
     <tr data-k="c10"><td>All sandbox tests</td><td><code>verify-proof.sh run</code>: the smoke test and every <code>verify/*.sh</code>, on the last code change</td><td class="ok">8 of 8 pass</td></tr>
     <tr data-k="c11"><td>Second monitor; a 2000 px window</td><td>Xvfb has one 1280×800 screen</td><td class="no">not run</td></tr>
   </table>
@@ -289,9 +290,16 @@ explainers/15-rename-popover.narration.json  # its narration</pre>
   <p data-k="ci-review">CI's review of <code>f79a85a</code> (level high) reported 9 findings, in the code review PR comment, the second of CI's comments. The fixes are in the next commit, and <code>verify/15.sh</code> was run again on it.</p>
   <ul class="tight">
     <li data-k="ci1"><b>Fixed (high):</b> for a D-Bus rename, the reference taken on the screen was released on the window instead (R1).</li>
-    <li data-k="ci2"><b>Fixed (medium):</b> an open popover blocked F2 in every Thunar window; now only in its own window, as each window already works on its own (R2). A folder's name is now selected whole (R3).</li>
+    <li data-k="ci2"><b>Fixed (medium):</b> an open popover blocked F2 in every Thunar window (R2). A folder's name is now selected whole (R3).</li>
     <li data-k="ci3"><b>Fixed (low):</b> a Name column scrolled out sideways is scrolled back in (R4), and the new comments are gone (R9).</li>
     <li data-k="ci4"><b>Kept (low):</b> scrolling by hand, because GTK's own scroll is animated (R5); the window search, which nothing else does (R6); the middle of the icon views, as the issue asks (R7); the width fit, which jumps straight to the right size (R8).</li>
+  </ul>
+  <p data-k="ci-review2">CI's review of <code>fbd4ada</code> reported 6 more findings. The fixes are in the next commit, and <code>verify/15.sh</code> was run again on it.</p>
+  <ul class="tight">
+    <li data-k="ci5"><b>Fixed (medium):</b> with one popover per window, two windows could each wait on the other's popover (R10). Now F2 in a second window closes the first popover and opens one in the second window once the first has closed; <code>verify/15.sh</code> checks it.</li>
+    <li data-k="ci6"><b>Fixed (medium):</b> the window found for a D-Bus rename is held while the launcher question is open (R11).</li>
+    <li data-k="ci7"><b>Fixed (low):</b> a Name cell starting at the right edge is scrolled fully in (R12); a second F2 on a launcher no longer asks its question again (R13); the name selection lives in one function (R14).</li>
+    <li data-k="ci8"><b>Accepted (low):</b> the selection is made again each time the entry gets the focus (R15), like GTK's own select-on-focus.</li>
   </ul>
   </section>
 
