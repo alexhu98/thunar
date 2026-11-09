@@ -206,7 +206,7 @@
   <div class="lane-h" style="color:var(--accent)">① The progress window</div>
   <ol class="steps">
     <li data-k="1"><b>You copy files.</b> You start a copy or move in Thunar and go back to typing in another app.</li>
-    <li data-k="2"><b>After 500 ms.</b> If the job is still running, <code>thunar_application_show_progress_dialog_timeout</code> now calls the new <code>thunar_progress_dialog_raise</code> instead of <code>gtk_window_present</code>. A hidden window is shown with <code>gtk_widget_show</code>; the window already asks not to be focused when it appears.</li>
+    <li data-k="2"><b>After 500 ms.</b> If the job is still running, <code>thunar_application_show_progress_dialog_timeout</code> now calls the new <code>thunar_progress_dialog_show_unraised</code> instead of <code>gtk_window_present</code>. A hidden window is shown with <code>gtk_widget_show</code>; the window already asks not to be focused when it appears.</li>
     <li data-k="3"><b>Needs attention.</b> When a job asks a question, the progress window is shown the same way. If it is already visible, it is only un-minimized (<code>gdk_window_show_unraised</code>): raising it made xfwm4 give it the focus whenever another app's window covered it, or focus its dialog.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② When the job asks a question or fails</div>
@@ -237,12 +237,13 @@
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
-<pre data-k="tree">thunar/thunar-progress-dialog.c   # new thunar_progress_dialog_raise: show without focus, never raise
+<pre data-k="tree">thunar/thunar-progress-dialog.c   # new thunar_progress_dialog_show_unraised: show without focus, never raise
 thunar/thunar-progress-dialog.h   # its declaration
 thunar/thunar-application.c       # the 500 ms timer calls it instead of gtk_window_present
 thunar/thunar-dialogs.c           # no default buttons; thunar_dialogs_run_job_dialog runs the job dialogs
 thunar/thunar-dialogs.h           # declares thunar_dialogs_show_job_error
 thunar/thunar-progress-view.c     # a job error opens through thunar_dialogs_show_job_error
+thunar/thunar-permissions-chooser.c  # so does a permissions job error
 verify/14.sh                      # the Xvfb test CI runs on every PR
 explainers/14-job-dialog-focus.html            # this page
 explainers/14-job-dialog-focus.narration.json  # its narration</pre>
@@ -314,6 +315,10 @@ explainers/14-job-dialog-focus.narration.json  # its narration</pre>
   <ul class="tight">
     <li data-k="ci9"><b>Accepted (low):</b> un-minimizing through <code>gdk_window_show_unraised</code> (R27), the test's remaining checks and the shot with the editor over the progress window (R29, R31), and a repeated window search (R33).</li>
     <li data-k="ci10"><b>Kept, as you decided:</b> a covered progress window isn't brought forward when its job asks a question, so the dialog can open out of sight (R26); this is the same choice as R3 and R19.</li>
+  </ul>
+  <p data-k="ci-review5">CI's review of the branch merged with <code>main</code> (<code>432b16d</code>) covered the whole PR again and reported 7 more findings. The function is renamed <code>thunar_progress_dialog_show_unraised</code>, since it never raises a shown window (R40); the buttons lose a leftover "can be default" flag (R39); and the permissions job error opens without the focus too (R37).</p>
+  <ul class="tight">
+    <li data-k="ci11"><b>Accepted (low):</b> the worst case of the retry path (R35), the short wait before the dialog is modal (R36), and keeping <code>gtk_dialog_run</code> rather than a custom loop (R38).</li>
   </ul>
   </section>
 
