@@ -377,8 +377,8 @@ thunar_dialogs_rename_file_dialog (GdkScreen   *screen,
   gtk_window_set_default_size (GTK_WINDOW (dialog), CLAMP (dialog_width, 300, parent_width), -1);
 
   /* automatically close the dialog when the file is destroyed */
-  g_signal_connect_swapped (G_OBJECT (file), "destroy",
-                            G_CALLBACK (gtk_widget_destroy), dialog);
+  g_signal_connect_object (G_OBJECT (file), "destroy",
+                           G_CALLBACK (gtk_widget_destroy), dialog, G_CONNECT_SWAPPED);
 
   /* shrink the dialog again, after some filename error was fixed */
   g_signal_connect_swapped (filename_input, "text-valid", G_CALLBACK (thunar_dialogs_shrink_height), dialog);
@@ -490,6 +490,11 @@ thunar_dialogs_rename_file_popover (GtkWidget   *view,
   gint                       max_width;
   gint                       natural;
   gint                       chars;
+  static gboolean            open = FALSE;
+
+  if (open)
+    return NULL;
+  open = TRUE;
 
   popover = g_object_ref_sink (gtk_popover_new (view));
   gtk_popover_set_position (GTK_POPOVER (popover), GTK_POS_BOTTOM);
@@ -574,6 +579,8 @@ thunar_dialogs_rename_file_popover (GtkWidget   *view,
       g_object_remove_weak_pointer (G_OBJECT (focus), (gpointer *) &focus);
       gtk_widget_grab_focus (focus);
     }
+
+  open = FALSE;
 
   return text;
 }

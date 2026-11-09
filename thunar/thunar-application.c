@@ -1989,6 +1989,9 @@ thunar_application_rename_file (ThunarApplication     *application,
   _thunar_return_if_fail (THUNAR_IS_FILE (file));
   _thunar_return_if_fail (GDK_IS_SCREEN (parent) || GTK_IS_WIDGET (parent));
 
+  g_object_ref (file);
+  g_object_ref (parent);
+
   screen = thunar_util_parse_parent (parent, &window);
   if (window == NULL)
     {
@@ -2016,10 +2019,10 @@ thunar_application_rename_file (ThunarApplication     *application,
       if (response == THUNAR_RESPONSE_LAUNCHERNAME)
         {
           thunar_dialog_show_launcher_props (file, screen);
-          return;
+          goto out;
         }
       else if (response != THUNAR_RESPONSE_FILENAME)
-        return;
+        goto out;
     }
 
   /* run the rename dialog */
@@ -2039,6 +2042,10 @@ thunar_application_rename_file (ThunarApplication     *application,
       g_signal_connect (job, "finished",
                         G_CALLBACK (thunar_application_rename_file_finished), NULL);
     }
+
+out:
+  g_object_unref (parent);
+  g_object_unref (file);
 }
 
 

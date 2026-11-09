@@ -1,0 +1,259 @@
+{
+  "title": "PR #82 · Rename popover",
+  "voice": "af_heart",
+  "lines": [
+    {
+      "screen": "title",
+      "keys": [],
+      "caption": "This is a tour of pull request 82, which opens Thunar's rename box in a popover right next to the file.",
+      "say": "This is a tour of pull request eighty-two, which opens Thunar's rename box in a popover right next to the file."
+    },
+    {
+      "screen": "title",
+      "keys": [
+        "p1",
+        "p2",
+        "p3"
+      ],
+      "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later."
+    },
+    {
+      "screen": "adds",
+      "keys": [],
+      "caption": "Part 1. What this PR adds."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "1"
+      ],
+      "caption": "You press F2, or choose Rename, on one selected file."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "2"
+      ],
+      "caption": "Thunar finds the file's row, scrolls it into view if needed, and takes its Name cell."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "3"
+      ],
+      "caption": "The popover opens below the name, or above it near the bottom, sized to fit the name."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "4"
+      ],
+      "caption": "Enter renames the file; Escape or a click outside cancels."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "5"
+      ],
+      "caption": "For a launcher file, the launcher-or-file question now opens over the Thunar window."
+    },
+    {
+      "screen": "flow",
+      "keys": [
+        "6"
+      ],
+      "caption": "A rename asked for over D-Bus has no view to point at, so it keeps the dialog, now over a Thunar window.",
+      "say": "A rename asked for over D Bus has no view to point at, so it keeps the dialog, now over a Thunar window."
+    },
+    {
+      "screen": "bigpic",
+      "keys": [
+        "why"
+      ],
+      "caption": "The old dialog had no parent window, so it often opened on another monitor, and it never grew past 500 pixels.",
+      "say": "The old dialog had no parent window, so it often opened on another monitor, and it never grew past five hundred pixels."
+    },
+    {
+      "screen": "bigpic",
+      "keys": [
+        "note"
+      ],
+      "caption": "A popover is drawn inside its window, so it can't land on another monitor."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "1"
+      ],
+      "caption": "The window's action manager now passes its current view, so the rename knows where the file is shown."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "2"
+      ],
+      "caption": "The details view returns the row's Name cell; the icon and compact views point at their middle for now."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "3"
+      ],
+      "caption": "The popover holds the same icon, entry and buttons as the dialog, between 300 pixels and 90 percent of the window.",
+      "say": "The popover holds the same icon, entry and buttons as the dialog, between three hundred pixels and ninety percent of the window."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "4"
+      ],
+      "caption": "The name is selected without its extension, and the focus goes back to the file list afterwards."
+    },
+    {
+      "screen": "steps",
+      "keys": [
+        "5",
+        "6"
+      ],
+      "caption": "The launcher question and the D-Bus dialog are now tied to the Thunar window.",
+      "say": "The launcher question and the D Bus dialog are now tied to the Thunar window."
+    },
+    {
+      "screen": "cases",
+      "keys": [
+        "k1",
+        "k2",
+        "k3",
+        "k4",
+        "k5"
+      ],
+      "caption": "Only renames from a view get the popover; the side pane, the location bar and D-Bus keep the dialog.",
+      "say": "Only renames from a view get the popover; the side pane, the location bar and D Bus keep the dialog."
+    },
+    {
+      "screen": "files",
+      "keys": [
+        "tree"
+      ],
+      "caption": "Most of the change is in the dialogs file, with small additions to the views, the window and the application."
+    },
+    {
+      "screen": "verified",
+      "keys": [],
+      "caption": "Part 2. How it was built and verified."
+    },
+    {
+      "screen": "refs",
+      "keys": [
+        "r1",
+        "r2",
+        "r3"
+      ],
+      "caption": "It reuses the old dialog's content, waits the way the dialog did, and finds the row the way the views already do."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c1"
+      ],
+      "caption": "The package was built in this session."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c2",
+        "c3",
+        "c4"
+      ],
+      "caption": "The test showed the popover below a top row and above the last one, and the extension left unselected."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c5",
+        "c6"
+      ],
+      "caption": "Escape, a click outside and an invalid name left the file alone, and hidden rows scrolled into view."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c7",
+        "c8",
+        "c9"
+      ],
+      "caption": "Long names, the icon and compact views, the launcher question and the D-Bus dialog were checked too.",
+      "say": "Long names, the icon and compact views, the launcher question and the D Bus dialog were checked too."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c10"
+      ],
+      "caption": "The whole sandbox test set was run on the last code change."
+    },
+    {
+      "screen": "checks",
+      "keys": [
+        "c11"
+      ],
+      "caption": "A second monitor and a two-thousand-pixel window couldn't be tested here.",
+      "from": [
+        "c11"
+      ]
+    },
+    {
+      "screen": "review",
+      "keys": [
+        "summary"
+      ],
+      "caption": "A fresh review agent found one medium and two low problems, and all three were fixed."
+    },
+    {
+      "screen": "review",
+      "keys": [
+        "b1"
+      ],
+      "caption": "The medium one: pressing F2 twice stacked a second popover. A second F2 is now ignored."
+    },
+    {
+      "screen": "aftermerge",
+      "keys": [
+        "a1",
+        "a2",
+        "a3"
+      ],
+      "caption": "After the merge, you can check the second monitor, a wide window, and the split-view crash."
+    },
+    {
+      "screen": "later",
+      "keys": [],
+      "caption": "Part 3. What comes later: in-place rename, issue 16.",
+      "say": "Part 3. What comes later: in-place rename, issue sixteen."
+    },
+    {
+      "screen": "next",
+      "keys": [
+        "n1",
+        "n2",
+        "n3"
+      ],
+      "caption": "After your check, issue 16 adds renaming right in the list, with this popover as its fallback.",
+      "say": "After your check, issue sixteen adds renaming right in the list, with this popover as its fallback."
+    },
+    {
+      "screen": "issue-16",
+      "keys": [
+        "1",
+        "2"
+      ],
+      "caption": "With its new preference off, F2 opens this popover, and launchers and D-Bus keep their windows.",
+      "say": "With its new preference off, F2 opens this popover, and launchers and D Bus keep their windows."
+    },
+    {
+      "screen": "title",
+      "keys": [],
+      "caption": "In short: the rename box now opens next to the file, on the right monitor, and wide enough for the whole name."
+    }
+  ]
+}

@@ -264,7 +264,7 @@ explainers/15-rename-popover.narration.json  # its narration</pre>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage -b -us -uc</code> on Ubuntu 24.04 in this session</td><td class="ok">[build]</td></tr>
     <tr data-k="c2"><td>Popover below a top row, above the last row</td><td><code>verify/15.sh</code>: F2 on the first row, then End and F2 on the last row of 40</td><td class="ok">below, then above; no dialog window</td></tr>
-    <tr data-k="c3"><td>Name selected without the extension</td><td>Typed a new name straight after F2, pressed Enter</td><td class="ok">file-01.txt → renamed-01.txt</td></tr>
+    <tr data-k="c3"><td>Name selected without the extension; a second F2 ignored</td><td>Pressed F2 twice, typed a new name, pressed Enter</td><td class="ok">file-01.txt → renamed-01.txt</td></tr>
     <tr data-k="c4"><td>Focus goes back to the file list</td><td>End and F2 with no click after the first rename</td><td class="ok">file-40.txt renamed</td></tr>
     <tr data-k="c5"><td>Escape, click outside, invalid name</td><td>Typed a name, then Escape; a click on the side pane; <code>bad/name</code> and Enter</td><td class="ok">file unchanged 3 times; Rename greyed</td></tr>
     <tr data-k="c6"><td>Row partly or far out of view</td><td>Dragged the scroll bar a few pixels; scrolled 6 wheel clicks; F2</td><td class="ok">row scrolled in, popover at it</td></tr>
@@ -280,7 +280,12 @@ explainers/15-rename-popover.narration.json  # its narration</pre>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">[review]</p>
+  <p data-k="summary">A fresh <code>general-purpose</code> agent in this session, given only the diff and issue #15, reviewed it at high effort: 1 medium and 2 low findings, all fixed. The build and the tests were run again afterwards.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed (medium):</b> F2 pressed while the popover was open opened a second popover on top of it, because the window's shortcuts still work under a popover. A second F2 is now ignored, and <code>verify/15.sh</code> presses it.</li>
+    <li data-k="b2"><b>Fixed (low):</b> the dialog, now tied to a window, could be destroyed with it and leave a stale handler on the file; the handler now goes away with the dialog.</li>
+    <li data-k="b3"><b>Fixed (low):</b> closing the window while the launcher question or the popover is open could free the file or the view; the rename now holds both until it ends.</li>
+  </ul>
   <p data-k="ci-review">CI's own review is in the code review PR comment, the second of CI's comments.</p>
   </section>
 

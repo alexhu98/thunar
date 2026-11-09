@@ -97,6 +97,8 @@ f2
 no_dialog "F2 on file-01.txt"
 shot "$MAIN" after-popover-below "F2 opened the rename popover just below file-01.txt's name, pointing at it, inside the Thunar window, with 'file-01' selected but not '.txt'"
 pair popover-below "Selected file-01.txt in the first row and pressed F2" "A file near the top gets the popover just below its name" "file-01.txt selected" "popover below file-01.txt" "$P"
+xdotool key F2
+sleep 0.5
 xdotool type --delay 20 renamed-01
 xdotool key Return
 exists "$DIR/renamed-01.txt" "typing renamed-01 and Enter in the popover"
