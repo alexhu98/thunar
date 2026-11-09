@@ -3,7 +3,7 @@
 #   check     a PR from a <n>-<slug> branch must add or change explainers/<n>-*.html; other branches are exempt
 #   narration make-video.py status <n> for the branch's issue and for every explainer page or narration the PR adds
 #             or changes, or for every narration when the PR changes make-video.py: fails when a narration is
-#             missing, stale, or names keys the page no longer has
+#             missing, stale, names keys the page no longer has, or has a video mode problem
 #   render   each explainers/<issue>-*.html the PR adds or changes (or each page given) -> 1200px full-page dark PNG
 #   publish  commits each PNG to the shots branch as pr-$PR/explainer-<issue>.png and writes the explainer comment,
 #            with the narration results, through pr-comment.sh, then the summary through pr-summary.py. Run it
@@ -53,9 +53,9 @@ narration() {
       printf -- '- Narration of #%s: current.\n' "$n" >> "$OUT/narration.md"
       echo "narration of #$n: current"
     else
-      printf -- '- Narration of #%s: **fails** `make-video.py status %s`. Write or fix it, then `make-video.py stamp %s` (see `.claude/skills/explainer/SKILL.md`).\n\n  ```text\n%s\n  ```\n' \
+      printf -- '- Narration of #%s: **fails** `make-video.py status %s`. Write or fix it, or fix the page for a video mode problem, then `make-video.py stamp %s` (see `.claude/skills/explainer/SKILL.md`).\n\n  ```text\n%s\n  ```\n' \
         "$n" "$n" "$n" "$(sed 's/^/  /' <<<"$out")" >> "$OUT/narration.md"
-      echo "::error::The narration of #$n fails make-video.py status (missing, stale, or the page is not unique); see .claude/skills/explainer/SKILL.md" >&2
+      echo "::error::The narration of #$n fails make-video.py status (missing, stale, the page is not unique, or a video mode problem); see .claude/skills/explainer/SKILL.md" >&2
       failed=1
     fi
     sed 's/^/  /' <<<"$out"

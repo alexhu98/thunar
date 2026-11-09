@@ -233,10 +233,11 @@ function build(f) {
     f.keys.forEach(k => { if (m[k]) { m[k].classList.add('vm-hl'); hl.push(m[k]); } else problems.push(`key "${k}" not in screen "${f.screen}"`); });
   }
   const st = stage.getBoundingClientRect();
-  const over = Math.max(0, ...[...zoom.querySelectorAll('*')].map(e => e.scrollWidth - e.clientWidth));
+  const wide = [...zoom.querySelectorAll('*')].filter(e => !hl.length || hl.some(h => e.contains(h) || h.contains(e)));
+  const over = Math.max(0, ...wide.map(e => e.scrollWidth - e.clientWidth));
   if (over > 1) {
     zoom.style.width = (zoom.getBoundingClientRect().width + over) + 'px';
-    if ([...zoom.querySelectorAll('*')].some(e => e.scrollWidth - e.clientWidth > 1)) zoom.style.width = '';
+    if (wide.some(e => e.scrollWidth - e.clientWidth > 1)) zoom.style.width = '';
   }
   const nat = zoom.getBoundingClientRect();
   const fitWidth = st.width / nat.width;
@@ -346,8 +347,8 @@ def page_text(texts):
 
 # ---------------------------------------------------------------- status / stamp
 
-def video_problems(pr):
-    return [f'line {i}: {p}' for i, fr in enumerate(pr['frames']) for p in fr['problems']]
+def video_problems(pr, skip=()):
+    return [f'line {i}: {p}' for i, fr in enumerate(pr['frames']) if i not in skip for p in fr['problems']]
 
 
 def status(n, quiet=False):
@@ -370,6 +371,7 @@ def status(n, quiet=False):
     loose = [k for k in now if old and k not in narrated and old.get(k) != now[k]]
     gone = [k for k in old if k not in now]
     same_page = nar.get('page_sha256') == page_sha(page)
+    problems = video_problems(pr, {i for i, _, why in stale if why == 'missing'})
     if not quiet:
         print(f'page {"unchanged" if same_page else "changed"} since the last stamp')
         for i, ln, why in stale:
@@ -378,16 +380,17 @@ def status(n, quiet=False):
             print(f'  {"new" if k not in old else "changed"} page text no line narrates: {k} = {pr["texts"][k.split("/")[0]][k.split("/", 1)[1]][:90]}')
         for k in gone:
             print(f'  removed from the page: {k}')
-        problems = video_problems(pr)
         for p in problems:
             print(f'  video mode problem: {p}')
-        if not stale and not loose and not gone and not problems:
-            print('narration matches the page' if same_page else 'no narrated text changed; run stamp')
-    return page, narp, nar, pr, stale, loose, same_page
+        if not stale and not loose and not gone and not same_page:
+            print('no narrated text changed; run stamp')
+        elif not stale and not loose and not gone and not problems:
+            print('narration matches the page')
+    return page, narp, nar, pr, stale, loose, same_page, problems
 
 
 def stamp(n):
-    page, narp, nar, pr, stale, loose, _ = status(n, quiet=True)
+    page, narp, nar, pr, stale, loose, _, problems = status(n, quiet=True)
     for i, ln, why in stale:
         if why == 'missing':
             die(f'line {i} names a screen or key the page doesn\'t have: {ln["screen"]} {ln.get("from", ln["keys"])}')
@@ -397,7 +400,7 @@ def stamp(n):
     nar['page_text'] = page_text(pr['texts'])
     save_narration(narp, nar)
     print(f'stamped {len(nar["lines"])} lines ({len(stale)} were stale) against {os.path.basename(page)}')
-    for p in video_problems(pr):
+    for p in problems:
         print(f'  video mode problem: {p}')
     for k in loose:
         print(f'  note: {k} changed and no line narrates it')
@@ -490,11 +493,10 @@ def chapters_of(frames, total):
 
 def render(n, force):
     need_kokoro()
-    page, narp, nar, pr, stale, loose, same_page = status(n, quiet=True)
+    page, narp, nar, pr, stale, loose, same_page, problems = status(n, quiet=True)
     if (stale or not same_page) and not force:
         status(n)
         die('the narration is older than the page: rewrite the stale lines, run stamp, then render')
-    problems = video_problems(pr)
     if problems:
         die('video mode problems:\n  ' + '\n  '.join(problems))
     _, _, out, work = paths(n)
@@ -571,8 +573,8 @@ if __name__ == '__main__':
         sys.exit(__doc__)
     cmd, n = a[0], a[1]
     if cmd == 'status':
-        _, _, _, pr, stale, loose, same = status(n)
-        sys.exit(1 if stale or loose or not same or video_problems(pr) else 0)
+        _, _, _, _, stale, loose, same, problems = status(n)
+        sys.exit(1 if stale or loose or not same or problems else 0)
     elif cmd == 'stamp':
         stamp(n)
     elif cmd == 'phonemes':

@@ -199,7 +199,7 @@
   <div class="panel">
   <div class="lane-h" style="color:var(--accent)">① Each frame: build() picks the zoom</div>
   <ol class="steps">
-    <li data-k="1"><b>Widen the box.</b> Video mode lays a screen out in a 1060 px box. <code>build()</code> now finds the largest overflow inside it, the most any element's content is wider than its own box, and widens the box by that much, so a wide table fits across.</li>
+    <li data-k="1"><b>Widen the box.</b> Video mode lays a screen out in a 1060 px box. <code>build()</code> now finds the largest overflow among the highlighted elements and the boxes around them, the most any one's content is wider than its own box, and widens the box by that much, so a wide table fits across. Overflow elsewhere on the screen is left alone.</li>
     <li data-k="2"><b>Pick the zoom.</b> Unchanged: the largest zoom that fits the stage, up to 1.9 for a subsection, and at least 1.55 when the width allows it. It now uses the widened box's width.</li>
     <li data-k="3"><b>Fit highlights.</b> New: the highlighted elements' combined height, plus room for their outline, must fit the 733 px stage. If not, the zoom goes down until it does, even below 1.55.</li>
     <li data-k="4"><b>Check the frame.</b> Each highlighted element must be fully on screen and the caption at most 2 lines, as before. New: a zoom below 1, too small to read, is also a problem.</li>
@@ -226,6 +226,7 @@
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">.claude/skills/explainer/make-video.py  # widen, height cap, status reports problems
 .claude/skills/explainer/SKILL.md       # status and the zoom, documented
+.github/scripts/explainer-proof.sh      # its error names video mode problems
 .claude/skills/upstream-merge/SKILL.md  # #85: crash check no longer asked for
 CLAUDE.md                               # #85: the manual crash check line removed
 explainers/83-make-video-fit.html            # this page
@@ -274,7 +275,12 @@ explainers/83-make-video-fit.narration.json  # its narration</pre>
     <li data-k="b3"><b>stamp was silent:</b> it now lists the video mode problems, so they show up before CI's check fails.</li>
     <li data-k="b4"><b>Kept:</b> the 16 px outline margin could lower a zoom that fit within 16 px. No current frame does, as the comparison shows.</li>
   </ul>
-  <p data-k="ci">CI's review of each push is in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/84">PR #84</a>.</p>
+  <p data-k="ci">CI's first review found 8 findings, 1 of them a confirmed medium. All are in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/84">PR #84</a>:</p>
+  <ul class="tight">
+    <li data-k="r1"><b>Already fixed by the second push:</b> R1, the confirmed medium, a zoom with no lower bound, now a problem below 1; and R5, <code>stamp</code> ignoring problems.</li>
+    <li data-k="r2"><b>Fixed in the third push:</b> only the highlights and the boxes around them can widen the frame (R3); CI's error names video mode problems (R2); a missing key is reported once (R6); “run stamp” shows again (R7); <code>status</code> returns the problems (R8).</li>
+    <li data-k="r3"><b>Left to you:</b> R4, CI's fonts can differ from your Chrome's, so a frame near the edge may pass in one and fail in the other. #83 asked for CI to check them.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
