@@ -1,7 +1,7 @@
 {
   "title": "PR #82 · Rename popover",
   "voice": "af_heart",
-  "page_sha256": "965aff3fb00bbdb02309d25b23b5d5d5e9c433caf4e46d2013faa0cfd49620da",
+  "page_sha256": "73c04a7a56d5996e07f05668a46975776cf2fc5af9ae0b814e91bd9e1b3e85f0",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 82, which opens Thunar's rename box in a popover right next to the file.", "say": "This is a tour of pull request eighty-two, which opens Thunar's rename box in a popover right next to the file.", "src": "4dee9ed98bb0"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "afb4c9fd0f67"},
@@ -43,6 +43,7 @@
     {"screen": "review", "keys": ["ci12", "ci13"], "caption": "Four small findings were fixed and three were accepted, two of them already shown safe by CI's own check.", "src": "178aaaff4d37"},
     {"screen": "review", "keys": ["ci-review5", "ci14", "ci15"], "caption": "The fifth round's four findings were all fixed: a popover now renames only when you actually changed the name.", "src": "36b61f831d63"},
     {"screen": "review", "keys": ["ci-review6"], "caption": "The sixth round's five small findings were accepted, with the reasons on the page.", "src": "135285df96bd"},
+    {"screen": "review", "keys": ["ci-review7"], "caption": "The screenshot audit then caught one stale shot, the test was fixed, and four small findings about it were accepted.", "src": "96b4eaf8ceaa"},
     {"screen": "aftermerge", "keys": ["a1", "a2", "a3"], "caption": "After the merge, you can check the second monitor, a wide window, and the split-view crash.", "src": "4915707ee956"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later: in-place rename, issue 16.", "say": "Part 3. What comes later: in-place rename, issue sixteen.", "src": "0ea456fbaa58"},
     {"screen": "next", "keys": ["n1", "n2", "n3"], "caption": "After your check, issue 16 adds renaming right in the list, with this popover as its fallback.", "say": "After your check, issue sixteen adds renaming right in the list, with this popover as its fallback.", "src": "ffd04c9150bd"},
@@ -123,6 +124,7 @@
     "review/ci14": "efd9ae71cdd9",
     "review/ci15": "348c7707705f",
     "review/ci-review6": "135285df96bd",
+    "review/ci-review7": "96b4eaf8ceaa",
     "aftermerge/a1": "b97c25ac7851",
     "aftermerge/a2": "5d671adb4e2e",
     "aftermerge/a3": "1c21d31a1ec0",
