@@ -317,6 +317,7 @@ explainers/15-rename-popover.narration.json  # its narration</pre>
     <li data-k="ci14"><b>Fixed (medium):</b> after R23, Enter on an untouched popover could rename a file that was renamed elsewhere meanwhile. A popover now renames only when the typed name differs both from the name it opened with and from the file's current name (R32).</li>
     <li data-k="ci15"><b>Fixed (low):</b> a closing popover clears only its own mark on the window (R33); the rename callback is required instead of an unused empty case (R34); one field less in the popover's data (R35).</li>
   </ul>
+  <p data-k="ci-review6">CI's review of <code>e4434d0</code> reported 5 more small findings, none confirmed, all about the last round's fixes. They are accepted: the two name checks are what R23 and R32 together need (R36); the callback check is GTK's usual one (R37); the opening name is kept for that check (R38); reading the name on cancel costs nothing (R39); and the window-mark check is a cheap safeguard (R40).</p>
   </section>
 
   <section class="sub" id="aftermerge">
