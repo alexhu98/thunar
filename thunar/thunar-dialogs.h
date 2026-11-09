@@ -49,6 +49,10 @@ ThunarJobResponse
 thunar_dialogs_show_job_ask (GtkWindow        *parent,
                              const gchar      *question,
                              ThunarJobResponse choices);
+void
+thunar_dialogs_show_job_error (GtkWindow    *parent,
+                               const GError *error,
+                               const gchar  *primary_text);
 ThunarJobResponse
 thunar_dialogs_show_job_ask_replace (GtkWindow  *parent,
                                      ThunarFile *src_file,

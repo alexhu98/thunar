@@ -50,6 +50,14 @@ static void
 thunar_dialogs_select_filename (GtkWidget *entry);
 static void
 thunar_dialogs_shrink_height (GtkWidget *dialog);
+static gint
+thunar_dialogs_run_job_dialog (GtkDialog *dialog);
+static GtkWidget *
+thunar_dialogs_find_selectable_label (GtkWidget *widget);
+static gboolean
+thunar_dialogs_job_dialog_mapped (GtkWidget *dialog,
+                                  GdkEvent  *event,
+                                  gboolean  *mapped);
 
 
 
@@ -543,6 +551,91 @@ thunar_dialogs_show_error (gpointer      parent,
 
 
 
+static GtkWidget *
+thunar_dialogs_find_selectable_label (GtkWidget *widget)
+{
+  GtkWidget *label = NULL;
+  GList     *children;
+  GList     *lp;
+
+  if (GTK_IS_LABEL (widget))
+    return gtk_label_get_selectable (GTK_LABEL (widget)) ? widget : NULL;
+
+  if (!GTK_IS_CONTAINER (widget))
+    return NULL;
+
+  children = gtk_container_get_children (GTK_CONTAINER (widget));
+  for (lp = children; lp != NULL && label == NULL; lp = lp->next)
+    label = thunar_dialogs_find_selectable_label (lp->data);
+  g_list_free (children);
+
+  return label;
+}
+
+
+
+static gboolean
+thunar_dialogs_job_dialog_mapped (GtkWidget *dialog,
+                                  GdkEvent  *event,
+                                  gboolean  *mapped)
+{
+  *mapped = TRUE;
+  return FALSE;
+}
+
+
+
+static gint
+thunar_dialogs_run_job_dialog (GtkDialog *dialog)
+{
+  GtkWidget *label;
+  gboolean   destroy_with_parent;
+  gboolean   mapped = FALSE;
+  gulong     handler_id;
+
+  gtk_window_set_focus_on_map (GTK_WINDOW (dialog), FALSE);
+  gtk_window_set_modal (GTK_WINDOW (dialog), FALSE);
+
+  label = thunar_dialogs_find_selectable_label (gtk_dialog_get_content_area (dialog));
+  if (label != NULL)
+    {
+      gtk_widget_grab_focus (label);
+      gtk_label_select_region (GTK_LABEL (label), 0, 0);
+    }
+
+  destroy_with_parent = gtk_window_get_destroy_with_parent (GTK_WINDOW (dialog));
+  gtk_window_set_destroy_with_parent (GTK_WINDOW (dialog), FALSE);
+  handler_id = g_signal_connect (dialog, "map-event", G_CALLBACK (thunar_dialogs_job_dialog_mapped), &mapped);
+  gtk_widget_show (GTK_WIDGET (dialog));
+  while (!mapped && gtk_widget_get_visible (GTK_WIDGET (dialog)))
+    g_main_context_iteration (NULL, TRUE);
+  g_signal_handler_disconnect (dialog, handler_id);
+  gtk_window_set_destroy_with_parent (GTK_WINDOW (dialog), destroy_with_parent);
+
+  return gtk_dialog_run (dialog);
+}
+
+
+
+void
+thunar_dialogs_show_job_error (GtkWindow    *parent,
+                               const GError *error,
+                               const gchar  *primary_text)
+{
+  GtkWidget *dialog;
+
+  _thunar_return_if_fail (parent == NULL || GTK_IS_WINDOW (parent));
+
+  dialog = xfce_message_dialog_new (parent, _("Error"), "dialog-error", primary_text,
+                                    error != NULL ? error->message : NULL,
+                                    XFCE_BUTTON_TYPE_MIXED, "window-close-symbolic", _("_Close"), GTK_RESPONSE_CLOSE,
+                                    NULL);
+  thunar_dialogs_run_job_dialog (GTK_DIALOG (dialog));
+  gtk_widget_destroy (dialog);
+}
+
+
+
 /**
  * thunar_dialogs_show_job_ask:
  * @parent   : the parent #GtkWindow or %NULL.
@@ -686,24 +779,19 @@ thunar_dialogs_show_job_ask (GtkWindow        *parent,
         }
 
       button = gtk_button_new_with_mnemonic (mnemonic);
-      gtk_widget_set_can_default (button, TRUE);
       gtk_dialog_add_action_widget (GTK_DIALOG (message), button, response);
       gtk_widget_show (button);
-
-      gtk_dialog_set_default_response (GTK_DIALOG (message), response);
     }
 
   if (has_cancel)
     {
       button = gtk_button_new_with_mnemonic (_("_Cancel"));
-      gtk_widget_set_can_default (button, TRUE);
       gtk_dialog_add_action_widget (GTK_DIALOG (message), button, GTK_RESPONSE_CANCEL);
       gtk_widget_show (button);
-      gtk_dialog_set_default_response (GTK_DIALOG (message), GTK_RESPONSE_CANCEL);
     }
 
   /* run the question dialog */
-  response = gtk_dialog_run (GTK_DIALOG (message));
+  response = thunar_dialogs_run_job_dialog (GTK_DIALOG (message));
   gtk_widget_destroy (message);
 
   /* transform the result as required */
@@ -810,7 +898,6 @@ thunar_dialogs_show_job_ask_replace (GtkWindow  *parent,
                                               _("Re_name"), THUNAR_JOB_RESPONSE_RENAME,
                                                 _("_Replace"), THUNAR_JOB_RESPONSE_REPLACE,
                                         NULL);
-  gtk_dialog_set_default_response (GTK_DIALOG (dialog), THUNAR_JOB_RESPONSE_REPLACE);
 
   content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
 
@@ -1006,7 +1093,7 @@ thunar_dialogs_show_job_ask_replace (GtkWindow  *parent,
     gtk_window_resize (GTK_WINDOW (dialog), 600, 1);
 
   /* run the dialog */
-  response = gtk_dialog_run (GTK_DIALOG (dialog));
+  response = thunar_dialogs_run_job_dialog (GTK_DIALOG (dialog));
 
   /* translate GTK responses */
   if (G_UNLIKELY (response < 0))

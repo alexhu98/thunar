@@ -179,8 +179,8 @@ thunar_progress_dialog_view_needs_attention (ThunarProgressDialog *dialog,
 
   /* TODO scroll to the view */
 
-  /* raise the dialog */
-  gtk_window_present (GTK_WINDOW (dialog));
+  /* show the dialog, un-minimizing it if needed */
+  thunar_progress_dialog_show_unraised (dialog);
 }
 
 
@@ -439,4 +439,17 @@ thunar_progress_dialog_n_jobs (ThunarProgressDialog *dialog)
   _thunar_return_val_if_fail (THUNAR_IS_PROGRESS_DIALOG (dialog), FALSE);
 
   return g_list_length (dialog->views) + g_list_length (dialog->views_waiting);
+}
+
+
+
+void
+thunar_progress_dialog_show_unraised (ThunarProgressDialog *dialog)
+{
+  _thunar_return_if_fail (THUNAR_IS_PROGRESS_DIALOG (dialog));
+
+  if (gtk_widget_get_visible (GTK_WIDGET (dialog)))
+    gdk_window_show_unraised (gtk_widget_get_window (GTK_WIDGET (dialog)));
+  else
+    gtk_widget_show (GTK_WIDGET (dialog));
 }
