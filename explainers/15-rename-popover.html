@@ -306,6 +306,12 @@ explainers/15-rename-popover.narration.json  # its narration</pre>
     <li data-k="ci9"><b>Fixed, as you decided:</b> the popover no longer waits in a nested main loop, so each window renames on its own and nothing is cancelled (R16, R17, R19, and R20 and R21, whose code is gone). The test now types a name in both popovers and checks both renames (R18).</li>
     <li data-k="ci10"><b>Accepted (low):</b> the rename popover's name selection skips the create dialog's extension rules on purpose, since a folder or a name without an extension is selected whole (R22).</li>
   </ul>
+  <p data-k="ci-review4">CI's review of <code>56afc94</code> reported 9 more findings and pushed its own fix for one: a popover now compares the typed name with the file's current name, not the one it had when the popover opened (R23).</p>
+  <ul class="tight">
+    <li data-k="ci11"><b>Fixed (medium):</b> a D-Bus rename picks a Thunar window with no rename popover open, or opens its dialog on its own, so it never covers a popover you're typing in (R24).</li>
+    <li data-k="ci12"><b>Fixed (low):</b> the rename callback may be empty and owns the job (R25); one check for an open popover instead of two (R28); a named key instead of a repeated string (R29); the popover reads the name the same way as the dialog (R31).</li>
+    <li data-k="ci13"><b>Accepted (low):</b> handlers and destroying the popover from its own signals are safe in GTK, as CI's own check found (R26, R27), and the flag that ignores the second close is kept (R30).</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">

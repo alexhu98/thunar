@@ -1,7 +1,7 @@
 {
   "title": "PR #82 · Rename popover",
   "voice": "af_heart",
-  "page_sha256": "cd90ffa6d1209b5cac223bef73d032e39c5fa9587cb183709c7551a8229012e1",
+  "page_sha256": "b5bdf4f45d3f333ff482fbd9c0e4609e9c68407c68beb3ec2c791bc190254330",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 82, which opens Thunar's rename box in a popover right next to the file.", "say": "This is a tour of pull request eighty-two, which opens Thunar's rename box in a popover right next to the file.", "src": "4dee9ed98bb0"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "afb4c9fd0f67"},
@@ -39,6 +39,8 @@
     {"screen": "review", "keys": ["ci6", "ci7", "ci8"], "caption": "The other findings of that round were fixed, except one small one accepted with its reason.", "src": "fcdc67102187"},
     {"screen": "review", "keys": ["ci-review3"], "caption": "The third round showed that closing the other window's popover lost a name you were typing.", "src": "5b5a632d1b79"},
     {"screen": "review", "keys": ["ci9", "ci10"], "caption": "As you decided, the popover no longer waits in a nested loop, so each window renames on its own.", "src": "404a98ac6bdb"},
+    {"screen": "review", "keys": ["ci-review4", "ci11"], "caption": "The fourth round found that a D-Bus rename could cover an open popover. It now picks another window, or none.", "src": "1a853bcc6b4c"},
+    {"screen": "review", "keys": ["ci12", "ci13"], "caption": "Four small findings were fixed and three were accepted, two of them already shown safe by CI's own check.", "src": "178aaaff4d37"},
     {"screen": "aftermerge", "keys": ["a1", "a2", "a3"], "caption": "After the merge, you can check the second monitor, a wide window, and the split-view crash.", "src": "4915707ee956"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later: in-place rename, issue 16.", "say": "Part 3. What comes later: in-place rename, issue sixteen.", "src": "0ea456fbaa58"},
     {"screen": "next", "keys": ["n1", "n2", "n3"], "caption": "After your check, issue 16 adds renaming right in the list, with this popover as its fallback.", "say": "After your check, issue sixteen adds renaming right in the list, with this popover as its fallback.", "src": "ffd04c9150bd"},
@@ -111,6 +113,10 @@
     "review/ci-review3": "5b5a632d1b79",
     "review/ci9": "93905fd9e847",
     "review/ci10": "6a73fb4cf2f3",
+    "review/ci-review4": "9c481fe6222a",
+    "review/ci11": "73b24ca38ec1",
+    "review/ci12": "311a0fcb0827",
+    "review/ci13": "45b469e59191",
     "aftermerge/a1": "b97c25ac7851",
     "aftermerge/a2": "5d671adb4e2e",
     "aftermerge/a3": "1c21d31a1ec0",
