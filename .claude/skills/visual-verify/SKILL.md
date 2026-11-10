@@ -42,7 +42,7 @@ Before reading any image, check that the run can produce a trustworthy verdict. 
 
 ### Step 2: optional capture
 
-With `run:`, run the capture through the `build-verify` agent (`.claude/agents/build-verify.md`) with `only run`. It runs `.github/scripts/verify-proof.sh run > <log> 2>&1; echo "exit=$?"` and returns its exit code and the log's `grep -n -E ' in [0-9]+ s$|: (not run|misnamed)|^  \||passed$'` lines: each test's result line, and each failing test's last 30 log lines. A session started before that agent existed runs a `general-purpose` agent told to read that file and follow it. Never read the whole log, and **never pipe the command into `tail`**, because that masks the exit code. If a script fails its own assertions, that is a test failure, not a runtime problem: keep going and let Step 4 report it.
+With `run:`, run the capture through the `build-verify` agent (`.claude/agents/build-verify.md`) with `only run`. It runs `.github/scripts/verify-proof.sh run > <log> 2>&1; echo "exit=$?"` and returns its exit code and the lines its Run step names: each test's result line, each failing test's last 30 log lines and any warning. It checks first that the installed Thunar is this branch's build, the same check as Step 1's `dpkg -s thunar`, and reports `verify: not run` otherwise, which is INCONCLUSIVE here. A session started before that agent existed runs a `general-purpose` agent told to read that file and follow it. Never read the whole log, and **never pipe the command into `tail`**, because that masks the exit code. If a script fails its own assertions, that is a test failure, not a runtime problem: keep going and let Step 4 report it.
 
 ### Step 3: independent audit skill
 

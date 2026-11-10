@@ -9,7 +9,7 @@ Every PR for issue `<n>`, from branch `<n>-<slug>`, adds `explainers/<n>-<slug>.
 
 ## In a subagent
 
-Hand the page, its render check and the narration to a `general-purpose` subagent, so the drafts, the rendered PNGs and the command output stay out of the session's context. Its prompt names the issue, the branch and the PR if there is one, lists what was run and its results (input 3 below, which the subagent can't see), and tells it to read this skill and follow it, without committing, and that it is that subagent, so it does the work itself. It returns `page written, narration stamped` with the two files, or the failing command's exit code and its output lines verbatim. A later page fix, such as a review fix, goes to a subagent the same way, which renders the page again before it runs `status` and `stamp`.
+Hand the page, its render check and the narration to a `general-purpose` subagent, so the drafts, the rendered PNGs and the command output stay out of the session's context. Its prompt names the issue, the branch and the PR if there is one, lists what was run and its results (input 3 below, which the subagent can't see), and tells it to read this skill and follow it, without committing. It also tells it that it is that subagent: the subagent skips this section and does the work itself, never handing it on. It returns `page written, narration stamped` with the two files, or the failing command's exit code and its output lines verbatim. A later page fix, such as a review fix, goes to a subagent the same way, which renders the page again before it runs `status` and `stamp`.
 
 ## Inputs to gather first
 
@@ -74,12 +74,12 @@ convert /tmp/explainer/explainer-<n>.png -crop 1200x1600 +repage /tmp/explainer/
 
 ## Narration (every PR)
 
-Written and stamped in the session that builds the PR, from the final page. `status` and `stamp` need only Chrome, so they run in the cloud container and in CI. Only `phonemes` and `render` need Kokoro, which is on the owner's machine.
+Written and stamped for the session that builds the PR, by its subagent (see "In a subagent"), from the final page. `status` and `stamp` need only Chrome, so they run in the cloud container and in CI. Only `phonemes` and `render` need Kokoro, which is on the owner's machine.
 
 1. Write `explainers/<n>-<slug>.narration.json` from the page (format and rules below).
 2. `make-video.py stamp <n>` records which page text each line was written from, and the page's SHA-256.
-3. `make-video.py status <n>` must print "narration matches the page" and exit 0. Run `stamp` and `status` quietly, as `make-video.py status <n> > /tmp/make-video.log 2>&1; echo "exit=$?"`, then `grep -n -E 'stale line|page text|removed|problem|matches|stamp|note:|make-video:|Error' /tmp/make-video.log`, which keeps every stale line and drops nothing else that matters.
-4. After any later page edit, including a review fix: run `status`, rewrite the stale lines and add lines for new text, then `stamp` again. Leave unchanged lines byte-for-byte as they are, so their cached voice clips are reused.
+3. `make-video.py status <n>` must print "narration matches the page" and exit 0. Run `stamp` and `status` quietly, as `make-video.py status <n> > "${TMPDIR:-/tmp}/make-video.log" 2>&1; echo "exit=$?"`, then `grep -n -E 'stale line|page text|removed|problem|matches|stamp|note:|make-video:|Error' "${TMPDIR:-/tmp}/make-video.log"`, which keeps every stale line and drops nothing else that matters.
+4. After any later page edit, including a review fix, in a subagent as above: render the page again and look at it, run `status`, rewrite the stale lines and add lines for new text, then `stamp` again. Leave unchanged lines byte-for-byte as they are, so their cached voice clips are reused.
 5. In the PR description, list any word you're unsure how Kokoro will say (names, abbreviations, numbers), so the owner checks it with `phonemes`.
 
 CI's explainer job runs `make-video.py status` for the branch's issue and for every explainer page or narration the PR adds or changes, and for every narration when the PR changes `make-video.py`. It fails when a narration is missing, stale (page text changed after the stamp), names keys the page no longer has, or has a video mode problem that `render` would refuse (a highlighted element that can't be fully on screen, content that still overflows its frame, a zoom below 1, a caption over 2 lines), and reports each result in the explainer PR comment.
