@@ -66,8 +66,9 @@ The template already follows these rules. Keep them when adding content:
 Render it the way CI does and look at the image: framing, dark mode, nothing cut off, every diagram readable, badges matching the steps.
 
 ```sh
-OUT=/tmp/explainer .github/scripts/explainer-proof.sh render explainers/<n>-<slug>.html > /tmp/explainer.log 2>&1; echo "exit=$?"   # -> /tmp/explainer/explainer-<n>.png; works before it's committed; on a non-zero exit, tail -n 30 /tmp/explainer.log and stop
-convert /tmp/explainer/explainer-<n>.png -crop 1200x1600 +repage /tmp/explainer/slice-%d.png   # the full image is too tall to read in one view
+T=${TMPDIR:-/tmp}
+OUT=$T/explainer .github/scripts/explainer-proof.sh render explainers/<n>-<slug>.html > "$T/explainer.log" 2>&1; echo "exit=$?"   # -> $T/explainer/explainer-<n>.png; works before it's committed; on a non-zero exit, tail -n 30 "$T/explainer.log" and stop
+convert "$T/explainer/explainer-<n>.png" -crop 1200x1600 +repage "$T/explainer/slice-%d.png"   # the full image is too tall to read in one view
 ```
 
 `DRY_RUN=1 GH_REPO=alexhu98/thunar PR=<pr> .github/scripts/explainer-proof.sh` also prints the explainer comment that CI would post.
@@ -79,7 +80,7 @@ Written and stamped for the session that builds the PR, by its subagent (see "In
 1. Write `explainers/<n>-<slug>.narration.json` from the page (format and rules below).
 2. `make-video.py stamp <n>` records which page text each line was written from, and the page's SHA-256.
 3. `make-video.py status <n>` must print "narration matches the page" and exit 0. Run `stamp` and `status` quietly, as `make-video.py status <n> > "${TMPDIR:-/tmp}/make-video.log" 2>&1; echo "exit=$?"`, then `grep -n -E 'stale line|page text|removed|problem|matches|stamp|note:|make-video:|Error' "${TMPDIR:-/tmp}/make-video.log"`, which keeps every stale line and drops nothing else that matters.
-4. After any later page edit, including a review fix, in a subagent as above: render the page again and look at it, run `status`, rewrite the stale lines and add lines for new text, then `stamp` again. Leave unchanged lines byte-for-byte as they are, so their cached voice clips are reused.
+4. After any later page edit, including a review fix, done in a subagent as above (the subagent does it itself): render the page again and look at it, run `status`, rewrite the stale lines and add lines for new text, then `stamp` again. Leave unchanged lines byte-for-byte as they are, so their cached voice clips are reused.
 5. In the PR description, list any word you're unsure how Kokoro will say (names, abbreviations, numbers), so the owner checks it with `phonemes`.
 
 CI's explainer job runs `make-video.py status` for the branch's issue and for every explainer page or narration the PR adds or changes, and for every narration when the PR changes `make-video.py`. It fails when a narration is missing, stale (page text changed after the stamp), names keys the page no longer has, or has a video mode problem that `render` would refuse (a highlighted element that can't be fully on screen, content that still overflows its frame, a zoom below 1, a caption over 2 lines), and reports each result in the explainer PR comment.

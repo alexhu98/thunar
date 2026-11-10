@@ -28,16 +28,19 @@ Read a log only with `tail -n 30` or `grep -n`, never whole.
    to one source list.
 2. **Build**: `dpkg-buildpackage -b -us -uc`. On failure, return the last 40 lines of
    `grep -n -E ': (fatal )?error:|undefined reference|\*\*\* |Error [0-9]|FAIL|Traceback'` on the log (not plain
-   `error`, which matches every `-Werror=` compile command), or its last 30 lines when the grep finds nothing, and stop. On success, also return the `warning:` lines that name a file the change
+   `error`, which matches every `-Werror=` compile command), and the log's last 30 lines, which hold a traceback's
+   exception and frames, and stop. On success, also return the `warning:` lines that name a file the change
    touches, matched by basename (gcc prints paths relative to the subdirectory), from
    `git diff --name-only "$(git merge-base origin/main HEAD)"` and `git ls-files --others --exclude-standard -- . ':(exclude)debian/'` (the build's staging trees under
    `debian/` aren't sources). Then `rm -f dist/*.deb; mkdir -p dist && mv ../*.deb dist/`.
 3. **Install**, only in a cloud container (`$CLAUDE_CODE_REMOTE` is `true`): it replaces the system's Thunar, so
    anywhere else, report install and verify as `skipped (not a cloud container)` and stop.
    `.github/scripts/verify-proof.sh install`. On failure, return its last 30 lines and stop.
-4. **Run**, only when the installed Thunar is the one built from this branch: `dpkg-query -W -f='${Version}' thunar`
-   equals `dpkg-deb -f dist/thunar_*.deb Version`. Otherwise report `verify: not run: the installed Thunar isn't
-   this branch's build` and stop. `.github/scripts/verify-proof.sh run`. If the sandbox can't start Xvfb (the smoke test fails before
+4. **Run**, only when the installed Thunar is the one built from this branch: `dpkg-query -W -f='${db:Status-Abbrev}'
+   thunar` is `ii `, and `dpkg-deb --fsys-tarfile dist/thunar_*.deb | tar -xO ./usr/bin/thunar | cmp -s - /usr/bin/thunar`
+   succeeds (every local build has the same version, so only the binary tells builds apart). Otherwise report
+   `verify: not run: the installed Thunar isn't this branch's build` and stop. This is the only copy of that check;
+   `/visual-verify run:` relies on it. `.github/scripts/verify-proof.sh run`. If the sandbox can't start Xvfb (the smoke test fails before
    Thunar launches, or `Xvfb` is missing), say `verify: not run: <cause>`; CI runs the tests. Otherwise return each
    test's result line (`<name>: <status> in <s> s`), the `<k> of <m> passed` line and, for each test that didn't
    pass, its `  | ` lines from the log, verbatim, and any `::warning::` line: `grep -n -E ' in [0-9]+ s$|: (not run|misnamed)|^  \||passed$|::warning::'`
@@ -54,6 +57,7 @@ install: OK | FAILED (exit <n>) | skipped
 verify: <k> of <m> passed (exit <n>) | not run: <cause> | skipped
   <name>: <status> in <s> s            (one line per test)
 warnings in changed files: <n> (or "none")
+run warnings: <each ::warning:: line from the run log, or "none">
 shots: <$OUT>/shots · manifest <$OUT>/verify.tsv
 logs: <$LOGS>
 failing lines:
