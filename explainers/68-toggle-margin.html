@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #88 Toggle gap</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #88: a 5 px gap between the search entry and the Include subfolders toggle</h1>
+  <p class="lead" data-k="lead">Branch <code>68-toggle-margin</code> → <code>main</code>, closes #68. While you search, the Include subfolders toggle no longer touches the search entry: it sits 5 px from it, the same as from the search button.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing depends on #68</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">One line in <code>thunar/thunar-location-entry.c</code> gives the toggle a 5 px start margin, and <code>verify/68.sh</code> measures both gaps on the screen in three toolbar layouts.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="Ctrl+F shows the toggle, which now has a 5 px start margin; verify/68.sh captures the window, measures the gaps in three layouts and checks the toggle still works">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Searching in Thunar — the fix</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Press Ctrl+F</text>
+      <text x="36" y="114" class="b">the location bar</text>
+      <text x="36" y="134" class="b">becomes a search</text>
+      <text x="36" y="154" class="b">entry; type a word</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Toggle appears</text>
+      <text x="286" y="114" class="b">Include subfolders,</text>
+      <text x="286" y="134" class="b">shown only while</text>
+      <text x="286" y="154" class="b">searching (#21)</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-merge" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">5 px margin</text>
+      <text x="536" y="114" class="m">margin_start 5</text>
+      <text x="536" y="134" class="b">the one new line,</text>
+      <text x="536" y="154" class="b">in location-entry.c</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-merge" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Entry gives 5 px</text>
+      <text x="786" y="114" class="b">toggle keeps its size,</text>
+      <text x="786" y="134" class="b">button gap unchanged:</text>
+      <text x="786" y="154" class="b">5 px on both sides</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② verify/68.sh — how it is checked</text>
+    <g data-k="5">
+      <rect class="box-merge" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Search, capture</text>
+      <text x="786" y="314" class="b">Ctrl+F, type match,</text>
+      <text x="786" y="334" class="b">screenshot the</text>
+      <text x="786" y="354" class="b">window</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Measure gaps</text>
+      <text x="536" y="314" class="b">bright and dark runs</text>
+      <text x="536" y="334" class="b">on pixel rows;</text>
+      <text x="536" y="354" class="b">both 5 px ±1</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Three layouts</text>
+      <text x="286" y="314" class="b">menu bar shown,</text>
+      <text x="286" y="334" class="b">menu bar hidden,</text>
+      <text x="286" y="354" class="b">header bar (5 and 15)</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <g data-k="8">
+      <rect class="box-merge" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Still works</text>
+      <text x="36" y="314" class="b">hidden when idle and</text>
+      <text x="36" y="334" class="b">after Escape; a click</text>
+      <text x="36" y="354" class="b">re-runs the search</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">8</text>
+    </g>
+    <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M520,320 H484" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M270,320 H234" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>already in Thunar (#21)</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>new in this PR</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Issue #21 added an Include subfolders toggle to the right of the search entry. Its right side had a 5 px gap to the search button, but its left side was glued to the entry's border, so it looked like part of the entry. Issue #68 measured 0 px on the left and 5 px on the right, and asked for 5 px on both sides.</p>
+  <div class="note" data-k="note">The 5 px on the right was never the toggle's: it is <code>DEFAULT_LOCATION_BAR_MARGIN</code> (<code>thunar/thunar-window.c:70</code>), the margin around the whole location bar. The toggle itself had no margin, so the fix gives it the same 5 px on its start side.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Searching in Thunar — the fix</div>
+  <ol class="steps">
+    <li data-k="1"><b>Press Ctrl+F.</b> The location bar turns into a search entry, and typing a word starts a search in the current folder.</li>
+    <li data-k="2"><b>Toggle appears.</b> The Include subfolders toggle shows at the entry's right end only while a search runs, and hides again after Escape. That behaviour comes from #21 and is unchanged.</li>
+    <li data-k="3"><b>5 px margin.</b> In <code>thunar_location_entry_init</code>, where the toggle is created, the PR adds <code>gtk_widget_set_margin_start (…subfolders_button, 5)</code>. The box that holds the entry and the toggle has no spacing, so this margin is the whole gap.</li>
+    <li data-k="4"><b>Entry gives 5 px.</b> The entry stretches to fill the space, so it is the one that gets 5 px narrower. The toggle keeps its size, and the gap from the toggle to the search button stays as it was.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② verify/68.sh — how it is checked</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Search, capture.</b> The script opens Thunar at 1000×700 in a folder with <code>match-top.txt</code> and <code>sub/match-sub.txt</code>, presses Ctrl+F, types <code>match</code>, and takes the after shot of the window. The gaps are measured on that shot file itself, before it is cropped for the comment.</li>
+    <li data-k="6"><b>Measure gaps.</b> On each pixel row of the toolbar it marks pixels bright or dark and looks for the pattern shown below. It keeps only the rows where the toggle is at full width and fails unless both gaps are 5 px ±1.</li>
+    <li data-k="7"><b>Three layouts.</b> It restarts Thunar with the menu bar hidden, then in the header bar (client-side decorations on), and measures again. In the header bar the location bar has 15 px margins, so the gap to the search button is expected to be 15. Each restart first waits for the old Thunar to leave the session bus (<code>org.xfce.Thunar</code>).</li>
+    <li data-k="8"><b>Still works.</b> Before the search and after Escape, some row through the toggle's place, found while searching, must be one colour from 4 px inside the entry's border to 2 px inside the toggle's right end: the entry reaching over that place. A shown toggle, pressed or flat, breaks that run with the border, the gap and the toggle. Clicking the toggle must change a 30×20 patch around it and re-run the search: the results are copied and pasted into a folder, and only <code>match-top.txt</code> may arrive.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="row">
+  <h3 class="sec">The pattern step 6 looks for on one pixel row</h3>
+  <div class="diagram" role="img" aria-label="Left to right on one row: the entry's dark inside, its bright border, a dark gap, the bright toggle, a dark gap, the bright search button">
+  <svg viewBox="0 10 1000 160" xmlns="http://www.w3.org/2000/svg">
+    <g data-k="r1">
+      <rect class="box-pr" x="20" y="30" width="250" height="120" rx="10"/>
+      <text x="36" y="62" class="t">Entry inside</text>
+      <text x="36" y="86" class="b">dark, at least</text>
+      <text x="36" y="106" class="b">100 px wide</text>
+    </g>
+    <g data-k="r2">
+      <rect class="box-merge" x="280" y="30" width="90" height="120" rx="10"/>
+      <text x="292" y="62" class="t">Border</text>
+      <text x="292" y="86" class="b">bright,</text>
+      <text x="292" y="106" class="b">≤ 4 px</text>
+    </g>
+    <g data-k="r3">
+      <rect class="box-pr" x="380" y="30" width="140" height="120" rx="10"/>
+      <text x="394" y="62" class="t">Gap</text>
+      <text x="394" y="86" class="b">dark; must be</text>
+      <text x="394" y="106" class="b">5 px ±1</text>
+    </g>
+    <g data-k="r4">
+      <rect class="box-merge" x="530" y="30" width="160" height="120" rx="10"/>
+      <text x="544" y="62" class="t">Toggle</text>
+      <text x="544" y="86" class="b">bright,</text>
+      <text x="544" y="106" class="b">20 to 50 px</text>
+    </g>
+    <g data-k="r5">
+      <rect class="box-pr" x="700" y="30" width="140" height="120" rx="10"/>
+      <text x="714" y="62" class="t">Gap</text>
+      <text x="714" y="86" class="b">5 px ±1;</text>
+      <text x="714" y="106" class="b">header bar: 15</text>
+    </g>
+    <g data-k="r6">
+      <rect class="box-merge" x="850" y="30" width="130" height="120" rx="10"/>
+      <text x="864" y="62" class="t">Button</text>
+      <text x="864" y="86" class="b">bright,</text>
+      <text x="864" y="106" class="b">≥ 20 px</text>
+    </g>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>dark run: every channel below 64</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>bright run: any channel 64 or more</span>
+  </div>
+  <p data-k="how">The row comes from <code>convert … txt:-</code>, which prints one line per pixel, and <code>awk</code> groups it into runs. The awk sticks to what <code>mawk</code>, Ubuntu's default awk, understands.</p>
+  </section>
+
+  <section class="sub" id="gaps">
+  <h3 class="sec">The gaps, before and after</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Layout</th><th>Entry → toggle</th><th>Toggle → search button</th><th>Source</th></tr>
+    <tr data-k="g1"><td>Menu bar shown, before (main)</td><td>0 px</td><td>5 px</td><td>Issue #68, measured on local18</td></tr>
+    <tr data-k="g2"><td>Menu bar shown, this PR</td><td>5 px</td><td>5 px</td><td>verify/68.sh, this session: entry border ends at x=917, toggle x=923–956</td></tr>
+    <tr data-k="g3"><td>Menu bar hidden, this PR</td><td>5 px</td><td>5 px</td><td>verify/68.sh, this session</td></tr>
+    <tr data-k="g4"><td>Header bar, this PR</td><td>5 px</td><td>15 px</td><td>verify/68.sh, this session; the 15 px is the header bar's location bar margin (<code>thunar-window.c:2121</code>)</td></tr>
+  </table>
+  </div>
+<pre data-k="diff">  gtk_widget_set_focus_on_click (location_entry->subfolders_button, FALSE);
+<span class="add">+ gtk_widget_set_margin_start (location_entry->subfolders_button, 5);</span>
+  gtk_widget_set_no_show_all (location_entry->subfolders_button, TRUE);</pre>
+  <div class="note" data-k="why-margin">Why a margin: the gap on the toggle's right, from the location bar to the search button, is also a margin, <code>gtk_widget_set_margin_end (window->location_bar, DEFAULT_LOCATION_BAR_MARGIN)</code> (<code>thunar-window.c:7034</code>). The toggle's left gap is built the same way. You kept this line over CI's R6 and R7 (Part 2).</div>
+  <div class="note" data-k="csd">In the header bar the toggle is 5 px from the entry but 15 px from the search button, because the header bar puts 15 px around the whole location bar as a window drag area. This PR keeps the 15 px, as reported on the PR.</div>
+  <div class="note" data-k="undo">To undo it, revert this PR. Nothing is stored in settings; the margin is set each time the search bar is built.</div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+└── thunar-location-entry.c     # one line: the toggle's 5 px start margin
+verify/
+└── 68.sh                       # measures both gaps in three layouts, checks hide and toggle
+explainers/
+├── 68-toggle-margin.html            # this page
+└── 68-toggle-margin.narration.json  # its narration</pre>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The gap was matched to Thunar's own location bar margin, measured on screen in a sandbox like CI's, and the measuring was checked to fail on main's look. On the latest head, CI's build and all 9 tests pass, and its shots passed the visual audit.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>DEFAULT_LOCATION_BAR_MARGIN</h3><p>5 px, <code>thunar-window.c:70</code>: the gap the toggle already had on its right. The new margin uses the same number.</p></div>
+    <div class="card" data-k="r2"><h3>Issue #68's measurement</h3><p>0 px to the entry and 5 px to the button, on one pixel row with the menu bar shown. The script repeats that measurement.</p></div>
+    <div class="card" data-k="r3"><h3>The header bar's 15 px</h3><p><code>thunar-window.c:2121</code> puts 15 px around the location bar in the header bar, so the script expects 15 on the right there.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Builds, and the existing tests still pass</td><td><code>dpkg-buildpackage</code> of the fix commit, then <code>verify-proof.sh install</code> and <code>run</code> (this session), before <code>verify/68.sh</code> was written</td><td class="ok">8 of 8 pass</td></tr>
+    <tr data-k="c2"><td>Gaps with the menu bar shown</td><td><code>verify/68.sh</code> under the same Xvfb, xfwm4 and D-Bus setup as CI, ZorinBlue-Dark theme, mawk (this session; re-run alone after the review fixes)</td><td class="ok">5 px and 5 px</td></tr>
+    <tr data-k="c3"><td>Gaps with the menu bar hidden</td><td>Same run, <code>last-menubar-visible</code> false</td><td class="ok">5 px and 5 px</td></tr>
+    <tr data-k="c4"><td>Gaps in the header bar</td><td>Same run, <code>misc-use-csd</code> true and the menu bar hidden</td><td class="ok">5 px and 15 px</td></tr>
+    <tr data-k="c5"><td>Toggle hidden when idle, and still toggles</td><td>Same run: before the search and after Escape, a row through the toggle's place is one colour from inside the entry's border to the toggle's end; a click changes a 30×20 patch around the toggle (<code>compare -metric AE</code>), and the copied results are only <code>match-top.txt</code></td><td class="ok">pass</td></tr>
+    <tr data-k="c6"><td>The measuring catches main's look</td><td>The 5 px gap cut out of a captured image, as on main, then measured (this session)</td><td class="ok">fails: 2 px, corner rows only</td></tr>
+    <tr data-k="c7"><td>The idle check catches a shown toggle</td><td>The new idle check, after the review fixes, run on the idle and the cancelled captures, and on a capture with the released toggle showing (this session)</td><td class="ok">passes idle and cancelled; fails with the toggle</td></tr>
+    <tr data-k="c8"><td>Screenshots show what they claim</td><td><code>verify-shots.py check</code> after the fixes; the local shot-auditor agent on the 4 shots before them (this session)</td><td class="ok">check OK; 4 of 4 OK, ~5 px gap visible</td></tr>
+    <tr data-k="c9"><td>CI on PR #88's latest head</td><td>CI <a href="https://github.com/alexhu98/thunar/actions/runs/42749316793">run 42749316793</a> on 4b559d6: build, verify, explainer and review jobs. Review passed without reviewing again, as 4b559d6 is CI's own fix commit</td><td class="ok">all pass; verify 9 of 9</td></tr>
+    <tr data-k="c11"><td>CI's shots show what they claim</td><td><code>/visual-verify pr:88</code> on CI's shots for 4b559d6, numbers 56 (the pair), 57 and 58 (<a href="https://github.com/alexhu98/thunar/pull/88#issuecomment-6758356156">verdict comment</a>)</td><td class="ok">PASS: 5 shots OK</td></tr>
+    <tr data-k="c10"><td>Before shot of main</td><td>CI installs one build, so main's glued toggle can't be shot; the before shot is this build before Ctrl+F</td><td class="no">not possible</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh general-purpose agent, given only the diff and the issue, reviewed the PR in this session. It found 3 things, all in <code>verify/68.sh</code> and none in Thunar's code, and all 3 were fixed before the first push.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Medium, idle check:</b> the check that the toggle is hidden before a search could never notice a toggle that is always shown. It now needs a row where the entry reaches over the toggle's place (reworked after CI's R3 and R4, below).</li>
+    <li data-k="b2"><b>Low, paste wait:</b> the wait for the pasted results could end while the copy was still running. It now waits for the paste to settle.</li>
+    <li data-k="b3"><b>Low, compare error:</b> an error from <code>compare</code> counted as "the toggle changed". Only a pixel count above zero counts now.</li>
+  </ul>
+  <p data-k="ci-review">CI's first review (<a href="https://github.com/alexhu98/thunar/actions/runs/42747354049">run 42747354049</a>, level high, on head 953fb6d) found 8 things, R1 to R8: 6 are fixed, and you accepted R6 and R7. Every finding is listed in the <a href="https://github.com/alexhu98/thunar/pull/88">code review comment on PR #88</a>.</p>
+  <ul class="tight">
+    <li data-k="ci1"><b>R1, medium, confirmed: no explainer.</b> The PR had no explainer page yet. This page, added in commit 429c69e, fixes it.</li>
+    <li data-k="ci2"><b>R2, medium, plausible: compare on ImageMagick 6.</b> <code>compare -crop</code> might not work there. It passed locally on noble, but the click check now crops both images to 30×20 first and compares those.</li>
+    <li data-k="ci3"><b>R3 and R4, low: idle colour.</b> The entry's inside colour was sampled while the entry had focus. The new idle check samples no colour, so both are fixed.</li>
+    <li data-k="ci4"><b>R5, low: restart race.</b> A restarted Thunar could start before the old one left D-Bus. The restart now waits for that.</li>
+    <li data-k="ci5"><b>R8, low: extra captures.</b> The gaps were measured on separate captures, not on the shots. They are now measured on the shot files, before cropping.</li>
+  </ul>
+  <div class="note" data-k="ci-accept">Accepted, by your decision: <b>R6</b> (low) suggested box spacing 5 instead of the toggle's margin, and <b>R7</b> (low) said the literal 5 copies <code>DEFAULT_LOCATION_BAR_MARGIN</code>. The PR keeps the issue's <code>gtk_widget_set_margin_start (…, 5)</code>: the gap to the search button is also a margin (<code>thunar-window.c:7034</code>), the box's spacing is 0 on purpose (<code>thunar-location-entry.c:191</code>), and <code>DEFAULT_LOCATION_BAR_MARGIN</code> is private to <code>thunar-window.c</code>. Your decision is recorded in a comment on <a href="https://github.com/alexhu98/thunar/pull/88">PR #88</a>.</div>
+  <p data-k="ci-later">Three more CI reviews followed, on the later pushes. Their findings, R9 to R22, are all low except R16.</p>
+  <ul class="tight">
+    <li data-k="ci6"><b>R9 to R12, low, confirmed</b> (<a href="https://github.com/alexhu98/thunar/actions/runs/42748209806">run 42748209806</a>, on 0d39e4f): captions claimed a crop and gaps before measuring them; two captions lost the measured gaps; a failure message named the wrong column; the click check ran extra <code>convert</code> calls. All 4 were fixed in 02e9ea3, and CI marked them resolved.</li>
+    <li data-k="ci7"><b>R16, medium, and R17, low</b> (<a href="https://github.com/alexhu98/thunar/actions/runs/42748911164">run 42748911164</a>, on 02e9ea3): captions described the whole window though the shots are crops, and stated a fixed 5 or 15 px though the check allows ±1. CI's own fix commit 4b559d6 fixed both.</li>
+    <li data-k="ci8"><b>R13 to R15, low, unconfirmed:</b> these count as accepted, with no trailer.</li>
+    <li data-k="ci9"><b>R18 to R20, low, plausible: accepted</b> with a <code>Review-accept</code> trailer. R18: if <code>awk</code> failed while <code>crop()</code> rewrites <code>shots.tsv</code>, only a caption note would be lost; the shots and the checks are unaffected. R19: the pair is cropped at the position measured on the released toggle, which is the same as the pressed one: toggle x=923–956, row 45 in both. R20: <code>crop()</code> appends to <code>shots.tsv</code> directly, but only one line with no tabs, and <code>verify-shots.py check</code> passed on it.</li>
+    <li data-k="ci10"><b>R21 and R22, low, plausible: accepted</b> with a <code>Review-accept</code> trailer. CI's review of fd518e3 (<a href="https://github.com/alexhu98/thunar/actions/runs/42767163184">run 42767163184</a>) passed. R21: the captions describe a crop of the toolbar's right end, but <code>shot</code> saves the whole window and <code>crop()</code> runs a few checks later. On a passing run every published shot is the crop, and <code>crop()</code> adds the crop note and the measured gaps; a failed run fails the job, so its captions aren't shown as proof. R22: the group heading says the toggle sits 5 px from the search entry, while the check accepts 4 to 6 px. 5 px is the issue's target, and each pair's Proves line quotes the measured value.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>The gap in your own theme and session</td><td>The tests run under Xvfb with one theme; your desktop theme draws the entry and buttons its own way</td><td class="open">your first search after updating</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/88">PR #88</a> → “Files changed”</li>
+    <li data-k="l2">Its checks: <a href="https://github.com/alexhu98/thunar/pull/88/checks">PR #88 checks</a>; CI's run on the latest head: <a href="https://github.com/alexhu98/thunar/actions/runs/42749316793">run 42749316793</a>; its reviews: runs <a href="https://github.com/alexhu98/thunar/actions/runs/42747354049">42747354049</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42748209806">42748209806</a> and <a href="https://github.com/alexhu98/thunar/actions/runs/42748911164">42748911164</a></li>
+    <li data-k="l3">The shots: numbers 56 to 58 in the verify comment on PR #88, saved on the <code>shots</code> branch under <code>pr-88/</code>, and their <a href="https://github.com/alexhu98/thunar/pull/88#issuecomment-6758356156">visual-verify verdict</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing depends on #68</h2>
+  <p class="intro" data-k="intro">No open issue says "Depends on #68". What remains is a look in your own session after the merge.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR, then you try it in your session">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--merge)">#68 The toggle's gap</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">5 px between the</text>
+      <text x="36" y="134" class="b">search entry and</text>
+      <text x="36" y="154" class="b">the toggle</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Try it for real</text>
+      <text x="286" y="114" class="b">Ctrl+F in your own</text>
+      <text x="286" y="134" class="b">folders and theme</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-a">
+  <h3 class="sec">Your step (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Try it in your session.</b> After the merge, press Ctrl+F and type a word: the toggle should stand 5 px clear of the entry, and clicking it should still switch subfolders on and off.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="toggle"><dt>Include subfolders toggle</dt><dd>The button at the end of the search entry that switches searching in subfolders on and off (#21).</dd></div>
+    <div data-k="entry"><dt>Search entry</dt><dd>The location bar's text field while you search, after Ctrl+F.</dd></div>
+    <div data-k="locbar"><dt>Location bar</dt><dd>The path field in the toolbar; it holds the search entry, the toggle and the search button.</dd></div>
+    <div data-k="margin"><dt>Margin</dt><dd>Empty space GTK keeps around a widget; a start margin is on its left.</dd></div>
+    <div data-k="header"><dt>Header bar</dt><dd>The window's title bar drawn by Thunar itself (client-side decorations), with the toolbar inside it.</dd></div>
+    <div data-k="csd"><dt>misc-use-csd</dt><dd>The Thunar setting that turns on client-side decorations, so the header bar is used.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual screen with no monitor, where the tests run Thunar and take screenshots.</dd></div>
+    <div data-k="txt"><dt>ImageMagick <code>txt:</code></dt><dd>An output format that prints every pixel's position and colour as one text line.</dd></div>
+    <div data-k="mawk"><dt>mawk</dt><dd>Ubuntu's default <code>awk</code>, which lacks some GNU awk features.</dd></div>
+    <div data-k="pair"><dt>Shot pair</dt><dd>A before and an after screenshot that CI joins into one image in its verify comment.</dd></div>
+    <div data-k="accept"><dt>Review-accept</dt><dd>A commit trailer that closes the CI review findings it lists as accepted, kept on purpose.</dd></div>
+    <div data-k="auditor"><dt>Shot-auditor</dt><dd>An agent that looks at each screenshot and says whether it shows what its caption claims.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>

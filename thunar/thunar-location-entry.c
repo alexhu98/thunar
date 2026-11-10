@@ -205,6 +205,7 @@ thunar_location_entry_init (ThunarLocationEntry *location_entry)
   gtk_widget_set_tooltip_text (location_entry->subfolders_button, _("Include subfolders"));
   atk_object_set_name (gtk_widget_get_accessible (location_entry->subfolders_button), _("Include subfolders"));
   gtk_widget_set_focus_on_click (location_entry->subfolders_button, FALSE);
+  gtk_widget_set_margin_start (location_entry->subfolders_button, 5);
   gtk_widget_set_no_show_all (location_entry->subfolders_button, TRUE);
   g_signal_connect (G_OBJECT (location_entry->subfolders_button), "destroy",
                     G_CALLBACK (gtk_widget_destroyed), &location_entry->subfolders_button);
