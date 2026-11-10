@@ -14,7 +14,8 @@ commit or push, never fix a failure you find, and never Read a PNG: the shots ar
 ## What you receive
 
 - `skip build` (optional): the debs in `dist/` are current; go straight to install.
-- `only install` or `only run` (optional): do just that step.
+- `only install` or `only run` (optional): do just that step. `only run` tests whatever Thunar is installed, and
+  changes nothing on the machine, so it runs anywhere.
 
 ## Method
 
@@ -26,17 +27,17 @@ Read a log only with `tail -n 30` or `grep -n`, never whole.
    ppa:zorinos/stable` and `sudo apt-get build-dep -y ./` (`CLAUDE.md`, "Building"). Never limit `apt-get update`
    to one source list.
 2. **Build**: `dpkg-buildpackage -b -us -uc`. On failure, return the last 40 lines of
-   `grep -n -E ': (fatal )?error:|\*\*\* |Error [0-9]|FAIL'` on the log (not plain `error`, which matches every
-   `-Werror=` compile command) and stop. On success, also return the `warning:` lines that name a file the change
+   `grep -n -E ': (fatal )?error:|undefined reference|\*\*\* |Error [0-9]|FAIL|Traceback'` on the log (not plain
+   `error`, which matches every `-Werror=` compile command), or its last 30 lines when the grep finds nothing, and stop. On success, also return the `warning:` lines that name a file the change
    touches, matched by basename (gcc prints paths relative to the subdirectory), from
-   `git diff --name-only "$(git merge-base origin/main HEAD)"`. Then `rm -f dist/*.deb; mkdir -p dist && mv ../*.deb dist/`.
+   `git diff --name-only "$(git merge-base origin/main HEAD)"` and `git ls-files --others --exclude-standard`. Then `rm -f dist/*.deb; mkdir -p dist && mv ../*.deb dist/`.
 3. **Install**, only in a cloud container (`$CLAUDE_CODE_REMOTE` is `true`): it replaces the system's Thunar, so
    anywhere else, report install and verify as `skipped (not a cloud container)` and stop.
    `.github/scripts/verify-proof.sh install`. On failure, return its last 30 lines and stop.
 4. **Run**: `.github/scripts/verify-proof.sh run`. If the sandbox can't start Xvfb (the smoke test fails before
    Thunar launches, or `Xvfb` is missing), say `verify: not run: <cause>`; CI runs the tests. Otherwise return each
    test's result line (`<name>: <status> in <s> s`), the `<k> of <m> passed` line and, for each test that didn't
-   pass, its `  | ` lines from the log, verbatim: `grep -n -E ' in [0-9]+ s$|: (not run|misnamed)|^  \||passed$'` on the log finds them all.
+   pass, its `  | ` lines from the log, verbatim: `grep -n -E ' in [0-9]+ s$|: (not run|misnamed)|^  \||passed$'` on the log finds them all (the same grep as `/visual-verify`).
    Shots, logs and the manifest are in `$OUT`, by default `${TMPDIR:-/tmp}/verify-proof/`.
 
 ## Output

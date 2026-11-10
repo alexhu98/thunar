@@ -42,7 +42,7 @@ Before reading any image, check that the run can produce a trustworthy verdict. 
 
 ### Step 2: optional capture
 
-With `run:`, run `.github/scripts/verify-proof.sh run > <log> 2>&1; echo "exit=$?"`, check `exit=`, then `tail -n 30 <log>`, or `grep -n -E ': (exit|timeout|pairs|not run|misnamed)|^  \||passed$' <log>` when it failed (each failing test's line and its last 30 log lines). Never read the whole log, and **never pipe the command into `tail`**, because that masks the exit code. If a script fails its own assertions, that is a test failure, not a runtime problem: keep going and let Step 4 report it.
+With `run:`, run the capture through the `build-verify` agent (`.claude/agents/build-verify.md`) with `only run`. It runs `.github/scripts/verify-proof.sh run > <log> 2>&1; echo "exit=$?"` and returns its exit code and the log's `grep -n -E ' in [0-9]+ s$|: (not run|misnamed)|^  \||passed$'` lines: each test's result line, and each failing test's last 30 log lines. A session started before that agent existed runs a `general-purpose` agent told to read that file and follow it. Never read the whole log, and **never pipe the command into `tail`**, because that masks the exit code. If a script fails its own assertions, that is a test failure, not a runtime problem: keep going and let Step 4 report it.
 
 ### Step 3: independent audit skill
 

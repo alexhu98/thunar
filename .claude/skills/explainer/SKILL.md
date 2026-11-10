@@ -9,7 +9,7 @@ Every PR for issue `<n>`, from branch `<n>-<slug>`, adds `explainers/<n>-<slug>.
 
 ## In a subagent
 
-Hand the page, its render check and the narration to a `general-purpose` subagent, so the drafts, the rendered PNGs and the command output stay out of the session's context. Its prompt names the issue, the branch and the PR if there is one, lists what was run and its results (input 3 below, which the subagent can't see), and tells it to read this skill and follow it, without committing. It returns `page written, narration stamped` with the two files, or the failing command's exit code and its output lines verbatim. A later small page fix, such as a review fix, can be made in the session, followed by `status` and `stamp` run quietly as below.
+Hand the page, its render check and the narration to a `general-purpose` subagent, so the drafts, the rendered PNGs and the command output stay out of the session's context. Its prompt names the issue, the branch and the PR if there is one, lists what was run and its results (input 3 below, which the subagent can't see), and tells it to read this skill and follow it, without committing, and that it is that subagent, so it does the work itself. It returns `page written, narration stamped` with the two files, or the failing command's exit code and its output lines verbatim. A later page fix, such as a review fix, goes to a subagent the same way, which renders the page again before it runs `status` and `stamp`.
 
 ## Inputs to gather first
 
@@ -78,7 +78,7 @@ Written and stamped in the session that builds the PR, from the final page. `sta
 
 1. Write `explainers/<n>-<slug>.narration.json` from the page (format and rules below).
 2. `make-video.py stamp <n>` records which page text each line was written from, and the page's SHA-256.
-3. `make-video.py status <n>` must print "narration matches the page" and exit 0. Run `stamp` and `status` quietly, as `make-video.py status <n> > "$LOG" 2>&1; echo "exit=$?"`, then `grep -n -E 'stale line|page text|removed|problem|matches|stamp|note:|make-video:|Error' "$LOG"`, which keeps every stale line and drops nothing else that matters.
+3. `make-video.py status <n>` must print "narration matches the page" and exit 0. Run `stamp` and `status` quietly, as `make-video.py status <n> > /tmp/make-video.log 2>&1; echo "exit=$?"`, then `grep -n -E 'stale line|page text|removed|problem|matches|stamp|note:|make-video:|Error' /tmp/make-video.log`, which keeps every stale line and drops nothing else that matters.
 4. After any later page edit, including a review fix: run `status`, rewrite the stale lines and add lines for new text, then `stamp` again. Leave unchanged lines byte-for-byte as they are, so their cached voice clips are reused.
 5. In the PR description, list any word you're unsure how Kokoro will say (names, abbreviations, numbers), so the owner checks it with `phonemes`.
 
