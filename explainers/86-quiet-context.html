@@ -253,7 +253,7 @@
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Heavy steps: in subagents</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>build-verify.</b> The new agent <code>.claude/agents/build-verify.md</code>, modeled on <code>pr-digest</code>, builds the debs, installs them only when <code>$CLAUDE_CODE_REMOTE</code> is <code>true</code>, and runs the smoke test and every <code>verify/&lt;issue&gt;.sh</code>. It runs the tests only when the installed <code>thunar</code> package's status is <code>ii</code> and <code>/usr/bin/thunar</code> is byte-for-byte the binary in <code>dist/</code>'s deb, since every local build has the same version. With <code>only run</code> it changes nothing, and <code>/visual-verify run:</code> captures its shots that way, relying on that one guard. It never edits, commits, pushes or reads a PNG.</li>
+    <li data-k="5"><b>build-verify.</b> The new agent <code>.claude/agents/build-verify.md</code>, modeled on <code>pr-digest</code>, builds the debs from the working tree, installs all three only when <code>$CLAUDE_CODE_REMOTE</code> is <code>true</code>, and runs the smoke test and every <code>verify/&lt;issue&gt;.sh</code>. It has no options to skip a step, so the tests always run against the build it just made; <code>/visual-verify run:</code> captures its shots with that full run, in a cloud container only. It never edits, commits, pushes or reads a PNG.</li>
     <li data-k="6"><b>Local review.</b> The fresh-agent review of the diff runs in a <code>general-purpose</code> agent that returns only its findings list.</li>
     <li data-k="7"><b>Explainer.</b> The explainer skill's new “In a subagent” section hands the page, its render check and the narration to a <code>general-purpose</code> agent, which does the work itself rather than handing it on. A later page fix goes to a subagent too, which renders the page again before stamping. This page was written and updated that way.</li>
     <li data-k="8"><b>Short answer.</b> Each returns a short fixed result, such as <code>page written, narration stamped</code>, with any failing lines copied from the log as they are, so confident wording can't hide a failure.</li>
@@ -272,8 +272,8 @@
   <div class="table-wrap">
   <table>
     <tr><th>Log</th><th>Pattern</th><th>Keeps</th></tr>
-    <tr data-k="g1"><td>A test run, in <code>build-verify</code>, the only copy; <code>/visual-verify run:</code> uses it</td><td><code>' in [0-9]+ s$|: (not run|misnamed)|^  \||passed$|::warning::'</code></td><td>every test's result line, each failing test's <code>|</code> detail lines, the count and any <code>::warning::</code> line</td></tr>
-    <tr data-k="g3"><td>A failed build, in <code>build-verify</code></td><td><code>': (fatal )?error:|undefined reference|\*\*\* |Error [0-9]|FAIL|Traceback'</code>, last 40, plus the log's last 30 lines</td><td>compiler, linker and Python errors, a traceback in full, not every <code>-Werror=</code> flag</td></tr>
+    <tr data-k="g1"><td>A test run, in <code>build-verify</code>, the only copy; <code>/visual-verify run:</code> uses it</td><td><code>' in [0-9]+ s$|: (not run|misnamed)|^  \||passed$|::warning::'</code></td><td>every test's result line, each failing test's <code>|</code> detail lines and the count; <code>::warning::</code> lines go under <code>run warnings:</code></td></tr>
+    <tr data-k="g3"><td>A failed build, in <code>build-verify</code></td><td><code>': (fatal )?error:|undefined reference|\*\*\* |Error [0-9]|FAIL|Traceback'</code>, last 40, then <code>grep -n -A 40 Traceback</code> when there is one, else the log's last 30 lines</td><td>compiler, linker and Python errors, a traceback in full, not every <code>-Werror=</code> flag</td></tr>
     <tr data-k="g4"><td><code>make-video.py</code> <code>status</code> and <code>stamp</code></td><td><code>'stale line|page text|removed|problem|matches|stamp|note:|make-video:|Error'</code></td><td>every stale line and the verdict</td></tr>
   </table>
   </div>
@@ -291,14 +291,14 @@ shots: &lt;$OUT&gt;/shots · manifest &lt;$OUT&gt;/verify.tsv
 logs: &lt;$LOGS&gt;
 failing lines:
   &lt;the exact lines from the log, as found, or "none"&gt;</pre>
-  <div class="note warn" data-k="remote">Install replaces the system's Thunar, so outside a cloud container the agent skips it. The tests run only when the installed Thunar is the build in <code>dist/</code>: package status <code>ii</code> and the same <code>/usr/bin/thunar</code> binary; otherwise it reports <code>verify: not run: the installed Thunar isn't this branch's build</code>. A step it didn't run is never OK.</div>
+  <div class="note warn" data-k="remote">Install replaces the system's Thunar, so outside a cloud container the agent builds, then reports install and verify as <code>skipped (not a cloud container)</code>. In a cloud container every run builds, installs all three debs and runs the tests, so they always test the build it just made. A step it didn't run is never OK.</div>
   </section>
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">CLAUDE.md                              # new Context section: the three rules
 .claude/agents/build-verify.md         # new agent: build, install, test; about 10 lines back
-.claude/skills/visual-verify/SKILL.md  # Step 2: capture through build-verify only run
+.claude/skills/visual-verify/SKILL.md  # run: in a cloud container, through build-verify
 .claude/skills/explainer/SKILL.md      # In a subagent; quiet render, status and stamp
 .claude/skills/batch/SKILL.md          # one sentence in the step 3 brief
 explainers/86-quiet-context.html            # this page
@@ -331,8 +331,6 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
     <tr data-k="c2"><td>build-verify's grep keeps every result</td><td>The building session: the same log, grepped with <code>build-verify</code>'s pattern, before <code>::warning::</code> was added to it</td><td class="ok">9 of 9 kept</td></tr>
     <tr data-k="c3"><td>A redirect keeps the exit code</td><td>The building session: <code>false &gt; log 2&gt;&amp;1; echo "exit=$?"</code> against <code>false | tail -n1; echo $?</code></td><td class="ok">exit=1 against 0</td></tr>
     <tr data-k="c8"><td>The untracked-files list leaves out <code>debian/</code></td><td>The building session: <code>git ls-files --others --exclude-standard -- . ':(exclude)debian/'</code> with a new top-level file and a new file under <code>debian/tmp</code></td><td class="ok">top-level file only</td></tr>
-    <tr data-k="c9"><td>The binary check tells builds apart</td><td>The building session, with a test deb: <code>dpkg-deb --fsys-tarfile … | tar -xO ./usr/bin/thunar | cmp -s - &lt;file&gt;</code> against the same file and a different one</td><td class="ok">0, then 1</td></tr>
-    <tr data-k="c10"><td>The package status can be read</td><td>The building session: <code>dpkg-query -W -f='${db:Status-Abbrev}'</code></td><td class="ok">prints <code>ii</code></td></tr>
     <tr data-k="c4"><td>Thunar build and verify</td><td>CI run <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">42726284611</a> on <code>087afb6</code>: the PR changes no code, packaging or CI files, so both ran <code>No code changed</code></td><td class="no">not run</td></tr>
     <tr data-k="c6"><td>Screenshot audit</td><td>The same run: no shots were taken, so none was needed</td><td class="ok">not needed</td></tr>
     <tr data-k="c7"><td>Explainer and narration</td><td>The same run's explainer job rendered this page as of <code>087afb6</code> and ran <code>make-video.py status</code></td><td class="ok">narration current</td></tr>
@@ -352,10 +350,10 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
   <p data-k="ci">CI's first review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">42726284611</a>, Opus at <code>high</code>, 5 minutes) found 8 findings on <code>087afb6</code>, all confirmed: R1 medium, R2 to R8 low. All 8 got a fix in one push, and none was accepted:</p>
   <ul class="tight">
     <li data-k="r1"><b>An unset log (R1):</b> the quiet <code>status</code> and <code>stamp</code> command wrote to <code>$LOG</code>, which nothing set, so bash would fail and print <code>exit=1</code>. It now writes to a log file of its own, and <code>CLAUDE.md</code> says <code>LOG</code> is a file outside the repo.</li>
-    <li data-k="r2"><b>The cloud guard (R2):</b> it covered only install, while <code>CLAUDE.md</code> promised it for the tests too. <code>CLAUDE.md</code> now promises it for install only, and the tests got their own guard after the second review.</li>
+    <li data-k="r2"><b>The cloud guard (R2):</b> it covered only install, while <code>CLAUDE.md</code> promised it for the tests too. <code>CLAUDE.md</code> now promises it for install only; the tests had their own guard for two rounds, until always building replaced it.</li>
     <li data-k="r3"><b>The explainer subagent (R3, R4):</b> it could hand the work on again, and later page fixes weren't render-checked. It now does the work itself, and a later fix goes to a subagent that renders the page again.</li>
     <li data-k="r4"><b>The build grep (R5, R6):</b> it missed linker and Python errors, and the warnings filter left out untracked files. It now also catches <code>undefined reference</code> and <code>Traceback</code>, falls back to the last 30 lines, and counts untracked files.</li>
-    <li data-k="r5"><b>One verify path (R7, R8):</b> two different greps read the same verify output, and <code>/visual-verify run:</code> was a second way to run the tests. <code>run:</code> now captures through <code>build-verify</code> <code>only run</code>, with one grep.</li>
+    <li data-k="r5"><b>One verify path (R7, R8):</b> two different greps read the same verify output, and <code>/visual-verify run:</code> was a second way to run the tests. <code>run:</code> then captured through <code>build-verify</code> <code>only run</code>, with one grep.</li>
   </ul>
   <p data-k="ci2">CI's second review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42726996717">42726996717</a>, Opus at <code>high</code>, 4 minutes) of <code>988863c</code> marked R1, R4 and R6 resolved, kept R2, R3, R5, R7 and R8 open, and found 4 more lows: R9 confirmed, R10 to R12 plausible. All are fixed in <code>7858905</code>, none accepted, for CI's next review to re-check:</p>
   <ul class="tight">
@@ -367,13 +365,20 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
   </ul>
   <p data-k="ci3">CI's third review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42727746370">42727746370</a>, Opus at <code>high</code>, 4 minutes) of <code>7858905</code> marked R2, R3, R7 and R9 resolved, counted R10 to R12 as accepted (later-review lows it didn't confirm), kept R5 and R8 open, and found 7 more: R13 medium, R14 and R15 low, all confirmed; R16 to R19 low, plausible. All but R17 are fixed in <code>837d2d3</code>, for CI's next review to re-check:</p>
   <ul class="tight">
-    <li data-k="t1"><b>Telling builds apart (R13, R16):</b> every local build has the same version, and the check ignored the package's status. The guard now needs status <code>ii</code> and a <code>/usr/bin/thunar</code> that is byte-for-byte the binary in <code>dist/</code>'s deb.</li>
-    <li data-k="t2"><b>One guard (R8, R19):</b> <code>/visual-verify</code> called its own check and <code>build-verify</code>'s “the same”. Its Step 1 now only checks that <code>dist/</code> holds this branch's debs, and it relies on <code>build-verify</code>'s guard.</li>
-    <li data-k="t3"><b>Tracebacks in full (R5):</b> a failed build now returns the grep lines plus the log's last 30 lines, which hold a traceback's exception and frames.</li>
+    <li data-k="t1"><b>Telling builds apart (R13, R16):</b> every local build has the same version, and the check ignored the package's status. The guard then compared the status and the <code>/usr/bin/thunar</code> binary, which the fourth review found too narrow.</li>
+    <li data-k="t2"><b>One guard (R8, R19):</b> <code>/visual-verify</code> called its own check and <code>build-verify</code>'s “the same”. Its Step 1 stopped repeating the check, and the fourth round removed the guard altogether.</li>
+    <li data-k="t3"><b>Tracebacks (R5):</b> a failed build then returned the grep lines plus the log's last 30 lines, which the fourth review found could still lose a traceback's top frames.</li>
     <li data-k="t4"><b>Smaller gaps (R14, R15, R18):</b> the output gets a <code>run warnings:</code> line; the render check uses <code>${TMPDIR:-/tmp}</code> like <code>make-video.py</code>; and narration step 4 says the subagent does a later fix itself.</li>
     <li data-k="t5"><b>Accepted (R17):</b> leaving out <code>debian/</code> also drops new untracked packaging files from the warnings filter. The filter only matches gcc warning lines, and files under <code>debian/</code> are never compiled, so nothing is lost.</li>
   </ul>
-  <p data-k="link">That makes 19 findings over three reviews: R17 accepted, the other 18 fixed or resolved. Every one is in the <a href="https://github.com/alexhu98/thunar/pull/87#issuecomment-6755010474">code review comment</a> on PR #87.</p>
+  <p data-k="ci4">CI's fourth review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42728491014">42728491014</a>, Opus at <code>high</code>, 5 minutes) of <code>837d2d3</code> marked R5, R8, R13, R14 and R15 resolved, counted R16 to R19 as settled (later-review lows it didn't confirm), and found 8 more: R20 and R21 medium and R22 low, all confirmed; R23 to R27 low, plausible. All but R23 and R25 are fixed in <code>a18d522</code>, for CI's next review to re-check:</p>
+  <ul class="tight">
+    <li data-k="u1"><b>Always build (R20, R21):</b> the binary guard compared only <code>/usr/bin/thunar</code>, so a stale <code>thunar-data</code> or <code>libthunarx</code> passed, and nothing tied <code>dist/</code> to <code>HEAD</code>. <code>build-verify</code> dropped its <code>skip build</code>, <code>only install</code> and <code>only run</code> options and the guard: every run builds the working tree, installs all three debs and runs the tests.</li>
+    <li data-k="u2"><b>Tracebacks in full (R22):</b> a failed build now returns <code>grep -n -A 40 Traceback</code> when there is a traceback, else the log's last 30 lines.</li>
+    <li data-k="u3"><b>Smaller gaps (R24, R26, R27):</b> the render snippet's <code>T=</code> line didn't survive separate shell calls, so it uses <code>${TMPDIR:-/tmp}</code> inline; an empty <code>dist/</code> no longer gives a misleading cause, since that guard is gone; and <code>::warning::</code> lines appear only under <code>run warnings:</code>.</li>
+    <li data-k="u4"><b>Accepted (R23, R25):</b> the grep lines and the tail overlap by a few lines, and both parts are needed; and <code>verify-proof.sh</code> prints the <code>|</code> lines as exactly each failing test's last 30 log lines, so that wording is accurate.</li>
+  </ul>
+  <p data-k="link">That makes 27 findings over four reviews: R17, R23 and R25 accepted, the other 24 fixed or resolved. Every one is in the <a href="https://github.com/alexhu98/thunar/pull/87#issuecomment-6755010474">code review comment</a> on PR #87.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -393,7 +398,7 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/87">PR #87</a> → “Files changed”</li>
     <li data-k="l2">Its summary comment: build and verify say the PR changes no code.</li>
     <li data-k="l3">The issue, with the sizes and costs it starts from: <a href="https://github.com/alexhu98/thunar/issues/86">#86</a></li>
-    <li data-k="l4">CI's first run, with its build, verify, review and explainer jobs: <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">run 42726284611</a>; its second and third reviews: <a href="https://github.com/alexhu98/thunar/actions/runs/42726996717">run 42726996717</a> and <a href="https://github.com/alexhu98/thunar/actions/runs/42727746370">run 42727746370</a></li>
+    <li data-k="l4">CI's first run, with its build, verify, review and explainer jobs: <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">run 42726284611</a>; its later reviews: <a href="https://github.com/alexhu98/thunar/actions/runs/42726996717">run 42726996717</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42727746370">run 42727746370</a> and <a href="https://github.com/alexhu98/thunar/actions/runs/42728491014">run 42728491014</a></li>
   </ul>
   </section>
   </section>
