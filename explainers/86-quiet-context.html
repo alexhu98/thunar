@@ -386,7 +386,12 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
     <li data-k="v3"><b>Old wording (R30):</b> the <code>run:</code> argument and the README still said “sandbox with the built debs installed”. They now say it builds, installs and captures through <code>build-verify</code>, in a cloud container only.</li>
     <li data-k="v4"><b>Accepted (R31, R32):</b> the build's Python tracebacks are a few frames long, so 40 lines after <code>Traceback</code> cover them; and no flow runs <code>build-verify</code> and then <code>/visual-verify run:</code> back to back, while a fresh build is what guarantees the capture tests this branch.</li>
   </ul>
-  <p data-k="link">That makes 32 findings over five reviews: R17, R23, R25, R31 and R32 accepted, the other 27 fixed or resolved. Every one is in the <a href="https://github.com/alexhu98/thunar/pull/87#issuecomment-6755010474">code review comment</a> on PR #87.</p>
+  <p data-k="ci6">CI's sixth review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42729910638">42729910638</a>, Opus at <code>high</code>, 3 minutes) of <code>50b255c</code> passed: it marked R28, R29 and R30 resolved and found 5 more, all plausible: R33 medium, R34 to R37 low. This round changes no code:</p>
+  <ul class="tight">
+    <li data-k="w1"><b>Waiting on the owner (R33):</b> the apt-skip fix lives only in <code>build-verify</code>, so running <code>verify-proof.sh install</code> directly, as <code>CLAUDE.md</code>'s Verify section says, can still leave a same-version stale Thunar. The real fix belongs in <code>verify-proof.sh</code>, which is CI and outside this issue, so the proposal is to accept R33 here and open a separate issue for it.</li>
+    <li data-k="w2"><b>Accepted (R34 to R37):</b> on a downgrade, apt fails before <code>dpkg -i</code>, but <code>build-verify</code> always builds the branch's own version and a failed apt step stops with its log (R34); with <code>run:</code>, two checks still sit before the capture, but the manifest they read exists only after it, so they can only fail INCONCLUSIVE (R35); the repeated <code>dpkg -i</code> on the cached path is harmless and cheap (R36); and when step 3's two commands share one log, either failure returns that log's last 30 lines, which hold both (R37).</li>
+  </ul>
+  <p data-k="link">That makes 37 findings over six reviews: R17, R23, R25, R31, R32 and R34 to R37 accepted, R33 waiting on the owner's decision, the other 27 fixed or resolved. Every one is in the <a href="https://github.com/alexhu98/thunar/pull/87#issuecomment-6755010474">code review comment</a> on PR #87.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -406,7 +411,7 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/87">PR #87</a> → “Files changed”</li>
     <li data-k="l2">Its summary comment: build and verify say the PR changes no code.</li>
     <li data-k="l3">The issue, with the sizes and costs it starts from: <a href="https://github.com/alexhu98/thunar/issues/86">#86</a></li>
-    <li data-k="l4">CI's first run, with its build, verify, review and explainer jobs: <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">run 42726284611</a>; its later reviews: <a href="https://github.com/alexhu98/thunar/actions/runs/42726996717">run 42726996717</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42727746370">run 42727746370</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42728491014">run 42728491014</a> and <a href="https://github.com/alexhu98/thunar/actions/runs/42729276894">run 42729276894</a></li>
+    <li data-k="l4">CI's first run, with its build, verify, review and explainer jobs: <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">run 42726284611</a>; its later reviews: <a href="https://github.com/alexhu98/thunar/actions/runs/42726996717">run 42726996717</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42727746370">run 42727746370</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42728491014">run 42728491014</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42729276894">run 42729276894</a> and <a href="https://github.com/alexhu98/thunar/actions/runs/42729910638">run 42729910638</a></li>
   </ul>
   </section>
   </section>
@@ -418,8 +423,8 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
   <p class="intro" data-k="intro">No open issue builds on this one. The next batch group is the first to run under the rules and measure them.</p>
 
   <section class="sub" id="next">
-  <div class="diagram" role="img" aria-label="This PR, then the next batch group measures context and cost, then possibly a split into two sessions">
-  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+  <div class="diagram" role="img" aria-label="This PR, then the next batch group measures context and cost, then possibly a split into two sessions; separately, possibly a verify-proof.sh reinstall fix">
+  <svg viewBox="0 0 1000 230" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
         <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
@@ -448,7 +453,15 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
       <text x="536" y="154" class="b">compaction</text>
     </g>
     <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <g data-k="n4">
+      <rect class="box-future" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Reinstall fix?</text>
+      <text x="786" y="114" class="b">if the owner agrees:</text>
+      <text x="786" y="134" class="b">install reinstalls</text>
+      <text x="786" y="154" class="b">same-version debs</text>
+    </g>
     <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M125,180 V206 H875 V184" marker-end="url(#ahf-next)"/>
   </svg>
   </div>
   <div class="legend">
@@ -456,6 +469,7 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
     <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not happened yet; no issue open</span>
   </div>
   <p data-k="split">The issue's point 4 is the follow-up if the numbers stay high: split each batch group into an implementing session and a fresh review-loop session, with a short handoff (PR number, branch, accepted findings, last digest SHA).</p>
+  <p data-k="reinstall">If the owner agrees on R33, a separate issue makes <code>verify-proof.sh install</code> reinstall same-version debs, so running it directly can't leave a stale Thunar either. No issue is open for it yet.</p>
   </section>
   </section>
 
