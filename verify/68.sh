@@ -86,7 +86,7 @@ toggle_rows() {  # png: prints "y entry-end gap-left toggle-start toggle-end gap
     END { row() }'
 }
 
-measure() {  # png, where, [gap to the search button, default 5]: sets TOG_X, TOG_Y and GAPS, and fails unless the gaps match +-1
+measure() {  # png, where, [gap to the search button, default 5]: sets TOG_X, TOG_Y, TOG_START, TOG_END, TOG_TOP, TOG_ROWS, INSIDE and GAPS, and fails unless the gaps match +-1
   local right=${3:-5} found mid y entry_end gap_l tog_start tog_end gap_r
   found=$(toggle_rows "$1")
   [[ -n $found ]] || fail "$2: found no row with the search entry, a gap, the Include subfolders toggle, a gap and the search button"
@@ -95,16 +95,23 @@ measure() {  # png, where, [gap to the search button, default 5]: sets TOG_X, TO
   read -r y entry_end gap_l tog_start tog_end gap_r <<<"$mid"
   TOG_X=$(( (tog_start + tog_end) / 2 ))
   TOG_Y=$y
+  TOG_START=$tog_start
+  TOG_END=$tog_end
+  TOG_TOP=$(head -n 1 <<<"$found" | cut -d' ' -f1)
+  TOG_ROWS=$(( $(tail -n 1 <<<"$found" | cut -d' ' -f1) - TOG_TOP + 1 ))
+  INSIDE=$(convert "$1" -crop "1x1+$((entry_end - 4))+$y" +repage -depth 8 txt:- | awk 'NR == 2 { print $2 }')
   GAPS="entry border ends at x=$entry_end, toggle x=$tog_start-$tog_end on row y=$y: entry to toggle $gap_l px, toggle to search button $gap_r px"
   echo "$2: $GAPS"
   (( gap_l >= 4 && gap_l <= 6 )) || fail "$2: the gap from the search entry to the toggle is $gap_l px, expected 5 +-1 ($GAPS)"
   (( gap_r >= right - 1 && gap_r <= right + 1 )) || fail "$2: the gap from the toggle to the search button is $gap_r px, expected $right +-1 ($GAPS)"
 }
 
-no_toggle() {  # png, where
-  local found
-  found=$(toggle_rows "$1")
-  [[ -z $found ]] || fail "$2: the Include subfolders toggle is showing although no search is running (row $(head -n 1 <<<"$found"))"
+no_toggle() {  # png, where: fails unless a row of the toggle's place, measured while searching, is all the entry's inside
+  local clean
+  clean=$(convert "$1" -crop "$((TOG_END - TOG_START - 3))x$TOG_ROWS+$((TOG_START + 2))+$TOG_TOP" +repage -depth 8 txt:- \
+    | awk -v inside="$INSIDE" 'NR > 1 { split($1, p, /[,:]/); seen[p[2]] = 1; if ($2 != inside) bad[p[2]] = 1 }
+        END { for (y in seen) if (!(y in bad)) n++; print n + 0 }')
+  (( clean > 0 )) || fail "$2: no row of x=$((TOG_START + 2))-$((TOG_END - 2)), y=$TOG_TOP-$((TOG_TOP + TOG_ROWS - 1)) is all the entry's inside $INSIDE, so the Include subfolders toggle shows although no search is running"
 }
 
 crop() {  # shot name: keeps the right end of the toolbar around the toggle, enlarged 4 times so the gaps are visible
@@ -116,11 +123,11 @@ G='The toggle sits 5 px from the search entry'
 
 start_thunar top
 capture "$WORK/idle.png"
-no_toggle "$WORK/idle.png" "menu bar shown, not searching"
 shot "$WID" before-toggle-gap "Toolbar with the menu bar shown, enlarged 4 times, before a search: the location bar shows the path of top and there is no Include subfolders toggle"
 search
 capture "$WORK/searching.png"
 measure "$WORK/searching.png" "menu bar shown"
+no_toggle "$WORK/idle.png" "menu bar shown, not searching"
 shot "$WID" after-toggle-gap "Toolbar with the menu bar shown, enlarged 4 times, while searching for match: a 5 px gap of toolbar background separates the search entry's border from the pressed Include subfolders toggle, the same as the gap from the toggle to the search button"
 crop before-toggle-gap
 crop after-toggle-gap
@@ -129,7 +136,7 @@ pair toggle-gap "Pressed Ctrl+F and typed match" "The Include subfolders toggle 
 click_toggle
 capture "$WORK/released.png"
 measure "$WORK/released.png" "menu bar shown, toggle released"
-[[ $(compare -metric AE -crop 30x20+$((TOG_X - 15))+$((TOG_Y - 10)) "$WORK/searching.png" "$WORK/released.png" null: 2>&1 || true) != 0 ]] \
+[[ $(compare -metric AE -crop 30x20+$((TOG_X - 15))+$((TOG_Y - 10)) "$WORK/searching.png" "$WORK/released.png" null: 2>&1 || true) =~ ^[1-9][0-9]*$ ]] \
   || fail "clicking the Include subfolders toggle did not change how it looks"
 xdotool mousemove --window "$WID" $((W / 2)) $((H - 100)) click 1
 sleep 0.5
@@ -153,26 +160,27 @@ xdotool key Escape
 sleep 0.5
 xdotool key ctrl+v
 for ((i = 0; i < 25; i++)); do
-  [[ $(ls -A "$WORK/top/pasted") == match-top.txt ]] && break
+  [[ -n $(ls -A "$WORK/top/pasted") ]] && break
   sleep 0.2
 done
+sleep 2
 [[ $(ls -A "$WORK/top/pasted") == match-top.txt ]] \
   || fail "with the toggle released the search listed '$(ls -A "$WORK/top/pasted" | tr '\n' ' ')', expected only match-top.txt"
 
 restart_thunar hidden last-menubar-visible false
 capture "$WORK/hidden-idle.png"
-no_toggle "$WORK/hidden-idle.png" "menu bar hidden, not searching"
 search
 capture "$WORK/hidden-searching.png"
 measure "$WORK/hidden-searching.png" "menu bar hidden"
+no_toggle "$WORK/hidden-idle.png" "menu bar hidden, not searching"
 shot "$WID" menubar-hidden-gap "Toolbar with the menu bar hidden, enlarged 4 times, while searching for match: the pressed Include subfolders toggle has a 5 px gap to the search entry and to the search button ($GAPS)"
 crop menubar-hidden-gap
 
 restart_thunar csd misc-use-csd true
 capture "$WORK/csd-idle.png"
-no_toggle "$WORK/csd-idle.png" "header bar, not searching"
 search
 capture "$WORK/csd-searching.png"
 measure "$WORK/csd-searching.png" "header bar" 15
+no_toggle "$WORK/csd-idle.png" "header bar, not searching"
 shot "$WID" headerbar-gap "Header bar with the menu bar hidden and client-side decorations on, enlarged 4 times, while searching for match: the pressed Include subfolders toggle is 5 px from the search entry, and the search button keeps the header bar's 15 px location bar margin ($GAPS)"
 crop headerbar-gap
