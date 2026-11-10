@@ -117,33 +117,36 @@ no_toggle() {  # png, where: fails unless, in some row of the toggle measured wh
   clean=$(convert "$1" -crop "$((TOG_END - ENTRY_END + 2))x$TOG_ROWS+$((ENTRY_END - 4))+$TOG_TOP" +repage -depth 8 txt:- \
     | awk 'NR > 1 { split($1, p, /[,:]/); y = p[2]; if (!(y in c)) c[y] = $2; else if ($2 != c[y]) bad[y] = 1 }
         END { for (y in c) if (!(y in bad)) n++; print n + 0 }')
-  (( clean > 0 )) || fail "$2: no row of x=$((ENTRY_END - 4))-$((TOG_END - 2)), y=$TOG_TOP-$((TOG_TOP + TOG_ROWS - 1)) is one colour, so the entry doesn't reach over the Include subfolders toggle's place and the toggle shows although no search is running"
+  (( clean > 0 )) || fail "$2: no row of x=$((ENTRY_END - 4))-$((TOG_END - 3)), y=$TOG_TOP-$((TOG_TOP + TOG_ROWS - 1)) is one colour, so the entry doesn't reach over the Include subfolders toggle's place and the toggle shows although no search is running"
 }
 
-crop() {  # shot name: keeps the right end of the toolbar around the toggle, enlarged 4 times so the gaps are visible
+crop() {  # shot name, what it shows: keeps the right end of the toolbar around the toggle, enlarged 4 times so the gaps
+          # are visible, and adds that and what it shows to the shot's line in shots.tsv
   convert "$SHOTS/$1.png" -crop "$((W - TOG_X + 260))x64+$((TOG_X - 260))+$((TOG_Y > 32 ? TOG_Y - 32 : 0))" +repage \
     -filter point -resize 400% "$SHOTS/$1.png" || fail "could not crop $1"
+  awk -F'\t' -v OFS='\t' -v name="$1" -v more="; cropped to the right end of the toolbar and enlarged 4 times: $2" \
+    '$1 == name { $2 = $2 more } 1' "$SHOTS/shots.tsv" > "$WORK/shots.tsv" && mv "$WORK/shots.tsv" "$SHOTS/shots.tsv"
 }
 
 G='The toggle sits 5 px from the search entry'
 
 start_thunar top
-shot "$WID" before-toggle-gap "Toolbar with the menu bar shown, enlarged 4 times, before a search: the location bar shows the path of top and there is no Include subfolders toggle"
+shot "$WID" before-toggle-gap "The Thunar window with the menu bar shown, before a search, with the path of top in the location bar"
 search
-shot "$WID" after-toggle-gap "Toolbar with the menu bar shown, enlarged 4 times, while searching for match: a 5 px gap of toolbar background separates the search entry's border from the pressed Include subfolders toggle, the same as the gap from the toggle to the search button"
+shot "$WID" after-toggle-gap "The Thunar window with the menu bar shown, while searching for match, with the Include subfolders toggle showing"
 measure "$SHOTS/after-toggle-gap.png" "menu bar shown"
+SHOWN_GAPS=$GAPS
 no_toggle "$SHOTS/before-toggle-gap.png" "menu bar shown, not searching"
 pair toggle-gap "Pressed Ctrl+F and typed match" "The Include subfolders toggle appears with a 5 px gap on both sides ($GAPS)" "no search, no toggle" "toggle, 5 px from the entry and the button" "$G"
 
 click_toggle
 capture "$WORK/released.png"
 measure "$WORK/released.png" "menu bar shown, toggle released"
-convert "$SHOTS/after-toggle-gap.png" -crop "30x20+$((TOG_X - 15))+$((TOG_Y - 10))" +repage "$WORK/pressed-part.png"
-convert "$WORK/released.png" -crop "30x20+$((TOG_X - 15))+$((TOG_Y - 10))" +repage "$WORK/released-part.png"
-[[ $(compare -metric AE "$WORK/pressed-part.png" "$WORK/released-part.png" null: 2>&1 || true) =~ ^[1-9][0-9]*$ ]] \
+PART="[30x20+$((TOG_X - 15))+$((TOG_Y - 10))]"
+[[ $(compare -metric AE "$SHOTS/after-toggle-gap.png$PART" "$WORK/released.png$PART" null: 2>&1 || true) =~ ^[1-9][0-9]*$ ]] \
   || fail "clicking the Include subfolders toggle did not change how it looks"
-crop before-toggle-gap
-crop after-toggle-gap
+crop before-toggle-gap "no Include subfolders toggle; the script checked that the entry reaches over its place"
+crop after-toggle-gap "a gap of toolbar background on each side of the pressed toggle, measured as $SHOWN_GAPS"
 xdotool mousemove --window "$WID" $((W / 2)) $((H - 100)) click 1
 sleep 0.5
 xdotool key ctrl+a
@@ -176,15 +179,15 @@ sleep 2
 restart_thunar hidden last-menubar-visible false
 capture "$WORK/hidden-idle.png"
 search
-shot "$WID" menubar-hidden-gap "Toolbar with the menu bar hidden, enlarged 4 times, while searching for match: the pressed Include subfolders toggle has a 5 px gap to the search entry and to the search button"
+shot "$WID" menubar-hidden-gap "The Thunar window with the menu bar hidden, while searching for match, with the Include subfolders toggle showing"
 measure "$SHOTS/menubar-hidden-gap.png" "menu bar hidden"
 no_toggle "$WORK/hidden-idle.png" "menu bar hidden, not searching"
-crop menubar-hidden-gap
+crop menubar-hidden-gap "a 5 px gap on each side of the pressed toggle, measured as $GAPS"
 
 restart_thunar csd misc-use-csd true
 capture "$WORK/csd-idle.png"
 search
-shot "$WID" headerbar-gap "Header bar with the menu bar hidden and client-side decorations on, enlarged 4 times, while searching for match: the pressed Include subfolders toggle is 5 px from the search entry, and the search button keeps the header bar's 15 px location bar margin"
+shot "$WID" headerbar-gap "The Thunar window with the menu bar hidden and client-side decorations on, while searching for match, with the Include subfolders toggle showing in the header bar"
 measure "$SHOTS/headerbar-gap.png" "header bar" 15
 no_toggle "$WORK/csd-idle.png" "header bar, not searching"
-crop headerbar-gap
+crop headerbar-gap "the pressed toggle 5 px from the search entry, and the search button at the header bar's 15 px location bar margin, measured as $GAPS"
