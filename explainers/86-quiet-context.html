@@ -166,8 +166,8 @@
     <g data-k="5">
       <rect class="box-merge" x="20" y="260" width="210" height="120" rx="10"/>
       <text x="36" y="290" class="t">build-verify</text>
-      <text x="36" y="314" class="b">builds the debs;</text>
-      <text x="36" y="334" class="b">tests only in a</text>
+      <text x="36" y="314" class="b">builds and tests;</text>
+      <text x="36" y="334" class="b">installs only in a</text>
       <text x="36" y="354" class="b">cloud container</text>
       <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">5</text>
     </g>
@@ -246,16 +246,16 @@
   <div class="panel">
   <div class="lane-h" style="color:var(--accent)">① Logs: every noisy command</div>
   <ol class="steps">
-    <li data-k="1"><b>Log to a file.</b> <code>dpkg-buildpackage</code>, <code>verify-proof.sh</code>, <code>explainer-proof.sh</code> and <code>make-video.py</code> run as <code>cmd &gt; "$LOG" 2&gt;&amp;1; echo "exit=$?"</code>, so none of their output lands in the context yet.</li>
+    <li data-k="1"><b>Log to a file.</b> <code>dpkg-buildpackage</code>, <code>verify-proof.sh</code>, <code>explainer-proof.sh</code> and <code>make-video.py</code> run as <code>cmd &gt; "$LOG" 2&gt;&amp;1; echo "exit=$?"</code>, with <code>LOG</code> a file outside the repo, such as the explainer's <code>/tmp/make-video.log</code>, so none of their output lands in the context yet.</li>
     <li data-k="2"><b>Check exit=.</b> The echoed exit code is read first. That's why the rules forbid piping the command into <code>tail</code>, which would show <code>tail</code>'s 0 instead.</li>
-    <li data-k="3"><b>Tail or grep.</b> On success, <code>tail -n 30 "$LOG"</code>. On a failure, the grep that its skill or agent gives (table below): visual-verify's Step 2 for test runs, <code>build-verify</code>'s for builds, the explainer skill's for <code>make-video.py</code>.</li>
+    <li data-k="3"><b>Tail or grep.</b> On success, <code>tail -n 30 "$LOG"</code>. On a failure, the grep that its skill or agent gives (table below): <code>build-verify</code>'s for builds and test runs, and the explainer skill's for <code>make-video.py</code>.</li>
     <li data-k="4"><b>In context.</b> The session holds the exit code and a few lines, never a build log of thousands of lines.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Heavy steps: in subagents</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>build-verify.</b> The new agent <code>.claude/agents/build-verify.md</code>, modeled on <code>pr-digest</code>, builds the debs and, only when <code>$CLAUDE_CODE_REMOTE</code> is <code>true</code>, installs them and runs the smoke test and every <code>verify/&lt;issue&gt;.sh</code>. It never edits, commits, pushes or reads a PNG.</li>
+    <li data-k="5"><b>build-verify.</b> The new agent <code>.claude/agents/build-verify.md</code>, modeled on <code>pr-digest</code>, builds the debs, installs them only when <code>$CLAUDE_CODE_REMOTE</code> is <code>true</code>, and runs the smoke test and every <code>verify/&lt;issue&gt;.sh</code>. With <code>only run</code> it tests whatever Thunar is installed and changes nothing, so it runs anywhere; <code>/visual-verify run:</code> captures its shots that way. It never edits, commits, pushes or reads a PNG.</li>
     <li data-k="6"><b>Local review.</b> The fresh-agent review of the diff runs in a <code>general-purpose</code> agent that returns only its findings list.</li>
-    <li data-k="7"><b>Explainer.</b> The explainer skill's new “In a subagent” section hands the page, its render check and the narration to a <code>general-purpose</code> agent. This page was written that way.</li>
+    <li data-k="7"><b>Explainer.</b> The explainer skill's new “In a subagent” section hands the page, its render check and the narration to a <code>general-purpose</code> agent, which does the work itself rather than handing it on. A later page fix goes to a subagent too, which renders the page again before stamping. This page was written and updated that way.</li>
     <li data-k="8"><b>Short answer.</b> Each returns a short fixed result, such as <code>page written, narration stamped</code>, with any failing lines copied from the log as they are, so confident wording can't hide a failure.</li>
   </ol>
   <div class="lane-h" style="color:var(--accent)">③ Reads: narrow</div>
@@ -272,9 +272,8 @@
   <div class="table-wrap">
   <table>
     <tr><th>Log</th><th>Pattern</th><th>Keeps</th></tr>
-    <tr data-k="g1"><td>A failed test run, in <code>/visual-verify</code> Step 2</td><td><code>': (exit|timeout|pairs|not run|misnamed)|^  \||passed$'</code></td><td>each failing test's line, its <code>|</code> detail lines and the count</td></tr>
-    <tr data-k="g2"><td>A test run, in <code>build-verify</code></td><td><code>' in [0-9]+ s$|: (not run|misnamed)|^  \||passed$'</code></td><td>every test's result line, passes too</td></tr>
-    <tr data-k="g3"><td>A failed build, in <code>build-verify</code></td><td><code>': (fatal )?error:|\*\*\* |Error [0-9]|FAIL'</code>, last 40</td><td>real errors, not every <code>-Werror=</code> flag</td></tr>
+    <tr data-k="g1"><td>A test run, in <code>build-verify</code>, which <code>/visual-verify run:</code> uses too</td><td><code>' in [0-9]+ s$|: (not run|misnamed)|^  \||passed$'</code></td><td>every test's result line, each failing test's <code>|</code> detail lines and the count</td></tr>
+    <tr data-k="g3"><td>A failed build, in <code>build-verify</code></td><td><code>': (fatal )?error:|undefined reference|\*\*\* |Error [0-9]|FAIL|Traceback'</code>, last 40, or the log's last 30 lines when it finds nothing</td><td>compiler, linker and Python errors, not every <code>-Werror=</code> flag</td></tr>
     <tr data-k="g4"><td><code>make-video.py</code> <code>status</code> and <code>stamp</code></td><td><code>'stale line|page text|removed|problem|matches|stamp|note:|make-video:|Error'</code></td><td>every stale line and the verdict</td></tr>
   </table>
   </div>
@@ -291,14 +290,14 @@ shots: &lt;$OUT&gt;/shots · manifest &lt;$OUT&gt;/verify.tsv
 logs: &lt;$LOGS&gt;
 failing lines:
   &lt;the exact lines from the log, as found, or "none"&gt;</pre>
-  <div class="note warn" data-k="remote">Install replaces the system's Thunar, so outside a cloud container the agent reports install and verify as <code>skipped (not a cloud container)</code>. A step it didn't run is <code>skipped</code>, never OK.</div>
+  <div class="note warn" data-k="remote">Install replaces the system's Thunar, so outside a cloud container the agent reports install and verify as <code>skipped (not a cloud container)</code>, unless it was asked for <code>only run</code>. A step it didn't run is <code>skipped</code>, never OK.</div>
   </section>
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">CLAUDE.md                              # new Context section: the three rules
-.claude/agents/build-verify.md         # new agent: build, install, run; about 10 lines back
-.claude/skills/visual-verify/SKILL.md  # Step 2: check exit=, then tail or grep the log
+.claude/agents/build-verify.md         # new agent: build, install, test; about 10 lines back
+.claude/skills/visual-verify/SKILL.md  # Step 2: capture through build-verify only run
 .claude/skills/explainer/SKILL.md      # In a subagent; quiet render, status and stamp
 .claude/skills/batch/SKILL.md          # one sentence in the step 3 brief
 explainers/86-quiet-context.html            # this page
@@ -311,14 +310,14 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The change is instructions for agents, so the building session checked its greps and the exit code rule on small samples, and a fresh agent reviewed it. Its real test, a cheaper session, comes after the merge.</p>
+  <p class="intro" data-k="intro">The change is instructions for agents, so the building session checked its greps and the exit code rule on small samples, and a fresh agent and CI reviewed it. Its real test, a cheaper session, comes after the merge.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
   <div class="grid">
     <div class="card" data-k="r1"><h3>pr-digest.md</h3><p>The agent <code>build-verify</code> is modeled on: a fixed short output, the exact lines, and no edits.</p></div>
     <div class="card" data-k="r2"><h3>shot-audit and shot-auditor</h3><p>They already keep every screenshot read out of the session, in their own subagent.</p></div>
-    <div class="card" data-k="r3"><h3>verify-proof.sh's log</h3><p>Its result lines, <code>&lt;name&gt;: &lt;status&gt; in &lt;s&gt; s</code> and <code>&lt;k&gt; of &lt;m&gt; passed</code>, are what both test greps match.</p></div>
+    <div class="card" data-k="r3"><h3>verify-proof.sh's log</h3><p>Its result lines, <code>&lt;name&gt;: &lt;status&gt; in &lt;s&gt; s</code> and <code>&lt;k&gt; of &lt;m&gt; passed</code>, are what the test grep matches.</p></div>
   </div>
   </section>
 
@@ -327,10 +326,12 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr data-k="c1"><td>visual-verify's grep keeps only failures</td><td>The building session: a 9-line sample <code>verify-proof.sh run</code> log in the script's own formats (passes, an exit 1 with its <code>|</code> detail line, a timeout, incomplete pairs, a misnamed script, a test not run, the count), grepped with Step 2's pattern</td><td class="ok">7 of 9 kept; both passes dropped</td></tr>
-    <tr data-k="c2"><td>build-verify's grep keeps every result</td><td>The building session: the same log, grepped with the agent's pattern</td><td class="ok">9 of 9 kept</td></tr>
+    <tr data-k="c1"><td>visual-verify's first grep kept only failures</td><td>The building session, before CI's review replaced that grep with the shared one: a 9-line sample <code>verify-proof.sh run</code> log in the script's own formats (passes, an exit 1 with its <code>|</code> detail line, a timeout, incomplete pairs, a misnamed script, a test not run, the count), grepped with Step 2's pattern</td><td class="ok">7 of 9 kept; both passes dropped</td></tr>
+    <tr data-k="c2"><td>The shared grep keeps every result</td><td>The building session: the same log, grepped with <code>build-verify</code>'s pattern, now shared with <code>/visual-verify</code></td><td class="ok">9 of 9 kept</td></tr>
     <tr data-k="c3"><td>A redirect keeps the exit code</td><td>The building session: <code>false &gt; log 2&gt;&amp;1; echo "exit=$?"</code> against <code>false | tail -n1; echo $?</code></td><td class="ok">exit=1 against 0</td></tr>
-    <tr data-k="c4"><td>Thunar build and verify</td><td>This PR changes no code, so CI's build and verify run <code>No code changed</code></td><td class="no">not run</td></tr>
+    <tr data-k="c4"><td>Thunar build and verify</td><td>CI run <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">42726284611</a> on <code>087afb6</code>: the PR changes no code, packaging or CI files, so both ran <code>No code changed</code></td><td class="no">not run</td></tr>
+    <tr data-k="c6"><td>Screenshot audit</td><td>The same run: no shots were taken, so none was needed</td><td class="ok">not needed</td></tr>
+    <tr data-k="c7"><td>Explainer and narration</td><td>The same run's explainer job rendered this page as of <code>087afb6</code> and ran <code>make-video.py status</code></td><td class="ok">narration current</td></tr>
     <tr data-k="c5"><td>The build-verify agent itself</td><td>Agents load at session start, so the building session couldn't call it</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -344,7 +345,15 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
     <li data-k="b2"><b>The owner's machine:</b> <code>build-verify</code> could run <code>verify-proof.sh install</code> there; now it installs only when <code>$CLAUDE_CODE_REMOTE</code> is <code>true</code>.</li>
     <li data-k="b3"><b>Smaller gaps:</b> the render command didn't say to read its log on a failure; the changed-files list for warnings used <code>origin/main</code>'s tip and full paths, so it now uses the merge base and basenames; and “never Read PNGs in the main context” clashed with the explainer's render check, which now always runs in its subagent.</li>
   </ul>
-  <p data-k="ci">CI reviews each code push too and lists its findings in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/87">PR #87</a>.</p>
+  <p data-k="ci">CI's review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">42726284611</a>, Opus at <code>high</code>, 5 minutes) found 8 findings on <code>087afb6</code>, all confirmed: R1 medium, R2 to R8 low. All 8 are fixed in one push, and none was accepted:</p>
+  <ul class="tight">
+    <li data-k="r1"><b>An unset log (R1):</b> the quiet <code>status</code> and <code>stamp</code> command wrote to <code>$LOG</code>, which nothing set, so bash would fail and print <code>exit=1</code>. It now writes to <code>/tmp/make-video.log</code>, and <code>CLAUDE.md</code> says <code>LOG</code> is a file outside the repo.</li>
+    <li data-k="r2"><b>The cloud guard (R2):</b> it covered only install, while <code>CLAUDE.md</code> promised it for the tests too. <code>CLAUDE.md</code> now promises it for install, and <code>only run</code>, which changes nothing, runs anywhere.</li>
+    <li data-k="r3"><b>The explainer subagent (R3, R4):</b> it could hand the work on again, and later page fixes weren't render-checked. It now does the work itself, and a later fix goes to a subagent that renders the page again.</li>
+    <li data-k="r4"><b>The build grep (R5, R6):</b> it missed linker and Python errors, and the warnings filter left out untracked files. It now also catches <code>undefined reference</code> and <code>Traceback</code>, falls back to the last 30 lines, and counts untracked files.</li>
+    <li data-k="r5"><b>One verify path (R7, R8):</b> two different greps read the same verify output, and <code>/visual-verify run:</code> was a second way to run the tests. Both now use one grep, and <code>run:</code> captures through <code>build-verify</code> <code>only run</code>.</li>
+  </ul>
+  <p data-k="link">Every finding is in the <a href="https://github.com/alexhu98/thunar/pull/87#issuecomment-6755010474">code review comment</a> on PR #87.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -364,6 +373,7 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/87">PR #87</a> → “Files changed”</li>
     <li data-k="l2">Its summary comment: build and verify say the PR changes no code.</li>
     <li data-k="l3">The issue, with the sizes and costs it starts from: <a href="https://github.com/alexhu98/thunar/issues/86">#86</a></li>
+    <li data-k="l4">CI's first run, with its build, verify, review and explainer jobs: <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">run 42726284611</a></li>
   </ul>
   </section>
   </section>
