@@ -34,7 +34,7 @@ Before the preflight, check whether the PR's head ran `No code changed` in both 
 
 Before reading any image, check that the run can produce a trustworthy verdict. **Any failure here is INCONCLUSIVE with the cause named; stop. Never FAIL for a runtime problem, and never pass silently.**
 
-- `run:`: `Xvfb`, `xdotool`, `import` and `xfwm4` exist, and `dist/` holds the debs built from this branch. If not, the verdict is INCONCLUSIVE("sandbox can't run the capture"); rely on CI's shots instead (`pr:<n>`).
+- `run:`: this is a cloud container (`$CLAUDE_CODE_REMOTE` is `true`) and `Xvfb`, `xdotool`, `import` and `xfwm4` exist. Step 2 builds, installs and captures in one `build-verify` run, so the capture always tests this branch's working tree. If not, the verdict is INCONCLUSIVE("sandbox can't run the capture"); rely on CI's shots instead (`pr:<n>`).
 - The manifest exists and has at least one row. If none, the verdict is INCONCLUSIVE("no verify.tsv").
 - Every row has a `proves` sentence, except rows with shot `-`, which are tests that saved no shot. A row with a shot but file `-` lost its upload: list it as a required shot, so the auditor reports it MISSING.
 - `pr:<n>`: the manifest's `sha` is the PR's head commit (`git ls-remote origin refs/pull/<n>/head`, or the branch head). If not, the verdict is INCONCLUSIVE("shots are for <sha>, the PR head is <sha>"), because CI may still be running.
@@ -42,7 +42,7 @@ Before reading any image, check that the run can produce a trustworthy verdict. 
 
 ### Step 2: optional capture
 
-With `run:`, run the capture through the `build-verify` agent (`.claude/agents/build-verify.md`) with `only run`. It runs `.github/scripts/verify-proof.sh run > <log> 2>&1; echo "exit=$?"` and returns its exit code and the lines its Run step names: each test's result line, each failing test's last 30 log lines and any warning. It checks first that the installed Thunar is the build in `dist/`, the one guard on what the capture tests, and reports `verify: not run` otherwise, which is INCONCLUSIVE("sandbox can't run the capture") here. A session started before that agent existed runs a `general-purpose` agent told to read that file and follow it. Never read the whole log, and **never pipe the command into `tail`**, because that masks the exit code. If a script fails its own assertions, that is a test failure, not a runtime problem: keep going and let Step 4 report it.
+With `run:`, run the capture through the `build-verify` agent (`.claude/agents/build-verify.md`), which builds this branch, installs its debs and runs `.github/scripts/verify-proof.sh run > <log> 2>&1; echo "exit=$?"`. It returns each step's result and the lines its Run step names: each test's result line, each failing test's last 30 log lines and any warning. A failed build or install, or `verify: not run`, is INCONCLUSIVE("sandbox can't run the capture") here. A session started before that agent existed runs a `general-purpose` agent told to read that file and follow it. Never read the whole log, and **never pipe the command into `tail`**, because that masks the exit code. If a script fails its own assertions, that is a test failure, not a runtime problem: keep going and let Step 4 report it.
 
 ### Step 3: independent audit skill
 

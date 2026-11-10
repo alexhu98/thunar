@@ -66,9 +66,8 @@ The template already follows these rules. Keep them when adding content:
 Render it the way CI does and look at the image: framing, dark mode, nothing cut off, every diagram readable, badges matching the steps.
 
 ```sh
-T=${TMPDIR:-/tmp}
-OUT=$T/explainer .github/scripts/explainer-proof.sh render explainers/<n>-<slug>.html > "$T/explainer.log" 2>&1; echo "exit=$?"   # -> $T/explainer/explainer-<n>.png; works before it's committed; on a non-zero exit, tail -n 30 "$T/explainer.log" and stop
-convert "$T/explainer/explainer-<n>.png" -crop 1200x1600 +repage "$T/explainer/slice-%d.png"   # the full image is too tall to read in one view
+OUT="${TMPDIR:-/tmp}/explainer" .github/scripts/explainer-proof.sh render explainers/<n>-<slug>.html > "${TMPDIR:-/tmp}/explainer.log" 2>&1; echo "exit=$?"   # -> ${TMPDIR:-/tmp}/explainer/explainer-<n>.png; works before it's committed; on a non-zero exit, tail -n 30 "${TMPDIR:-/tmp}/explainer.log" and stop
+convert "${TMPDIR:-/tmp}/explainer/explainer-<n>.png" -crop 1200x1600 +repage "${TMPDIR:-/tmp}/explainer/slice-%d.png"   # the full image is too tall to read in one view
 ```
 
 `DRY_RUN=1 GH_REPO=alexhu98/thunar PR=<pr> .github/scripts/explainer-proof.sh` also prints the explainer comment that CI would post.
