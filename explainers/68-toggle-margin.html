@@ -296,7 +296,8 @@
 <pre data-k="diff">  gtk_widget_set_focus_on_click (location_entry->subfolders_button, FALSE);
 <span class="add">+ gtk_widget_set_margin_start (location_entry->subfolders_button, 5);</span>
   gtk_widget_set_no_show_all (location_entry->subfolders_button, TRUE);</pre>
-  <div class="note warn" data-k="csd">Open question for you: in the header bar the toggle is 5 px from the entry but 15 px from the search button, because the header bar puts 15 px around the whole location bar as a window drag area. This PR keeps the 15 px.</div>
+  <div class="note" data-k="why-margin">Why a margin: the gap on the toggle's right, from the location bar to the search button, is also a margin, <code>gtk_widget_set_margin_end (window->location_bar, DEFAULT_LOCATION_BAR_MARGIN)</code> (<code>thunar-window.c:7034</code>). The toggle's left gap is built the same way. You kept this line over CI's R6 and R7 (Part 2).</div>
+  <div class="note" data-k="csd">In the header bar the toggle is 5 px from the entry but 15 px from the search button, because the header bar puts 15 px around the whole location bar as a window drag area. This PR keeps the 15 px, as reported on the PR.</div>
   <div class="note" data-k="undo">To undo it, revert this PR. Nothing is stored in settings; the margin is set each time the search bar is built.</div>
   </section>
 
@@ -316,7 +317,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The gap was matched to Thunar's own location bar margin, measured on screen in a sandbox like CI's, and the measuring was checked to fail on main's look. CI's results for the latest push are not in yet.</p>
+  <p class="intro" data-k="intro">The gap was matched to Thunar's own location bar margin, measured on screen in a sandbox like CI's, and the measuring was checked to fail on main's look. On the latest head, CI's build and all 9 tests pass, and its shots passed the visual audit.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -340,7 +341,8 @@ explainers/
     <tr data-k="c6"><td>The measuring catches main's look</td><td>The 5 px gap cut out of a captured image, as on main, then measured (this session)</td><td class="ok">fails: 2 px, corner rows only</td></tr>
     <tr data-k="c7"><td>The idle check catches a shown toggle</td><td>The new idle check, after the review fixes, run on the idle and the cancelled captures, and on a capture with the released toggle showing (this session)</td><td class="ok">passes idle and cancelled; fails with the toggle</td></tr>
     <tr data-k="c8"><td>Screenshots show what they claim</td><td><code>verify-shots.py check</code> after the fixes; the local shot-auditor agent on the 4 shots before them (this session)</td><td class="ok">check OK; 4 of 4 OK, ~5 px gap visible</td></tr>
-    <tr data-k="c9"><td>CI build and verify on PR #88's latest head</td><td>CI's run on 429c69e was replaced by the push with the review fixes, and the run on the new head has not reported yet</td><td class="no">not run yet</td></tr>
+    <tr data-k="c9"><td>CI on PR #88's latest head</td><td>CI <a href="https://github.com/alexhu98/thunar/actions/runs/42749316793">run 42749316793</a> on 4b559d6: build, verify, explainer and review jobs. Review passed without reviewing again, as 4b559d6 is CI's own fix commit</td><td class="ok">all pass; verify 9 of 9</td></tr>
+    <tr data-k="c11"><td>CI's shots show what they claim</td><td><code>/visual-verify pr:88</code> on CI's shots for 4b559d6, numbers 56 (the pair), 57 and 58 (<a href="https://github.com/alexhu98/thunar/pull/88#issuecomment-6758356156">verdict comment</a>)</td><td class="ok">PASS: 5 shots OK</td></tr>
     <tr data-k="c10"><td>Before shot of main</td><td>CI installs one build, so main's glued toggle can't be shot; the before shot is this build before Ctrl+F</td><td class="no">not possible</td></tr>
   </table>
   </div>
@@ -354,7 +356,7 @@ explainers/
     <li data-k="b2"><b>Low, paste wait:</b> the wait for the pasted results could end while the copy was still running. It now waits for the paste to settle.</li>
     <li data-k="b3"><b>Low, compare error:</b> an error from <code>compare</code> counted as "the toggle changed". Only a pixel count above zero counts now.</li>
   </ul>
-  <p data-k="ci-review">CI's own review (<a href="https://github.com/alexhu98/thunar/actions/runs/42747354049">run 42747354049</a>, level high, on head 953fb6d) found 8 things, R1 to R8: 6 are fixed and 2 wait for your decision. Each is listed in the <a href="https://github.com/alexhu98/thunar/pull/88">code review comment on PR #88</a>.</p>
+  <p data-k="ci-review">CI's first review (<a href="https://github.com/alexhu98/thunar/actions/runs/42747354049">run 42747354049</a>, level high, on head 953fb6d) found 8 things, R1 to R8: 6 are fixed, and you accepted R6 and R7. Every finding is listed in the <a href="https://github.com/alexhu98/thunar/pull/88">code review comment on PR #88</a>.</p>
   <ul class="tight">
     <li data-k="ci1"><b>R1, medium, confirmed: no explainer.</b> The PR had no explainer page yet. This page, added in commit 429c69e, fixes it.</li>
     <li data-k="ci2"><b>R2, medium, plausible: compare on ImageMagick 6.</b> <code>compare -crop</code> might not work there. It passed locally on noble, but the click check now crops both images to 30×20 first and compares those.</li>
@@ -362,7 +364,14 @@ explainers/
     <li data-k="ci4"><b>R5, low: restart race.</b> A restarted Thunar could start before the old one left D-Bus. The restart now waits for that.</li>
     <li data-k="ci5"><b>R8, low: extra captures.</b> The gaps were measured on separate captures, not on the shots. They are now measured on the shot files, before cropping.</li>
   </ul>
-  <div class="note warn" data-k="ci-open">Open, for you: <b>R6</b> (low) suggests box spacing 5 instead of the toggle's margin, and <b>R7</b> (low) says the literal 5 copies <code>DEFAULT_LOCATION_BAR_MARGIN</code>. Both conflict with the issue's prescribed <code>gtk_widget_set_margin_start (…, 5)</code>, so they are left to your decision.</div>
+  <div class="note" data-k="ci-accept">Accepted, by your decision: <b>R6</b> (low) suggested box spacing 5 instead of the toggle's margin, and <b>R7</b> (low) said the literal 5 copies <code>DEFAULT_LOCATION_BAR_MARGIN</code>. The PR keeps the issue's <code>gtk_widget_set_margin_start (…, 5)</code>: the gap to the search button is also a margin (<code>thunar-window.c:7034</code>), the box's spacing is 0 on purpose (<code>thunar-location-entry.c:191</code>), and <code>DEFAULT_LOCATION_BAR_MARGIN</code> is private to <code>thunar-window.c</code>.</div>
+  <p data-k="ci-later">Two more CI reviews followed, on the fix pushes. Their findings, R9 to R20, are all low except R16.</p>
+  <ul class="tight">
+    <li data-k="ci6"><b>R9 to R12, low, confirmed</b> (<a href="https://github.com/alexhu98/thunar/actions/runs/42748209806">run 42748209806</a>, on 0d39e4f): captions claimed a crop and gaps before measuring them; two captions lost the measured gaps; a failure message named the wrong column; the click check ran extra <code>convert</code> calls. All 4 were fixed in 02e9ea3, and CI marked them resolved.</li>
+    <li data-k="ci7"><b>R16, medium, and R17, low</b> (<a href="https://github.com/alexhu98/thunar/actions/runs/42748911164">run 42748911164</a>, on 02e9ea3): captions described the whole window though the shots are crops, and stated a fixed 5 or 15 px though the check allows ±1. CI's own fix commit 4b559d6 fixed both.</li>
+    <li data-k="ci8"><b>R13 to R15, low, unconfirmed:</b> these count as accepted, with no trailer.</li>
+    <li data-k="ci9"><b>R18 to R20, low, plausible: accepted</b> with a <code>Review-accept</code> trailer. R18: if <code>awk</code> failed while <code>crop()</code> rewrites <code>shots.tsv</code>, only a caption note would be lost; the shots and the checks are unaffected. R19: the pair is cropped at the position measured on the released toggle, which is the same as the pressed one: toggle x=923–956, row 45 in both. R20: <code>crop()</code> appends to <code>shots.tsv</code> directly, but only one line with no tabs, and <code>verify-shots.py check</code> passed on it.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -379,8 +388,8 @@ explainers/
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/88">PR #88</a> → “Files changed”</li>
-    <li data-k="l2">Its checks: <a href="https://github.com/alexhu98/thunar/pull/88/checks">PR #88 checks</a>, and the run CI reviewed: <a href="https://github.com/alexhu98/thunar/actions/runs/42747354049">run 42747354049</a></li>
-    <li data-k="l3">The shots, once CI posts them for the latest head: the toolbar shots in the verify comment on PR #88, saved on the <code>shots</code> branch under <code>pr-88/</code></li>
+    <li data-k="l2">Its checks: <a href="https://github.com/alexhu98/thunar/pull/88/checks">PR #88 checks</a>; CI's run on the latest head: <a href="https://github.com/alexhu98/thunar/actions/runs/42749316793">run 42749316793</a>; its reviews: runs <a href="https://github.com/alexhu98/thunar/actions/runs/42747354049">42747354049</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42748209806">42748209806</a> and <a href="https://github.com/alexhu98/thunar/actions/runs/42748911164">42748911164</a></li>
+    <li data-k="l3">The shots: numbers 56 to 58 in the verify comment on PR #88, saved on the <code>shots</code> branch under <code>pr-88/</code>, and their <a href="https://github.com/alexhu98/thunar/pull/88#issuecomment-6758356156">visual-verify verdict</a></li>
   </ul>
   </section>
   </section>
@@ -389,10 +398,10 @@ explainers/
   <section class="part" id="later">
   <p class="part-label" data-k="label">Part 3</p>
   <h2 data-k="heading">What comes later: nothing depends on #68</h2>
-  <p class="intro" data-k="intro">No open issue says "Depends on #68". What remains is your answer on the header bar gap and on review findings R6 and R7, and a look in your own session.</p>
+  <p class="intro" data-k="intro">No open issue says "Depends on #68". What remains is a look in your own session after the merge.</p>
 
   <section class="sub" id="next">
-  <div class="diagram" role="img" aria-label="This PR, then you decide on the header bar gap and on R6 and R7, then you try it in your session">
+  <div class="diagram" role="img" aria-label="This PR, then you try it in your session">
   <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -409,19 +418,11 @@ explainers/
     </g>
     <g data-k="n2">
       <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
-      <text x="286" y="90" class="t">Your decisions</text>
-      <text x="286" y="114" class="b">header bar's 15 px;</text>
-      <text x="286" y="134" class="b">R6 and R7: how the</text>
-      <text x="286" y="154" class="b">5 px margin is set</text>
-    </g>
-    <g data-k="n3">
-      <rect class="box-you" x="520" y="60" width="210" height="120" rx="10"/>
-      <text x="536" y="90" class="t">Try it for real</text>
-      <text x="536" y="114" class="b">Ctrl+F in your own</text>
-      <text x="536" y="134" class="b">folders and theme</text>
+      <text x="286" y="90" class="t">Try it for real</text>
+      <text x="286" y="114" class="b">Ctrl+F in your own</text>
+      <text x="286" y="134" class="b">folders and theme</text>
     </g>
     <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
-    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-next)"/>
   </svg>
   </div>
   <div class="legend">
@@ -431,11 +432,10 @@ explainers/
   </section>
 
   <section class="sub" id="issue-a">
-  <h3 class="sec">Your steps (next)</h3>
+  <h3 class="sec">Your step (next)</h3>
   <div class="panel">
   <ol class="steps">
-    <li data-k="1"><b>Decide on the header bar gap, R6 and R7.</b> Look at the header bar shot on PR #88 and say whether the 15 px to the search button stays, or should change in a new issue. Then say whether the 5 px stays a toggle margin, as the issue asked, or follows R6 or R7.</li>
-    <li data-k="2"><b>Try it in your session.</b> After the merge, press Ctrl+F and type a word: the toggle should stand 5 px clear of the entry, and clicking it should still switch subfolders on and off.</li>
+    <li data-k="1"><b>Try it in your session.</b> After the merge, press Ctrl+F and type a word: the toggle should stand 5 px clear of the entry, and clicking it should still switch subfolders on and off.</li>
   </ol>
   </div>
   </section>
@@ -454,6 +454,7 @@ explainers/
     <div data-k="txt"><dt>ImageMagick <code>txt:</code></dt><dd>An output format that prints every pixel's position and colour as one text line.</dd></div>
     <div data-k="mawk"><dt>mawk</dt><dd>Ubuntu's default <code>awk</code>, which lacks some GNU awk features.</dd></div>
     <div data-k="pair"><dt>Shot pair</dt><dd>A before and an after screenshot that CI joins into one image in its verify comment.</dd></div>
+    <div data-k="accept"><dt>Review-accept</dt><dd>A commit trailer that closes the CI review findings it lists as accepted, kept on purpose.</dd></div>
     <div data-k="auditor"><dt>Shot-auditor</dt><dd>An agent that looks at each screenshot and says whether it shows what its caption claims.</dd></div>
   </dl>
   </section>
