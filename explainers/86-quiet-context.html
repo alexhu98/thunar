@@ -253,7 +253,7 @@
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Heavy steps: in subagents</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>build-verify.</b> The new agent <code>.claude/agents/build-verify.md</code>, modeled on <code>pr-digest</code>, builds the debs from the working tree, installs all three only when <code>$CLAUDE_CODE_REMOTE</code> is <code>true</code>, and runs the smoke test and every <code>verify/&lt;issue&gt;.sh</code>. It has no options to skip a step, so the tests always run against the build it just made; <code>/visual-verify run:</code> captures its shots with that full run, in a cloud container only. It never edits, commits, pushes or reads a PNG.</li>
+    <li data-k="5"><b>build-verify.</b> The new agent <code>.claude/agents/build-verify.md</code>, modeled on <code>pr-digest</code>, builds the debs from the working tree, installs all three only when <code>$CLAUDE_CODE_REMOTE</code> is <code>true</code>, finishing with <code>sudo dpkg -i</code> because apt skips a same-version deb, and runs the smoke test and every <code>verify/&lt;issue&gt;.sh</code>. It has no options to skip a step, so the tests always run against the build it just made; <code>/visual-verify run:</code> captures its shots with that full run, in a cloud container only. It never edits, commits, pushes or reads a PNG.</li>
     <li data-k="6"><b>Local review.</b> The fresh-agent review of the diff runs in a <code>general-purpose</code> agent that returns only its findings list.</li>
     <li data-k="7"><b>Explainer.</b> The explainer skill's new “In a subagent” section hands the page, its render check and the narration to a <code>general-purpose</code> agent, which does the work itself rather than handing it on. A later page fix goes to a subagent too, which renders the page again before stamping. This page was written and updated that way.</li>
     <li data-k="8"><b>Short answer.</b> Each returns a short fixed result, such as <code>page written, narration stamped</code>, with any failing lines copied from the log as they are, so confident wording can't hide a failure.</li>
@@ -299,6 +299,7 @@ failing lines:
 <pre data-k="tree">CLAUDE.md                              # new Context section: the three rules
 .claude/agents/build-verify.md         # new agent: build, install, test; about 10 lines back
 .claude/skills/visual-verify/SKILL.md  # run: in a cloud container, through build-verify
+.claude/skills/visual-verify/README.md # run: builds, installs and captures, cloud only
 .claude/skills/explainer/SKILL.md      # In a subagent; quiet render, status and stamp
 .claude/skills/batch/SKILL.md          # one sentence in the step 3 brief
 explainers/86-quiet-context.html            # this page
@@ -378,7 +379,14 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
     <li data-k="u3"><b>Smaller gaps (R24, R26, R27):</b> the render snippet's <code>T=</code> line didn't survive separate shell calls, so it uses <code>${TMPDIR:-/tmp}</code> inline; an empty <code>dist/</code> no longer gives a misleading cause, since that guard is gone; and <code>::warning::</code> lines appear only under <code>run warnings:</code>.</li>
     <li data-k="u4"><b>Accepted (R23, R25):</b> the grep lines and the tail overlap by a few lines, and both parts are needed; and <code>verify-proof.sh</code> prints the <code>|</code> lines as exactly each failing test's last 30 log lines, so that wording is accurate.</li>
   </ul>
-  <p data-k="link">That makes 27 findings over four reviews: R17, R23 and R25 accepted, the other 24 fixed or resolved. Every one is in the <a href="https://github.com/alexhu98/thunar/pull/87#issuecomment-6755010474">code review comment</a> on PR #87.</p>
+  <p data-k="ci5">CI's fifth review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42729276894">42729276894</a>, Opus at <code>high</code>, 4 minutes) of <code>a18d522</code> marked R20, R21 and R22 resolved and found 5 more: R28 and R29 medium and R30 low, all confirmed; R31 and R32 low, plausible. R28 to R30 are fixed in <code>50b255c</code>, for CI's next review to re-check:</p>
+  <ul class="tight">
+    <li data-k="v1"><b>A stale Thunar could stay (R28):</b> <code>verify-proof.sh install</code> uses apt, which skips a deb whose version is already installed, and every local build has the same version. The install step now ends with <code>sudo dpkg -i</code> on the three debs, which always unpacks.</li>
+    <li data-k="v2"><b>The manifest came too early (R29):</b> <code>/visual-verify</code>'s preflight wanted <code>verify.tsv</code> before Step 2's capture writes it. With <code>run:</code>, that check now comes after the capture.</li>
+    <li data-k="v3"><b>Old wording (R30):</b> the <code>run:</code> argument and the README still said “sandbox with the built debs installed”. They now say it builds, installs and captures through <code>build-verify</code>, in a cloud container only.</li>
+    <li data-k="v4"><b>Accepted (R31, R32):</b> the build's Python tracebacks are a few frames long, so 40 lines after <code>Traceback</code> cover them; and no flow runs <code>build-verify</code> and then <code>/visual-verify run:</code> back to back, while a fresh build is what guarantees the capture tests this branch.</li>
+  </ul>
+  <p data-k="link">That makes 32 findings over five reviews: R17, R23, R25, R31 and R32 accepted, the other 27 fixed or resolved. Every one is in the <a href="https://github.com/alexhu98/thunar/pull/87#issuecomment-6755010474">code review comment</a> on PR #87.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -398,7 +406,7 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/87">PR #87</a> → “Files changed”</li>
     <li data-k="l2">Its summary comment: build and verify say the PR changes no code.</li>
     <li data-k="l3">The issue, with the sizes and costs it starts from: <a href="https://github.com/alexhu98/thunar/issues/86">#86</a></li>
-    <li data-k="l4">CI's first run, with its build, verify, review and explainer jobs: <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">run 42726284611</a>; its later reviews: <a href="https://github.com/alexhu98/thunar/actions/runs/42726996717">run 42726996717</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42727746370">run 42727746370</a> and <a href="https://github.com/alexhu98/thunar/actions/runs/42728491014">run 42728491014</a></li>
+    <li data-k="l4">CI's first run, with its build, verify, review and explainer jobs: <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">run 42726284611</a>; its later reviews: <a href="https://github.com/alexhu98/thunar/actions/runs/42726996717">run 42726996717</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42727746370">run 42727746370</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42728491014">run 42728491014</a> and <a href="https://github.com/alexhu98/thunar/actions/runs/42729276894">run 42729276894</a></li>
   </ul>
   </section>
   </section>
