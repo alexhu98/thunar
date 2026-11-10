@@ -2,8 +2,9 @@
 # Installs the built .debs and proves them under Xvfb: verify-proof.sh install | run | publish
 #   install  installs thunar, thunar-data and libthunarx-3-0 from dist/ and the test tools: from the debs cached in
 #            $DEBS when they install cleanly and provide every tool, otherwise with apt from ppa:zorinos/stable,
-#            which repairs what dpkg left; $DEBS then keeps exactly the installed versions of everything apt and
-#            dpkg added. Prints cached=true|false (for $GITHUB_OUTPUT).
+#            which repairs what dpkg left, may downgrade the built debs, and skips them when the same version is
+#            installed, so dpkg -i then installs them over whatever is there. $DEBS then keeps exactly the
+#            installed versions of everything apt and dpkg added. Prints cached=true|false (for $GITHUB_OUTPUT).
 #   run      runs the smoke test (Thunar is still running 10 s after launch), then each verify/<issue>.sh, each with
 #            its own Xvfb, xfwm4 and D-Bus session, a fresh HOME and XDG folders, and a $TIMEOUT s limit. A script
 #            that could end after $BUDGET s of the run is reported as not run, and one that passes with a before/after
@@ -47,7 +48,8 @@ install() {
   mkdir -p "$DEBS"
   local apt=(sudo apt-get -y --no-install-recommends -o Dir::Cache::Archives="$DEBS" -o APT::Sandbox::User=root)
   (( repair == 0 )) || "${apt[@]}" -f install >&2
-  "${apt[@]}" install "${debs[@]/#/./}" "${TOOLS[@]}" >&2
+  "${apt[@]}" install --allow-downgrades "${debs[@]/#/./}" "${TOOLS[@]}" >&2
+  sudo dpkg -i "${debs[@]}" >&2
   sudo rm -rf "$DEBS/partial" "$DEBS/lock"
   sudo chown -R "$(id -u):$(id -g)" "$DEBS"
   local pkg ver

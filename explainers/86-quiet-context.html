@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #87 Quiet context</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #87: keep PR sessions' context small</h1>
+  <p class="lead" data-k="lead">Branch <code>86-quiet-context</code> → <code>main</code>, closes #86. Noisy commands write to a log and show only their exit code and its end, heavy steps run in subagents that return a few lines, and large files are read in slices, so a PR session re-reads less on every turn and costs less.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">A short “Context” section in <code>CLAUDE.md</code> with three rules, a new <code>build-verify</code> agent, and quiet log reading in the visual-verify and explainer skills. No Thunar code changes.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="Three rules: noisy commands log to a file and show only the exit code and a few lines; heavy steps run in subagents that return a short answer; large files are read in slices and PNGs are read only by subagents">
+  <svg viewBox="0 0 1000 630" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Logs: every noisy command</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Log to a file</text>
+      <text x="36" y="114" class="m">cmd &gt; "$LOG" 2&gt;&amp;1</text>
+      <text x="36" y="134" class="m">echo "exit=$?"</text>
+      <text x="36" y="154" class="b">nothing in context</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Check exit=</text>
+      <text x="286" y="114" class="m">exit=0</text>
+      <text x="286" y="134" class="b">passed; any other</text>
+      <text x="286" y="154" class="b">number is a failure</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Tail or grep</text>
+      <text x="536" y="114" class="m">tail -n 30 "$LOG"</text>
+      <text x="536" y="134" class="b">or, on a failure,</text>
+      <text x="536" y="154" class="b">its skill's own grep</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-you" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">In context</text>
+      <text x="786" y="114" class="b">the exit code and</text>
+      <text x="786" y="134" class="b">a few lines, never</text>
+      <text x="786" y="154" class="b">the whole log</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② Heavy steps: in subagents</text>
+    <g data-k="5">
+      <rect class="box-merge" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">build-verify</text>
+      <text x="36" y="314" class="b">builds and tests;</text>
+      <text x="36" y="334" class="b">installs only in a</text>
+      <text x="36" y="354" class="b">cloud container</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Local review</text>
+      <text x="286" y="314" class="b">a fresh agent gets</text>
+      <text x="286" y="334" class="b">the diff and issue,</text>
+      <text x="286" y="354" class="b">returns findings</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Explainer</text>
+      <text x="536" y="314" class="b">a subagent writes</text>
+      <text x="536" y="334" class="b">the page, renders it,</text>
+      <text x="536" y="354" class="b">stamps narration</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <g data-k="8">
+      <rect class="box-you" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Short answer</text>
+      <text x="786" y="314" class="b">about 10 lines, with</text>
+      <text x="786" y="334" class="b">the exact failing</text>
+      <text x="786" y="354" class="b">lines, no paraphrase</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">8</text>
+    </g>
+    <path class="arrow" d="M730,320 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M125,380 V408 H875 V384" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M375,380 V408"/>
+
+    <text class="lane" x="20" y="464" style="fill:var(--accent)">③ Reads: narrow</text>
+    <g data-k="9">
+      <rect class="box-pr" x="20" y="480" width="210" height="120" rx="10"/>
+      <text x="36" y="510" class="t">Grep first</text>
+      <text x="36" y="534" class="b">find the function's</text>
+      <text x="36" y="554" class="b">line in a large</text>
+      <text x="36" y="574" class="b">source file</text>
+      <circle class="badge" cx="210" cy="502" r="12"/><text class="badge-n" x="210" y="506.5" text-anchor="middle">9</text>
+    </g>
+    <g data-k="10">
+      <rect class="box-pr" x="270" y="480" width="210" height="120" rx="10"/>
+      <text x="286" y="510" class="t">Read a slice</text>
+      <text x="286" y="534" class="m">offset + limit</text>
+      <text x="286" y="554" class="b">no re-read of a file</text>
+      <text x="286" y="574" class="b">edited this session</text>
+      <circle class="badge" cx="460" cy="502" r="12"/><text class="badge-n" x="460" y="506.5" text-anchor="middle">10</text>
+    </g>
+    <g data-k="11">
+      <rect class="box-merge" x="520" y="480" width="210" height="120" rx="10"/>
+      <text x="536" y="510" class="t">PNGs elsewhere</text>
+      <text x="536" y="534" class="b">shot-auditor and</text>
+      <text x="536" y="554" class="b">explainer subagent</text>
+      <text x="536" y="574" class="b">read them instead</text>
+      <circle class="badge" cx="710" cy="502" r="12"/><text class="badge-n" x="710" y="506.5" text-anchor="middle">11</text>
+    </g>
+    <path class="arrow" d="M230,540 H266" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>the session does it</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>a subagent does it</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>what reaches the session's context</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Every turn re-reads the session's whole context, so its cost grows with the context's size. Batch #78's group B session (PR #82) reached about 567k of 1M context tokens, with compaction at 784k, and cost about $33.6; the tooling-only session of #83 sat at about 247k. The likely fillers: build and test output printed straight in, whole-file reads of large sources such as the 7.4k-line <code>thunar-window.c</code>, and heavy steps run inline.</p>
+  <p data-k="batch">The batch skill's brief now tells each group's session to keep its context small as <code>CLAUDE.md</code>'s Context section says, so the rules reach every batch session.</p>
+  <div class="note" data-k="note">A redirect keeps a command's exit code; a pipe into <code>tail</code> replaces it with <code>tail</code>'s own 0. So output goes to a file first, and the exit code is echoed before any of the log is read.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Logs: every noisy command</div>
+  <ol class="steps">
+    <li data-k="1"><b>Log to a file.</b> <code>dpkg-buildpackage</code>, <code>verify-proof.sh</code>, <code>explainer-proof.sh</code> and <code>make-video.py</code> run as <code>cmd &gt; "$LOG" 2&gt;&amp;1; echo "exit=$?"</code>, with <code>LOG</code> a file outside the repo, such as the explainer's <code>${TMPDIR:-/tmp}/make-video.log</code>, so none of their output lands in the context yet.</li>
+    <li data-k="2"><b>Check exit=.</b> The echoed exit code is read first. That's why the rules forbid piping the command into <code>tail</code>, which would show <code>tail</code>'s 0 instead.</li>
+    <li data-k="3"><b>Tail or grep.</b> On success, <code>tail -n 30 "$LOG"</code>. On a failure, the grep that its skill or agent gives (table below): <code>build-verify</code>'s for builds and test runs, and the explainer skill's for <code>make-video.py</code>.</li>
+    <li data-k="4"><b>In context.</b> The session holds the exit code and a few lines, never a build log of thousands of lines.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② Heavy steps: in subagents</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>build-verify.</b> The new agent <code>.claude/agents/build-verify.md</code>, modeled on <code>pr-digest</code>, builds the debs from the working tree, installs all three only when <code>$CLAUDE_CODE_REMOTE</code> is <code>true</code> through <code>verify-proof.sh install</code>, which puts them in even over the same version, and runs the smoke test and every <code>verify/&lt;issue&gt;.sh</code>. It has no options to skip a step, so the tests always run against the build it just made; <code>/visual-verify run:</code> captures its shots with that full run, in a cloud container only. It never edits, commits, pushes or reads a PNG.</li>
+    <li data-k="6"><b>Local review.</b> The fresh-agent review of the diff runs in a <code>general-purpose</code> agent that returns only its findings list.</li>
+    <li data-k="7"><b>Explainer.</b> The explainer skill's new “In a subagent” section hands the page, its render check and the narration to a <code>general-purpose</code> agent, which does the work itself rather than handing it on. A later page fix goes to a subagent too, which renders the page again before stamping. This page was written and updated that way.</li>
+    <li data-k="8"><b>Short answer.</b> Each returns a short fixed result, such as <code>page written, narration stamped</code>, with any failing lines copied from the log as they are, so confident wording can't hide a failure.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--accent)">③ Reads: narrow</div>
+  <ol class="steps" start="9" style="counter-reset: s 8">
+    <li data-k="9"><b>Grep first.</b> Before opening a large source file, grep for the function to find its line.</li>
+    <li data-k="10"><b>Read a slice.</b> Read only those lines with <code>offset</code> and <code>limit</code>, and don't re-read a file already edited this session.</li>
+    <li data-k="11"><b>PNGs elsewhere.</b> The main session never reads a PNG: screenshots go to the <code>shot-auditor</code>, and the explainer's render check runs in its subagent.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="greps">
+  <h3 class="sec">Which grep reads which log</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Log</th><th>Pattern</th><th>Keeps</th></tr>
+    <tr data-k="g1"><td>A test run, in <code>build-verify</code>, the only copy; <code>/visual-verify run:</code> uses it</td><td><code>' in [0-9]+ s$|: (not run|misnamed)|^  \||passed$|::warning::'</code></td><td>every test's result line, each failing test's <code>|</code> detail lines and the count; <code>::warning::</code> lines go under <code>run warnings:</code></td></tr>
+    <tr data-k="g3"><td>A failed build, in <code>build-verify</code></td><td><code>': (fatal )?error:|undefined reference|\*\*\* |Error [0-9]|FAIL|Traceback'</code>, last 40, then <code>grep -n -A 40 Traceback</code> when there is one, else the log's last 30 lines</td><td>compiler, linker and Python errors, a traceback in full, not every <code>-Werror=</code> flag</td></tr>
+    <tr data-k="g4"><td><code>make-video.py</code> <code>status</code> and <code>stamp</code></td><td><code>'stale line|page text|removed|problem|matches|stamp|note:|make-video:|Error'</code></td><td>every stale line and the verdict</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="result">
+  <h3 class="sec">What build-verify returns</h3>
+<pre data-k="format">build: OK | FAILED (exit &lt;n&gt;) | skipped
+install: OK | FAILED (exit &lt;n&gt;) | skipped
+verify: &lt;k&gt; of &lt;m&gt; passed (exit &lt;n&gt;) | not run: &lt;cause&gt; | skipped
+  &lt;name&gt;: &lt;status&gt; in &lt;s&gt; s            (one line per test)
+warnings in changed files: &lt;n&gt; (or "none")
+run warnings: &lt;each ::warning:: line from the run log, or "none"&gt;
+shots: &lt;$OUT&gt;/shots · manifest &lt;$OUT&gt;/verify.tsv
+logs: &lt;$LOGS&gt;
+failing lines:
+  &lt;the exact lines from the log, as found, or "none"&gt;</pre>
+  <div class="note warn" data-k="remote">Install replaces the system's Thunar, so outside a cloud container the agent builds, then reports install and verify as <code>skipped (not a cloud container)</code>. In a cloud container every run builds, installs all three debs and runs the tests, so they always test the build it just made. A step it didn't run is never OK.</div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">CLAUDE.md                              # new Context section: the three rules
+.claude/agents/build-verify.md         # new agent: build, install, test; about 10 lines back
+.claude/skills/visual-verify/SKILL.md  # run: in a cloud container, through build-verify
+.claude/skills/visual-verify/README.md # run: builds, installs and captures, cloud only
+.claude/skills/explainer/SKILL.md      # In a subagent; quiet render, status and stamp
+.claude/skills/batch/SKILL.md          # one sentence in the step 3 brief
+.github/scripts/verify-proof.sh        # install: downgrades allowed, then dpkg -i every time
+explainers/86-quiet-context.html            # this page
+explainers/86-quiet-context.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo it, revert this PR. Sessions then print build and test output inline and run heavy steps themselves, as before.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The change is instructions for agents, so the building session checked its greps and the exit code rule on small samples, and a fresh agent and CI reviewed it. Its real test, a cheaper session, comes after the merge.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>pr-digest.md</h3><p>The agent <code>build-verify</code> is modeled on: a fixed short output, the exact lines, and no edits.</p></div>
+    <div class="card" data-k="r2"><h3>shot-audit and shot-auditor</h3><p>They already keep every screenshot read out of the session, in their own subagent.</p></div>
+    <div class="card" data-k="r3"><h3>verify-proof.sh's log</h3><p>Its result lines, <code>&lt;name&gt;: &lt;status&gt; in &lt;s&gt; s</code> and <code>&lt;k&gt; of &lt;m&gt; passed</code>, are what the test grep matches.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>visual-verify's first grep kept only failures</td><td>The building session, before CI's review replaced that grep with <code>build-verify</code>'s: a 9-line sample <code>verify-proof.sh run</code> log in the script's own formats (passes, an exit 1 with its <code>|</code> detail line, a timeout, incomplete pairs, a misnamed script, a test not run, the count), grepped with Step 2's pattern</td><td class="ok">7 of 9 kept; both passes dropped</td></tr>
+    <tr data-k="c2"><td>build-verify's grep keeps every result</td><td>The building session: the same log, grepped with <code>build-verify</code>'s pattern, before <code>::warning::</code> was added to it</td><td class="ok">9 of 9 kept</td></tr>
+    <tr data-k="c3"><td>A redirect keeps the exit code</td><td>The building session: <code>false &gt; log 2&gt;&amp;1; echo "exit=$?"</code> against <code>false | tail -n1; echo $?</code></td><td class="ok">exit=1 against 0</td></tr>
+    <tr data-k="c8"><td>The untracked-files list leaves out <code>debian/</code></td><td>The building session: <code>git ls-files --others --exclude-standard -- . ':(exclude)debian/'</code> with a new top-level file and a new file under <code>debian/tmp</code></td><td class="ok">top-level file only</td></tr>
+    <tr data-k="c4"><td>Thunar build and verify</td><td>CI run <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">42726284611</a> on <code>087afb6</code>: the PR changes no code, packaging or CI files, so both ran <code>No code changed</code></td><td class="no">not run</td></tr>
+    <tr data-k="c6"><td>Screenshot audit</td><td>The same run: no shots were taken, so none was needed</td><td class="ok">not needed</td></tr>
+    <tr data-k="c7"><td>Explainer and narration</td><td>The same run's explainer job rendered this page as of <code>087afb6</code> and ran <code>make-video.py status</code></td><td class="ok">narration current</td></tr>
+    <tr data-k="c11"><td>verify-proof.sh still parses</td><td>The building session: <code>bash -n .github/scripts/verify-proof.sh</code> after the R33, R38 and R42 fixes</td><td class="ok">no syntax error</td></tr>
+    <tr data-k="c13"><td>The changed install path in CI</td><td>CI's build and verify on <code>95e823c</code> (run <a href="https://github.com/alexhu98/thunar/actions/runs/42731805531">42731805531</a>), with the conditional <code>dpkg -i</code> that the next push replaced: the first real run of the changed install path</td><td class="ok">8 of 8 passed</td></tr>
+    <tr data-k="c12"><td>CI's build and verify on this push</td><td>This push (<code>9359495</code>) changes the install path again, to <code>--allow-downgrades</code> on the install command and <code>dpkg -i</code> every time; its CI build and verify hadn't finished. The screenshot audit then follows CI's shots</td><td class="open">not yet run</td></tr>
+    <tr data-k="c5"><td>The build-verify agent itself</td><td>Agents load at session start, so the building session couldn't call it</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh <code>general-purpose</code> agent, given only the diff and the issue, reviewed it at <code>high</code> and found 7 problems (2 high, 1 medium, 4 low). All 7 are fixed in the PR's second commit:</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Greps that missed or matched the wrong lines:</b> the build-failure grep matched every <code>-Werror=</code> compile command; <code>CLAUDE.md</code>'s one shared grep didn't fit its commands, so each skill or agent now gives its own; and reading <code>make-video.py status</code> with <code>tail</code> could drop stale lines, so a grep now keeps every one.</li>
+    <li data-k="b2"><b>The owner's machine:</b> <code>build-verify</code> could run <code>verify-proof.sh install</code> there; now it installs only when <code>$CLAUDE_CODE_REMOTE</code> is <code>true</code>.</li>
+    <li data-k="b3"><b>Smaller gaps:</b> the render command didn't say to read its log on a failure; the changed-files list for warnings used <code>origin/main</code>'s tip and full paths, so it now uses the merge base and basenames; and “never Read PNGs in the main context” clashed with the explainer's render check, which now always runs in its subagent.</li>
+  </ul>
+  <p data-k="ci">CI's first review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">42726284611</a>, Opus at <code>high</code>, 5 minutes) found 8 findings on <code>087afb6</code>, all confirmed: R1 medium, R2 to R8 low. All 8 got a fix in one push, and none was accepted:</p>
+  <ul class="tight">
+    <li data-k="r1"><b>An unset log (R1):</b> the quiet <code>status</code> and <code>stamp</code> command wrote to <code>$LOG</code>, which nothing set, so bash would fail and print <code>exit=1</code>. It now writes to a log file of its own, and <code>CLAUDE.md</code> says <code>LOG</code> is a file outside the repo.</li>
+    <li data-k="r2"><b>The cloud guard (R2):</b> it covered only install, while <code>CLAUDE.md</code> promised it for the tests too. <code>CLAUDE.md</code> now promises it for install only; the tests had their own guard for two rounds, until always building replaced it.</li>
+    <li data-k="r3"><b>The explainer subagent (R3, R4):</b> it could hand the work on again, and later page fixes weren't render-checked. It now does the work itself, and a later fix goes to a subagent that renders the page again.</li>
+    <li data-k="r4"><b>The build grep (R5, R6):</b> it missed linker and Python errors, and the warnings filter left out untracked files. It now also catches <code>undefined reference</code> and <code>Traceback</code>, falls back to the last 30 lines, and counts untracked files.</li>
+    <li data-k="r5"><b>One verify path (R7, R8):</b> two different greps read the same verify output, and <code>/visual-verify run:</code> was a second way to run the tests. <code>run:</code> then captured through <code>build-verify</code> <code>only run</code>, with one grep.</li>
+  </ul>
+  <p data-k="ci2">CI's second review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42726996717">42726996717</a>, Opus at <code>high</code>, 4 minutes) of <code>988863c</code> marked R1, R4 and R6 resolved, kept R2, R3, R5, R7 and R8 open, and found 4 more lows: R9 confirmed, R10 to R12 plausible. All are fixed in <code>7858905</code>, none accepted, for CI's next review to re-check:</p>
+  <ul class="tight">
+    <li data-k="s1"><b>Only this branch's build (R2):</b> <code>only run</code> tested whatever Thunar was installed. The tests then ran only when the installed version, read with <code>dpkg-query</code>, equalled the one in <code>dist/</code>, which the third review found too weak.</li>
+    <li data-k="s2"><b>One copy of the run grep (R7, R8, R10):</b> <code>/visual-verify</code> kept its own copy, and the grep dropped verify-proof's <code>::warning::</code> line. <code>build-verify</code> now holds the only copy, which keeps warnings, and the skill refers to it.</li>
+    <li data-k="s3"><b>The explainer (R3, R11):</b> the subagent could still hand the work on, and the narration steps left out the render check. It now skips the subagent section, and narration step 4 renders the page again first.</li>
+    <li data-k="s4"><b>The build step (R5, R9):</b> the untracked-files list also picked up dpkg's staging trees under <code>debian/</code>, so it now leaves <code>debian/</code> out.</li>
+    <li data-k="s5"><b>The log path (R12):</b> the make-video log was fixed to <code>/tmp</code>; it is now <code>${TMPDIR:-/tmp}/make-video.log</code>.</li>
+  </ul>
+  <p data-k="ci3">CI's third review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42727746370">42727746370</a>, Opus at <code>high</code>, 4 minutes) of <code>7858905</code> marked R2, R3, R7 and R9 resolved, counted R10 to R12 as accepted (later-review lows it didn't confirm), kept R5 and R8 open, and found 7 more: R13 medium, R14 and R15 low, all confirmed; R16 to R19 low, plausible. All but R17 are fixed in <code>837d2d3</code>, for CI's next review to re-check:</p>
+  <ul class="tight">
+    <li data-k="t1"><b>Telling builds apart (R13, R16):</b> every local build has the same version, and the check ignored the package's status. The guard then compared the status and the <code>/usr/bin/thunar</code> binary, which the fourth review found too narrow.</li>
+    <li data-k="t2"><b>One guard (R8, R19):</b> <code>/visual-verify</code> called its own check and <code>build-verify</code>'s “the same”. Its Step 1 stopped repeating the check, and the fourth round removed the guard altogether.</li>
+    <li data-k="t3"><b>Tracebacks (R5):</b> a failed build then returned the grep lines plus the log's last 30 lines, which the fourth review found could still lose a traceback's top frames.</li>
+    <li data-k="t4"><b>Smaller gaps (R14, R15, R18):</b> the output gets a <code>run warnings:</code> line; the render check uses <code>${TMPDIR:-/tmp}</code> like <code>make-video.py</code>; and narration step 4 says the subagent does a later fix itself.</li>
+    <li data-k="t5"><b>Accepted (R17):</b> leaving out <code>debian/</code> also drops new untracked packaging files from the warnings filter. The filter only matches gcc warning lines, and files under <code>debian/</code> are never compiled, so nothing is lost.</li>
+  </ul>
+  <p data-k="ci4">CI's fourth review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42728491014">42728491014</a>, Opus at <code>high</code>, 5 minutes) of <code>837d2d3</code> marked R5, R8, R13, R14 and R15 resolved, counted R16 to R19 as settled (later-review lows it didn't confirm), and found 8 more: R20 and R21 medium and R22 low, all confirmed; R23 to R27 low, plausible. All but R23 and R25 are fixed in <code>a18d522</code>, for CI's next review to re-check:</p>
+  <ul class="tight">
+    <li data-k="u1"><b>Always build (R20, R21):</b> the binary guard compared only <code>/usr/bin/thunar</code>, so a stale <code>thunar-data</code> or <code>libthunarx</code> passed, and nothing tied <code>dist/</code> to <code>HEAD</code>. <code>build-verify</code> dropped its <code>skip build</code>, <code>only install</code> and <code>only run</code> options and the guard: every run builds the working tree, installs all three debs and runs the tests.</li>
+    <li data-k="u2"><b>Tracebacks in full (R22):</b> a failed build now returns <code>grep -n -A 40 Traceback</code> when there is a traceback, else the log's last 30 lines.</li>
+    <li data-k="u3"><b>Smaller gaps (R24, R26, R27):</b> the render snippet's <code>T=</code> line didn't survive separate shell calls, so it uses <code>${TMPDIR:-/tmp}</code> inline; an empty <code>dist/</code> no longer gives a misleading cause, since that guard is gone; and <code>::warning::</code> lines appear only under <code>run warnings:</code>.</li>
+    <li data-k="u4"><b>Accepted (R23, R25):</b> the grep lines and the tail overlap by a few lines, and both parts are needed; and <code>verify-proof.sh</code> prints the <code>|</code> lines as exactly each failing test's last 30 log lines, so that wording is accurate.</li>
+  </ul>
+  <p data-k="ci5">CI's fifth review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42729276894">42729276894</a>, Opus at <code>high</code>, 4 minutes) of <code>a18d522</code> marked R20, R21 and R22 resolved and found 5 more: R28 and R29 medium and R30 low, all confirmed; R31 and R32 low, plausible. R28 to R30 are fixed in <code>50b255c</code>, for CI's next review to re-check:</p>
+  <ul class="tight">
+    <li data-k="v1"><b>A stale Thunar could stay (R28):</b> <code>verify-proof.sh install</code> uses apt, which skips a deb whose version is already installed, and every local build has the same version. <code>build-verify</code>'s install step then ended with <code>sudo dpkg -i</code> on the three debs, which always unpacks, until R33 moved that into <code>verify-proof.sh</code>.</li>
+    <li data-k="v2"><b>The manifest came too early (R29):</b> <code>/visual-verify</code>'s preflight wanted <code>verify.tsv</code> before Step 2's capture writes it. With <code>run:</code>, that check now comes after the capture.</li>
+    <li data-k="v3"><b>Old wording (R30):</b> the <code>run:</code> argument and the README still said “sandbox with the built debs installed”. They now say it builds, installs and captures through <code>build-verify</code>, in a cloud container only.</li>
+    <li data-k="v4"><b>Accepted (R31, R32):</b> the build's Python tracebacks are a few frames long, so 40 lines after <code>Traceback</code> cover them; and no flow runs <code>build-verify</code> and then <code>/visual-verify run:</code> back to back, while a fresh build is what guarantees the capture tests this branch.</li>
+  </ul>
+  <p data-k="ci6">CI's sixth review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42729910638">42729910638</a>, Opus at <code>high</code>, 3 minutes) of <code>50b255c</code> passed: it marked R28, R29 and R30 resolved and found 5 more, all plausible: R33 medium, R34 to R37 low. The owner chose to fix R33 in this PR, in <code>77ced90</code>:</p>
+  <ul class="tight">
+    <li data-k="w1"><b>Fixed at the owner's choice (R33, R36, R37):</b> the apt-skip fix lived only in <code>build-verify</code>, so running <code>verify-proof.sh install</code> directly, as <code>CLAUDE.md</code>'s Verify section says, could still leave a same-version stale Thunar. <code>verify-proof.sh install</code> then ran <code>sudo dpkg -i</code> on the three built debs after its apt install and passed <code>--allow-downgrades</code> to apt for downgrades (R34, a fix later removed), and <code>build-verify</code> dropped its own workaround, which also fixed the repeated <code>dpkg -i</code> (R36) and the two commands sharing one log (R37).</li>
+    <li data-k="w2"><b>Accepted (R35):</b> with <code>run:</code>, two checks still sit before the capture, but the manifest they read exists only after it, so they can only fail INCONCLUSIVE, never pass wrongly.</li>
+  </ul>
+  <p data-k="ci7">CI's seventh review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42730896256">42730896256</a>, Opus at <code>high</code>, 3 minutes) of <code>77ced90</code> passed and found 4 more, all plausible: R38 medium, R39 to R41 low. R38, R40 and R41 are fixed in <code>a88c29d</code>, for CI's next review to re-check:</p>
+  <ul class="tight">
+    <li data-k="x1"><b>A narrower install fix (R38, R40, R41):</b> <code>--allow-downgrades</code> sat in the shared apt array, so it also applied to the repair step and the test tools; the unconditional <code>dpkg -i</code> unpacked the debs twice on every cold CI run; and the header comment was ambiguous. <code>verify-proof.sh install</code> then dropped <code>--allow-downgrades</code>, recorded whether the built version was already installed before apt ran, and ran <code>dpkg -i</code> only then, as its header comment said. A downgrade (R34) is accepted again for its earlier reason: a failed apt step stops the install with its log, so nothing passes silently. The eighth review reversed part of this (below).</li>
+    <li data-k="x2"><b>Accepted (R39):</b> this CI change is outside #86's scope by <code>CLAUDE.md</code>'s rule, but the owner chose to fix R33 in this PR.</li>
+  </ul>
+  <p data-k="ci8">CI's eighth review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42731577718">42731577718</a>, Opus at <code>high</code>, 4 minutes) of <code>a88c29d</code> found 4 more: R42 medium and R43 low, confirmed; R44 and R45 low, plausible. They reversed R38 and R40, so the building session brought them to the owner, whose choice fixes all four in <code>9359495</code>, for CI's next review to re-check:</p>
+  <ul class="tight">
+    <li data-k="y1"><b>Downgrades again (R42, against R38):</b> without <code>--allow-downgrades</code>, installing a build older than the installed Thunar makes apt abort, so verify never runs. The owner chose <code>--allow-downgrades</code> on the <code>apt-get install</code> command only, not the shared array the repair step uses.</li>
+    <li data-k="y2"><b><code>dpkg -i</code> every time (R43, R44, R45, against R40):</b> the conditional <code>dpkg -i</code> checked only <code>thunar</code>'s status, so it could miss <code>libthunarx</code>, which isn't version-locked to <code>thunar</code>, or a half-installed <code>thunar</code> at the built version. The owner chose <code>sudo dpkg -i</code> on the built debs every time: the version check is gone, and a cold run unpacks twice again.</li>
+  </ul>
+  <p data-k="ci9">CI's ninth review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42735295575">42735295575</a>, Opus at <code>high</code>, 3 minutes) of <code>9359495</code> passed, marked R42 and R43 resolved, and found 3 lows, all plausible and all accepted:</p>
+  <ul class="tight">
+    <li data-k="z1"><b>Accepted (R46, R47, R48):</b> <code>--allow-downgrades</code> sits on the same apt command as the test tools, but they come from the same Ubuntu and PPA sources every run, so apt has nothing older to move them to (R46); <code>dpkg -i</code> installs the built debs a second time on non-cached runs, a cost the owner chose for a guaranteed install (R47); and the header's “may downgrade the built debs” could be read the wrong way round, but the same sentence goes on to say <code>dpkg -i</code> installs them over whatever is there (R48).</li>
+  </ul>
+  <p data-k="link">That makes 48 findings over nine reviews: R17, R23, R25, R31, R32, R34, R35, R39, R46, R47 and R48 accepted, the other 37 fixed or resolved. Every one is in the <a href="https://github.com/alexhu98/thunar/pull/87#issuecomment-6755010474">code review comment</a> on PR #87.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>The <code>build-verify</code> agent builds, runs the tests and returns its short result</td><td>Agents load at session start, from <code>main</code></td><td class="open">the next PR session</td></tr>
+    <tr data-k="a2"><td>A session's context and cost drop: <code>get_session</code>'s <code>context_usage.used_tokens</code> and <code>usage.cost_usd</code> at merge, against #82's 567k and $33.6 and #83's 247k</td><td>Needs a batch group run under the merged rules</td><td class="open">the next batch group</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/87">PR #87</a> → “Files changed”</li>
+    <li data-k="l2">Its summary comment: build and verify said the PR changes no code on the earlier pushes, and run their steps on the push that changes <code>verify-proof.sh</code>.</li>
+    <li data-k="l3">The issue, with the sizes and costs it starts from: <a href="https://github.com/alexhu98/thunar/issues/86">#86</a></li>
+    <li data-k="l4">CI's first run, with its build, verify, review and explainer jobs: <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">run 42726284611</a>; its later reviews: <a href="https://github.com/alexhu98/thunar/actions/runs/42726996717">run 42726996717</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42727746370">run 42727746370</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42728491014">run 42728491014</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42729276894">run 42729276894</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42729910638">run 42729910638</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42730896256">run 42730896256</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42731577718">run 42731577718</a> and <a href="https://github.com/alexhu98/thunar/actions/runs/42735295575">run 42735295575</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later</h2>
+  <p class="intro" data-k="intro">No open issue builds on this one. The next batch group is the first to run under the rules and measure them.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR, then the next batch group measures context and cost, then possibly a split into two sessions">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">After the merge</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Context rules</text>
+      <text x="36" y="114" class="b">this PR: quiet logs,</text>
+      <text x="36" y="134" class="b">subagents, narrow</text>
+      <text x="36" y="154" class="b">reads</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Next batch group</text>
+      <text x="286" y="114" class="b">context and cost at</text>
+      <text x="286" y="134" class="b">merge, against #82's</text>
+      <text x="286" y="154" class="b">567k and $33.6</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Split sessions?</text>
+      <text x="536" y="114" class="b">only if sessions</text>
+      <text x="536" y="134" class="b">still get near</text>
+      <text x="536" y="154" class="b">compaction</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not happened yet; no issue open</span>
+  </div>
+  <p data-k="split">The issue's point 4 is the follow-up if the numbers stay high: split each batch group into an implementing session and a fresh review-loop session, with a short handoff (PR number, branch, accepted findings, last digest SHA).</p>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="context"><dt>Context</dt><dd>Everything a session has seen so far; the model re-reads all of it on every turn.</dd></div>
+    <div data-k="compaction"><dt>Compaction</dt><dd>When the context nears its limit, older parts are summarized away, and details are lost.</dd></div>
+    <div data-k="cacheread"><dt>Cache-read tokens</dt><dd>Context tokens re-read from the cache each turn; cheaper per token, but most of a long session's cost.</dd></div>
+    <div data-k="subagent"><dt>Subagent</dt><dd>A helper agent with its own context; only its final answer comes back to the session.</dd></div>
+    <div data-k="bv"><dt>build-verify</dt><dd>The new agent that builds, installs and tests Thunar and returns about 10 lines.</dd></div>
+    <div data-k="digest"><dt>pr-digest</dt><dd>A read-only agent that sums up a PR's CI comments and checks in about 20 lines.</dd></div>
+    <div data-k="auditor"><dt>shot-auditor</dt><dd>The subagent that reads every screenshot and reports OK or a problem per shot.</dd></div>
+    <div data-k="exit"><dt>Exit code</dt><dd>The number a command ends with: 0 for success, anything else for a failure.</dd></div>
+    <div data-k="mergebase"><dt>Merge base</dt><dd>The commit where the branch left <code>main</code>; diffing from it shows only the branch's own changes.</dd></div>
+    <div data-k="remote"><dt>CLAUDE_CODE_REMOTE</dt><dd>An environment variable that is <code>true</code> in a Claude Code cloud container; <code>build-verify</code> installs only then.</dd></div>
+    <div data-k="nocode"><dt>No code changed</dt><dd>The step build and verify run, instead of their real steps, on a PR that changes no code.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
