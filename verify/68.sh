@@ -131,13 +131,13 @@ crop() {  # shot name, what it shows: keeps the right end of the toolbar around 
 G='The toggle sits 5 px from the search entry'
 
 start_thunar top
-shot "$WID" before-toggle-gap "The Thunar window with the menu bar shown, before a search, with the path of top in the location bar"
+shot "$WID" before-toggle-gap "The right end of Thunar's toolbar before a search"
 search
-shot "$WID" after-toggle-gap "The Thunar window with the menu bar shown, while searching for match, with the Include subfolders toggle showing"
+shot "$WID" after-toggle-gap "The right end of Thunar's toolbar while searching, with the Include subfolders toggle showing"
 measure "$SHOTS/after-toggle-gap.png" "menu bar shown"
 SHOWN_GAPS=$GAPS
 no_toggle "$SHOTS/before-toggle-gap.png" "menu bar shown, not searching"
-pair toggle-gap "Pressed Ctrl+F and typed match" "The Include subfolders toggle appears with a 5 px gap on both sides ($GAPS)" "no search, no toggle" "toggle, 5 px from the entry and the button" "$G"
+pair toggle-gap "Pressed Ctrl+F and typed match" "The Include subfolders toggle appears with a gap on both sides ($GAPS)" "no search, no toggle" "toggle, a gap to the entry and the button" "$G"
 
 click_toggle
 capture "$WORK/released.png"
@@ -179,15 +179,15 @@ sleep 2
 restart_thunar hidden last-menubar-visible false
 capture "$WORK/hidden-idle.png"
 search
-shot "$WID" menubar-hidden-gap "The Thunar window with the menu bar hidden, while searching for match, with the Include subfolders toggle showing"
+shot "$WID" menubar-hidden-gap "The right end of Thunar's toolbar with the menu bar hidden, while searching, with the Include subfolders toggle showing"
 measure "$SHOTS/menubar-hidden-gap.png" "menu bar hidden"
 no_toggle "$WORK/hidden-idle.png" "menu bar hidden, not searching"
-crop menubar-hidden-gap "a 5 px gap on each side of the pressed toggle, measured as $GAPS"
+crop menubar-hidden-gap "a gap on each side of the pressed toggle, measured as $GAPS"
 
 restart_thunar csd misc-use-csd true
 capture "$WORK/csd-idle.png"
 search
-shot "$WID" headerbar-gap "The Thunar window with the menu bar hidden and client-side decorations on, while searching for match, with the Include subfolders toggle showing in the header bar"
+shot "$WID" headerbar-gap "The right end of Thunar's header bar with client-side decorations on, while searching, with the Include subfolders toggle showing"
 measure "$SHOTS/headerbar-gap.png" "header bar" 15
 no_toggle "$WORK/csd-idle.png" "header bar, not searching"
-crop headerbar-gap "the pressed toggle 5 px from the search entry, and the search button at the header bar's 15 px location bar margin, measured as $GAPS"
+crop headerbar-gap "a gap from the search entry to the pressed toggle, and from the toggle to the search button, measured as $GAPS"
