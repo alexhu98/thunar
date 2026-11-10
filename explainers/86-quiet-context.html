@@ -302,7 +302,7 @@ failing lines:
 .claude/skills/visual-verify/README.md # run: builds, installs and captures, cloud only
 .claude/skills/explainer/SKILL.md      # In a subagent; quiet render, status and stamp
 .claude/skills/batch/SKILL.md          # one sentence in the step 3 brief
-.github/scripts/verify-proof.sh        # install: dpkg -i when apt skips a same-version build
+.github/scripts/verify-proof.sh        # install: downgrades allowed, then dpkg -i every time
 explainers/86-quiet-context.html            # this page
 explainers/86-quiet-context.narration.json  # its narration</pre>
   <div class="note" data-k="undo">To undo it, revert this PR. Sessions then print build and test output inline and run heavy steps themselves, as before.</div>
@@ -336,9 +336,9 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
     <tr data-k="c4"><td>Thunar build and verify</td><td>CI run <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">42726284611</a> on <code>087afb6</code>: the PR changes no code, packaging or CI files, so both ran <code>No code changed</code></td><td class="no">not run</td></tr>
     <tr data-k="c6"><td>Screenshot audit</td><td>The same run: no shots were taken, so none was needed</td><td class="ok">not needed</td></tr>
     <tr data-k="c7"><td>Explainer and narration</td><td>The same run's explainer job rendered this page as of <code>087afb6</code> and ran <code>make-video.py status</code></td><td class="ok">narration current</td></tr>
-    <tr data-k="c11"><td>verify-proof.sh still parses</td><td>The building session: <code>bash -n .github/scripts/verify-proof.sh</code> after the R33 and R38 fixes</td><td class="ok">no syntax error</td></tr>
-    <tr data-k="c13"><td>The version check picks the right path</td><td>The building session, with a test deb: the package not installed, then installed at the same version</td><td class="ok">skip, then dpkg -i</td></tr>
-    <tr data-k="c12"><td>CI's build and verify on this push</td><td>The PR now changes a CI file, so build and verify run their steps instead of <code>No code changed</code> and exercise the new install path; the run on <code>7d5964e</code> was still going when <code>a88c29d</code> replaced it. The screenshot audit then follows CI's shots</td><td class="open">not yet run</td></tr>
+    <tr data-k="c11"><td>verify-proof.sh still parses</td><td>The building session: <code>bash -n .github/scripts/verify-proof.sh</code> after the R33, R38 and R42 fixes</td><td class="ok">no syntax error</td></tr>
+    <tr data-k="c13"><td>The changed install path in CI</td><td>CI's build and verify on <code>95e823c</code>, with the conditional <code>dpkg -i</code> that the next push replaced: the first real run of the changed install path</td><td class="ok">8 of 8 passed</td></tr>
+    <tr data-k="c12"><td>CI's build and verify on this push</td><td>This push (<code>9359495</code>) changes the install path again, to <code>--allow-downgrades</code> on the install command and <code>dpkg -i</code> every time; its CI build and verify hadn't finished. The screenshot audit then follows CI's shots</td><td class="open">not yet run</td></tr>
     <tr data-k="c5"><td>The build-verify agent itself</td><td>Agents load at session start, so the building session couldn't call it</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -397,10 +397,15 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
   </ul>
   <p data-k="ci7">CI's seventh review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42730896256">42730896256</a>, Opus at <code>high</code>, 3 minutes) of <code>77ced90</code> passed and found 4 more, all plausible: R38 medium, R39 to R41 low. R38, R40 and R41 are fixed in <code>a88c29d</code>, for CI's next review to re-check:</p>
   <ul class="tight">
-    <li data-k="x1"><b>A narrower install fix (R38, R40, R41):</b> <code>--allow-downgrades</code> sat in the shared apt array, so it also applied to the repair step and the test tools; the unconditional <code>dpkg -i</code> unpacked the debs twice on every cold CI run; and the header comment was ambiguous. <code>verify-proof.sh install</code> now drops <code>--allow-downgrades</code>, records whether the built version was already installed before apt runs, and runs <code>dpkg -i</code> only then, as its header comment now says. A downgrade (R34) is accepted again for its earlier reason: a failed apt step stops the install with its log, so nothing passes silently.</li>
+    <li data-k="x1"><b>A narrower install fix (R38, R40, R41):</b> <code>--allow-downgrades</code> sat in the shared apt array, so it also applied to the repair step and the test tools; the unconditional <code>dpkg -i</code> unpacked the debs twice on every cold CI run; and the header comment was ambiguous. <code>verify-proof.sh install</code> then dropped <code>--allow-downgrades</code>, recorded whether the built version was already installed before apt ran, and ran <code>dpkg -i</code> only then, as its header comment said. A downgrade (R34) is accepted again for its earlier reason: a failed apt step stops the install with its log, so nothing passes silently. The eighth review reversed part of this (below).</li>
     <li data-k="x2"><b>Accepted (R39):</b> this CI change is outside #86's scope by <code>CLAUDE.md</code>'s rule, but the owner chose to fix R33 in this PR.</li>
   </ul>
-  <p data-k="link">That makes 41 findings over seven reviews: R17, R23, R25, R31, R32, R34, R35 and R39 accepted, the other 33 fixed or resolved, with this round's fixes going to CI's next review. Every one is in the <a href="https://github.com/alexhu98/thunar/pull/87#issuecomment-6755010474">code review comment</a> on PR #87.</p>
+  <p data-k="ci8">CI's eighth review (run <a href="https://github.com/alexhu98/thunar/actions/runs/42731577718">42731577718</a>, Opus at <code>high</code>, 4 minutes) of <code>a88c29d</code> found 4 more: R42 medium and R43 low, confirmed; R44 and R45 low, plausible. They reversed R38 and R40, so the building session brought them to the owner, whose choice fixes all four in <code>9359495</code>, for CI's next review to re-check:</p>
+  <ul class="tight">
+    <li data-k="y1"><b>Downgrades again (R42, against R38):</b> without <code>--allow-downgrades</code>, installing a build older than the installed Thunar makes apt abort, so verify never runs. The owner chose <code>--allow-downgrades</code> on the <code>apt-get install</code> command only, not the shared array the repair step uses.</li>
+    <li data-k="y2"><b><code>dpkg -i</code> every time (R43, R44, R45, against R40):</b> the conditional <code>dpkg -i</code> checked only <code>thunar</code>'s status, so it could miss <code>libthunarx</code>, which isn't version-locked to <code>thunar</code>, or a half-installed <code>thunar</code> at the built version. The owner chose <code>sudo dpkg -i</code> on the built debs every time: the version check is gone, and a cold run unpacks twice again.</li>
+  </ul>
+  <p data-k="link">That makes 45 findings over eight reviews: R17, R23, R25, R31, R32, R34, R35 and R39 accepted, the other 37 fixed or resolved, with this round's fixes going to CI's next review. Every one is in the <a href="https://github.com/alexhu98/thunar/pull/87#issuecomment-6755010474">code review comment</a> on PR #87.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -420,7 +425,7 @@ explainers/86-quiet-context.narration.json  # its narration</pre>
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/87">PR #87</a> → “Files changed”</li>
     <li data-k="l2">Its summary comment: build and verify said the PR changes no code on the earlier pushes, and run their steps on the push that changes <code>verify-proof.sh</code>.</li>
     <li data-k="l3">The issue, with the sizes and costs it starts from: <a href="https://github.com/alexhu98/thunar/issues/86">#86</a></li>
-    <li data-k="l4">CI's first run, with its build, verify, review and explainer jobs: <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">run 42726284611</a>; its later reviews: <a href="https://github.com/alexhu98/thunar/actions/runs/42726996717">run 42726996717</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42727746370">run 42727746370</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42728491014">run 42728491014</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42729276894">run 42729276894</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42729910638">run 42729910638</a> and <a href="https://github.com/alexhu98/thunar/actions/runs/42730896256">run 42730896256</a></li>
+    <li data-k="l4">CI's first run, with its build, verify, review and explainer jobs: <a href="https://github.com/alexhu98/thunar/actions/runs/42726284611">run 42726284611</a>; its later reviews: <a href="https://github.com/alexhu98/thunar/actions/runs/42726996717">run 42726996717</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42727746370">run 42727746370</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42728491014">run 42728491014</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42729276894">run 42729276894</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42729910638">run 42729910638</a>, <a href="https://github.com/alexhu98/thunar/actions/runs/42730896256">run 42730896256</a> and <a href="https://github.com/alexhu98/thunar/actions/runs/42731577718">run 42731577718</a></li>
   </ul>
   </section>
   </section>
