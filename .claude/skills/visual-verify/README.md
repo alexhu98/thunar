@@ -26,7 +26,7 @@ Audit CI's shots for a PR (needs git, plus a `pr-digest` digest of the PR's chec
 /visual-verify pr:42
 ```
 
-Audit a local run, or run it first (sandbox only, with the built debs installed):
+Audit a local run, or build, install and run it first (`run:`, in a cloud container only):
 
 ```
 /visual-verify /tmp/verify-proof

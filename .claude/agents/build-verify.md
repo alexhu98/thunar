@@ -34,8 +34,10 @@ Read a log only with `tail -n 30` or `grep -n`, never whole.
    `debian/` aren't sources). Then `rm -f dist/*.deb; mkdir -p dist && mv ../*.deb dist/`.
 3. **Install**, only in a cloud container (`$CLAUDE_CODE_REMOTE` is `true`): it replaces the system's Thunar, so
    anywhere else, report install and verify as `skipped (not a cloud container)` and stop.
-   `.github/scripts/verify-proof.sh install` installs all three debs from step 2. On failure, return its last 30
-   lines and stop.
+   `.github/scripts/verify-proof.sh install` installs all three debs from step 2 and the test tools. Then
+   `sudo dpkg -i dist/thunar_*.deb dist/thunar-data_*.deb dist/libthunarx-3-0_*.deb`: apt skips a deb whose version
+   is already installed, and every local build has the same version, but `dpkg -i` always unpacks. On either
+   failure, return its last 30 lines and stop.
 4. **Run**: `.github/scripts/verify-proof.sh run`. If the sandbox can't start Xvfb (the smoke test fails before
    Thunar launches, or `Xvfb` is missing), say `verify: not run: <cause>`; CI runs the tests. Otherwise return each
    test's result line (`<name>: <status> in <s> s`), the `<k> of <m> passed` line and, for each test that didn't
