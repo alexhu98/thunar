@@ -225,10 +225,10 @@
   </ol>
   <div class="lane-h" style="color:var(--merge)">② verify/68.sh — how it is checked</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>Search, capture.</b> The script opens Thunar at 1000×700 in a folder with <code>match-top.txt</code> and <code>sub/match-sub.txt</code>, presses Ctrl+F, types <code>match</code>, and captures the window with ImageMagick's <code>import</code>.</li>
+    <li data-k="5"><b>Search, capture.</b> The script opens Thunar at 1000×700 in a folder with <code>match-top.txt</code> and <code>sub/match-sub.txt</code>, presses Ctrl+F, types <code>match</code>, and takes the after shot of the window. The gaps are measured on that shot file itself, before it is cropped for the comment.</li>
     <li data-k="6"><b>Measure gaps.</b> On each pixel row of the toolbar it marks pixels bright or dark and looks for the pattern shown below. It keeps only the rows where the toggle is at full width and fails unless both gaps are 5 px ±1.</li>
-    <li data-k="7"><b>Three layouts.</b> It restarts Thunar with the menu bar hidden, then in the header bar (client-side decorations on), and measures again. In the header bar the location bar has 15 px margins, so the gap to the search button is expected to be 15.</li>
-    <li data-k="8"><b>Still works.</b> The toggle's place must be plain entry before the search and after Escape. Clicking the toggle must change how it looks and re-run the search: the results are copied and pasted into a folder, and only <code>match-top.txt</code> may arrive.</li>
+    <li data-k="7"><b>Three layouts.</b> It restarts Thunar with the menu bar hidden, then in the header bar (client-side decorations on), and measures again. In the header bar the location bar has 15 px margins, so the gap to the search button is expected to be 15. Each restart first waits for the old Thunar to leave the session bus (<code>org.xfce.Thunar</code>).</li>
+    <li data-k="8"><b>Still works.</b> Before the search and after Escape, some row through the toggle's place, found while searching, must be one colour from 4 px inside the entry's border to 2 px inside the toggle's right end: the entry reaching over that place. A shown toggle, pressed or flat, breaks that run with the border, the gap and the toggle. Clicking the toggle must change a 30×20 patch around it and re-run the search: the results are copied and pasted into a folder, and only <code>match-top.txt</code> may arrive.</li>
   </ol>
   </div>
   </section>
@@ -316,7 +316,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The gap was matched to Thunar's own location bar margin, measured on screen in a sandbox like CI's, and the measuring was checked to fail on main's look. CI's run on PR #88 had not finished when this page was written.</p>
+  <p class="intro" data-k="intro">The gap was matched to Thunar's own location bar margin, measured on screen in a sandbox like CI's, and the measuring was checked to fail on main's look. CI's results for the latest push are not in yet.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -333,14 +333,14 @@ explainers/
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>Builds, and the existing tests still pass</td><td><code>dpkg-buildpackage</code> of the fix commit, then <code>verify-proof.sh install</code> and <code>run</code> (this session), before <code>verify/68.sh</code> was written</td><td class="ok">8 of 8 pass</td></tr>
-    <tr data-k="c2"><td>Gaps with the menu bar shown</td><td><code>verify/68.sh</code> under the same Xvfb, xfwm4 and D-Bus setup as CI, ZorinBlue-Dark theme, mawk (this session)</td><td class="ok">5 px and 5 px</td></tr>
+    <tr data-k="c2"><td>Gaps with the menu bar shown</td><td><code>verify/68.sh</code> under the same Xvfb, xfwm4 and D-Bus setup as CI, ZorinBlue-Dark theme, mawk (this session; re-run alone after the review fixes)</td><td class="ok">5 px and 5 px</td></tr>
     <tr data-k="c3"><td>Gaps with the menu bar hidden</td><td>Same run, <code>last-menubar-visible</code> false</td><td class="ok">5 px and 5 px</td></tr>
     <tr data-k="c4"><td>Gaps in the header bar</td><td>Same run, <code>misc-use-csd</code> true and the menu bar hidden</td><td class="ok">5 px and 15 px</td></tr>
-    <tr data-k="c5"><td>Toggle hidden when idle, and still toggles</td><td>Same run: plain entry before the search and after Escape; a click changes the toggle's pixels, and the copied results are only <code>match-top.txt</code></td><td class="ok">pass</td></tr>
+    <tr data-k="c5"><td>Toggle hidden when idle, and still toggles</td><td>Same run: before the search and after Escape, a row through the toggle's place is one colour from inside the entry's border to the toggle's end; a click changes a 30×20 patch around the toggle (<code>compare -metric AE</code>), and the copied results are only <code>match-top.txt</code></td><td class="ok">pass</td></tr>
     <tr data-k="c6"><td>The measuring catches main's look</td><td>The 5 px gap cut out of a captured image, as on main, then measured (this session)</td><td class="ok">fails: 2 px, corner rows only</td></tr>
-    <tr data-k="c7"><td>The idle check catches a shown toggle</td><td>The idle check run on every capture with the toggle showing, pressed or released, in all three layouts (this session)</td><td class="ok">fails on each; passes idle</td></tr>
-    <tr data-k="c8"><td>Screenshots show what they claim</td><td><code>verify-shots.py check</code>, then the local shot-auditor agent on the 4 shots (this session)</td><td class="ok">4 of 4 OK, ~5 px gap visible</td></tr>
-    <tr data-k="c9"><td>CI build and verify on PR #88</td><td>Run 42747354049 was still running when this page was written; its shots should be numbers 56, 57 and 58</td><td class="no">not run yet</td></tr>
+    <tr data-k="c7"><td>The idle check catches a shown toggle</td><td>The new idle check, after the review fixes, run on the idle and the cancelled captures, and on a capture with the released toggle showing (this session)</td><td class="ok">passes idle and cancelled; fails with the toggle</td></tr>
+    <tr data-k="c8"><td>Screenshots show what they claim</td><td><code>verify-shots.py check</code> after the fixes; the local shot-auditor agent on the 4 shots before them (this session)</td><td class="ok">check OK; 4 of 4 OK, ~5 px gap visible</td></tr>
+    <tr data-k="c9"><td>CI build and verify on PR #88's latest head</td><td>CI's run on 429c69e was replaced by the push with the review fixes, and the run on the new head has not reported yet</td><td class="no">not run yet</td></tr>
     <tr data-k="c10"><td>Before shot of main</td><td>CI installs one build, so main's glued toggle can't be shot; the before shot is this build before Ctrl+F</td><td class="no">not possible</td></tr>
   </table>
   </div>
@@ -350,11 +350,19 @@ explainers/
   <h3 class="sec">Code review</h3>
   <p data-k="summary">A fresh general-purpose agent, given only the diff and the issue, reviewed the PR in this session. It found 3 things, all in <code>verify/68.sh</code> and none in Thunar's code, and all 3 were fixed before the first push.</p>
   <ul class="tight">
-    <li data-k="b1"><b>Medium, idle check:</b> the check that the toggle is hidden before a search could never notice a toggle that is always shown. It now needs a row of the toggle's place that is all the entry's inside colour.</li>
+    <li data-k="b1"><b>Medium, idle check:</b> the check that the toggle is hidden before a search could never notice a toggle that is always shown. It now needs a row where the entry reaches over the toggle's place (reworked after CI's R3 and R4, below).</li>
     <li data-k="b2"><b>Low, paste wait:</b> the wait for the pasted results could end while the copy was still running. It now waits for the paste to settle.</li>
     <li data-k="b3"><b>Low, compare error:</b> an error from <code>compare</code> counted as "the toggle changed". Only a pixel count above zero counts now.</li>
   </ul>
-  <p data-k="ci-review">CI's own review of the first push had not run when this page was written; it reports in the <a href="https://github.com/alexhu98/thunar/pull/88">code review comment on PR #88</a>.</p>
+  <p data-k="ci-review">CI's own review (<a href="https://github.com/alexhu98/thunar/actions/runs/42747354049">run 42747354049</a>, level high, on head 953fb6d) found 8 things, R1 to R8: 6 are fixed and 2 wait for your decision. Each is listed in the <a href="https://github.com/alexhu98/thunar/pull/88">code review comment on PR #88</a>.</p>
+  <ul class="tight">
+    <li data-k="ci1"><b>R1, medium, confirmed: no explainer.</b> The PR had no explainer page yet. This page, added in commit 429c69e, fixes it.</li>
+    <li data-k="ci2"><b>R2, medium, plausible: compare on ImageMagick 6.</b> <code>compare -crop</code> might not work there. It passed locally on noble, but the click check now crops both images to 30×20 first and compares those.</li>
+    <li data-k="ci3"><b>R3 and R4, low: idle colour.</b> The entry's inside colour was sampled while the entry had focus. The new idle check samples no colour, so both are fixed.</li>
+    <li data-k="ci4"><b>R5, low: restart race.</b> A restarted Thunar could start before the old one left D-Bus. The restart now waits for that.</li>
+    <li data-k="ci5"><b>R8, low: extra captures.</b> The gaps were measured on separate captures, not on the shots. They are now measured on the shot files, before cropping.</li>
+  </ul>
+  <div class="note warn" data-k="ci-open">Open, for you: <b>R6</b> (low) suggests box spacing 5 instead of the toggle's margin, and <b>R7</b> (low) says the literal 5 copies <code>DEFAULT_LOCATION_BAR_MARGIN</code>. Both conflict with the issue's prescribed <code>gtk_widget_set_margin_start (…, 5)</code>, so they are left to your decision.</div>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -371,8 +379,8 @@ explainers/
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/88">PR #88</a> → “Files changed”</li>
-    <li data-k="l2">Its checks: <a href="https://github.com/alexhu98/thunar/pull/88/checks">PR #88 checks</a>, and the first build: <a href="https://github.com/alexhu98/thunar/actions/runs/42747354049">run 42747354049</a></li>
-    <li data-k="l3">The shots, once CI posts them: shots 56, 57 and 58 in the verify comment on PR #88, saved on the <code>shots</code> branch under <code>pr-88/</code></li>
+    <li data-k="l2">Its checks: <a href="https://github.com/alexhu98/thunar/pull/88/checks">PR #88 checks</a>, and the run CI reviewed: <a href="https://github.com/alexhu98/thunar/actions/runs/42747354049">run 42747354049</a></li>
+    <li data-k="l3">The shots, once CI posts them for the latest head: the toolbar shots in the verify comment on PR #88, saved on the <code>shots</code> branch under <code>pr-88/</code></li>
   </ul>
   </section>
   </section>
@@ -381,10 +389,10 @@ explainers/
   <section class="part" id="later">
   <p class="part-label" data-k="label">Part 3</p>
   <h2 data-k="heading">What comes later: nothing depends on #68</h2>
-  <p class="intro" data-k="intro">No open issue says "Depends on #68". What remains is your answer on the header bar gap and a look in your own session.</p>
+  <p class="intro" data-k="intro">No open issue says "Depends on #68". What remains is your answer on the header bar gap and on review findings R6 and R7, and a look in your own session.</p>
 
   <section class="sub" id="next">
-  <div class="diagram" role="img" aria-label="This PR, then you decide on the header bar gap, then you try it in your session">
+  <div class="diagram" role="img" aria-label="This PR, then you decide on the header bar gap and on R6 and R7, then you try it in your session">
   <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -401,10 +409,10 @@ explainers/
     </g>
     <g data-k="n2">
       <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
-      <text x="286" y="90" class="t">Header bar gap</text>
-      <text x="286" y="114" class="b">keep 15 px to the</text>
-      <text x="286" y="134" class="b">search button, or</text>
-      <text x="286" y="154" class="b">ask for a change</text>
+      <text x="286" y="90" class="t">Your decisions</text>
+      <text x="286" y="114" class="b">header bar's 15 px;</text>
+      <text x="286" y="134" class="b">R6 and R7: how the</text>
+      <text x="286" y="154" class="b">5 px margin is set</text>
     </g>
     <g data-k="n3">
       <rect class="box-you" x="520" y="60" width="210" height="120" rx="10"/>
@@ -426,7 +434,7 @@ explainers/
   <h3 class="sec">Your steps (next)</h3>
   <div class="panel">
   <ol class="steps">
-    <li data-k="1"><b>Decide on the header bar gap.</b> Look at the header bar shot on PR #88 and say whether the 15 px to the search button stays, or should change in a new issue.</li>
+    <li data-k="1"><b>Decide on the header bar gap, R6 and R7.</b> Look at the header bar shot on PR #88 and say whether the 15 px to the search button stays, or should change in a new issue. Then say whether the 5 px stays a toggle margin, as the issue asked, or follows R6 or R7.</li>
     <li data-k="2"><b>Try it in your session.</b> After the merge, press Ctrl+F and type a word: the toggle should stand 5 px clear of the entry, and clicking it should still switch subfolders on and off.</li>
   </ol>
   </div>
