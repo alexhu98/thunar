@@ -7,6 +7,10 @@ description: Write the explainer page and its stamped narration that every issue
 
 Every PR for issue `<n>`, from branch `<n>-<slug>`, adds `explainers/<n>-<slug>.html` and its narration `explainers/<n>-<slug>.narration.json`, stamped from the final page. The page is one self-contained page that tells the owner what the PR adds, how it was built and verified, and what comes later. CI fails the PR without either, or when the narration is stale, renders the page as a 1200px dark full-page PNG, and posts that image in the explainer PR comment, because GitHub shows HTML in a private repo as source. Write for the owner reading that image on a phone: plain words, no assumed context.
 
+## In a subagent
+
+In a PR session, hand the page, its render check and the narration to a `general-purpose` subagent, so the drafts, the rendered PNGs and the command output stay out of the session's context. Its prompt names the issue, the branch and the PR if there is one, lists what was run and its results (input 3 below, which the subagent can't see), and tells it to read this skill and follow it, without committing. It returns `page written, narration stamped` with the two files, or the failing command's exit code and its output lines verbatim. A later small page fix, such as a review fix, can be made in the session, followed by `status` and `stamp` run quietly as below.
+
 ## Inputs to gather first
 
 1. **The issue**: `gh issue view <n>`, including its comments. Its decisions are the "why"; its rollout list is what Part 2 must answer.
@@ -62,7 +66,7 @@ The template already follows these rules. Keep them when adding content:
 Render it the way CI does and look at the image: framing, dark mode, nothing cut off, every diagram readable, badges matching the steps.
 
 ```sh
-OUT=/tmp/explainer .github/scripts/explainer-proof.sh render explainers/<n>-<slug>.html   # -> /tmp/explainer/explainer-<n>.png; works before it's committed
+OUT=/tmp/explainer .github/scripts/explainer-proof.sh render explainers/<n>-<slug>.html > /tmp/explainer.log 2>&1; echo "exit=$?"   # -> /tmp/explainer/explainer-<n>.png; works before it's committed
 convert /tmp/explainer/explainer-<n>.png -crop 1200x1600 +repage /tmp/explainer/slice-%d.png   # the full image is too tall to read in one view
 ```
 
@@ -74,7 +78,7 @@ Written and stamped in the session that builds the PR, from the final page. `sta
 
 1. Write `explainers/<n>-<slug>.narration.json` from the page (format and rules below).
 2. `make-video.py stamp <n>` records which page text each line was written from, and the page's SHA-256.
-3. `make-video.py status <n>` must print "narration matches the page" and exit 0.
+3. `make-video.py status <n>` must print "narration matches the page" and exit 0. Run `stamp` and `status` quietly, as `make-video.py status <n> > "$LOG" 2>&1; echo "exit=$?"`, then `tail -n 30 "$LOG"`: Chrome's own messages go to the log, and the lines that matter come last.
 4. After any later page edit, including a review fix: run `status`, rewrite the stale lines and add lines for new text, then `stamp` again. Leave unchanged lines byte-for-byte as they are, so their cached voice clips are reused.
 5. In the PR description, list any word you're unsure how Kokoro will say (names, abbreviations, numbers), so the owner checks it with `phonemes`.
 

@@ -38,6 +38,12 @@
 - `xdotool key` and `type` with `--window` send synthetic events that GTK ignores. Call `focus "$WID"` and send them without `--window`.
 - To run the tests in a sandbox, as CI does: build, `mkdir -p dist && mv ../*.deb dist/`, then `.github/scripts/verify-proof.sh install` and `.github/scripts/verify-proof.sh run`. Shots, logs and the manifest `verify.tsv` land in `$OUT`, by default `${TMPDIR:-/tmp}/verify-proof/`. `install` replaces the system's Thunar, so never run it on the owner's machine. If the sandbox can't run Xvfb, write the script anyway: CI runs it.
 
+## Context
+Every turn re-reads the whole context, so a session's cost grows with it. Keep it small:
+- Run noisy commands (`dpkg-buildpackage`, `verify-proof.sh`, `explainer-proof.sh`, `make-video.py`) as `cmd > "$LOG" 2>&1; echo "exit=$?"`, then `tail -n 30 "$LOG"`, or on failure `grep -n -E 'error|FAIL|warning: .*thunar/' "$LOG"`. Never read a whole log, and never pipe the command into `tail`, which hides its exit code.
+- Run the build and local verify in the `build-verify` agent (`.claude/agents/build-verify.md`), the local fresh-agent review of the diff in a `general-purpose` agent that returns only its findings, and the explainer's drafting and stamping as its skill says. Each returns the exact failing lines, not a paraphrase. A session started before `build-verify` existed runs a `general-purpose` agent told to read that file and follow it.
+- Grep for a function, then Read only its lines with `offset` and `limit`. Don't re-read a file you edited this session. Never Read PNGs in the main context: that's the `shot-auditor`'s job, and the explainer subagent's.
+
 ## Explainers
 - Every issue PR adds `explainers/<issue>-<slug>.html` and `explainers/<issue>-<slug>.narration.json`, named after its `<issue>-<slug>` branch and written with the `explainer` skill (`.claude/skills/explainer/`). Not in `docs/`, which belongs to upstream. CI fails the PR without the page, renders it into the explainer comment, and runs `make-video.py status` on the narration. PRs from forks skip that job, so they aren't checked.
 - Stamp the narration (`make-video.py stamp <issue>`) from the final page: after any later page edit, run `status`, rewrite the stale lines and stamp again. CI fails a narration that is missing or stale. In the cloud container set `CHROME` to the Playwright headless shell (see the skill). `phonemes` and `render` need Kokoro and stay on the owner's machine; `.claude/skills/explainer/videos-all.sh` renders every explainer's video there.
