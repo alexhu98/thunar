@@ -1410,6 +1410,8 @@ thunar_util_get_statusbar_count_texts (const ThunarStatusbarCounts *counts,
  * @show_file_size_binary_format : whether the file size should be displayed in binary format
  * @date_style        : the #ThunarDateFormat used to humanize the @file_time.
  * @date_custom_style : custom style to apply, if @date_style is set to custom
+ * @status_bar_actve_info        : the #ThunarStatusBarInfo flags to show
+ * @cancellable                  : a #GCancellable to stop counting early, or %NULL
  *
  * Generates the statusbar text for the given @files.
  *

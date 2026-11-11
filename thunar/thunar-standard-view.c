@@ -1134,6 +1134,15 @@ thunar_standard_view_dispose (GObject *object)
       standard_view->priv->current_directory = NULL;
     }
 
+  if (standard_view->priv->statusbar_text_idle_id != 0)
+    {
+      g_source_remove (standard_view->priv->statusbar_text_idle_id);
+      standard_view->priv->statusbar_text_idle_id = 0;
+    }
+
+  thunar_standard_view_cancel_statusbar_job (standard_view);
+  thunar_standard_view_clear_search_free_space (standard_view);
+
   (*G_OBJECT_CLASS (thunar_standard_view_parent_class)->dispose) (object);
 }
 
