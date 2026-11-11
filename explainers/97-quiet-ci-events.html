@@ -129,7 +129,7 @@
     <g data-k="1">
       <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
       <text x="36" y="90" class="t">Routine event</text>
-      <text x="36" y="114" class="b">edit with no result,</text>
+      <text x="36" y="114" class="b">comment edit mid-run,</text>
       <text x="36" y="134" class="b">check still running,</text>
       <text x="36" y="154" class="b">older head, own echo</text>
       <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
@@ -138,8 +138,8 @@
       <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
       <text x="286" y="90" class="t">One short line</text>
       <text x="286" y="114" class="b">read it, end the turn,</text>
-      <text x="286" y="134" class="b">no repeated</text>
-      <text x="286" y="154" class="b">question block</text>
+      <text x="286" y="134" class="b">never empty, no</text>
+      <text x="286" y="154" class="b">repeated question</text>
       <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
     </g>
     <g data-k="3">
@@ -168,15 +168,15 @@
       <text x="286" y="310" class="t">Pause the watch</text>
       <text x="286" y="334" class="b">unsubscribe from PR,</text>
       <text x="286" y="354" class="m">send_later</text>
-      <text x="286" y="374" class="b">check-ins until news</text>
+      <text x="286" y="374" class="b">~50 min, then ~4 h</text>
       <circle class="badge" cx="460" cy="302" r="12"/><text class="badge-n" x="460" y="306.5" text-anchor="middle">5</text>
     </g>
     <g data-k="6">
       <rect class="box-you" x="520" y="280" width="210" height="120" rx="10"/>
       <text x="536" y="310" class="t">You answer</text>
-      <text x="536" y="334" class="b">the agent subscribes</text>
-      <text x="536" y="354" class="b">again and checks</text>
-      <text x="536" y="374" class="b">what landed meanwhile</text>
+      <text x="536" y="334" class="b">check-in cancelled,</text>
+      <text x="536" y="354" class="b">subscribe, check PR</text>
+      <text x="536" y="374" class="b">through pr-digest</text>
       <circle class="badge" cx="710" cy="302" r="12"/><text class="badge-n" x="710" y="306.5" text-anchor="middle">6</text>
     </g>
     <path class="arrow" d="M230,340 H266" marker-end="url(#ah-flow)"/>
@@ -220,19 +220,19 @@
   <div class="panel">
   <div class="lane-h" style="color:var(--accent)">① A CI event wakes the agent</div>
   <ol class="steps">
-    <li data-k="1"><b>Routine event.</b> A PR activity event arrives that changes nothing: a CI comment edited with no new result, a check still running, an event for an older head, or an echo of the agent's own post.</li>
-    <li data-k="2"><b>One short line.</b> The agent reads the event as delivered (CI's comments still only through the <code>pr-digest</code> agent) and ends the turn with one short line at most, without repeating "What I need from you".</li>
+    <li data-k="1"><b>Routine event.</b> A PR activity event arrives that changes nothing: a CI comment edited while its check is still running, a check still running, an event for an older head, or an echo of the agent's own post. A result arrives as a check-run event, which is not routine.</li>
+    <li data-k="2"><b>One short line.</b> The agent reads the event as delivered (CI's comments still only through the <code>pr-digest</code> agent) and ends the turn with one short line, never an empty turn, without repeating "What I need from you".</li>
     <li data-k="3"><b>Real news: post.</b> Only a result (pass or fail), a blocker, a merge, a new question or a comment from you gets a real message.</li>
   </ol>
   <div class="lane-h" style="color:var(--accent)">② A question waits for you</div>
   <ol class="steps" start="4" style="counter-reset: s 3">
-    <li data-k="4"><b>Ask once.</b> The "What I need from you" section appears once per question, and is repeated only when you ask for it.</li>
-    <li data-k="5"><b>Pause the watch.</b> In an interactive session (any session where you answer in its chat, batch group sessions included), the agent unsubscribes from the PR's activity and schedules one <code>send_later</code> check-in, so a CI result or your answer isn't missed. The check-in acts only on a result or your answer; if neither has come, it schedules the next check-in.</li>
-    <li data-k="6"><b>You answer.</b> The agent subscribes to the PR again and checks its state for anything that landed meanwhile. The watch-the-PR line in "Branches and PRs" now names this exception.</li>
+    <li data-k="4"><b>Ask once.</b> The "What I need from you" section appears once per question, and is repeated only when you ask for it. A turn that only waits on a question already asked ends with one short line.</li>
+    <li data-k="5"><b>Pause the watch.</b> In an interactive session (any session where you answer in its chat, batch group sessions included), the agent unsubscribes from the PR's activity and schedules a <code>send_later</code> check-in about 50 minutes later. A check-in acts on a CI result or your answer as if subscribed; if neither has come, it schedules the next one about 4 hours later, and stops after 3 check-ins in a row that found nothing new.</li>
+    <li data-k="6"><b>You answer.</b> The agent cancels the pending check-in, subscribes to the PR again and checks its state through <code>pr-digest</code>, since events missed while unsubscribed aren't replayed. It also cancels the check-in when the PR is merged or closed, or a new question replaces the old one. The watch-the-PR line in "Branches and PRs" now says a check-in watches while a question waits.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">③ The build-verify agent builds</div>
   <ol class="steps" start="7" style="counter-reset: s 6">
-    <li data-k="7"><b>Hide outputs.</b> Before building in a cloud container, where the Stop hook runs, <code>.claude/agents/build-verify.md</code> step 0 appends each build output path to the clone's exclude file (<code>git rev-parse --git-path info/exclude</code>, which also works in a linked worktree), unless that exact line is already there: <code>/dist/</code>, <code>/ar-lib</code>, the policy file, the thunarx ABI-check files, and the <code>debian/</code> build files, with one folder per package in <code>debian/control</code>. A cloud build outside build-verify runs step 0 first ("Building" in CLAUDE.md).</li>
+    <li data-k="7"><b>Hide outputs.</b> Before building in a cloud container, where the Stop hook runs, <code>.claude/agents/build-verify.md</code> step 0 creates the folder of the clone's exclude file (<code>git rev-parse --git-path info/exclude</code>, which also works in a linked worktree) if needed, then appends each build output path to it, unless that exact line is already there: <code>/dist/</code>, <code>/ar-lib</code>, the policy file, the thunarx ABI-check files, and the <code>debian/</code> build files, with one folder per package in <code>debian/control</code>. A cloud build outside build-verify runs step 0 first ("Building" in CLAUDE.md).</li>
     <li data-k="8"><b>Stop hook quiet.</b> Git no longer lists those files as untracked, so the Stop hook stops re-prompting after every turn.</li>
   </ol>
   </div>
@@ -242,7 +242,7 @@
   <h3 class="sec">A closer look at two choices</h3>
   <div class="grid">
     <div class="card" data-k="c1"><h3>Why .git/info/exclude, not .gitignore</h3><p>A .gitignore change is a code change, so CI would run a full build and verify instead of "No code changed", and it changes ignore rules for everyone. The exclude file is per clone, which is where build-verify runs.</p></div>
-    <div class="card" data-k="c2"><h3>Why a check-in, not silence</h3><p>The PR-watch rule wants something to catch a result while the agent waits. A send_later check-in does that without a wake-up for every event, and is rescheduled until a result or your answer comes.</p></div>
+    <div class="card" data-k="c2"><h3>Why a check-in, not silence</h3><p>The PR-watch rule wants something to catch a result while the agent waits. A send_later check-in does that without a wake-up for every event: after about 50 minutes, then every 4 hours, stopping after 3 that find nothing.</p></div>
   </div>
   </section>
 
@@ -250,14 +250,16 @@
   <h3 class="sec">The new CLAUDE.md lines (shortened)</h3>
 <pre data-k="diff">## Working with the owner
 - … end it with a short multiple-choice "What I need from you" section …,
-<span class="add">  once per question (see below).</span>
-<span class="add">- Don't post a message for a routine event: a CI comment edited with no</span>
-<span class="add">  new result, … Post only for a result (pass or fail), a blocker, a merge,</span>
+<span class="add">  A turn that only waits on a question already asked ends with one short line.</span>
+<span class="add">- Don't post a message for a routine event: a CI comment edited while its</span>
+<span class="add">  check is still running, … end the turn with one short line, never an empty</span>
+<span class="add">  turn … Post only for a result (pass or fail), a blocker, a merge,</span>
 <span class="add">  a new question or a comment from the owner.</span>
 <span class="add">- Ask a pending question once. Repeat it only when the owner asks.</span>
 <span class="add">- While a question waits for the owner in an interactive session,</span>
-<span class="add">  unsubscribe from the PR's activity and schedule one send_later check-in …;</span>
-<span class="add">  if neither has come, schedule the next check-in.</span>
+<span class="add">  unsubscribe from the PR's activity and schedule a send_later check-in …</span>
+<span class="add">  about 50 minutes later … then about 4 hours later, and stop after 3</span>
+<span class="add">  check-ins in a row that found nothing new. Cancel the pending check-in …</span>
 ## Building
 <span class="add">- In a cloud container, a build run outside build-verify first runs its step 0 …</span></pre>
   </section>
@@ -298,7 +300,9 @@ explainers/97-quiet-ci-events.narration.json  # its narration</pre>
     <tr data-k="c5"><td>CI build and verify</td><td>CI run 43093403082 on head 957953d: both ran "No code changed" and skipped their steps</td><td class="ok">pass</td></tr>
     <tr data-k="c6"><td>CI code review, first push</td><td>CI run 43093403082 on head 957953d, level high</td><td class="ok">9 found, 8 fixed</td></tr>
     <tr data-k="c8"><td>CI explainer job, first push</td><td>CI run 43093403082: this page wasn't pushed yet</td><td class="no">failed</td></tr>
-    <tr data-k="c9"><td>CI code review of the fix push</td><td>Runs on the review round 1 push</td><td class="open">pending</td></tr>
+    <tr data-k="c9"><td>CI code review, second push</td><td>CI run 43094459893 on head 26e6fb4, level high</td><td class="ok">R1 resolved, 9 new</td></tr>
+    <tr data-k="c10"><td>CI build, verify and explainer, second push</td><td>CI run 43094459893: build and verify ran "No code changed"; the explainer job ran its steps</td><td class="ok">pass</td></tr>
+    <tr data-k="c11"><td>CI code review of the round 2 push</td><td>Runs on the review round 2 push</td><td class="open">pending</td></tr>
     <tr data-k="c7"><td>This page</td><td><code>explainer-proof.sh render</code> and <code>make-video.py status</code>, run by the explainer subagent</td><td class="ok">rendered, stamped</td></tr>
   </table>
   </div>
@@ -312,14 +316,17 @@ explainers/97-quiet-ci-events.narration.json  # its narration</pre>
     <li data-k="b2"><b>Contradicting lines (2, medium):</b> the old "What I need from you" and "watch without asking" lines said the opposite of the new rules. Both now point to them.</li>
     <li data-k="b3"><b>Wording (3, low):</b> a vague "safety net", an undefined "interactive session" and an unanchored <code>dist/</code>. Reworded, defined, and anchored as <code>/dist/</code>.</li>
     <li data-k="b4"><b>Dead entry (low):</b> <code>debian/*.debhelper.log</code> matched nothing, so it was removed.</li>
-    <li data-k="b5"><b>Check-in delay (partly addressed):</b> no <code>send_later</code> delay is named. The check-in now acts only on a result or your answer; the delay is left to the agent.</li>
+    <li data-k="b5"><b>Check-in delay (partly addressed):</b> no <code>send_later</code> delay is named. Round 1 left the delay to the agent; CI's R10 later led to fixed delays.</li>
   </ul>
-  <p data-k="ci">CI's review of the first push (run 43093403082, level high) found 9 more. One fix commit (review round 1) fixed R1 to R8; R9 was left as is. Every finding is in the <a href="https://github.com/alexhu98/thunar/pull/98#issuecomment-6806078372">code review comment</a> on PR #98.</p>
+  <p data-k="ci">CI's review of the first push (run 43093403082, level high) found 9 more. One fix commit (review round 1) fixed R1 to R8. Its review of the second push (run 43094459893) resolved R1, kept R2 open and found R10 to R18. Review round 2 fixed R2, R9 and R10 to R16; R17 and R18 were accepted. Every finding is in the <a href="https://github.com/alexhu98/thunar/pull/98#issuecomment-6806078372">code review comment</a> on PR #98.</p>
   <ul class="tight">
-    <li data-k="r1"><b>R1, R2 (medium, confirmed):</b> the one check-in was never rescheduled, and resubscribing didn't look for events missed meanwhile. Now the check-in is rescheduled until a result or your answer comes, and the agent checks the PR's state when it subscribes again.</li>
-    <li data-k="r3"><b>R3 to R5 (low):</b> "CI comment edited" was too broad, since CI edits its comments to report results; your comments weren't on the post-worthy list; "Read it" clashed with the pr-digest rule. Now it says "with no new result", your comment is post-worthy, and CI comments are still read only through pr-digest.</li>
+    <li data-k="r1"><b>R1, R2 (medium, confirmed):</b> the one check-in was never rescheduled, and resubscribing didn't look for events missed meanwhile. Round 1 fixed both; CI resolved R1 and kept R2 open, and round 2 closed it by checking the PR through pr-digest after resubscribing.</li>
+    <li data-k="r3"><b>R3 to R5 (low):</b> "CI comment edited" was too broad, since CI edits its comments to report results; your comments weren't on the post-worthy list; "Read it" clashed with the pr-digest rule. Round 1 said "with no new result" (reworded again for R13), made your comment post-worthy, and CI comments are still read only through pr-digest.</li>
     <li data-k="r6"><b>R6 to R8 (low):</b> a hard-coded .git/info/exclude breaks in a linked worktree, hand builds weren't covered, and step 0 would edit your own machine's clone. Step 0 now asks git for the path, runs only in a cloud container, and CLAUDE.md's "Building" runs it before a hand build there.</li>
-    <li data-k="r9"><b>R9 (low), not changed:</b> it said the exclusion step is unrelated to #97, but the issue itself asks build-verify to add the exclusions.</li>
+    <li data-k="r9"><b>R9 (low):</b> it said the exclusion step is unrelated to #97, but the issue itself asks build-verify to add the exclusions. Round 2 names #97 in step 0 to make that plain.</li>
+    <li data-k="r10"><b>R10 to R12 (medium, R10 confirmed):</b> check-ins were rescheduled with no delay or limit, a pending check-in was never cancelled, and the watch-the-PR line conflicted with the new rule. Now: about 50 minutes, then about 4 hours, stopping after 3 empty ones; cancelled on your answer, a merge or close, or a replacing question; and the watch line names the check-in.</li>
+    <li data-k="r13"><b>R13 to R16 (low):</b> judging an edit as routine meant reading the comment, "at most" allowed an empty turn, "once per question" clashed with the closing-block line, and the info/ folder might not exist. Now a routine edit is one made while its check still runs, every quiet turn is one short line, a waiting turn ends with one short line, and step 0 runs mkdir -p first.</li>
+    <li data-k="r17"><b>R17, R18 (low), accepted:</b> closed with a Review-accept trailer, per CLAUDE.md's rule for later-review lows that aren't confirmed. The output list covers what the build makes today, and a new output only brings back the hook prompt. The Verify sandbox recipe runs through build-verify, which runs step 0.</li>
   </ul>
   </section>
 
