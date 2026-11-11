@@ -3565,6 +3565,11 @@ thunar_window_open_pane_tabs (ThunarWindow *window,
 
       if (pane == 0)
         thunar_window_set_current_directory (window, panes[pane]->data);
+      else if (thunar_window_split_view_is_active (window))
+        {
+          thunar_window_paned_notebooks_switch (window);
+          thunar_window_set_current_directory (window, panes[pane]->data);
+        }
       else
         {
           thunar_window_split_view_add (window, panes[pane]->data);

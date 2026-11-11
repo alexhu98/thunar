@@ -99,19 +99,20 @@ static const GOptionEntry option_entries[] =
 
 typedef struct
 {
-  ThunarApplication       *application;
-  GApplicationCommandLine *command_line;
-  gchar                   *working_directory;
-  gchar                  **filenames[2];
-  gchar                   *name;
-  GList                   *directories[2];
-  gboolean                 left_given;
-  gboolean                 right_given;
-  gboolean                 in_handler;
-  gboolean                 done;
-  gboolean                 failed;
-  guint                    pane;
-  guint                    index;
+  ThunarFile *file;
+  gchar      *name;
+} ThunarApplicationTab;
+
+typedef struct
+{
+  ThunarApplication *application;
+  gchar             *working_directory;
+  GList             *tabs[2];
+  GList             *next;
+  GList             *poking;
+  guint              pane;
+  gboolean           left_given;
+  gboolean           right_given;
 } ThunarApplicationTabs;
 
 /* Prototype for the Thunar job launchers */
@@ -616,33 +617,14 @@ thunar_application_file_for_filename (const gchar *working_directory,
 
 
 static void
-thunar_application_tabs_error (ThunarApplicationTabs *tabs,
-                               GError                *error,
-                               const gchar           *name)
+thunar_application_tab_free (gpointer data)
 {
-  gchar *message;
+  ThunarApplicationTab *tab = data;
 
-  thunar_dialogs_show_error (NULL, error, _("Failed to open \"%s\""), name);
-  tabs->failed = TRUE;
-  if (tabs->command_line == NULL)
-    return;
-
-  message = g_strdup_printf (_("Failed to open \"%s\": %s"), name, error->message);
-  g_application_command_line_printerr (tabs->command_line, "Thunar: %s\n", message);
-  g_free (message);
-}
-
-
-
-static void
-thunar_application_tabs_free (ThunarApplicationTabs *tabs)
-{
-  g_free (tabs->name);
-  g_free (tabs->working_directory);
-  g_strfreev (tabs->filenames[0]);
-  g_strfreev (tabs->filenames[1]);
-  g_application_release (G_APPLICATION (tabs->application));
-  g_slice_free (ThunarApplicationTabs, tabs);
+  if (tab->file != NULL)
+    g_object_unref (tab->file);
+  g_free (tab->name);
+  g_slice_free (ThunarApplicationTab, tab);
 }
 
 
@@ -655,15 +637,17 @@ thunar_application_tabs_poked (ThunarBrowser *browser,
                                gpointer       user_data)
 {
   ThunarApplicationTabs *tabs = user_data;
+  ThunarApplicationTab  *tab = tabs->poking->data;
   GError                *not_directory = NULL;
 
   if (error == NULL && !thunar_file_is_directory (target_file))
     error = not_directory = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_NOT_DIRECTORY, g_strerror (ENOTDIR));
 
+  g_clear_object (&tab->file);
   if (error == NULL)
-    tabs->directories[tabs->pane] = g_list_append (tabs->directories[tabs->pane], g_object_ref (target_file));
+    tab->file = g_object_ref (target_file);
   else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
-    thunar_application_tabs_error (tabs, error, tabs->name);
+    thunar_dialogs_show_error (NULL, error, _("Failed to open \"%s\""), tab->name);
 
   g_clear_error (&not_directory);
   thunar_application_tabs_next (tabs);
@@ -671,39 +655,54 @@ thunar_application_tabs_poked (ThunarBrowser *browser,
 
 
 
+static GList *
+thunar_application_tabs_directories (GList *tabs)
+{
+  GList *directories = NULL;
+
+  for (GList *lp = tabs; lp != NULL; lp = lp->next)
+    {
+      ThunarApplicationTab *tab = lp->data;
+      if (tab->file != NULL)
+        directories = g_list_append (directories, g_object_ref (tab->file));
+    }
+
+  return directories;
+}
+
+
+
 static void
 thunar_application_tabs_next (ThunarApplicationTabs *tabs)
 {
-  ThunarFile *file;
-  ThunarFile *current_directory;
-  GList      *left;
-  GList      *right;
-  GtkWidget  *window;
-  GError     *error = NULL;
+  ThunarApplicationTab *tab;
+  ThunarFile           *current_directory;
+  GList                *left;
+  GList                *right;
+  GtkWidget            *window;
 
-  for (; tabs->pane < G_N_ELEMENTS (tabs->filenames); tabs->pane++, tabs->index = 0)
+  while (tabs->pane < G_N_ELEMENTS (tabs->tabs))
     {
-      while (tabs->filenames[tabs->pane] != NULL && tabs->filenames[tabs->pane][tabs->index] != NULL)
+      if (tabs->next == NULL)
         {
-          g_free (tabs->name);
-          tabs->name = g_strdup (tabs->filenames[tabs->pane][tabs->index++]);
-          file = thunar_application_file_for_filename (tabs->working_directory, tabs->name, &error);
-          if (file == NULL)
-            {
-              thunar_application_tabs_error (tabs, error, tabs->name);
-              g_clear_error (&error);
-              continue;
-            }
+          if (++tabs->pane < G_N_ELEMENTS (tabs->tabs))
+            tabs->next = tabs->tabs[tabs->pane];
+          continue;
+        }
 
-          thunar_browser_poke_file (THUNAR_BROWSER (tabs->application), file, NULL, thunar_application_tabs_poked, tabs);
-          g_object_unref (file);
+      tabs->poking = tabs->next;
+      tabs->next = tabs->next->next;
+      tab = tabs->poking->data;
+      if (!thunar_file_is_mounted (tab->file))
+        {
+          thunar_browser_poke_file (THUNAR_BROWSER (tabs->application), tab->file, NULL, thunar_application_tabs_poked, tabs);
           return;
         }
     }
 
-  left = tabs->directories[0];
-  right = tabs->directories[1];
-  if (left == NULL && (right != NULL || (!tabs->left_given && !tabs->right_given)))
+  left = thunar_application_tabs_directories (tabs->tabs[0]);
+  right = thunar_application_tabs_directories (tabs->tabs[1]);
+  if (left == NULL && tabs->working_directory != NULL && (right != NULL || (!tabs->left_given && !tabs->right_given)))
     {
       current_directory = thunar_file_get_for_uri (tabs->working_directory, NULL);
       if (current_directory != NULL)
@@ -718,11 +717,11 @@ thunar_application_tabs_next (ThunarApplicationTabs *tabs)
 
   thunar_g_list_free_full (left);
   thunar_g_list_free_full (right);
-
-  if (tabs->in_handler)
-    tabs->done = TRUE;
-  else
-    thunar_application_tabs_free (tabs);
+  g_list_free_full (tabs->tabs[0], thunar_application_tab_free);
+  g_list_free_full (tabs->tabs[1], thunar_application_tab_free);
+  g_free (tabs->working_directory);
+  g_application_release (G_APPLICATION (tabs->application));
+  g_slice_free (ThunarApplicationTabs, tabs);
 }
 
 
@@ -735,30 +734,50 @@ thunar_application_open_tabs (ThunarApplication       *application,
                               gchar                  **right_filenames)
 {
   ThunarApplicationTabs *tabs = g_slice_new0 (ThunarApplicationTabs);
-  gboolean               failed;
+  ThunarApplicationTab  *tab;
+  gchar                **filenames[2] = { left_filenames, right_filenames };
+  ThunarFile            *file;
+  GError                *error = NULL;
+  gboolean               succeeded = TRUE;
 
   tabs->application = application;
-  tabs->command_line = command_line;
   tabs->working_directory = g_strdup (working_directory);
-  tabs->filenames[0] = g_strdupv (left_filenames);
-  tabs->filenames[1] = g_strdupv (right_filenames);
   tabs->left_given = left_filenames != NULL;
   tabs->right_given = right_filenames != NULL;
-  tabs->in_handler = TRUE;
 
+  for (guint pane = 0; pane < G_N_ELEMENTS (filenames); pane++)
+    for (guint n = 0; filenames[pane] != NULL && filenames[pane][n] != NULL; n++)
+      {
+        file = working_directory != NULL ? thunar_application_file_for_filename (working_directory, filenames[pane][n], &error)
+                                         : thunar_file_get_for_uri (filenames[pane][n], &error);
+        if (file != NULL && thunar_file_is_mounted (file) && !thunar_file_is_directory (file))
+          {
+            g_set_error_literal (&error, G_IO_ERROR, G_IO_ERROR_NOT_DIRECTORY, g_strerror (ENOTDIR));
+            g_clear_object (&file);
+          }
+
+        if (file == NULL)
+          {
+            gchar *message = g_strdup_printf (_("Failed to open \"%s\": %s"), filenames[pane][n], error->message);
+            thunar_dialogs_show_error (NULL, error, _("Failed to open \"%s\""), filenames[pane][n]);
+            g_application_command_line_printerr (command_line, "Thunar: %s\n", message);
+            g_free (message);
+            g_clear_error (&error);
+            succeeded = FALSE;
+            continue;
+          }
+
+        tab = g_slice_new0 (ThunarApplicationTab);
+        tab->file = file;
+        tab->name = g_strdup (filenames[pane][n]);
+        tabs->tabs[pane] = g_list_append (tabs->tabs[pane], tab);
+      }
+
+  tabs->next = tabs->tabs[0];
   g_application_hold (G_APPLICATION (application));
   thunar_application_tabs_next (tabs);
 
-  failed = tabs->failed;
-  if (tabs->done)
-    thunar_application_tabs_free (tabs);
-  else
-    {
-      tabs->in_handler = FALSE;
-      tabs->command_line = NULL;
-    }
-
-  return !failed;
+  return succeeded;
 }
 
 
