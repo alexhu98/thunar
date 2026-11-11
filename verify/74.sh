@@ -22,7 +22,9 @@ clear_selection() {
 
 select_one() {
   clear_selection
-  xdotool key Home Down Down
+  xdotool key ctrl+a
+  sleep 0.3
+  xdotool key Home Down
   sleep 1
 }
 
@@ -100,7 +102,9 @@ kill -0 "$THUNAR_PID" 2>/dev/null || fail "Thunar quit after selecting a file in
 
 go "$DIR" files
 clear_selection
-xdotool key --delay 15 Home Down Down Down Down Up Down Up
+xdotool key ctrl+a
+sleep 0.3
+xdotool key --delay 15 Home Down Down Down Up Down Up
 sleep 3
 shot "$WID" status-rapid "After quick selection changes ending on b.bin: \"b.bin\" | 2.0 MiB | its type | Total: … | Free space: …, nothing from an earlier selection"
 kill -0 "$THUNAR_PID" 2>/dev/null || fail "Thunar is no longer running"
