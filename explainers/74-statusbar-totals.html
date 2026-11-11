@@ -297,6 +297,7 @@ explainers/74-statusbar-totals.narration.json  # its narration</pre>
     <tr data-k="c6"><td>Your own session</td><td>Needs your machine and your settings</td><td class="no">not run</td></tr>
   </table>
   </div>
+  <div class="note warn" data-k="code-after">The code changed after this local run: the 10 of 10 run and the shot audit were on the code before CI's review fixes (R1 to R3, R5, R7, R9). CI's verify runs on the final code.</div>
   </section>
 
   <section class="sub" id="review">
@@ -308,7 +309,12 @@ explainers/74-statusbar-totals.narration.json  # its narration</pre>
     <li data-k="b3"><b>Kept, low:</b> each selection change counts the folder again for Total. That is the same work the nothing-selected text does today, and it runs in the background job.</li>
     <li data-k="b4"><b>Kept, low:</b> the search size is summed on the window's thread. It reads sizes already loaded, with no disk access, as the issue asks.</li>
   </ul>
-  <p data-k="ci-review">CI's own review runs after the push and lists its findings in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/94">PR #94</a>.</p>
+  <p data-k="ci-review">CI's own review (<a href="https://github.com/alexhu98/thunar/actions/runs/43084296657">run 43084296657</a>, level high, on head 960d5f2) found 9 things, R1 to R9, listed in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/94">PR #94</a>.</p>
+  <ul class="tight">
+    <li data-k="ci1"><b>Fixed by CI's commit 60e3568:</b> R1 (medium), the search's cached free space kept its old units when the binary or decimal size setting changed; R2 (low), an empty one-file text got a leading separator; R3 (low), an extra reference to the folder's file.</li>
+    <li data-k="ci2"><b>Fixed in this session's commit:</b> R7, counting for Total now stops when the job is cancelled; R9, a folder without a matching file no longer drops the selection job; R5 in part, the Total pass no longer reads modification times, though the selected files are still read once more for Selection.</li>
+    <li data-k="ci3"><b>Open, for your decision:</b> R4, a search keeps its own free space query beside the job's, where the issue asks for one per search; R6, verify/74.sh can't read the status bar text, so the shots and /visual-verify are the proof; R8, the search size walks the results on the window's thread, as the issue asked, with no disk access.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -316,7 +322,7 @@ explainers/74-statusbar-totals.narration.json  # its narration</pre>
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI build, verify and review</td><td>CI runs on the PR's commits; its runs on PR #94 are still pending</td><td class="open">pending on PR #94</td></tr>
+    <tr data-k="a1"><td>CI build and verify on the final code</td><td>CI runs on the PR's commits; its runs on PR #94's latest head are still pending</td><td class="open">pending on PR #94</td></tr>
     <tr data-k="a2"><td>CI's shots show what they claim</td><td><code>/visual-verify pr:94</code> needs CI's shots on the shots branch</td><td class="open">after CI's verify</td></tr>
     <tr data-k="a3"><td>Your own folders and drives</td><td>A network mount or your own setting of the property only exist on your machine</td><td class="open">after the merge</td></tr>
   </table>
