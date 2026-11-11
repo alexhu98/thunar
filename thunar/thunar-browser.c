@@ -250,7 +250,7 @@ thunar_browser_poke_mountable_finish (GObject      *object,
         }
     }
 
-  if (error == NULL && !thunar_file_reload (poke_data->file))
+  if (error == NULL && !thunar_file_reload_with_error (poke_data->file, &error) && error == NULL)
     g_set_error_literal (&error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, g_strerror (ENOENT));
 
   if (error == NULL)
@@ -314,7 +314,7 @@ thunar_browser_poke_file_finish (GObject      *object,
         }
     }
 
-  if (error == NULL && !thunar_file_reload (poke_data->file))
+  if (error == NULL && !thunar_file_reload_with_error (poke_data->file, &error) && error == NULL)
     g_set_error_literal (&error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, g_strerror (ENOENT));
 
   if (poke_data->location_func != NULL)

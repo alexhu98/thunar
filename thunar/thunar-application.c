@@ -99,21 +99,20 @@ static const GOptionEntry option_entries[] =
 
 typedef struct
 {
-  ThunarFile *file;
-  gchar      *name;
-} ThunarApplicationTab;
-
-typedef struct
-{
   ThunarApplication *application;
   gchar             *working_directory;
   GList             *tabs[2];
-  GList             *next;
-  GList             *poking;
-  guint              pane;
+  guint              pending;
   gboolean           left_given;
   gboolean           right_given;
 } ThunarApplicationTabs;
+
+typedef struct
+{
+  ThunarApplicationTabs *tabs;
+  ThunarFile            *file;
+  gchar                 *name;
+} ThunarApplicationTab;
 
 /* Prototype for the Thunar job launchers */
 typedef ThunarJob *(*Launcher) (GList *source_path_list,
@@ -170,7 +169,7 @@ static int
 thunar_application_handle_local_options (GApplication *application,
                                          GVariantDict *options);
 static void
-thunar_application_tabs_next (ThunarApplicationTabs *tabs);
+thunar_application_tabs_done (ThunarApplicationTabs *tabs);
 static int
 thunar_application_command_line (GApplication            *application,
                                  GApplicationCommandLine *command_line);
@@ -642,9 +641,8 @@ thunar_application_tabs_poked (ThunarBrowser *browser,
                                GError        *error,
                                gpointer       user_data)
 {
-  ThunarApplicationTabs *tabs = user_data;
-  ThunarApplicationTab  *tab = tabs->poking->data;
-  GError                *not_directory = NULL;
+  ThunarApplicationTab *tab = user_data;
+  GError               *not_directory = NULL;
 
   if (error == NULL && !thunar_file_is_directory (target_file))
     error = not_directory = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_NOT_DIRECTORY, g_strerror (ENOTDIR));
@@ -656,7 +654,7 @@ thunar_application_tabs_poked (ThunarBrowser *browser,
     thunar_dialogs_show_error (NULL, error, _("Failed to open \"%s\""), tab->name);
 
   g_clear_error (&not_directory);
-  thunar_application_tabs_next (tabs);
+  thunar_application_tabs_done (tab->tabs);
 }
 
 
@@ -689,32 +687,15 @@ thunar_application_tabs_directories (GList *tabs)
 
 
 static void
-thunar_application_tabs_next (ThunarApplicationTabs *tabs)
+thunar_application_tabs_done (ThunarApplicationTabs *tabs)
 {
-  ThunarApplicationTab *tab;
-  ThunarFile           *current_directory;
-  GList                *left;
-  GList                *right;
-  GtkWidget            *window;
+  ThunarFile *current_directory;
+  GList      *left;
+  GList      *right;
+  GtkWidget  *window;
 
-  while (tabs->pane < G_N_ELEMENTS (tabs->tabs))
-    {
-      if (tabs->next == NULL)
-        {
-          if (++tabs->pane < G_N_ELEMENTS (tabs->tabs))
-            tabs->next = tabs->tabs[tabs->pane];
-          continue;
-        }
-
-      tabs->poking = tabs->next;
-      tabs->next = tabs->next->next;
-      tab = tabs->poking->data;
-      if (thunar_application_tab_needs_poke (tab->file))
-        {
-          thunar_browser_poke_file (THUNAR_BROWSER (tabs->application), tab->file, NULL, thunar_application_tabs_poked, tabs);
-          return;
-        }
-    }
+  if (--tabs->pending > 0)
+    return;
 
   left = thunar_application_tabs_directories (tabs->tabs[0]);
   right = thunar_application_tabs_directories (tabs->tabs[1]);
@@ -783,14 +764,25 @@ thunar_application_open_tabs (ThunarApplication       *application,
           }
 
         tab = g_slice_new0 (ThunarApplicationTab);
+        tab->tabs = tabs;
         tab->file = file;
         tab->name = g_strdup (filenames[pane][n]);
         tabs->tabs[pane] = g_list_append (tabs->tabs[pane], tab);
       }
 
-  tabs->next = tabs->tabs[0];
   g_application_hold (G_APPLICATION (application));
-  thunar_application_tabs_next (tabs);
+  tabs->pending = 1;
+  for (guint pane = 0; pane < G_N_ELEMENTS (tabs->tabs); pane++)
+    for (GList *lp = tabs->tabs[pane]; lp != NULL; lp = lp->next)
+      {
+        tab = lp->data;
+        if (!thunar_application_tab_needs_poke (tab->file))
+          continue;
+
+        tabs->pending++;
+        thunar_browser_poke_file (THUNAR_BROWSER (application), tab->file, NULL, thunar_application_tabs_poked, tab);
+      }
+  thunar_application_tabs_done (tabs);
 
   return succeeded;
 }
