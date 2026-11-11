@@ -114,7 +114,7 @@
   <section class="part" id="adds">
   <p class="part-label" data-k="label">Part 1</p>
   <h2 data-k="heading">What this PR adds</h2>
-  <p class="intro" data-k="intro">Two new options, <code>-t</code>/<code>--tabs</code> and <code>-T</code>/<code>--tabs-right</code>, in <code>thunar/thunar-application.c</code>, and one new window function in <code>thunar/thunar-window.c</code> that fills both panes with tabs. <code>thunar/main.c</code> now passes on Thunar's exit status, and <code>thunar/thunar-browser.c</code> now reports a location that vanishes while it is mounted. <code>verify/4.sh</code> tests them.</p>
+  <p class="intro" data-k="intro">Two new options, <code>-t</code>/<code>--tabs</code> and <code>-T</code>/<code>--tabs-right</code>, in <code>thunar/thunar-application.c</code>, and one new window function in <code>thunar/thunar-window.c</code> that fills both panes with tabs. <code>thunar/main.c</code> now passes on Thunar's exit status, and <code>thunar/thunar-browser.c</code>, with a new reload in <code>thunar/thunar-file.c</code>, now reports why a location failed after it was mounted. <code>verify/4.sh</code> tests them.</p>
 
   <section class="sub" id="flow">
   <div class="diagram" role="img" aria-label="Your thunar command splits its arguments at -T, hands them to the running Thunar, which checks each folder, mounts the ones that need it, opens a new window, fills both panes and focuses the left one">
@@ -167,9 +167,9 @@
     <g data-k="5">
       <rect class="box-pr" x="770" y="260" width="210" height="120" rx="10"/>
       <text x="786" y="290" class="t">Check, mount</text>
-      <text x="786" y="314" class="b">each one, in order;</text>
-      <text x="786" y="334" class="b">bad: dialog, exit 1;</text>
-      <text x="786" y="354" class="b">then mount if needed</text>
+      <text x="786" y="314" class="b">bad: dialog, exit 1;</text>
+      <text x="786" y="334" class="b">mounted: in parallel;</text>
+      <text x="786" y="354" class="b">others: one at a time</text>
       <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
     </g>
     <g data-k="6">
@@ -226,7 +226,7 @@
   <div class="lane-h" style="color:var(--accent)">② The running Thunar</div>
   <ol class="steps" start="4" style="counter-reset: s 3">
     <li data-k="4"><b>Read options.</b> <code>thunar_application_command_line</code> reads <code>tabs</code>, <code>tabs-right</code> and the <code>tabs-right-uri</code> list next to the usual folder list. Without <code>-t</code> or <code>-T</code>, nothing changes.</li>
-    <li data-k="5"><b>Check, mount.</b> While your command is still connected, <code>thunar_application_open_tabs</code> turns every name into a location, in the order you typed them, through <code>thunar_application_file_for_filename</code>, which plain <code>thunar</code> folders now use too. A missing location, a file that isn't a folder ("Not a directory"), or a relative name when no working directory came with the command gets Thunar's usual "Failed to open" dialog and a line on stderr, and the command exits with status 1; the other folders still open. Then the locations that aren't mounted, aren't local, or are shortcuts or mountables are mounted or resolved with <code>thunar_browser_poke_file</code>, one at a time, the way plain <code>thunar</code> does, so an <code>sftp://</code> location that isn't connected yet works. A failure at that stage shows only the dialog, exactly as plain <code>thunar</code> does, so your command isn't kept waiting for a mount or a password prompt. Only then does the window open. When every location fails, nothing opens; but if only the left ones all fail and right ones open, the left pane gets the current directory. With <code>-T</code> and nothing before it, the left pane gets the current directory too.</li>
+    <li data-k="5"><b>Check, mount.</b> While your command is still connected, <code>thunar_application_open_tabs</code> turns every name into a location, in the order you typed them, through <code>thunar_application_file_for_filename</code>, which plain <code>thunar</code> folders now use too. A missing location, a file that isn't a folder ("Not a directory"), or a relative name when no working directory came with the command gets Thunar's usual "Failed to open" dialog and a line on stderr, and the command exits with status 1; the other folders still open. Then the locations that aren't mounted, aren't local, or are shortcuts or mountables are checked, mounted or resolved with <code>thunar_browser_poke_file</code>, the way plain <code>thunar</code> does, so an <code>sftp://</code> location that isn't connected yet works. Those already mounted are checked in parallel. The rest, which may mount something (not mounted, a shortcut or a mountable), wait in a queue and go one at a time, so Thunar never mounts two things at once and never asks for the same password twice. A failure at that stage shows only the dialog, exactly as plain <code>thunar</code> does, so your command isn't kept waiting for a mount or a password prompt. The window opens only once every check is done. When every location fails, nothing opens; but if only the left ones all fail and right ones open, the left pane gets the current directory. With <code>-T</code> and nothing before it, the left pane gets the current directory too.</li>
     <li data-k="6"><b>New window.</b> It calls <code>thunar_application_open_window (…, TRUE)</code>, the same forced new window as <code>-w</code>, so it never adds tabs to an existing window, even with "Open new windows as tabs" on. It also skips restoring the last session's tabs.</li>
     <li data-k="7"><b>Fill both panes.</b> A new <code>thunar_window_open_pane_tabs</code> in <code>thunar-window.c</code> opens the left folders as tabs, turns split view on only when there are right folders (and off for <code>-t</code> alone, even with "always enable split view" on), then opens the right folders as tabs in the right pane. Thunar's split view toggle was split into <code>thunar_window_split_view_add</code> and <code>thunar_window_split_view_update_toggle</code>, so the right pane's first tab opens straight on its folder instead of first loading the left one. Its Back history still comes from the left pane, as with F3 and Ctrl+T.</li>
     <li data-k="8"><b>First tab, left.</b> Thunar normally selects the last tab opened, so it selects tab 1 in each pane explicitly and switches back to the left pane, which gets the keyboard focus.</li>
@@ -258,17 +258,20 @@
 ├── main.c                 # returns g_application_run's exit status
 ├── thunar-application.c   # the two options, the hidden right-pane list, the split
 │                          #   at -T, checking every location in the handler,
-│                          #   then mounting the ones that need it, the
-│                          #   new-window path, the shared file lookup
-├── thunar-browser.c       # a location gone after its mount is now reported
-│                          #   as "not found" instead of silently dropped
+│                          #   then mounting the ones that need it, one at a
+│                          #   time, the new-window path, the shared file lookup
+├── thunar-browser.c       # a failed reload after a mount is now reported
+│                          #   with its real reason instead of silently dropped
+├── thunar-file.c          # thunar_file_reload_with_error: a reload that
+│                          #   returns its error; thunar_file_reload calls it
+├── thunar-file.h          # its declaration
 ├── thunar-window.c        # thunar_window_open_pane_tabs: fills both panes;
 │                          #   the split view toggle split into add and update
 └── thunar-window.h        # its declaration
 verify/4.sh                # the test: layouts, edge cases, exit status, --help
 explainers/4-tabs-options.html            # this page
 explainers/4-tabs-options.narration.json  # its narration</pre>
-  <div class="note warn" data-k="browser">Outside the tabs feature: <code>thunar_browser_poke_file</code> and <code>thunar_browser_poke_mountable</code> are used all over Thunar. When a location can't be reloaded after it is mounted, they now call back with a "not found" error; before, they called nothing. Every caller now gets that error where it used to get no answer.</div>
+  <div class="note warn" data-k="browser">Outside the tabs feature: <code>thunar_browser_poke_file</code> and <code>thunar_browser_poke_mountable</code> are used all over Thunar. When a location can't be reloaded after it is mounted, they now call back with the real reason, such as permission denied or a timeout, falling back to "not found"; before, they called nothing. Every caller now gets that error where it used to get no answer.</div>
   <div class="note" data-k="undo">To undo it, revert this PR. Nothing is stored in settings: the options only shape the one window they open.</div>
   </section>
   </section>
@@ -293,7 +296,7 @@ explainers/4-tabs-options.narration.json  # its narration</pre>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr data-k="c1"><td>Builds without new warnings</td><td><code>dpkg-buildpackage</code> from 11f98a2 (this session's build-verify agent), the head before CI's own fix commit 6c81c95, which was not built locally</td><td class="ok">built, 0 new warnings</td></tr>
+    <tr data-k="c1"><td>Builds without new warnings</td><td><code>dpkg-buildpackage</code> from the latest head be114e1 (this session's build-verify agent), checking gcc's warnings in the changed files</td><td class="ok">built, 0 warnings in changed files</td></tr>
     <tr data-k="c2"><td>Nothing else broke</td><td><code>verify-proof.sh install</code> and <code>run</code> on that build: the smoke test and every <code>verify/*.sh</code>, each under its own Xvfb (local run, not CI)</td><td class="ok">smoke + 10 of 10 pass</td></tr>
     <tr data-k="c3"><td>The issue's example, no Thunar running</td><td><code>verify/4.sh</code>: <code>-t alpha beta -T gamma delta</code> → 1 window titled alpha; Ctrl+PgDn gives beta, so focus was in the left pane; a click in the right pane gives gamma, Ctrl+PgDn delta</td><td class="ok">pass</td></tr>
     <tr data-k="c4"><td>Thunar running, new windows as tabs on</td><td>Same script: <code>--tabs … --tabs-right …</code> with <code>misc-open-new-window-as-tab</code> on → a 2nd window, alpha then beta</td><td class="ok">pass, 2 windows</td></tr>
@@ -302,11 +305,11 @@ explainers/4-tabs-options.narration.json  # its narration</pre>
     <tr data-k="c7"><td>-T with nothing after it</td><td><code>thunar -T</code> → exit status 1, the error on stderr and no new window</td><td class="ok">pass, exits 1</td></tr>
     <tr data-k="c8"><td>A missing folder</td><td><code>-t alpha missing beta</code> → an "Error" dialog; after it is dismissed, a window with alpha and beta</td><td class="ok">pass</td></tr>
     <tr data-k="c9"><td>Help lists both options</td><td><code>thunar --help</code> contains <code>-t, --tabs</code> and <code>-T, --tabs-right</code></td><td class="ok">pass</td></tr>
-    <tr data-k="c10"><td>Test run time</td><td><code>verify/4.sh</code>'s run in the same local run, against its 120 s limit</td><td class="ok">18 s</td></tr>
-    <tr data-k="c11"><td>A file that isn't a folder, a remote location</td><td>Not in <code>verify/4.sh</code>; the "Not a directory" path and the mounting were read in the code, not run</td><td class="no">not run</td></tr>
+    <tr data-k="c10"><td>Test run time</td><td><code>verify/4.sh</code>'s run in the same local run, against its 120 s limit</td><td class="ok">19 s</td></tr>
+    <tr data-k="c11"><td>A file that isn't a folder, a remote location, parallel and queued mounts</td><td>Not in <code>verify/4.sh</code>; the "Not a directory" path, the mounting and its queue were read in the code, not run</td><td class="no">not run</td></tr>
     <tr data-k="c12"><td>Screenshots show what they claim</td><td>A local <code>/visual-verify</code>-style audit by the shot-auditor agent of <code>verify/4.sh</code>'s shots, taken on an earlier build</td><td class="ok">PASS, 9 of 9 shots</td></tr>
     <tr data-k="c15"><td>CI's screenshots of the final head</td><td><code>/visual-verify pr:92</code> on the shots CI takes for the final head</td><td class="open">still to come</td></tr>
-    <tr data-k="c13"><td>CI on the earlier head 46a2d67</td><td>CI's build, verify and review jobs</td><td class="ok">build passed, verify 10 of 10, review passed</td></tr>
+    <tr data-k="c13"><td>CI on the earlier head 439935b</td><td>CI's build, verify and review jobs</td><td class="ok">build passed, verify 10 of 10, review passed</td></tr>
     <tr data-k="c14"><td>CI on the latest head</td><td>CI's build, verify and review jobs</td><td class="no">not finished yet</td></tr>
   </table>
   </div>
@@ -314,7 +317,7 @@ explainers/4-tabs-options.narration.json  # its narration</pre>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">A fresh general-purpose agent, given only the diff and issue #4, reviewed the PR three times in this session. Before the first push it found 6 things: 5 were fixed and 1 was kept on purpose. After CI's first round it found 4: 2 were fixed and 2 kept. After CI's third round it found 4 more, and all 4 were fixed.</p>
+  <p data-k="summary">A fresh general-purpose agent, given only the diff and issue #4, reviewed the PR five times in this session. Before the first push it found 6 things: 5 were fixed and 1 was kept on purpose. After CI's first round it found 4: 2 were fixed and 2 kept. After CI's third round it found 4 more, and all 4 were fixed. After CI's fifth round it found 1, which was fixed, and its review of the latest head, be114e1, found nothing.</p>
   <ul class="tight">
     <li data-k="b1"><b>Test script:</b> a loop in <code>verify/4.sh</code> never ran (a <code>-z</code> test inside arithmetic), a check could never fail and was dropped, and <code>-t</code> alone had no window-count check. All three are fixed.</li>
     <li data-k="b2"><b>Messages:</b> <code>thunar -T --help</code> printed the error instead of help, and the stderr line didn't name the folder. Both are fixed.</li>
@@ -322,16 +325,21 @@ explainers/4-tabs-options.narration.json  # its narration</pre>
     <li data-k="b4"><b>Second review, fixed:</b> right-pane tabs were dropped when every left location failed, and a failed <code>-t</code> location exited 0.</li>
     <li data-k="b5"><b>Second review, kept:</b> <code>main()</code> returning the exit status, which is intended and noted in Part 1, and <code>-t</code> alone turning split view off, as above.</li>
     <li data-k="b6"><b>Third review, fixed (11f98a2):</b> a location that vanished after its mount left Thunar held open with no window; shortcuts and mountables were wrongly rejected as "Not a directory"; a relative name with no working directory wasn't handled; and the wrong tab was selected if split view stayed on.</li>
+    <li data-k="b7"><b>Fourth review, fixed (062dc27):</b> checking locations in parallel could mount one volume twice, so locations that aren't mounted now wait in a queue and mount one at a time.</li>
   </ul>
-  <p data-k="ci-review">CI reviews every code push at level high, and lists every finding in the <a href="https://github.com/alexhu98/thunar/pull/92">code review comment on PR #92</a>. It has reviewed the PR four times, with 33 findings, R1–R33:</p>
+  <p data-k="ci-review">CI reviews every code push at level high, and lists every finding in the <a href="https://github.com/alexhu98/thunar/pull/92">code review comment on PR #92</a>. It has reviewed the PR six times, with 48 findings, R1–R48:</p>
   <ul class="tight">
     <li data-k="ci1"><b>First review, R1–R10, all fixed:</b> the split at <code>-T</code> handles <code>-tT</code>, <code>--sm-client-id</code>'s value, and <code>--help</code> or <code>--version</code> with <code>-T</code>; locations are mounted before the window opens; <code>main.c</code> returns the exit status; the right pane opens straight on its folder; nothing opens when every location fails; and two tidy-ups.</li>
     <li data-k="ci2"><b>Second review (on 216796d), R11–R17:</b> CI fixed them itself in db2b47c, among them a failed <code>-t</code> location still exiting 0, a remote client held until its mount finished, and errors shown out of argument order.</li>
     <li data-k="ci3"><b>Third review (on 46a2d67), R18–R24:</b> fixed by this session in 5e78005, which checks every location in the command-line handler, in argument order, and mounts only the ones that need it.</li>
     <li data-k="ci4"><b>Fourth review (on 11f98a2), R25–R30:</b> CI fixed them itself in 6c81c95. It replaced this session's guard against a location vanishing during its mount with a fix in the shared <code>thunar/thunar-browser.c</code> (see the note in Part 1, which affects every poke caller in Thunar), pokes mounted remote locations again, removed dead code in <code>thunar_window_open_pane_tabs</code>, and moved the no-working-directory check into <code>thunar_application_file_for_filename</code>.</li>
     <li data-k="ci5"><b>Fourth review, R31–R33, accepted:</b> all low and not confirmed. R31 (no working directory and an empty left list drops the right tabs) can't happen, because GApplication always sends a working directory. R32 (a failed mount only shows a dialog) is deliberate: it matches plain <code>thunar</code> and keeps remote commands from waiting. R33 (extra references, the mount check run twice) keeps ownership simple, and checking again is correct because an earlier mount may have mounted that volume.</li>
+    <li data-k="ci6"><b>Fifth review (on 2e62bc4), R34–R40:</b> R34 (a failed reload always said "No such file or directory") and R35 (mounted remote locations checked one after another) were fixed in adb2bce and 062dc27.</li>
+    <li data-k="ci7"><b>Fifth review, R36–R40, kept as they are:</b> all low and not confirmed. R36: a mounted remote location that isn't a folder only gets a dialog. R37 and R38: the shared poke change now calls back with an error where it was silent, which is intended. R39: <code>needs_poke</code> mirrors the browser's own dispatch. R40: tab 0 assumes a new window, which <code>-t</code> always opens.</li>
+    <li data-k="ci8"><b>Sixth review (on 062dc27), R41, R46, R48, fixed in be114e1:</b> shortcuts and mountables could still mount in parallel, so they now join the queue; a prototype was in the wrong place; and <code>needs_poke</code> was worked out twice.</li>
+    <li data-k="ci9"><b>Sixth review, accepted:</b> R42, several failures each show a modal dialog, as plain <code>thunar</code> does. R43, a failed queued mount waits for its dialog before the next starts, as before. R44, the "not found" fallback is almost never used but kept as a safety net. R45, other poke callers can still mount at the same time, which is outside this issue. R47, no doc block on the new function, because this repo adds no new explanatory comments.</li>
   </ul>
-  <p data-k="ci-next">CI's run on the latest head, 6c81c95, hasn't finished yet.</p>  </section>
+  <p data-k="ci-next">CI's run on the latest head, be114e1, hasn't finished yet.</p>  </section>
 
   <section class="sub" id="aftermerge">
   <h3 class="sec">Checked only after the merge</h3>
