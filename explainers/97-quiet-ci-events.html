@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #98 Quiet events</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #98: No messages on routine CI events while you're in the session</h1>
+  <p class="lead" data-k="lead">Branch <code>97-quiet-ci-events</code> → <code>main</code>, closes #97. Once merged, an agent stops replying to every CI event and stops repeating its open question, so the thread stays readable while you're in it.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: the next batch</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">Three new rules in CLAUDE.md's "Working with the owner", two old lines pointed at them, and a new first step in the build-verify agent that hides build outputs from git.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="Routine events get one short line, real news gets a post; a pending question is asked once while the PR watch pauses; build-verify hides build outputs so the Stop hook stays quiet">
+  <svg viewBox="0 0 1000 620" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① A CI event wakes the agent</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Routine event</text>
+      <text x="36" y="114" class="b">edit with no result,</text>
+      <text x="36" y="134" class="b">check still running,</text>
+      <text x="36" y="154" class="b">older head, own echo</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">One short line</text>
+      <text x="286" y="114" class="b">read it, end the turn,</text>
+      <text x="286" y="134" class="b">no repeated</text>
+      <text x="286" y="154" class="b">question block</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Real news: post</text>
+      <text x="536" y="114" class="b">pass/fail, blocker,</text>
+      <text x="536" y="134" class="b">merge, new question,</text>
+      <text x="536" y="154" class="b">or your comment</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M125,180 V204 H625 V184" marker-end="url(#ah-flow)"/>
+    <text x="300" y="222" class="b">not routine</text>
+
+    <text class="lane" x="20" y="264" style="fill:var(--accent)">② A question waits for you</text>
+    <g data-k="4">
+      <rect class="box-pr" x="20" y="280" width="210" height="120" rx="10"/>
+      <text x="36" y="310" class="t">Ask once</text>
+      <text x="36" y="334" class="b">“What I need from you”,</text>
+      <text x="36" y="354" class="b">repeated only when</text>
+      <text x="36" y="374" class="b">you ask for it</text>
+      <circle class="badge" cx="210" cy="302" r="12"/><text class="badge-n" x="210" y="306.5" text-anchor="middle">4</text>
+    </g>
+    <g data-k="5">
+      <rect class="box-pr" x="270" y="280" width="210" height="120" rx="10"/>
+      <text x="286" y="310" class="t">Pause the watch</text>
+      <text x="286" y="334" class="b">unsubscribe from PR,</text>
+      <text x="286" y="354" class="m">send_later</text>
+      <text x="286" y="374" class="b">check-ins until news</text>
+      <circle class="badge" cx="460" cy="302" r="12"/><text class="badge-n" x="460" y="306.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-you" x="520" y="280" width="210" height="120" rx="10"/>
+      <text x="536" y="310" class="t">You answer</text>
+      <text x="536" y="334" class="b">the agent subscribes</text>
+      <text x="536" y="354" class="b">again and checks</text>
+      <text x="536" y="374" class="b">what landed meanwhile</text>
+      <circle class="badge" cx="710" cy="302" r="12"/><text class="badge-n" x="710" y="306.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow" d="M230,340 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,340 H516" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="464" style="fill:var(--merge)">③ The build-verify agent builds</text>
+    <g data-k="7">
+      <rect class="box-merge" x="20" y="480" width="210" height="120" rx="10"/>
+      <text x="36" y="510" class="t">Hide outputs</text>
+      <text x="36" y="534" class="m">.git/info/exclude</text>
+      <text x="36" y="554" class="b">step 0, cloud only:</text>
+      <text x="36" y="574" class="b">debian/, dist/, ABI</text>
+      <circle class="badge" cx="210" cy="502" r="12"/><text class="badge-n" x="210" y="506.5" text-anchor="middle">7</text>
+    </g>
+    <g data-k="8">
+      <rect class="box-merge" x="270" y="480" width="210" height="120" rx="10"/>
+      <text x="286" y="510" class="t">Stop hook quiet</text>
+      <text x="286" y="534" class="b">no "untracked files"</text>
+      <text x="286" y="554" class="b">re-prompt after</text>
+      <text x="286" y="574" class="b">every turn</text>
+      <circle class="badge" cx="460" cy="502" r="12"/><text class="badge-n" x="460" y="506.5" text-anchor="middle">8</text>
+    </g>
+    <path class="arrow" d="M230,540 H266" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>the agent, under the new CLAUDE.md rules</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>the build-verify agent's new step</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">An agent that opens a PR watches it, so every CI event wakes it up. In session 74 (PR #94) each wake-up, and each Stop hook warning about untracked build files, got a reply that repeated the open "What I need from you" question. The thread kept scrolling and you couldn't read the explanation you had asked for. This PR writes down when to stay quiet, so every session follows it.</p>
+  <div class="note" data-k="note">"Quiet" means one short line, not an empty turn: a turn with no text makes the harness ask the agent for a reply, which would wake it again.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① A CI event wakes the agent</div>
+  <ol class="steps">
+    <li data-k="1"><b>Routine event.</b> A PR activity event arrives that changes nothing: a CI comment edited with no new result, a check still running, an event for an older head, or an echo of the agent's own post.</li>
+    <li data-k="2"><b>One short line.</b> The agent reads the event as delivered (CI's comments still only through the <code>pr-digest</code> agent) and ends the turn with one short line at most, without repeating "What I need from you".</li>
+    <li data-k="3"><b>Real news: post.</b> Only a result (pass or fail), a blocker, a merge, a new question or a comment from you gets a real message.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--accent)">② A question waits for you</div>
+  <ol class="steps" start="4" style="counter-reset: s 3">
+    <li data-k="4"><b>Ask once.</b> The "What I need from you" section appears once per question, and is repeated only when you ask for it.</li>
+    <li data-k="5"><b>Pause the watch.</b> In an interactive session (any session where you answer in its chat, batch group sessions included), the agent unsubscribes from the PR's activity and schedules one <code>send_later</code> check-in, so a CI result or your answer isn't missed. The check-in acts only on a result or your answer; if neither has come, it schedules the next check-in.</li>
+    <li data-k="6"><b>You answer.</b> The agent subscribes to the PR again and checks its state for anything that landed meanwhile. The watch-the-PR line in "Branches and PRs" now names this exception.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">③ The build-verify agent builds</div>
+  <ol class="steps" start="7" style="counter-reset: s 6">
+    <li data-k="7"><b>Hide outputs.</b> Before building in a cloud container, where the Stop hook runs, <code>.claude/agents/build-verify.md</code> step 0 appends each build output path to the clone's exclude file (<code>git rev-parse --git-path info/exclude</code>, which also works in a linked worktree), unless that exact line is already there: <code>/dist/</code>, <code>/ar-lib</code>, the policy file, the thunarx ABI-check files, and the <code>debian/</code> build files, with one folder per package in <code>debian/control</code>. A cloud build outside build-verify runs step 0 first ("Building" in CLAUDE.md).</li>
+    <li data-k="8"><b>Stop hook quiet.</b> Git no longer lists those files as untracked, so the Stop hook stops re-prompting after every turn.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="parts">
+  <h3 class="sec">A closer look at two choices</h3>
+  <div class="grid">
+    <div class="card" data-k="c1"><h3>Why .git/info/exclude, not .gitignore</h3><p>A .gitignore change is a code change, so CI would run a full build and verify instead of "No code changed", and it changes ignore rules for everyone. The exclude file is per clone, which is where build-verify runs.</p></div>
+    <div class="card" data-k="c2"><h3>Why a check-in, not silence</h3><p>The PR-watch rule wants something to catch a result while the agent waits. A send_later check-in does that without a wake-up for every event, and is rescheduled until a result or your answer comes.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="diff">
+  <h3 class="sec">The new CLAUDE.md lines (shortened)</h3>
+<pre data-k="diff">## Working with the owner
+- … end it with a short multiple-choice "What I need from you" section …,
+<span class="add">  once per question (see below).</span>
+<span class="add">- Don't post a message for a routine event: a CI comment edited with no</span>
+<span class="add">  new result, … Post only for a result (pass or fail), a blocker, a merge,</span>
+<span class="add">  a new question or a comment from the owner.</span>
+<span class="add">- Ask a pending question once. Repeat it only when the owner asks.</span>
+<span class="add">- While a question waits for the owner in an interactive session,</span>
+<span class="add">  unsubscribe from the PR's activity and schedule one send_later check-in …;</span>
+<span class="add">  if neither has come, schedule the next check-in.</span>
+## Building
+<span class="add">- In a cloud container, a build run outside build-verify first runs its step 0 …</span></pre>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">CLAUDE.md                                     # three owner rules, two lines point to them, a Building line
+.claude/agents/build-verify.md                # new step 0: exclude build outputs
+explainers/97-quiet-ci-events.html            # this page
+explainers/97-quiet-ci-events.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo: revert the squash commit. A clone that already ran step 0 keeps its exclude lines; they only hide build outputs and can be deleted from <code>.git/info/exclude</code> by hand.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">This PR changes only instructions, so there is no Thunar build or screenshot to check. It was checked by a fresh-agent review and by CI's review; the real test is the next batch's transcripts.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Issue #97's rule list</h3><p>The three rules are the issue's wording, with "interactive session" defined and the check-in's job spelled out.</p></div>
+    <div class="card" data-k="r2"><h3>Session 74, by hand</h3><p>That session already did this manually: unsubscribe plus send_later, and .git/info/exclude for the build outputs. This PR turns it into standing rules.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Exclude list in use</td><td>Applied by hand to this session's clone, following the new rule (the building session)</td><td class="ok">applied</td></tr>
+    <tr data-k="c2"><td>Exclude list hides every build output</td><td>Needs a real build's <code>git status</code>; no build was run in this session</td><td class="no">not run</td></tr>
+    <tr data-k="c3"><td>Rules match the issue and don't contradict CLAUDE.md</td><td>Local fresh-agent review of the diff and the issue, level high (the building session)</td><td class="ok">8 found, 7 fixed</td></tr>
+    <tr data-k="c4"><td>verify/97.sh</td><td>No Thunar code changed, so there is nothing to drive or screenshot</td><td class="no">not run</td></tr>
+    <tr data-k="c5"><td>CI build and verify</td><td>CI run 43093403082 on head 957953d: both ran "No code changed" and skipped their steps</td><td class="ok">pass</td></tr>
+    <tr data-k="c6"><td>CI code review, first push</td><td>CI run 43093403082 on head 957953d, level high</td><td class="ok">9 found, 8 fixed</td></tr>
+    <tr data-k="c8"><td>CI explainer job, first push</td><td>CI run 43093403082: this page wasn't pushed yet</td><td class="no">failed</td></tr>
+    <tr data-k="c9"><td>CI code review of the fix push</td><td>Runs on the review round 1 push</td><td class="open">pending</td></tr>
+    <tr data-k="c7"><td>This page</td><td><code>explainer-proof.sh render</code> and <code>make-video.py status</code>, run by the explainer subagent</td><td class="ok">rendered, stamped</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh general-purpose agent, given only the diff and issue #97, reviewed at level high. It found 8 issues: 7 were fixed and 1 was partly addressed.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Exclude list gaps (high):</b> it missed <code>debian/autoreconf.*</code>, the thunarx ABI-check outputs, <code>org.xfce.thunar.policy.in</code> and <code>ar-lib</code>. All added.</li>
+    <li data-k="b2"><b>Contradicting lines (2, medium):</b> the old "What I need from you" and "watch without asking" lines said the opposite of the new rules. Both now point to them.</li>
+    <li data-k="b3"><b>Wording (3, low):</b> a vague "safety net", an undefined "interactive session" and an unanchored <code>dist/</code>. Reworded, defined, and anchored as <code>/dist/</code>.</li>
+    <li data-k="b4"><b>Dead entry (low):</b> <code>debian/*.debhelper.log</code> matched nothing, so it was removed.</li>
+    <li data-k="b5"><b>Check-in delay (partly addressed):</b> no <code>send_later</code> delay is named. The check-in now acts only on a result or your answer; the delay is left to the agent.</li>
+  </ul>
+  <p data-k="ci">CI's review of the first push (run 43093403082, level high) found 9 more. One fix commit (review round 1) fixed R1 to R8; R9 was left as is. Every finding is in the <a href="https://github.com/alexhu98/thunar/pull/98#issuecomment-6806078372">code review comment</a> on PR #98.</p>
+  <ul class="tight">
+    <li data-k="r1"><b>R1, R2 (medium, confirmed):</b> the one check-in was never rescheduled, and resubscribing didn't look for events missed meanwhile. Now the check-in is rescheduled until a result or your answer comes, and the agent checks the PR's state when it subscribes again.</li>
+    <li data-k="r3"><b>R3 to R5 (low):</b> "CI comment edited" was too broad, since CI edits its comments to report results; your comments weren't on the post-worthy list; "Read it" clashed with the pr-digest rule. Now it says "with no new result", your comment is post-worthy, and CI comments are still read only through pr-digest.</li>
+    <li data-k="r6"><b>R6 to R8 (low):</b> a hard-coded .git/info/exclude breaks in a linked worktree, hand builds weren't covered, and step 0 would edit your own machine's clone. Step 0 now asks git for the path, runs only in a cloud container, and CLAUDE.md's "Building" runs it before a hand build there.</li>
+    <li data-k="r9"><b>R9 (low), not changed:</b> it said the exclusion step is unrelated to #97, but the issue itself asks build-verify to add the exclusions.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>No repeated "What I need from you" blocks between your messages (the issue's test)</td><td>Only sessions started after the merge read the new rules</td><td class="open">next batch</td></tr>
+    <tr data-k="a2"><td>The Stop hook stays quiet after a build</td><td>Needs a cloud build-verify run with the new step 0</td><td class="open">next cloud build</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/98">PR #98</a> → “Files changed”</li>
+    <li data-k="l2">The issue: <a href="https://github.com/alexhu98/thunar/issues/97">#97</a></li>
+    <li data-k="l3">The batch that runs it: <a href="https://github.com/alexhu98/thunar/issues/90">#90</a>, group H</li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: the next batch</h2>
+  <p class="intro" data-k="intro">No open issue builds on this one. The next batch's sessions are the first to run under the rules, and their transcripts are the test.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR, then the next batch's sessions run under the rules, then you check their transcripts">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">After the merge</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Quiet rules</text>
+      <text x="36" y="114" class="b">in CLAUDE.md and</text>
+      <text x="36" y="134" class="b">build-verify step 0</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Next batch runs</text>
+      <text x="286" y="114" class="b">group sessions read</text>
+      <text x="286" y="134" class="b">the new rules</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-you" x="520" y="60" width="210" height="120" rx="10" style="stroke-dasharray:6 5"/>
+      <text x="536" y="90" class="t">Read transcripts</text>
+      <text x="536" y="114" class="b">no repeated question</text>
+      <text x="536" y="134" class="b">between your messages</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not run yet</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text);border-style:dashed"></span>you, later</span>
+  </div>
+  </section>
+
+  <section class="sub" id="batch">
+  <h3 class="sec">The next batch (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Sessions run under the rules.</b> Each group session started after the merge reads the new CLAUDE.md, so routine CI events get one short line and a pending question is asked once.</li>
+    <li data-k="2"><b>Check the transcripts.</b> Between two of your messages, a session's transcript should have no repeated "What I need from you" block. If it does, that's a new issue.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="routine"><dt>Routine event</dt><dd>A PR event that changes nothing: a CI comment edited with no new result, a check still running, an older head, an echo.</dd></div>
+    <div data-k="wins"><dt>"What I need from you"</dt><dd>The multiple-choice block that ends a turn blocked on you.</dd></div>
+    <div data-k="interactive"><dt>Interactive session</dt><dd>Any session where you answer in its chat, batch group sessions included.</dd></div>
+    <div data-k="subscribe"><dt>PR activity subscription</dt><dd>What makes CI results, comments and reviews on a PR wake the agent.</dd></div>
+    <div data-k="sendlater"><dt>send_later</dt><dd>A one-off message the session schedules to itself, waking it once at a later time.</dd></div>
+    <div data-k="stophook"><dt>Stop hook</dt><dd>A check that runs when a turn ends; it warns about untracked files.</dd></div>
+    <div data-k="exclude"><dt>.git/info/exclude</dt><dd>Like .gitignore, but local to one clone and never committed.</dd></div>
+    <div data-k="buildverify"><dt>build-verify agent</dt><dd>The subagent that builds the debs and runs the verify tests.</dd></div>
+    <div data-k="nocode"><dt>No code changed</dt><dd>What CI's build and verify run instead of their steps when a PR changes only docs and agent files.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
