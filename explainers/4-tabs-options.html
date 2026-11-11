@@ -220,7 +220,7 @@
   <div class="lane-h" style="color:var(--accent)">① Your thunar command</div>
   <ol class="steps">
     <li data-k="1"><b>You run thunar.</b> For example <code>thunar -t ~/a ~/b -T ~/c ~/d</code>, or the long forms <code>--tabs</code> and <code>--tabs-right</code>. Both options take no value.</li>
-    <li data-k="2"><b>Split at -T.</b> A new <code>thunar_application_local_command_line</code> runs in your process before GLib parses the options. It walks the arguments and rewrites every folder after <code>-T</code> as a hidden option, <code>--tabs-right-uri=~/c</code>, which may repeat. It also finds <code>-T</code> inside combined short flags such as <code>-tT</code> or <code>-wT</code>, and doesn't take the separate value of <code>--sm-client-id</code> for a folder. <code>-T</code> with no folder after it prints <code>--tabs-right needs at least one location</code> and exits with status 1, unless <code>--help</code>, <code>-h</code>, <code>-?</code>, <code>-V</code> or <code>--version</code> is also there: then that option does what it asks.</li>
+    <li data-k="2"><b>Split at -T.</b> A new <code>thunar_application_local_command_line</code> runs in your process before GLib parses the options. It walks the arguments and rewrites every folder after <code>-T</code> as a hidden option, <code>--tabs-right-uri=~/c</code>, which may repeat. It also finds <code>-T</code> inside combined short flags such as <code>-tT</code> or <code>-wT</code>, and doesn't take the separate value of <code>--sm-client-id</code> for a folder. <code>-T</code> with no folder after it prints <code>--tabs-right needs at least one location</code> and exits with status 1, unless <code>--help</code>, <code>-h</code>, <code>-?</code>, <code>-V</code> or <code>--version</code> is also there: then that option does what it asks. <code>-B</code> with <code>-t</code> or <code>-T</code> is refused in your process too, in <code>thunar_application_handle_local_options</code>: it prints <code>--bulk-rename can't be combined with --tabs or --tabs-right</code> and exits with status 1, so no Thunar starts just to print the error.</li>
     <li data-k="3"><b>Hand over.</b> Unchanged GLib behaviour: GApplication parses the options and, when Thunar is already running (or as <code>--daemon</code>), sends them over D-Bus to that instance. With no Thunar running, your process becomes it.</li>
   </ol>
   <div class="lane-h" style="color:var(--accent)">② The running Thunar</div>
@@ -313,7 +313,8 @@ explainers/4-tabs-options.narration.json  # its narration</pre>
     <tr data-k="c15"><td>CI's screenshots of the final head</td><td><code>/visual-verify pr:92</code> on the shots CI takes for the final head</td><td class="open">still to come</td></tr>
     <tr data-k="c13"><td>CI on the earlier head 992027f</td><td>CI's build, verify and review jobs</td><td class="ok">build passed, verify 10 of 10, review passed</td></tr>
     <tr data-k="c16"><td>CI's verify on 062dc27</td><td>CI's verify job: its tests passed, then its artifact-upload step failed, a CI infrastructure problem, not this change</td><td class="no">upload step failed</td></tr>
-    <tr data-k="c14"><td>CI on the latest head 6b68924</td><td>CI's build, verify and review jobs</td><td class="open">still to come</td></tr>
+    <tr data-k="c17"><td>-B with -t is refused</td><td><code>verify/4.sh</code>, added by CI's R67 fix: <code>thunar -B alpha -t beta</code> → exit status 1, the error on stderr and no new window</td><td class="open">CI result still to come</td></tr>
+    <tr data-k="c14"><td>CI on the latest head c5a1540</td><td>CI's build, verify and review jobs</td><td class="open">still to come</td></tr>
   </table>
   </div>
   </section>
@@ -330,7 +331,7 @@ explainers/4-tabs-options.narration.json  # its narration</pre>
     <li data-k="b6"><b>Third review, fixed (11f98a2):</b> a location that vanished after its mount left Thunar held open with no window; shortcuts and mountables were wrongly rejected as "Not a directory"; a relative name with no working directory wasn't handled; and the wrong tab was selected if split view stayed on.</li>
     <li data-k="b7"><b>Fourth review, fixed (062dc27):</b> checking locations in parallel could mount one volume twice, so locations that aren't mounted now wait in a queue and mount one at a time.</li>
   </ul>
-  <p data-k="ci-review">CI reviews every code push at level high, and lists every finding in the <a href="https://github.com/alexhu98/thunar/pull/92">code review comment on PR #92</a>. It has reviewed the PR eight times, with 65 findings, R1–R65:</p>
+  <p data-k="ci-review">CI reviews every code push at level high, and lists every finding in the <a href="https://github.com/alexhu98/thunar/pull/92">code review comment on PR #92</a>. It has reviewed the PR nine times, with 70 findings, R1–R70:</p>
   <ul class="tight">
     <li data-k="ci1"><b>First review, R1–R10, all fixed:</b> the split at <code>-T</code> handles <code>-tT</code>, <code>--sm-client-id</code>'s value, and <code>--help</code> or <code>--version</code> with <code>-T</code>; locations are mounted before the window opens; <code>main.c</code> returns the exit status; the right pane opens straight on its folder; nothing opens when every location fails; and two tidy-ups.</li>
     <li data-k="ci2"><b>Second review (on 216796d), R11–R17:</b> CI fixed them itself in db2b47c, among them a failed <code>-t</code> location still exiting 0, a remote client held until its mount finished, and errors shown out of argument order.</li>
@@ -347,8 +348,10 @@ explainers/4-tabs-options.narration.json  # its narration</pre>
     <li data-k="ci13"><b>Eighth review (on 1449158, after main was merged in), R58–R65:</b> CI fixed R59 itself in 6b68924: <code>-B</code> with <code>-t</code> or <code>-T</code> silently dropped the right-pane folders, and is now refused with an error and exit status 1.</li>
     <li data-k="ci14"><b>Owner decision: <code>-t</code> alone opens one pane.</b> R58, low and confirmed: <code>-t</code> alone always turns split view off, overriding "always enable split view". The owner kept it, as issue #4 asks for the left pane only.</li>
     <li data-k="ci15"><b>Eighth review, accepted:</b> all low and not confirmed. R60, a mount that fails after the command returns only shows a dialog, as plain <code>thunar</code> does. R61, a narrow race where the fallback to the current folder can't be resolved. R62, a missing working directory, which can't happen. R63, <code>needs_poke</code> mirrors the browser's own dispatch. R64, the split view helper overlaps the restore-tabs setup. R65, setting the left folder again changes nothing.</li>
+    <li data-k="ci16"><b>Ninth review (on 211b1b7), R66–R70:</b> CI fixed R66 and R67 itself in c5a1540. R66: the <code>-B</code> refusal ran in the running Thunar, so with none running a throwaway Thunar started just to print the error; it now runs in your own process. R67: <code>verify/4.sh</code> now checks that <code>thunar -B … -t …</code> is refused.</li>
+    <li data-k="ci17"><b>Ninth review, accepted:</b> all low and not confirmed. R68, <code>--quit</code> or <code>--daemon</code> with <code>--tabs</code> ignores the locations, just as plain <code>thunar -q /tmp</code> does. R69, the hidden internal option isn't checked with <code>-B</code>; only typing it by hand reaches that, and the documented <code>-B a -T c</code> is refused. R70, a variable's name only; the R66 fix removed that variable.</li>
   </ul>
-  <p data-k="ci-next">CI's run on the latest head, 6b68924, is still to come, and so is <code>/visual-verify</code> on its shots.</p>  </section>
+  <p data-k="ci-next">CI's run on the latest head, c5a1540, is still to come, and so is <code>/visual-verify</code> on its shots.</p>  </section>
 
   <section class="sub" id="aftermerge">
   <h3 class="sec">Checked only after the merge</h3>
