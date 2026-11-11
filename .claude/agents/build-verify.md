@@ -26,11 +26,11 @@ Read a log only with `tail -n 30` or `grep -n`, never whole.
    untracked-files check doesn't re-prompt after every turn (#97). It appends only missing lines, so it is cheap to
    repeat:
    ```sh
-   x=$(git rev-parse --git-path info/exclude); mkdir -p "$(dirname "$x")"
+   x=$(git rev-parse --git-path info/exclude) && mkdir -p "$(dirname "$x")" || exit 1
    for p in /dist/ /ar-lib /org.xfce.thunar.policy.in thunarx/actual-abi thunarx/expected-abi 'thunarx/*.log' \
        'thunarx/*.trs' debian/.debhelper/ debian/tmp/ debian/files 'debian/*.substvars' 'debian/autoreconf.*' \
        debian/debhelper-build-stamp $(sed -n 's|^Package: *\(.*\)|debian/\1/|p' debian/control); do
-     grep -qxF "$p" "$x" 2>/dev/null || printf '%s\n' "$p" >> "$x"
+     grep -qxF "$p" "$x" 2>/dev/null || printf '%s\n' "$p" >> "$x" || exit 1
    done
    ```
 1. **Build dependencies**, once per container: if `dpkg-checkbuilddeps` fails, run `sudo add-apt-repository -y
