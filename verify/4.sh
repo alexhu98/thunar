@@ -105,6 +105,13 @@ grep -q -- '--tabs-right needs at least one location' "$WORK/err.txt" || fail "t
 sleep 1
 [[ $(windows) == "$before" ]] || fail "thunar -T opened a window"
 
+rc=0
+thunar -B "$A" -t "$B" 2> "$WORK/err.txt" || rc=$?
+(( rc == 1 )) || fail "thunar -B -t exited with $rc, expected 1"
+grep -q -- "--bulk-rename can't be combined with --tabs or --tabs-right" "$WORK/err.txt" || fail "thunar -B -t printed '$(cat "$WORK/err.txt")'"
+sleep 1
+[[ $(windows) == "$before" ]] || fail "thunar -B -t opened a window"
+
 before=$(windows)
 thunar -t "$A" "$WORK/missing" "$B" &
 ERR=''
