@@ -104,6 +104,7 @@ typedef struct
   GList                   *pending[2];
   GList                   *directories[2];
   ThunarFile              *current_directory;
+  gboolean                 left_given;
   gboolean                 right_given;
   guint                    pane;
 } ThunarApplicationTabs;
@@ -619,6 +620,7 @@ thunar_application_tabs_error (ThunarApplicationTabs *tabs,
   thunar_dialogs_show_error (NULL, error, _("Failed to open \"%s\""), name);
   message = g_strdup_printf (_("Failed to open \"%s\": %s"), name, error->message);
   g_application_command_line_printerr (tabs->command_line, "Thunar: %s\n", message);
+  g_application_command_line_set_exit_status (tabs->command_line, EXIT_FAILURE);
   g_free (message);
 }
 
@@ -696,7 +698,7 @@ thunar_application_tabs_next (ThunarApplicationTabs *tabs)
 
   left = tabs->directories[0];
   right = tabs->directories[1];
-  if (left == NULL && tabs->current_directory != NULL && (right != NULL || !tabs->right_given))
+  if (left == NULL && tabs->current_directory != NULL && (right != NULL || (!tabs->left_given && !tabs->right_given)))
     left = g_list_append (NULL, g_object_ref (tabs->current_directory));
 
   if (left != NULL)
@@ -729,9 +731,9 @@ thunar_application_open_tabs (ThunarApplication       *application,
   tabs->command_line = g_object_ref (command_line);
   tabs->pending[0] = thunar_application_tabs_files (tabs, working_directory, left_filenames);
   tabs->pending[1] = thunar_application_tabs_files (tabs, working_directory, right_filenames);
+  tabs->left_given = left_filenames != NULL;
   tabs->right_given = right_filenames != NULL;
-  if (left_filenames == NULL)
-    tabs->current_directory = thunar_application_file_for_filename (working_directory, ".", NULL);
+  tabs->current_directory = thunar_application_file_for_filename (working_directory, ".", NULL);
 
   g_application_hold (G_APPLICATION (application));
   thunar_application_tabs_next (tabs);
