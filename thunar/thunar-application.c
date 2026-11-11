@@ -891,6 +891,13 @@ thunar_application_command_line (GApplication            *gapp,
   /* check if we should open the bulk rename dialog */
   if (G_UNLIKELY (bulk_rename))
     {
+      if (tabs_option || tabs_right_option)
+        {
+          g_application_command_line_printerr (command_line, "Thunar: %s\n", _("--bulk-rename can't be combined with --tabs or --tabs-right"));
+          tabs_failed = TRUE;
+          goto out;
+        }
+
       /* try to open the bulk rename dialog */
       if (!thunar_application_bulk_rename (application, cwd, filenames, TRUE, NULL, NULL, &error))
         {
