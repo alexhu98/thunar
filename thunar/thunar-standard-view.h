@@ -23,6 +23,7 @@
 #include "thunar/thunar-clipboard-manager.h"
 #include "thunar/thunar-history.h"
 #include "thunar/thunar-icon-factory.h"
+#include "thunar/thunar-job.h"
 #include "thunar/thunar-list-model.h"
 #include "thunar/thunar-preferences.h"
 #include "thunar/thunar-thumbnailer.h"
@@ -239,6 +240,10 @@ thunar_standard_view_queue_redraw (ThunarStandardView *standard_view);
 void
 thunar_standard_view_set_statusbar_text (ThunarStandardView *standard_view,
                                          const gchar        *text);
+void
+thunar_standard_view_set_statusbar_text_for_job (ThunarStandardView *standard_view,
+                                                 ThunarJob          *job,
+                                                 const gchar        *text);
 void
 thunar_standard_view_transfer_selection (ThunarStandardView *standard_view,
                                          ThunarStandardView *old_view);

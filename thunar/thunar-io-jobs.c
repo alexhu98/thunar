@@ -1941,11 +1941,14 @@ _thunar_job_load_statusbar_text (ThunarJob *job,
 {
   ThunarStandardView *standard_view;
   ThunarFile         *thunar_folder;
-  GHashTable         *g_files;
+  GHashTable         *folder_g_files;
+  GHashTable         *selected_g_files;
+  const gchar        *selection_text;
   gboolean            show_hidden;
   gboolean            show_file_size_binary_format;
   ThunarDateStyle     date_style;
   const gchar        *date_custom_style;
+  const gchar        *free_space_text;
   gchar              *text_for_files;
   gchar              *temp_string;
   GList              *text_list = NULL;
@@ -1957,46 +1960,68 @@ _thunar_job_load_statusbar_text (ThunarJob *job,
 
   standard_view = g_value_get_object (&g_array_index (param_values, GValue, 0));
   thunar_folder = g_value_get_object (&g_array_index (param_values, GValue, 1));
-  g_files = g_value_get_boxed (&g_array_index (param_values, GValue, 2));
-  show_hidden = g_value_get_boolean (&g_array_index (param_values, GValue, 3));
-  show_file_size_binary_format = g_value_get_boolean (&g_array_index (param_values, GValue, 4));
-  date_style = g_value_get_enum (&g_array_index (param_values, GValue, 5));
-  date_custom_style = g_value_get_string (&g_array_index (param_values, GValue, 6));
-  status_bar_active_info = g_value_get_uint (&g_array_index (param_values, GValue, 7));
+  folder_g_files = g_value_get_boxed (&g_array_index (param_values, GValue, 2));
+  selected_g_files = g_value_get_boxed (&g_array_index (param_values, GValue, 3));
+  selection_text = g_value_get_string (&g_array_index (param_values, GValue, 4));
+  show_hidden = g_value_get_boolean (&g_array_index (param_values, GValue, 5));
+  show_file_size_binary_format = g_value_get_boolean (&g_array_index (param_values, GValue, 6));
+  date_style = g_value_get_enum (&g_array_index (param_values, GValue, 7));
+  date_custom_style = g_value_get_string (&g_array_index (param_values, GValue, 8));
+  status_bar_active_info = g_value_get_uint (&g_array_index (param_values, GValue, 9));
+  free_space_text = g_value_get_string (&g_array_index (param_values, GValue, 10));
 
-  text_for_files = thunar_util_get_statusbar_text_for_files (g_files,
-                                                             show_hidden,
-                                                             show_file_size_binary_format,
-                                                             date_style,
-                                                             date_custom_style,
-                                                             status_bar_active_info);
-
-  /* the text is about a selection of files or about a folder */
-  if (thunar_folder == 0)
+  if (selected_g_files != NULL)
     {
-      temp_string = g_strdup_printf (_ ("Selection: %s"), text_for_files);
-      text_list = g_list_append (text_list, temp_string);
+      text_for_files = thunar_util_get_statusbar_text_for_files (selected_g_files,
+                                                                 show_hidden,
+                                                                 show_file_size_binary_format,
+                                                                 date_style,
+                                                                 date_custom_style,
+                                                                 status_bar_active_info);
+      text_list = g_list_append (text_list, g_strdup_printf (_ ("Selection: %s"), text_for_files));
       g_free (text_for_files);
     }
-  else
+  else if (selection_text != NULL)
     {
-      text_list = g_list_append (text_list, text_for_files);
+      text_list = g_list_append (text_list, g_strdup (selection_text));
+    }
+  else if (folder_g_files != NULL)
+    {
+      text_list = g_list_append (text_list, thunar_util_get_statusbar_text_for_files (folder_g_files,
+                                                                                      show_hidden,
+                                                                                      show_file_size_binary_format,
+                                                                                      date_style,
+                                                                                      date_custom_style,
+                                                                                      status_bar_active_info));
+    }
 
-      /* check if we can determine the amount of free space for the volume */
+  if ((selected_g_files != NULL || selection_text != NULL) && folder_g_files != NULL)
+    {
+      temp_string = thunar_util_get_statusbar_total_text_for_files (folder_g_files, show_hidden, show_file_size_binary_format, status_bar_active_info);
+      if (temp_string != NULL)
+        text_list = g_list_append (text_list, temp_string);
+    }
+
+  if (exo_job_set_error_if_cancelled (EXO_JOB (job), error))
+    {
+      g_list_free_full (text_list, g_free);
+      return FALSE;
+    }
+
+  if (thunar_folder != NULL)
+    {
       if (thunar_g_file_get_free_space (thunar_file_get_file (thunar_folder), &size, NULL))
-        {
-          /* humanize the free space */
-          gchar *size_string = g_format_size_full (size, show_file_size_binary_format ? G_FORMAT_SIZE_IEC_UNITS : G_FORMAT_SIZE_DEFAULT);
-          temp_string = g_strdup_printf (_ ("Free space: %s"), size_string);
-          text_list = g_list_append (text_list, temp_string);
-          g_free (size_string);
-        }
+        text_list = g_list_append (text_list, thunar_util_get_statusbar_free_space_text (size, show_file_size_binary_format));
+    }
+  else if (free_space_text != NULL)
+    {
+      text_list = g_list_append (text_list, g_strdup (free_space_text));
     }
 
   temp_string = thunar_util_strjoin_list (text_list, "  |  ");
   g_list_free_full (text_list, g_free);
 
-  thunar_standard_view_set_statusbar_text (standard_view, temp_string);
+  thunar_standard_view_set_statusbar_text_for_job (standard_view, job, temp_string);
   g_free (temp_string);
 
   return TRUE;
@@ -2005,8 +2030,11 @@ _thunar_job_load_statusbar_text (ThunarJob *job,
 
 
 ThunarJob *
-thunar_io_jobs_load_statusbar_text_for_folder (ThunarStandardView *standard_view,
-                                               ThunarFolder       *folder)
+thunar_io_jobs_load_statusbar_text (ThunarStandardView *standard_view,
+                                    ThunarFolder       *folder,
+                                    GHashTable         *selected_g_files,
+                                    const gchar        *selection_text,
+                                    const gchar        *free_space_text)
 {
   ThunarPreferences *preferences;
   gboolean           show_hidden;
@@ -2014,80 +2042,50 @@ thunar_io_jobs_load_statusbar_text_for_folder (ThunarStandardView *standard_view
   ThunarDateStyle    date_style;
   gchar             *date_custom_style;
   guint              status_bar_active_info;
-  GHashTable        *thunar_files;
-  GHashTable        *g_files = g_hash_table_new (g_direct_hash, NULL);
+  GHashTable        *folder_g_files = NULL;
   GHashTableIter     iter;
   gpointer           key;
-  ThunarFile        *file;
+  ThunarFile        *file = NULL;
+  ThunarJob         *job;
 
-  preferences = thunar_preferences_get ();
-  g_object_get (G_OBJECT (preferences), "last-show-hidden", &show_hidden,
-                "misc-date-style", &date_style,
-                "misc-date-custom-style", &date_custom_style,
-                "misc-file-size-binary", &show_file_size_binary_format,
-                "misc-status-bar-active-info", &status_bar_active_info, NULL);
-
-  thunar_files = thunar_folder_get_files (folder);
-
-  g_hash_table_iter_init (&iter, thunar_files);
-  while (g_hash_table_iter_next (&iter, &key, NULL))
-    g_hash_table_add (g_files, thunar_file_get_file (THUNAR_FILE (key)));
-
-  file = thunar_folder_get_corresponding_file (folder);
-
-  if (file == NULL)
+  if (folder != NULL)
     {
-      g_free (date_custom_style);
-      return NULL;
+      file = thunar_folder_get_corresponding_file (folder);
+      if (file == NULL)
+        return NULL;
+
+      folder_g_files = g_hash_table_new (g_direct_hash, NULL);
+      g_hash_table_iter_init (&iter, thunar_folder_get_files (folder));
+      while (g_hash_table_iter_next (&iter, &key, NULL))
+        g_hash_table_add (folder_g_files, thunar_file_get_file (THUNAR_FILE (key)));
     }
 
-  ThunarJob *job = thunar_simple_job_new (_thunar_job_load_statusbar_text, 8,
-                                          THUNAR_TYPE_STANDARD_VIEW, g_object_ref (standard_view),
-                                          THUNAR_TYPE_FILE, g_object_ref (file),
-                                          THUNAR_TYPE_G_FILE_HASH_TABLE, g_files,
-                                          G_TYPE_BOOLEAN, show_hidden,
-                                          G_TYPE_BOOLEAN, show_file_size_binary_format,
-                                          THUNAR_TYPE_DATE_STYLE, date_style,
-                                          G_TYPE_STRING, date_custom_style,
-                                          G_TYPE_UINT, status_bar_active_info);
-  g_free (date_custom_style);
-  g_hash_table_destroy (g_files);
-
-  g_signal_connect_swapped (job, "finished", G_CALLBACK (g_object_unref), file);
-  g_signal_connect_swapped (job, "finished", G_CALLBACK (g_object_unref), standard_view);
-  return job;
-}
-
-
-
-ThunarJob *
-thunar_io_jobs_load_statusbar_text_for_selection (ThunarStandardView *standard_view, GHashTable *selected_g_files)
-{
-  ThunarPreferences *preferences;
-  gboolean           show_hidden;
-  gboolean           show_file_size_binary_format;
-  ThunarDateStyle    date_style;
-  gchar             *date_custom_style;
-  guint              status_bar_active_info;
-
   preferences = thunar_preferences_get ();
   g_object_get (G_OBJECT (preferences), "last-show-hidden", &show_hidden,
                 "misc-date-style", &date_style,
                 "misc-date-custom-style", &date_custom_style,
                 "misc-file-size-binary", &show_file_size_binary_format,
                 "misc-status-bar-active-info", &status_bar_active_info, NULL);
+  g_object_unref (preferences);
 
-  ThunarJob *job = thunar_simple_job_new (_thunar_job_load_statusbar_text, 8,
-                                          THUNAR_TYPE_STANDARD_VIEW, g_object_ref (standard_view),
-                                          THUNAR_TYPE_FILE, NULL,
-                                          THUNAR_TYPE_G_FILE_HASH_TABLE, selected_g_files,
-                                          G_TYPE_BOOLEAN, show_hidden,
-                                          G_TYPE_BOOLEAN, show_file_size_binary_format,
-                                          THUNAR_TYPE_DATE_STYLE, date_style,
-                                          G_TYPE_STRING, date_custom_style,
-                                          G_TYPE_UINT, status_bar_active_info);
+  job = thunar_simple_job_new (_thunar_job_load_statusbar_text, 11,
+                               THUNAR_TYPE_STANDARD_VIEW, g_object_ref (standard_view),
+                               THUNAR_TYPE_FILE, file != NULL ? g_object_ref (file) : NULL,
+                               THUNAR_TYPE_G_FILE_HASH_TABLE, folder_g_files,
+                               THUNAR_TYPE_G_FILE_HASH_TABLE, selected_g_files,
+                               G_TYPE_STRING, selection_text,
+                               G_TYPE_BOOLEAN, show_hidden,
+                               G_TYPE_BOOLEAN, show_file_size_binary_format,
+                               THUNAR_TYPE_DATE_STYLE, date_style,
+                               G_TYPE_STRING, date_custom_style,
+                               G_TYPE_UINT, status_bar_active_info,
+                               G_TYPE_STRING, free_space_text);
   g_free (date_custom_style);
+  if (folder_g_files != NULL)
+    g_hash_table_destroy (folder_g_files);
 
+  if (file != NULL)
+    g_signal_connect_swapped (job, "finished", G_CALLBACK (g_object_unref), file);
   g_signal_connect_swapped (job, "finished", G_CALLBACK (g_object_unref), standard_view);
   return job;
 }

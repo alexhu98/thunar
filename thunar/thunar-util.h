@@ -125,6 +125,18 @@ thunar_util_get_statusbar_text_for_files (GHashTable     *files,
                                           const gchar    *date_custom_style,
                                           guint           status_bar_actve_info);
 gchar *
+thunar_util_get_statusbar_total_text_for_files (GHashTable *files,
+                                                gboolean    show_hidden,
+                                                gboolean    show_file_size_binary_format,
+                                                guint       status_bar_active_info);
+gchar *
+thunar_util_get_statusbar_size_text (guint64  size,
+                                     gboolean show_file_size_binary_format,
+                                     guint    status_bar_active_info);
+gchar *
+thunar_util_get_statusbar_free_space_text (guint64  free_space,
+                                           gboolean show_file_size_binary_format);
+gchar *
 thunar_util_get_statusbar_text_for_single_file (ThunarFile *file);
 gchar *
 thunar_util_accel_path_to_id (const gchar *accel_path);

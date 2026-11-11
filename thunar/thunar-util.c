@@ -1253,6 +1253,148 @@ thunar_util_get_file_time (GFileInfo         *file_info,
 
 
 
+typedef struct
+{
+  guint64    size;
+  gint       folder_count;
+  gint       hidden_folder_count;
+  gint       file_count;
+  gint       hidden_file_count;
+  GFileInfo *last_modified_file;
+} ThunarStatusbarCounts;
+
+
+
+static void
+thunar_util_count_files (GHashTable            *files,
+                         ThunarStatusbarCounts *counts)
+{
+  guint64        last_modified_date = 0;
+  guint64        temp_last_modified_date;
+  GHashTableIter iter;
+  gpointer       key;
+
+  memset (counts, 0, sizeof (*counts));
+
+  g_hash_table_iter_init (&iter, files);
+  while (g_hash_table_iter_next (&iter, &key, NULL))
+    {
+      GFileInfo *file_info = g_file_query_info (G_FILE (key),
+                                                G_FILE_ATTRIBUTE_STANDARD_TYPE "," G_FILE_ATTRIBUTE_STANDARD_SIZE "," G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP "," G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN "," G_FILE_ATTRIBUTE_TIME_MODIFIED,
+                                                G_FILE_QUERY_INFO_NONE,
+                                                NULL,
+                                                NULL);
+      if (file_info == NULL)
+        continue;
+
+      if (g_file_info_get_attribute_uint32 (file_info, G_FILE_ATTRIBUTE_STANDARD_TYPE) == G_FILE_TYPE_DIRECTORY)
+        {
+          counts->folder_count++;
+          if (g_file_info_get_attribute_boolean (file_info, G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN) || g_file_info_get_attribute_boolean (file_info, G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP))
+            counts->hidden_folder_count++;
+        }
+      else
+        {
+          counts->file_count++;
+          if (g_file_info_get_attribute_boolean (file_info, G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN) || g_file_info_get_attribute_boolean (file_info, G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP))
+            counts->hidden_file_count++;
+          counts->size += g_file_info_get_attribute_uint64 (file_info, G_FILE_ATTRIBUTE_STANDARD_SIZE);
+        }
+
+      temp_last_modified_date = thunar_util_get_file_time (file_info, THUNAR_FILE_DATE_MODIFIED);
+      if (last_modified_date <= temp_last_modified_date)
+        {
+          last_modified_date = temp_last_modified_date;
+
+          /* Keep the last modified file-info for later */
+          if (counts->last_modified_file != NULL)
+            g_object_unref (counts->last_modified_file);
+          counts->last_modified_file = g_object_ref (file_info);
+        }
+
+      g_object_unref (file_info);
+    }
+}
+
+
+
+gchar *
+thunar_util_get_statusbar_size_text (guint64  size,
+                                     gboolean show_file_size_binary_format,
+                                     guint    status_bar_active_info)
+{
+  GFormatSizeFlags flags = show_file_size_binary_format ? G_FORMAT_SIZE_IEC_UNITS : G_FORMAT_SIZE_DEFAULT;
+
+  if (thunar_status_bar_info_check_active (status_bar_active_info, THUNAR_STATUS_BAR_INFO_SIZE_IN_BYTES))
+    flags |= G_FORMAT_SIZE_LONG_FORMAT;
+
+  return g_format_size_full (size, flags);
+}
+
+
+
+static GList *
+thunar_util_get_statusbar_count_texts (const ThunarStatusbarCounts *counts,
+                                       gboolean                     show_hidden,
+                                       gboolean                     show_file_size_binary_format,
+                                       guint                        status_bar_active_info)
+{
+  GList   *text_list = NULL;
+  gchar   *size_string;
+  gchar   *temp_string;
+  gchar   *folder_text = NULL;
+  gchar   *file_text = NULL;
+  gboolean show_hidden_count, show_size;
+
+  show_hidden_count = thunar_status_bar_info_check_active (status_bar_active_info, THUNAR_STATUS_BAR_INFO_HIDDEN_COUNT);
+  show_size = thunar_status_bar_info_check_active (status_bar_active_info, THUNAR_STATUS_BAR_INFO_SIZE);
+
+  if (counts->file_count > 0)
+    {
+      file_text = g_strdup_printf (ngettext ("%d file", "%d files", counts->file_count), counts->file_count);
+
+      if (show_hidden_count == TRUE && show_hidden == FALSE && counts->hidden_file_count > 0)
+        {
+          temp_string = g_strdup_printf (_ ("%s (%d hidden)"), file_text, counts->hidden_file_count);
+          g_free (file_text);
+          file_text = temp_string;
+        }
+
+      if (show_size == TRUE)
+        {
+          size_string = thunar_util_get_statusbar_size_text (counts->size, show_file_size_binary_format, status_bar_active_info);
+          temp_string = g_strdup_printf (_ ("%s: %s"), file_text, size_string);
+          g_free (file_text);
+          g_free (size_string);
+          file_text = temp_string;
+        }
+    }
+
+  if (counts->folder_count > 0)
+    {
+      folder_text = g_strdup_printf (ngettext ("%d folder",
+                                               "%d folders",
+                                               counts->folder_count),
+                                     counts->folder_count);
+
+      if (show_hidden_count == TRUE && show_hidden == FALSE && counts->hidden_folder_count > 0)
+        {
+          temp_string = g_strdup_printf (_ ("%s (%d hidden)"), folder_text, counts->hidden_folder_count);
+          g_free (folder_text);
+          folder_text = temp_string;
+        }
+    }
+
+  if (folder_text != NULL)
+    text_list = g_list_append (text_list, folder_text);
+  if (file_text != NULL)
+    text_list = g_list_append (text_list, file_text);
+
+  return text_list;
+}
+
+
+
 /**
  * thunar_util_get_statusbar_text_for_files:
  * @files                        : list of #GFile's for which a text is requested
@@ -1276,132 +1418,69 @@ thunar_util_get_statusbar_text_for_files (GHashTable     *files,
                                           const gchar    *date_custom_style,
                                           guint           status_bar_actve_info)
 {
-  guint64        size_summary = 0;
-  gint           folder_count = 0, hidden_folder_count = 0;
-  gint           file_count = 0, hidden_file_count = 0;
-  GList         *text_list = NULL;
-  gchar         *size_string = NULL;
-  gchar         *temp_string = NULL;
-  gchar         *folder_text = NULL;
-  gchar         *file_text = NULL;
-  guint64        last_modified_date = 0;
-  guint64        temp_last_modified_date;
-  GFileInfo     *last_modified_file = NULL;
-  gboolean       show_hidden_count, show_size, show_size_in_bytes, show_last_modified;
-  GHashTableIter iter;
-  gpointer       key;
+  ThunarStatusbarCounts counts;
+  GList                *text_list;
+  gchar                *temp_string;
 
-  show_hidden_count = thunar_status_bar_info_check_active (status_bar_actve_info, THUNAR_STATUS_BAR_INFO_HIDDEN_COUNT);
-  show_size = thunar_status_bar_info_check_active (status_bar_actve_info, THUNAR_STATUS_BAR_INFO_SIZE);
-  show_size_in_bytes = thunar_status_bar_info_check_active (status_bar_actve_info, THUNAR_STATUS_BAR_INFO_SIZE_IN_BYTES);
-  show_last_modified = thunar_status_bar_info_check_active (status_bar_actve_info, THUNAR_STATUS_BAR_INFO_LAST_MODIFIED);
+  thunar_util_count_files (files, &counts);
 
-  /* analyze files */
-  g_hash_table_iter_init (&iter, files);
-  while (g_hash_table_iter_next (&iter, &key, NULL))
-    {
-      GFileInfo *file_info = g_file_query_info (G_FILE (key),
-                                                G_FILE_ATTRIBUTE_STANDARD_TYPE "," G_FILE_ATTRIBUTE_STANDARD_SIZE "," G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP "," G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN "," G_FILE_ATTRIBUTE_TIME_MODIFIED,
-                                                G_FILE_QUERY_INFO_NONE,
-                                                NULL,
-                                                NULL);
-      if (file_info == NULL)
-        continue;
-
-      if (g_file_info_get_attribute_uint32 (file_info, G_FILE_ATTRIBUTE_STANDARD_TYPE) == G_FILE_TYPE_DIRECTORY)
-        {
-          folder_count++;
-          if (g_file_info_get_attribute_boolean (file_info, G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN) || g_file_info_get_attribute_boolean (file_info, G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP))
-            hidden_folder_count++;
-        }
-      else
-        {
-          file_count++;
-          if (g_file_info_get_attribute_boolean (file_info, G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN) || g_file_info_get_attribute_boolean (file_info, G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP))
-            hidden_file_count++;
-          if (g_file_info_get_attribute_uint32 (file_info, G_FILE_ATTRIBUTE_STANDARD_TYPE) == G_FILE_TYPE_REGULAR)
-            g_file_info_get_attribute_uint64 (file_info, G_FILE_ATTRIBUTE_STANDARD_SIZE);
-          size_summary += g_file_info_get_attribute_uint64 (file_info, G_FILE_ATTRIBUTE_STANDARD_SIZE);
-        }
-
-      temp_last_modified_date = thunar_util_get_file_time (file_info, THUNAR_FILE_DATE_MODIFIED);
-      if (last_modified_date <= temp_last_modified_date)
-        {
-          last_modified_date = temp_last_modified_date;
-
-          /* Keep the last modified file-info for later */
-          if (last_modified_file != NULL)
-            g_object_unref (last_modified_file);
-          last_modified_file = g_object_ref (file_info);
-        }
-
-      g_object_unref (file_info);
-    }
-
-  if (file_count > 0)
-    {
-      file_text = g_strdup_printf (ngettext ("%d file", "%d files", file_count), file_count);
-
-      if (show_hidden_count == TRUE && show_hidden == FALSE && hidden_file_count > 0)
-        {
-          temp_string = g_strdup_printf (_ ("%s (%d hidden)"), file_text, hidden_file_count);
-          g_free (file_text);
-          file_text = temp_string;
-        }
-
-      if (show_size == TRUE)
-        {
-          if (show_size_in_bytes == TRUE)
-            {
-              size_string = g_format_size_full (size_summary, G_FORMAT_SIZE_LONG_FORMAT
-                                                              | (show_file_size_binary_format ? G_FORMAT_SIZE_IEC_UNITS : G_FORMAT_SIZE_DEFAULT));
-            }
-          else
-            {
-              size_string = g_format_size_full (size_summary, show_file_size_binary_format ? G_FORMAT_SIZE_IEC_UNITS : G_FORMAT_SIZE_DEFAULT);
-            }
-
-          temp_string = g_strdup_printf (_ ("%s: %s"), file_text, size_string);
-          g_free (file_text);
-          g_free (size_string);
-          file_text = temp_string;
-        }
-    }
-
-  if (folder_count > 0)
-    {
-      folder_text = g_strdup_printf (ngettext ("%d folder",
-                                               "%d folders",
-                                               folder_count),
-                                     folder_count);
-
-      if (show_hidden_count == TRUE && show_hidden == FALSE && hidden_folder_count > 0)
-        {
-          temp_string = g_strdup_printf (_ ("%s (%d hidden)"), folder_text, hidden_folder_count);
-          g_free (folder_text);
-          folder_text = temp_string;
-        }
-    }
-
-  if (file_text == NULL && folder_text == NULL)
+  text_list = thunar_util_get_statusbar_count_texts (&counts, show_hidden, show_file_size_binary_format, status_bar_actve_info);
+  if (text_list == NULL)
     text_list = g_list_append (text_list, g_strdup_printf (_ ("0 items")));
-  if (folder_text != NULL)
-    text_list = g_list_append (text_list, folder_text);
-  if (file_text != NULL)
-    text_list = g_list_append (text_list, file_text);
 
-  if (show_last_modified && last_modified_file != NULL)
+  if (thunar_status_bar_info_check_active (status_bar_actve_info, THUNAR_STATUS_BAR_INFO_LAST_MODIFIED) && counts.last_modified_file != NULL)
     {
-      temp_string = thunar_util_humanize_file_time (thunar_util_get_file_time (last_modified_file, THUNAR_FILE_DATE_MODIFIED), date_style, date_custom_style);
+      temp_string = thunar_util_humanize_file_time (thunar_util_get_file_time (counts.last_modified_file, THUNAR_FILE_DATE_MODIFIED), date_style, date_custom_style);
       text_list = g_list_append (text_list, g_strdup_printf (_ ("Last Modified: %s"), temp_string));
       g_free (temp_string);
     }
 
   temp_string = thunar_util_strjoin_list (text_list, "  |  ");
   g_list_free_full (text_list, g_free);
-  if (last_modified_file != NULL)
-    g_object_unref (last_modified_file);
+  if (counts.last_modified_file != NULL)
+    g_object_unref (counts.last_modified_file);
   return temp_string;
+}
+
+
+
+gchar *
+thunar_util_get_statusbar_total_text_for_files (GHashTable *files,
+                                                gboolean    show_hidden,
+                                                gboolean    show_file_size_binary_format,
+                                                guint       status_bar_active_info)
+{
+  ThunarStatusbarCounts counts;
+  GList                *text_list;
+  gchar                *joined;
+  gchar                *text = NULL;
+
+  thunar_util_count_files (files, &counts);
+  if (counts.last_modified_file != NULL)
+    g_object_unref (counts.last_modified_file);
+
+  text_list = thunar_util_get_statusbar_count_texts (&counts, show_hidden, show_file_size_binary_format, status_bar_active_info);
+  if (text_list != NULL)
+    {
+      joined = thunar_util_strjoin_list (text_list, ", ");
+      text = g_strdup_printf (_ ("Total: %s"), joined);
+      g_free (joined);
+    }
+  g_list_free_full (text_list, g_free);
+  return text;
+}
+
+
+
+gchar *
+thunar_util_get_statusbar_free_space_text (guint64  free_space,
+                                           gboolean show_file_size_binary_format)
+{
+  gchar *size_string = g_format_size_full (free_space, show_file_size_binary_format ? G_FORMAT_SIZE_IEC_UNITS : G_FORMAT_SIZE_DEFAULT);
+  gchar *text = g_strdup_printf (_ ("Free space: %s"), size_string);
+
+  g_free (size_string);
+  return text;
 }
 
 
@@ -1420,7 +1499,7 @@ thunar_util_get_statusbar_text_for_single_file (ThunarFile *file)
   gboolean           show_image_size;
   gboolean           show_file_size_binary_format;
   guint              active;
-  gboolean           show_size, show_size_in_bytes, show_filetype, show_display_name, show_last_modified;
+  gboolean           show_size, show_filetype, show_display_name, show_last_modified;
   ThunarDateStyle    date_style;
   gchar             *date_custom_style;
   gchar             *date_string;
@@ -1431,7 +1510,6 @@ thunar_util_get_statusbar_text_for_single_file (ThunarFile *file)
                 "misc-status-bar-active-info", &active,
                 "misc-file-size-binary", &show_file_size_binary_format, NULL);
   show_size = thunar_status_bar_info_check_active (active, THUNAR_STATUS_BAR_INFO_SIZE);
-  show_size_in_bytes = thunar_status_bar_info_check_active (active, THUNAR_STATUS_BAR_INFO_SIZE_IN_BYTES);
   show_filetype = thunar_status_bar_info_check_active (active, THUNAR_STATUS_BAR_INFO_FILETYPE);
   show_display_name = thunar_status_bar_info_check_active (active, THUNAR_STATUS_BAR_INFO_DISPLAY_NAME);
   show_last_modified = thunar_status_bar_info_check_active (active, THUNAR_STATUS_BAR_INFO_LAST_MODIFIED);
@@ -1452,10 +1530,7 @@ thunar_util_get_statusbar_text_for_single_file (ThunarFile *file)
     {
       if (show_size == TRUE)
         {
-          if (show_size_in_bytes == TRUE)
-            temp_string = thunar_file_get_size_string_long (file, show_file_size_binary_format);
-          else
-            temp_string = thunar_file_get_size_string_formatted (file, show_file_size_binary_format);
+          temp_string = thunar_util_get_statusbar_size_text (thunar_file_get_size (file), show_file_size_binary_format, active);
           text_list = g_list_append (text_list, temp_string);
         }
     }
