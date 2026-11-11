@@ -407,7 +407,8 @@ struct _ThunarStandardViewPrivate
   guint      statusbar_text_idle_id;
   ThunarJob *statusbar_job;
 
-  gchar        *search_free_space_text;
+  guint64       search_free_space;
+  gboolean      search_free_space_known;
   GFile        *search_free_space_file;
   GCancellable *search_free_space_cancellable;
 
@@ -1986,7 +1987,7 @@ thunar_standard_view_clear_search_free_space (ThunarStandardView *standard_view)
       g_clear_object (&standard_view->priv->search_free_space_cancellable);
     }
   g_clear_object (&standard_view->priv->search_free_space_file);
-  g_clear_pointer (&standard_view->priv->search_free_space_text, g_free);
+  standard_view->priv->search_free_space_known = FALSE;
 }
 
 
@@ -1998,7 +1999,6 @@ thunar_standard_view_search_free_space_ready (GObject      *source_object,
 {
   ThunarStandardView *standard_view;
   GFileInfo          *info;
-  gboolean            show_file_size_binary_format;
 
   info = g_file_query_filesystem_info_finish (G_FILE (source_object), result, NULL);
   if (info == NULL)
@@ -2007,10 +2007,8 @@ thunar_standard_view_search_free_space_ready (GObject      *source_object,
   standard_view = THUNAR_STANDARD_VIEW (user_data);
   if (g_file_info_has_attribute (info, G_FILE_ATTRIBUTE_FILESYSTEM_FREE))
     {
-      g_object_get (G_OBJECT (standard_view->preferences), "misc-file-size-binary", &show_file_size_binary_format, NULL);
-      g_free (standard_view->priv->search_free_space_text);
-      standard_view->priv->search_free_space_text = thunar_util_get_statusbar_free_space_text (g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_FILESYSTEM_FREE),
-                                                                                               show_file_size_binary_format);
+      standard_view->priv->search_free_space = g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_FILESYSTEM_FREE);
+      standard_view->priv->search_free_space_known = TRUE;
       thunar_standard_view_update_statusbar_text (standard_view);
     }
   g_object_unref (info);
@@ -2046,11 +2044,16 @@ thunar_standard_view_update_search_free_space (ThunarStandardView *standard_view
 
 
 
-static void
-thunar_standard_view_refresh_search_free_space (ThunarStandardView *standard_view)
+static gchar *
+thunar_standard_view_get_search_free_space_text (ThunarStandardView *standard_view)
 {
-  thunar_standard_view_clear_search_free_space (standard_view);
-  thunar_standard_view_update_search_free_space (standard_view, thunar_standard_view_model_get_folder (standard_view->model));
+  gboolean show_file_size_binary_format;
+
+  if (!standard_view->priv->search_free_space_known)
+    return NULL;
+
+  g_object_get (G_OBJECT (standard_view->preferences), "misc-file-size-binary", &show_file_size_binary_format, NULL);
+  return thunar_util_get_statusbar_free_space_text (standard_view->priv->search_free_space, show_file_size_binary_format);
 }
 
 
@@ -2078,15 +2081,20 @@ static gchar *
 thunar_standard_view_append_search_free_space (ThunarStandardView *standard_view,
                                                gchar              *text)
 {
+  gchar *free_space_text;
   gchar *joined;
 
-  if (standard_view->priv->search_free_space_text == NULL)
+  free_space_text = thunar_standard_view_get_search_free_space_text (standard_view);
+  if (free_space_text == NULL)
     return text;
 
   if (*text == '\0')
-    joined = g_strdup (standard_view->priv->search_free_space_text);
+    joined = free_space_text;
   else
-    joined = g_strjoin ("  |  ", text, standard_view->priv->search_free_space_text, NULL);
+    {
+      joined = g_strjoin ("  |  ", text, free_space_text, NULL);
+      g_free (free_space_text);
+    }
   g_free (text);
   return joined;
 }
@@ -2742,6 +2750,7 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
     {
       GHashTable *selected_g_files = g_hash_table_new (g_direct_hash, NULL);
       GList      *lp;
+      gchar      *free_space_text = searching ? thunar_standard_view_get_search_free_space_text (standard_view) : NULL;
 
       /* build GList of files from selection */
       for (lp = selected_items_tree_path_list; lp != NULL; lp = lp->next)
@@ -2755,9 +2764,9 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
             }
         }
 
-      job = thunar_io_jobs_load_statusbar_text (standard_view, searching ? NULL : folder, selected_g_files, NULL,
-                                                searching ? standard_view->priv->search_free_space_text : NULL);
+      job = thunar_io_jobs_load_statusbar_text (standard_view, searching ? NULL : folder, selected_g_files, NULL, free_space_text);
       g_hash_table_destroy (selected_g_files);
+      g_free (free_space_text);
     }
 
   if (job != NULL)
@@ -5173,7 +5182,6 @@ thunar_standard_view_set_model (ThunarStandardView *standard_view)
   g_signal_connect_swapped (G_OBJECT (standard_view->model), "notify::num-files", G_CALLBACK (thunar_standard_view_update_statusbar_text), standard_view);
 
   /* be sure to update the statusbar text whenever the file-size-binary property changes */
-  g_signal_connect_swapped (G_OBJECT (standard_view->model), "notify::file-size-binary", G_CALLBACK (thunar_standard_view_refresh_search_free_space), standard_view);
   g_signal_connect_swapped (G_OBJECT (standard_view->model), "notify::file-size-binary", G_CALLBACK (thunar_standard_view_update_statusbar_text), standard_view);
 
   /* pass down the "loading" property into the new model */
