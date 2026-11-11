@@ -17,9 +17,9 @@
   - Several items: quickest or most blocking first; say what you'll get on with meanwhile.
 - Standard SOP (reviewing the diff, staging, committing, pushing, opening the PR, merging one that passes the merge rule above) never needs the owner's attention, so it is never an option, an attention item or a closing prompt. A turn with only SOP left isn't blocked on the owner.
 - Never bury a request for the owner in the middle of a long update.
-- Don't post a message for a routine event: a CI comment edited, a check still running, an event for an older head, or an echo of the agent's own post. Read it and end the turn with one short line at most (an empty turn makes the harness ask for a reply), without repeating "What I need from you". Post only for a result (pass or fail), a blocker, a merge or a new question.
+- Don't post a message for a routine event: a CI comment edited with no new result, a check still running, an event for an older head, or an echo of the agent's own post. Read the event as delivered (CI's comments still only through `pr-digest`) and end the turn with one short line at most (an empty turn makes the harness ask for a reply), without repeating "What I need from you". Post only for a result (pass or fail), a blocker, a merge, a new question or a comment from the owner.
 - Ask a pending question once. Repeat it only when the owner asks.
-- While a question waits for the owner in an interactive session, unsubscribe from the PR's activity and schedule one `send_later` check-in instead, so a CI result or the owner's answer isn't missed, then subscribe again once the owner has answered. On the check-in, act only on a result or the owner's answer. An interactive session is any session where the owner answers in its chat, batch group sessions included.
+- While a question waits for the owner in an interactive session, unsubscribe from the PR's activity and schedule one `send_later` check-in instead, so a CI result or the owner's answer isn't missed, then subscribe again once the owner has answered and check the PR's state for anything that landed meanwhile. On the check-in, act only on a result or the owner's answer; if neither has come, schedule the next check-in. An interactive session is any session where the owner answers in its chat, batch group sessions included.
 - When asked what a term means ("what is X?", "explain X"), answer in 20 words or fewer per item: one sentence each, no preamble, no worked example. If it genuinely needs more, give the short version first and offer to expand.
 - When a turn ends a long task or the answer runs past a screen, open with what was done or found (one line), then anything you're unsure of (one line; omit it if nothing is). Details go below; "What I need from you" stays at the end.
 - When `/code-review --fix` finishes, list the skipped findings as S1, S2, …, each with a one-line reason it was skipped and the fix you recommend. Never use plain bullets for them.
@@ -31,6 +31,7 @@
 
 ## Building
 - Build from git with `--enable-maintainer-mode`, as `debian/rules` does: `sudo add-apt-repository -y ppa:zorinos/stable` (Xfce 4.20 libraries), `sudo apt-get build-dep -y ./`, then `dpkg-buildpackage -b -us -uc`.
+- In a cloud container, a build run outside `build-verify` first runs its step 0, so the build outputs don't trip the Stop hook.
 - Never build from the release tarball. Its pre-generated gdbus files need GLib 2.84, and Ubuntu 24.04 (noble) has 2.80. A git build regenerates them.
 - Never run `apt-get update` limited to one source list (`-o Dir::Etc::sourcelist=…`). It deletes the other sources' package lists, so the next install finds nothing from noble.
 
