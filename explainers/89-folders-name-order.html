@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>#89 Folders by name</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">#89: Folders listed first always sort by name</h1>
+  <p class="lead" data-k="lead">Branch <code>89-folders-name-order</code> → <code>main</code>, closes #89. With Sort folders before files on, the folders at the top always stay in natural name order, A to Z (Alpha, dir2, dir10), whatever column or direction you sort by. The files below them still follow your sort.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing depends on #89</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">Two added lines in each of Thunar's two sort functions compare two folders by name only, and <code>verify/89.sh</code> checks the order of every row under five different sorts.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="Thunar sorts a folder: folders go before files, two folders now compare by name A to Z, two files follow the chosen sort; verify/89.sh makes test files, relaunches Thunar with each sort, and checks every row">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① How Thunar orders two rows — the fix</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Pick a sort</text>
+      <text x="36" y="114" class="b">Name, Size, Date…,</text>
+      <text x="36" y="134" class="b">ascending or</text>
+      <text x="36" y="154" class="b">descending</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Folder vs file</text>
+      <text x="286" y="114" class="b">folders before files</text>
+      <text x="286" y="134" class="b">is on: the folder</text>
+      <text x="286" y="154" class="b">goes first, as before</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-merge" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Two folders</text>
+      <text x="536" y="114" class="m">compare_by_name</text>
+      <text x="536" y="134" class="b">natural A to Z, the</text>
+      <text x="536" y="154" class="b">sort is ignored</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Two files</text>
+      <text x="786" y="114" class="b">your column and</text>
+      <text x="786" y="134" class="b">direction, exactly</text>
+      <text x="786" y="154" class="b">as before</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② verify/89.sh — how it is checked</text>
+    <g data-k="5">
+      <rect class="box-merge" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Test files</text>
+      <text x="786" y="314" class="b">Alpha, dir2, dir10;</text>
+      <text x="786" y="334" class="b">a.txt, b.txt, c.txt;</text>
+      <text x="786" y="354" class="b">mixed sizes, dates</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Relaunch sorted</text>
+      <text x="536" y="314" class="b">detailed view, sort</text>
+      <text x="536" y="334" class="b">column and order</text>
+      <text x="536" y="354" class="b">set with xfconf</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Check each row</text>
+      <text x="286" y="314" class="b">copy the row, paste</text>
+      <text x="286" y="334" class="b">it into a new folder,</text>
+      <text x="286" y="354" class="b">compare the name</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <g data-k="8">
+      <rect class="box-merge" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Five sorts</text>
+      <text x="36" y="314" class="b">Name, Size, Date,</text>
+      <text x="36" y="334" class="b">Name descending,</text>
+      <text x="36" y="354" class="b">folders-first off</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">8</text>
+    </g>
+    <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M520,320 H484" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M270,320 H234" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>already in Thunar, unchanged</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>new in this PR</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">With Sort folders before files on, Thunar already put every folder above every file. But inside the folder group it used the same column and direction as the files, so sorting by Size or Date, or going Z to A, reshuffled the folders too, and a folder you know was hard to find. Issue #89 asks for the folders to stay in name order, A to Z, always.</p>
+  <div class="note" data-k="note">Thunar sorts by asking one function, again and again, "which of these two rows comes first?". The fix is in that question: when both rows are folders, the answer is now always their names, A to Z.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① How Thunar orders two rows — the fix</div>
+  <ol class="steps">
+    <li data-k="1"><b>Pick a sort.</b> You click a column header in the detailed view, or choose View → Arrange Items. Thunar re-sorts the folder's rows with its compare function: <code>thunar_list_model_cmp_func</code> for the icon and compact views, <code>thunar_tree_view_model_cmp_nodes</code> for the detailed view.</li>
+    <li data-k="2"><b>Folder vs file.</b> When Sort folders before files is on and one row is a folder and the other a file, the folder comes first. This check was already there and is unchanged.</li>
+    <li data-k="3"><b>Two folders.</b> New: when both rows are folders, the function returns <code>thunar_file_compare_by_name</code> and skips the sort direction (<code>sort_sign</code>). That is Thunar's own natural name compare, so <code>dir2</code> comes before <code>dir10</code>, and the case-sensitivity setting still applies.</li>
+    <li data-k="4"><b>Two files.</b> Files still go through the chosen column's compare times the direction, as before. With Sort folders before files off, steps 2 and 3 never run, so nothing changes.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② verify/89.sh — how it is checked</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Test files.</b> The script makes folders <code>Alpha</code>, <code>dir2</code> and <code>dir10</code> and files <code>a.txt</code> (2000 bytes), <code>b.txt</code> (100) and <code>c.txt</code> (3000), with dates and contents chosen so that no other column gives the name order.</li>
+    <li data-k="6"><b>Relaunch sorted.</b> For each sort it quits Thunar, sets <code>last-sort-column</code> and <code>last-sort-order</code> with <code>xfconf-query</code>, and opens the folder again in the detailed list view.</li>
+    <li data-k="7"><b>Check each row.</b> It clicks each row in turn, copies it, pastes it into a fresh folder in a second window, and checks that the pasted name is the one expected for that row. A wrong order fails the test.</li>
+    <li data-k="8"><b>Five sorts.</b> Name ascending, Size descending, Date Modified ascending, Name descending, and Name descending with Sort folders before files off, which must look as before. Each ends with a screenshot.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">The five sorts the test checks</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Sort</th><th>Folders (top)</th><th>Files (below)</th><th>Shot</th></tr>
+    <tr data-k="s1"><td>Name, ascending</td><td>Alpha, dir2, dir10</td><td>a.txt, b.txt, c.txt</td><td><code>before-size-desc</code></td></tr>
+    <tr data-k="s2"><td>Size, descending</td><td>Alpha, dir2, dir10</td><td>c.txt, a.txt, b.txt (largest first)</td><td><code>after-size-desc</code></td></tr>
+    <tr data-k="s3"><td>Date Modified, ascending</td><td>Alpha, dir2, dir10 (by date they would be dir10, Alpha, dir2)</td><td>b.txt, c.txt, a.txt (oldest first)</td><td><code>date-modified</code></td></tr>
+    <tr data-k="s4"><td>Name, descending</td><td>Alpha, dir2, dir10 (still A to Z)</td><td>c.txt, b.txt, a.txt (Z to A)</td><td><code>name-desc</code></td></tr>
+    <tr data-k="s5"><td>Name, descending, folders first off</td><td colspan="2">mixed, as before: dir10, dir2, c.txt, b.txt, Alpha, a.txt</td><td><code>folders-first-off</code></td></tr>
+  </table>
+  </div>
+<pre data-k="diff">      if (isdir_a != isdir_b)
+        return isdir_a ? -1 : 1;
+<span class="add">+     if (isdir_a)
++       return thunar_file_compare_by_name (a, b, store->sort_case_sensitive);</span>
+    }
+
+  return (*store->sort_func) (a, b, store->sort_case_sensitive) * store->sort_sign;</pre>
+  <p data-k="diff-note">The same two lines go into <code>thunar/thunar-tree-view-model.c</code>, with <code>model</code> in place of <code>store</code>, so all views agree.</p>
+  <div class="note" data-k="arrow">Worth knowing: in the detailed view the column header's arrow still shows the column and direction you chose. That now describes only the files. Sorted by Name descending, the folders read A to Z while the files read Z to A. You confirmed both in the issue.</div>
+  <div class="note" data-k="also">The location bar's path completion uses the same list with folders first, so its folder suggestions are now also in name order.</div>
+  <div class="note" data-k="undo">To undo it, revert this PR. No setting is added or stored. Upstream merges (#30) will meet a small local change in two compare functions.</div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+├── thunar-list-model.c        # 2 lines: two folders compare by name (icon, compact views)
+└── thunar-tree-view-model.c   # the same 2 lines for the detailed view
+verify/
+└── 89.sh                      # checks every row under five sorts, takes 5 shots
+explainers/
+├── 89-folders-name-order.html            # this page
+└── 89-folders-name-order.narration.json  # its narration</pre>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The fix reuses Thunar's own name compare. In this session it was built, installed in the cloud container, and all 10 tests passed there, including the new one. CI and the screenshot audit have not run yet.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>thunar_file_compare_by_name</h3><p><code>thunar/thunar-file.c:4540</code>: the natural compare Thunar already uses for the Name column, case-insensitive unless you turn case sensitivity on. No new compare code.</p></div>
+    <div class="card" data-k="r2"><h3>The folders-first check</h3><p>The existing folder-before-file test in both compare functions. The new lines sit right after it, inside the same Sort folders before files branch.</p></div>
+    <div class="card" data-k="r3"><h3>Issue #89's test plan</h3><p>Folders Alpha, dir2 and dir10 with sizes and dates that disagree with their names, checked under Size descending and Date Modified.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage</code> in the cloud container (this session)</td><td class="ok">built; 1 warning, pre-existing</td></tr>
+    <tr data-k="c2"><td>The one warning</td><td>Build log: a gtk-doc comment at <code>thunar-list-model.c:1849</code>, not part of this change</td><td class="ok">not from this PR</td></tr>
+    <tr data-k="c3"><td>Folder and file order under five sorts</td><td><code>verify/89.sh</code> via <code>verify-proof.sh install</code> and <code>run</code>, the same Xvfb, xfwm4 and D-Bus setup as CI (this session)</td><td class="ok">pass, 30 rows checked, 70 s</td></tr>
+    <tr data-k="c4"><td>Existing tests still pass</td><td>Same run: smoke test and <code>verify/</code> 3, 14, 15, 19, 21, 22, 49 and 68</td><td class="ok">10 of 10 pass</td></tr>
+    <tr data-k="c5"><td>Icon and compact views</td><td><code>verify/89.sh</code> uses the detailed view only, so the list model's copy of the fix isn't driven by a test; the review read it</td><td class="no">not run</td></tr>
+    <tr data-k="c6"><td>Before shot of main</td><td>CI installs one build, so main's shuffled folders can't be shot; the before shot is this build sorted by Name</td><td class="no">not possible</td></tr>
+    <tr data-k="c7"><td>CI on this PR</td><td>Build, verify, explainer, review and summary jobs, on the first push</td><td class="open">pending CI</td></tr>
+    <tr data-k="c8"><td>Screenshots show what they claim</td><td><code>/visual-verify</code> on CI's shots, after its first verify run</td><td class="open">pending CI</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh general-purpose agent, given only the diff and the issue, reviewed the PR in this session. It found no correctness problems and raised one risk, which was kept as is.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Correct sorting:</b> the compare still gives one consistent order, which Thunar's sorted insert and re-sort rely on. <code>sort_sign</code> elsewhere only reports the chosen direction.</li>
+    <li data-k="b2"><b>Also affected:</b> path completion in the location bar uses folders first too, and now lists folders by name.</li>
+    <li data-k="b3"><b>Risk, kept:</b> 30 row checks might get near the test's 120 s limit. The local run took 70 s, so it stays as is.</li>
+  </ul>
+  <p data-k="ci-review">CI's own review hasn't run yet. It runs on the first push and reports in the code review comment on this PR.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>Your own folders, in every view</td><td>The test uses six names in the detailed view; your folders, icon and compact views, and your case setting only show in your session</td><td class="open">your first sort after updating</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The changes: this PR → “Files changed”, or <code>git diff origin/main...89-folders-name-order</code></li>
+    <li data-k="l2">CI's checks, its review and its five shots: the summary, code review and verify comments on this PR, once CI has run</li>
+    <li data-k="l3">Locally: <code>verify-proof.sh run</code> puts the shots and <code>verify.tsv</code> in <code>${TMPDIR:-/tmp}/verify-proof/</code></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing depends on #89</h2>
+  <p class="intro" data-k="intro">No open issue says "Depends on #89", so nothing builds on it yet. What remains is a look in your own folders after the merge.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR, then you sort your own folders">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--merge)">#89 Folders by name</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">folders stay A to Z,</text>
+      <text x="36" y="134" class="b">files follow</text>
+      <text x="36" y="154" class="b">your sort</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Try it for real</text>
+      <text x="286" y="114" class="b">sort your own</text>
+      <text x="286" y="134" class="b">folders by Size</text>
+      <text x="286" y="154" class="b">and Date</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-a">
+  <h3 class="sec">Your step (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Try it in your session.</b> After the merge, sort a busy folder by Size, then by Date Modified, then Z to A: the folders should stay A to Z at the top each time, while the files move.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="ff"><dt>Sort folders before files</dt><dd>Thunar's preference (<code>misc-folders-first</code>) that lists all folders above all files.</dd></div>
+    <div data-k="natural"><dt>Natural order</dt><dd>Name order that reads numbers as numbers, so dir2 comes before dir10.</dd></div>
+    <div data-k="cmp"><dt>Compare function</dt><dd>The function a sort calls to decide which of two rows comes first.</dd></div>
+    <div data-k="sign"><dt>sort_sign</dt><dd>1 for ascending, −1 for descending; Thunar multiplies a compare's answer by it to flip the order.</dd></div>
+    <div data-k="tree"><dt>Tree view model</dt><dd>The list behind the detailed view, which can also show expanded subfolders.</dd></div>
+    <div data-k="xfconf"><dt>xfconf-query</dt><dd>The command that reads and sets Xfce settings, such as Thunar's last sort column.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual screen with no monitor, where the tests run Thunar and take screenshots.</dd></div>
+    <div data-k="pair"><dt>Shot pair</dt><dd>A before and an after screenshot that CI joins into one image in its verify comment.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
