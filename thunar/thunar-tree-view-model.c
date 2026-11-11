@@ -2407,6 +2407,7 @@ thunar_tree_view_model_cmp_nodes (gconstpointer a,
   ThunarTreeViewModel *model = THUNAR_TREE_VIEW_MODEL (data);
   gboolean             isdir_a;
   gboolean             isdir_b;
+  gint                 result;
 
   a = ((Node *) a)->file;
   b = ((Node *) b)->file;
@@ -2421,7 +2422,11 @@ thunar_tree_view_model_cmp_nodes (gconstpointer a,
       if (isdir_a != isdir_b)
         return isdir_a ? -1 : 1;
       if (isdir_a)
-        return thunar_file_compare_by_name (a, b, model->sort_case_sensitive);
+        {
+          result = thunar_file_compare_by_name (a, b, model->sort_case_sensitive);
+          if (result != 0)
+            return result;
+        }
     }
 
   return (*model->sort_func) (a, b, model->sort_case_sensitive) * model->sort_sign;

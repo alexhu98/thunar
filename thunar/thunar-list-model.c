@@ -1375,6 +1375,7 @@ thunar_list_model_cmp_func (gconstpointer a,
   ThunarListModel *store = THUNAR_LIST_MODEL (user_data);
   gboolean         isdir_a;
   gboolean         isdir_b;
+  gint             result;
 
   _thunar_return_val_if_fail (THUNAR_IS_FILE (a), 0);
   _thunar_return_val_if_fail (THUNAR_IS_FILE (b), 0);
@@ -1386,7 +1387,11 @@ thunar_list_model_cmp_func (gconstpointer a,
       if (isdir_a != isdir_b)
         return isdir_a ? -1 : 1;
       if (isdir_a)
-        return thunar_file_compare_by_name (a, b, store->sort_case_sensitive);
+        {
+          result = thunar_file_compare_by_name (a, b, store->sort_case_sensitive);
+          if (result != 0)
+            return result;
+        }
     }
 
   return (*store->sort_func) (a, b, store->sort_case_sensitive) * store->sort_sign;

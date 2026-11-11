@@ -27,16 +27,35 @@ xfconf-query -c thunar -p /default-view -n -t string -s ThunarDetailsView
 xfconf-query -c thunar -p /misc-folders-first -n -t bool -s true
 
 N=0
+select_row() {
+  focus "$MAIN"
+  xdotool mousemove --window "$MAIN" "$NAME_X" $((ROW0 + $1 * ROW_H))
+  sleep 0.3
+  xdotool click 1
+  sleep 0.3
+}
+
+select_icon() {
+  local i
+  focus "$MAIN"
+  xdotool mousemove --window "$MAIN" $((W - 60)) $((H - 80))
+  sleep 0.3
+  xdotool click 1
+  sleep 0.3
+  xdotool key Home
+  for ((i = 0; i < $1; i++)); do
+    xdotool key Right
+    sleep 0.2
+  done
+  sleep 0.3
+}
+
 row_is() {
   local row=$1 want=$2 dest got i
   N=$((N + 1))
   dest="$WORK/check-$N"
   mkdir -p "$dest"
-  focus "$MAIN"
-  xdotool mousemove --window "$MAIN" "$NAME_X" $((ROW0 + row * ROW_H))
-  sleep 0.3
-  xdotool click 1
-  sleep 0.3
+  "${SELECT:-select_row}" "$row"
   xdotool key ctrl+c
   sleep 0.3
   open_thunar "$dest"
@@ -45,7 +64,7 @@ row_is() {
   xdotool key ctrl+v
   for ((i = 0; i < 25; i++)); do
     got=$(ls -A "$dest" | tr '\n' ' ')
-    [[ $got == "$want " ]] && break
+    [[ $got == "$want " ]] && diff -rq "$DIR/$want" "$dest/$want" > /dev/null 2>&1 && break
     sleep 0.2
   done
   xdotool key ctrl+w
@@ -86,7 +105,7 @@ shot "$MAIN" before-size-desc "Sorted by Name ascending: folders Alpha, dir2, di
 launch THUNAR_COLUMN_SIZE GTK_SORT_DESCENDING
 order_is Alpha dir2 dir10 c.txt a.txt b.txt
 shot "$MAIN" after-size-desc "Sorted by Size descending: folders still Alpha, dir2, dir10; files by size, largest first: c.txt, a.txt, b.txt"
-pair size-desc "Switched the sort from Name ascending to Size descending" "Folders keep natural A to Z name order while the files follow Size descending" "Name A-Z: Alpha dir2 dir10, a b c" "Size desc: Alpha dir2 dir10, c a b" "$G"
+pair size-desc "Switched the sort from Name ascending to Size descending" "Folders keep natural A to Z name order while the files follow Size descending; before #89 the folders were reversed here too" "Name A-Z: Alpha dir2 dir10, a b c" "Size desc: Alpha dir2 dir10, c a b" "$G"
 
 launch THUNAR_COLUMN_DATE_MODIFIED GTK_SORT_ASCENDING
 order_is Alpha dir2 dir10 b.txt c.txt a.txt
@@ -95,6 +114,12 @@ shot "$MAIN" date-modified "Sorted by Date Modified ascending: folders still Alp
 launch THUNAR_COLUMN_NAME GTK_SORT_DESCENDING
 order_is Alpha dir2 dir10 c.txt b.txt a.txt
 shot "$MAIN" name-desc "Sorted by Name descending: folders stay A to Z (Alpha, dir2, dir10) while files go Z to A: c.txt, b.txt, a.txt"
+
+xfconf-query -c thunar -p /default-view -s ThunarIconView
+launch THUNAR_COLUMN_SIZE GTK_SORT_DESCENDING
+SELECT=select_icon order_is Alpha dir2 dir10 c.txt
+shot "$MAIN" icon-view "Icon view sorted by Size descending: folders Alpha, dir2, dir10 come first in name order, then c.txt, the largest file"
+xfconf-query -c thunar -p /default-view -s ThunarDetailsView
 
 xfconf-query -c thunar -p /misc-folders-first -s false
 launch THUNAR_COLUMN_NAME GTK_SORT_DESCENDING
