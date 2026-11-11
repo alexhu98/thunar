@@ -1385,6 +1385,8 @@ thunar_list_model_cmp_func (gconstpointer a,
       isdir_b = thunar_file_is_directory (b);
       if (isdir_a != isdir_b)
         return isdir_a ? -1 : 1;
+      if (isdir_a)
+        return thunar_file_compare_by_name (a, b, store->sort_case_sensitive);
     }
 
   return (*store->sort_func) (a, b, store->sort_case_sensitive) * store->sort_sign;

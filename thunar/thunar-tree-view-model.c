@@ -2420,6 +2420,8 @@ thunar_tree_view_model_cmp_nodes (gconstpointer a,
       isdir_b = thunar_file_is_directory (b);
       if (isdir_a != isdir_b)
         return isdir_a ? -1 : 1;
+      if (isdir_a)
+        return thunar_file_compare_by_name (a, b, model->sort_case_sensitive);
     }
 
   return (*model->sort_func) (a, b, model->sort_case_sensitive) * model->sort_sign;
