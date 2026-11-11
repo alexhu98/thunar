@@ -79,13 +79,13 @@ xfconf-query -c thunar -p /misc-status-bar-active-info -n -t uint -s 15
 select_one
 clear_selection
 shot "$WID" before-status-none "Size in bytes switched on, as in the old default: nothing selected shows 3 files: 6.0 MiB (6,291,456 bytes)"
-pair status-none "Went from Size in bytes on (the old default) to the new default" "With nothing selected the new default drops the byte count and keeps the folder totals and free space" "Old default: 6.0 MiB (6,291,456 bytes)" "New default: 6.0 MiB, no byte count" "$G"
+pair status-none "Compared Size in bytes on (the old default) with the new default" "With nothing selected the new default drops the byte count and keeps the folder totals and free space" "Old default: 6.0 MiB (6,291,456 bytes)" "New default: 6.0 MiB, no byte count" "$G"
 select_one
 shot "$WID" before-status-one "Size in bytes on, a.bin selected: its size reads 1.0 MiB (1,048,576 bytes)"
-pair status-one "Selected a.bin, with Size in bytes on and then with the new default" "One selected file keeps Total and Free space, and the new default drops its byte count" "Old default: 1.0 MiB (1,048,576 bytes)" "New default: 1.0 MiB | Total | Free space" "$G"
+pair status-one "Selected a.bin, with Size in bytes on and with the new default" "One selected file keeps Total and Free space, and the new default drops its byte count" "Old default: 1.0 MiB (1,048,576 bytes)" "New default: 1.0 MiB | Total | Free space" "$G"
 select_two
 shot "$WID" before-status-many "Size in bytes on, a.bin and b.bin selected: Selection: 2 files: 3.0 MiB (3,145,728 bytes)"
-pair status-many "Selected a.bin and b.bin, with Size in bytes on and then with the new default" "A multi-file selection keeps Total and Free space, and the new default drops the byte count" "Old default: 3.0 MiB (3,145,728 bytes)" "New default: 3.0 MiB | Total | Free space" "$G"
+pair status-many "Selected a.bin and b.bin, with Size in bytes on and with the new default" "A multi-file selection keeps Total and Free space, and the new default drops the byte count" "Old default: 3.0 MiB (3,145,728 bytes)" "New default: 3.0 MiB | Total | Free space" "$G"
 search
 shot "$WID" after-status-bytes-on "Size in bytes switched back on while searching: 3 files found: 6.0 MiB (6,291,456 bytes) | Free space: …"
 cancel_search
@@ -95,7 +95,7 @@ xfconf-query -c thunar -p /misc-status-bar-active-info -r || true
 gio trash "$WORK/trashed.txt" || fail "could not move a file to the trash"
 go trash:/// Trash
 select_one
-shot "$WID" after-status-trash "Trash with trashed.txt selected: its name, type, original path and Total: 1 file, with no Free space part"
+shot "$WID" after-status-trash "Trash with trashed.txt selected: its name, type, original path and Total: 1 file; Free space only if the trash reports it, and no error"
 kill -0 "$THUNAR_PID" 2>/dev/null || fail "Thunar quit after selecting a file in the trash"
 
 go "$DIR" files
