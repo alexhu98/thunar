@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #92 Tabs options</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #92: open folders as tabs, in one or both panes, from the command line</h1>
+  <p class="lead" data-k="lead">Branch <code>4-tabs-options</code> → <code>main</code>, closes #4. Once merged, <code>thunar -t ~/a ~/b -T ~/c ~/d</code> opens one new window with tabs a and b on the left and c and d on the right, focus on the left.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: #41, a --split option</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">Two new options, <code>-t</code>/<code>--tabs</code> and <code>-T</code>/<code>--tabs-right</code>, in <code>thunar/thunar-application.c</code>, and one new window function in <code>thunar/thunar-window.c</code> that fills both panes with tabs. <code>verify/4.sh</code> tests them.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="Your thunar command splits its arguments at -T, hands them to the running Thunar, which checks each folder, opens a new window, fills both panes and focuses the left one">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Your thunar command — splits the arguments</text>
+    <g data-k="1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">You run thunar</text>
+      <text x="36" y="114" class="m">-t a b -T c d</text>
+      <text x="36" y="134" class="b">in a terminal or</text>
+      <text x="36" y="154" class="b">a launcher</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Split at -T</text>
+      <text x="286" y="114" class="m">--tabs-right-uri=c</text>
+      <text x="286" y="134" class="b">in your own process,</text>
+      <text x="286" y="154" class="b">before options parse</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-merge" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Hand over</text>
+      <text x="536" y="114" class="b">GApplication sends</text>
+      <text x="536" y="134" class="b">the options over</text>
+      <text x="536" y="154" class="b">D-Bus to Thunar</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Read options</text>
+      <text x="786" y="114" class="m">command_line</text>
+      <text x="786" y="134" class="b">tabs, tabs-right and</text>
+      <text x="786" y="154" class="b">the right-pane list</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--accent)">② The running Thunar — opens the window</text>
+    <g data-k="5">
+      <rect class="box-pr" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Check folders</text>
+      <text x="786" y="314" class="b">each one, in order;</text>
+      <text x="786" y="334" class="b">a bad one gets the</text>
+      <text x="786" y="354" class="b">usual error dialog</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-pr" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">New window</text>
+      <text x="536" y="314" class="b">always new, as with</text>
+      <text x="536" y="334" class="b">-w; no tabs restored</text>
+      <text x="536" y="354" class="b">from last session</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-pr" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Fill both panes</text>
+      <text x="286" y="314" class="m">open_pane_tabs</text>
+      <text x="286" y="334" class="b">left tabs, split on</text>
+      <text x="286" y="354" class="b">only with -T, right</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <g data-k="8">
+      <rect class="box-pr" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">First tab, left</text>
+      <text x="36" y="314" class="b">tab 1 selected in</text>
+      <text x="36" y="334" class="b">each pane; focus</text>
+      <text x="36" y="354" class="b">goes to the left</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">8</text>
+    </g>
+    <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M520,320 H484" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M270,320 H234" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new in this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>Thunar or GLib, unchanged</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Until now, <code>thunar ~/a ~/b</code> opened each folder in its own window, or as tabs in an existing window if "Open new windows as tabs" is on. There was no way to open a ready-made window with chosen tabs in the left pane and others in the right pane of split view. Issue #4 asks for that: <code>-t</code> (the same letter as in Nemo, another file manager) collects the folders as tabs in one new window, and <code>-T</code> is a divider: folders after it go to the right pane.</p>
+  <div class="note" data-k="note">The <code>thunar</code> you type is usually not the Thunar that opens the window. Thunar is a GApplication: if one is already running, or runs as <code>--daemon</code>, your command only passes its options to that one over D-Bus and exits. Those options arrive as a plain list that has lost where each folder stood relative to <code>-T</code>, so the split must happen first, in your own process.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Your thunar command</div>
+  <ol class="steps">
+    <li data-k="1"><b>You run thunar.</b> For example <code>thunar -t ~/a ~/b -T ~/c ~/d</code>, or the long forms <code>--tabs</code> and <code>--tabs-right</code>. Both options take no value.</li>
+    <li data-k="2"><b>Split at -T.</b> A new <code>thunar_application_local_command_line</code> runs in your process before GLib parses the options. It walks the arguments and rewrites every folder after <code>-T</code> as a hidden option, <code>--tabs-right-uri=~/c</code>, which may repeat. <code>-T</code> with no folder after it prints <code>--tabs-right needs at least one location</code> and stops, unless <code>--help</code> or <code>-h</code> is also there: then help is shown.</li>
+    <li data-k="3"><b>Hand over.</b> Unchanged GLib behaviour: GApplication parses the options and, when Thunar is already running (or as <code>--daemon</code>), sends them over D-Bus to that instance. With no Thunar running, your process becomes it.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--accent)">② The running Thunar</div>
+  <ol class="steps" start="4" style="counter-reset: s 3">
+    <li data-k="4"><b>Read options.</b> <code>thunar_application_command_line</code> reads <code>tabs</code>, <code>tabs-right</code> and the <code>tabs-right-uri</code> list next to the usual folder list. Without <code>-t</code> or <code>-T</code>, nothing changes.</li>
+    <li data-k="5"><b>Check folders.</b> A new <code>thunar_application_tab_directories</code> turns each name into a folder, relative to where you ran the command, one at a time. A missing one shows Thunar's usual "Failed to open" dialog and a line on stderr; a file that isn't a folder gets the same dialog with "Not a directory". The other folders still open. With <code>-T</code> and nothing before it, the left pane gets the current directory.</li>
+    <li data-k="6"><b>New window.</b> It calls <code>thunar_application_open_window (…, TRUE)</code>, the same forced new window as <code>-w</code>, so it never adds tabs to an existing window, even with "Open new windows as tabs" on. It also skips restoring the last session's tabs.</li>
+    <li data-k="7"><b>Fill both panes.</b> A new <code>thunar_window_open_pane_tabs</code> in <code>thunar-window.c</code> opens the left folders as tabs, turns split view on only when there are right folders (and off for <code>-t</code> alone, even with "always enable split view" on), then opens the right folders as tabs in the right pane.</li>
+    <li data-k="8"><b>First tab, left.</b> Thunar normally selects the last tab opened, so it selects tab 1 in each pane explicitly and switches back to the left pane, which gets the keyboard focus.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">What each command does</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Command</th><th>Left pane</th><th>Right pane</th></tr>
+    <tr data-k="k1"><td><code>thunar -t a b -T c d</code></td><td>a, b (a selected, focused)</td><td>c, d (c selected)</td></tr>
+    <tr data-k="k2"><td><code>thunar -t a b</code></td><td>a, b (a selected)</td><td>none, split view off</td></tr>
+    <tr data-k="k3"><td><code>thunar -T c</code></td><td>the folder you ran it in</td><td>c</td></tr>
+    <tr data-k="k4"><td><code>thunar -T</code></td><td colspan="2">error <code>--tabs-right needs at least one location</code>, no window</td></tr>
+    <tr data-k="k5"><td><code>thunar -t a missing b</code></td><td>"Failed to open" dialog, then a, b</td><td>none</td></tr>
+    <tr data-k="k6"><td><code>thunar a b</code> (no -t or -T)</td><td colspan="2">unchanged: one window per folder, or tabs as your settings say</td></tr>
+  </table>
+  </div>
+  <div class="note warn" data-k="limits">Limits: <code>thunar -T</code> prints its error but still exits with status 0, like every Thunar usage error today, because <code>thunar/main.c</code> ignores the status; changing that is outside this issue. And folders are checked at once, so a remote location that first needs mounting (for example on a server not yet connected) isn't mounted by <code>-t</code>.</div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+├── thunar-application.c   # the two options, the hidden right-pane list, the split
+│                          #   at -T, the folder checks and the new-window path
+├── thunar-window.c        # thunar_window_open_pane_tabs: fills both panes
+└── thunar-window.h        # its declaration
+verify/4.sh                # the test: layouts, edge cases, --help
+explainers/4-tabs-options.html            # this page
+explainers/4-tabs-options.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo it, revert this PR. Nothing is stored in settings: the options only shape the one window they open.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Checked against issue #4's table and edge cases, in this session's build-verify agent with a local Xvfb run, not CI. CI hasn't run on the PR yet.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Issue #4's table</h3><p>Which tabs each pane holds, which is selected, where focus goes, and five edge cases. <code>verify/4.sh</code> checks each one it can drive.</p></div>
+    <div class="card" data-k="r2"><h3>Thunar's -w path</h3><p><code>thunar_application_open_window</code> with its force flag already opens a new window for <code>-w</code>. The new options reuse it.</p></div>
+    <div class="card" data-k="r3"><h3>Thunar's error dialog</h3><p>A bad folder gets the same <code>thunar_dialogs_show_error</code> "Failed to open" dialog that plain <code>thunar</code> shows today.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Builds without new warnings</td><td><code>dpkg-buildpackage</code> (this session's build-verify agent); an earlier <code>-Wshadow</code> warning in the changed code was fixed</td><td class="ok">built, 0 new warnings</td></tr>
+    <tr data-k="c2"><td>Nothing else broke</td><td><code>verify-proof.sh install</code> and <code>run</code>: the smoke test and every <code>verify/*.sh</code>, each under its own Xvfb (local run, not CI)</td><td class="ok">smoke + 10 of 10 pass</td></tr>
+    <tr data-k="c3"><td>The issue's example, no Thunar running</td><td><code>verify/4.sh</code>: <code>-t alpha beta -T gamma delta</code> → 1 window titled alpha; Ctrl+PgDn gives beta, so focus was in the left pane; a click in the right pane gives gamma, Ctrl+PgDn delta</td><td class="ok">pass</td></tr>
+    <tr data-k="c4"><td>Thunar running, new windows as tabs on</td><td>Same script: <code>--tabs … --tabs-right …</code> with <code>misc-open-new-window-as-tab</code> on → a 2nd window, alpha then beta</td><td class="ok">pass, 2 windows</td></tr>
+    <tr data-k="c5"><td>-t alone</td><td><code>-t alpha beta</code> → a 3rd window, no split view, alpha then beta</td><td class="ok">pass, 3 windows</td></tr>
+    <tr data-k="c6"><td>-T with nothing before it</td><td><code>-T gamma</code> run in folder epsilon → left pane epsilon, right pane gamma</td><td class="ok">pass</td></tr>
+    <tr data-k="c7"><td>-T with nothing after it</td><td><code>thunar -T</code> → the error on stderr and no new window. The exit status isn't checked: an earlier run failed on that check because it exits 0, so it was dropped</td><td class="ok">pass, exits 0</td></tr>
+    <tr data-k="c8"><td>A missing folder</td><td><code>-t alpha missing beta</code> → an "Error" dialog; after it is dismissed, a window with alpha and beta</td><td class="ok">pass</td></tr>
+    <tr data-k="c9"><td>Help lists both options</td><td><code>thunar --help</code> contains <code>-t, --tabs</code> and <code>-T, --tabs-right</code></td><td class="ok">pass</td></tr>
+    <tr data-k="c10"><td>Test run time</td><td><code>verify/4.sh</code>'s run in the same local run, against its 120 s limit</td><td class="ok">18 s</td></tr>
+    <tr data-k="c11"><td>A file that isn't a folder, a remote location</td><td>Not in <code>verify/4.sh</code>; the "Not a directory" path was read in the code, not run</td><td class="no">not run</td></tr>
+    <tr data-k="c12"><td>Screenshots show what they claim</td><td><code>/visual-verify</code> wasn't run on the local shots; it runs on CI's shots once CI has run</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh general-purpose agent, given only the diff and issue #4, reviewed the PR in this session before the first push. It found 6 things: 5 were fixed and 1 was kept on purpose.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Test script:</b> a loop in <code>verify/4.sh</code> never ran (a <code>-z</code> test inside arithmetic), a check could never fail and was dropped, and <code>-t</code> alone had no window-count check. All three are fixed.</li>
+    <li data-k="b2"><b>Messages:</b> <code>thunar -T --help</code> printed the error instead of help, and the stderr line didn't name the folder. Both are fixed.</li>
+    <li data-k="b3"><b>Kept:</b> <code>-t</code> alone turns split view off even with "always enable split view" on, because the issue says <code>-t</code> without <code>-T</code> gives one window with the left pane only.</li>
+  </ul>
+  <p data-k="ci-review">CI reviews the PR at level high on its first push and reports in the <a href="https://github.com/alexhu98/thunar/pull/92">code review comment on PR #92</a>. It hasn't run yet.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>The options in your own desktop, with your folders and settings</td><td>The tests run in a bare Xvfb session with fresh settings</td><td class="open">your first install</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/92">PR #92</a> → “Files changed”</li>
+    <li data-k="l2">CI's build, verify, explainer and review jobs, once they run: <a href="https://github.com/alexhu98/thunar/pull/92/checks">PR #92 → Checks</a></li>
+    <li data-k="l3">CI's summary, code review, verify shots and the visual-verify verdict: the comments on <a href="https://github.com/alexhu98/thunar/pull/92">PR #92</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: #41, a --split option</h2>
+  <p class="intro" data-k="intro">No open issue says "Depends on #4", but #41 was split out of it: a <code>--split</code> percentage for a new window. Whichever of #4 and #41 lands second makes <code>-T</code> windows honour it.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR's -t and -T options, then issue 41's --split option, then -T windows opening at the --split percentage">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">#41 --split: open a new split window at a ratio</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">-t and -T</text>
+      <text x="36" y="114" class="b">tabs in one new</text>
+      <text x="36" y="134" class="b">window, both panes</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">--split 60</text>
+      <text x="286" y="114" class="b">a new window split</text>
+      <text x="286" y="134" class="b">60/40, never saved</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">With -T</text>
+      <text x="536" y="114" class="b">the split -T turns</text>
+      <text x="536" y="134" class="b">on opens at the</text>
+      <text x="536" y="154" class="b">given percentage</text>
+    </g>
+    <g data-k="n4">
+      <rect class="box-future" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">With -t alone</text>
+      <text x="786" y="114" class="b">the right pane opens</text>
+      <text x="786" y="134" class="b">on the first tab</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M730,120 H766" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-41">
+  <h3 class="sec">#41 --split command-line option (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>The option.</b> <code>thunar --split 60 ~/a</code> opens one new window, split view on, the left pane taking 60% of the width, without changing any saved setting.</li>
+    <li data-k="2"><b>With -T.</b> <code>thunar -t ~/a ~/b ~/c -T ~/d --split 60</code>: the split that this PR's <code>-T</code> turns on opens at 60/40.</li>
+    <li data-k="3"><b>With -t alone.</b> <code>thunar -t ~/a ~/b --split 30</code>: the left pane holds the tabs and the right pane opens on <code>~/a</code>, split 30/70. That changes this PR's "split view off for -t alone" only when <code>--split</code> is given.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="pane"><dt>Pane, split view</dt><dd>Split view (F3) shows two folder views side by side; each side is a pane with its own tabs.</dd></div>
+    <div data-k="argv"><dt>argv</dt><dd>The list of words on the command line, as the program receives them.</dd></div>
+    <div data-k="gapp"><dt>GApplication</dt><dd>GLib's application class: it keeps one running instance and forwards later launches to it.</dd></div>
+    <div data-k="primary"><dt>Primary instance</dt><dd>The Thunar that is already running and actually opens the windows.</dd></div>
+    <div data-k="dbus"><dt>D-Bus</dt><dd>The desktop's message bus, which carries the options from your command to the running Thunar.</dd></div>
+    <div data-k="daemon"><dt>--daemon</dt><dd>Thunar running in the background with no window, waiting for commands.</dd></div>
+    <div data-k="goption"><dt>GOption</dt><dd>GLib's option parser; it puts all plain folder names in one list.</dd></div>
+    <div data-k="hidden"><dt>Hidden option</dt><dd>An option <code>--help</code> doesn't list, used here only to carry the right-pane folders.</dd></div>
+    <div data-k="newtab"><dt>Open new windows as tabs</dt><dd>The <code>misc-open-new-window-as-tab</code> setting; -t and -T ignore it and always open a window.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual screen with no monitor, where the tests run Thunar.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
