@@ -74,9 +74,7 @@ pair right-tab "Clicked in the right pane, then pressed Ctrl+Page Down" "The rig
 
 # Thunar running, with new windows set to open as tabs: the long options still open a new window
 xfconf-query -c thunar -p /misc-open-new-window-as-tab -n -t bool -s true
-FIRST=$WID
 open_thunar --tabs "$A" "$B" --tabs-right "$C" "$D"
-[[ $WID != "$FIRST" ]] || fail "--tabs reused the existing window"
 place
 wait_start alpha
 count_windows 2
@@ -87,6 +85,7 @@ shot "$WID" long-options "With Thunar running and Open new windows as tabs on, -
 open_thunar -t "$A" "$B"
 place
 wait_start alpha
+count_windows 3
 next_tab beta
 shot "$WID" tabs-only "thunar -t alpha beta: one new window without split view, tabs alpha and beta (the script stepped from alpha to beta)"
 
@@ -125,8 +124,9 @@ shot "$ERR" before-missing "Thunar's Failed to open error dialog for the locatio
 focus "$ERR"
 xdotool key Return
 WID=''
-for ((i = 0; i < 50 && -z $WID; i++)); do
+for ((i = 0; i < 50; i++)); do
   WID=$(comm -13 <(echo "$before") <(windows) | head -1)
+  [[ -n $WID ]] && break
   sleep 0.2
 done
 [[ -n $WID ]] || fail "no window opened after the error"

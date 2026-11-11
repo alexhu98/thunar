@@ -521,9 +521,13 @@ thunar_application_local_command_line (GApplication *gapp,
   gboolean   tabs_right = FALSE;
   gboolean   dash_dash = FALSE;
   gboolean   has_right_uri = FALSE;
+  gboolean   help = FALSE;
 
   for (guint n = 0; argv[n] != NULL; n++)
     {
+      if (n > 0 && !dash_dash && (g_strcmp0 (argv[n], "-h") == 0 || g_str_has_prefix (argv[n], "--help")))
+        help = TRUE;
+
       if (n > 0 && !dash_dash && !tabs_right
           && (g_strcmp0 (argv[n], "-T") == 0 || g_strcmp0 (argv[n], "--tabs-right") == 0))
         {
@@ -551,7 +555,7 @@ thunar_application_local_command_line (GApplication *gapp,
   g_strfreev (*arguments);
   *arguments = (gchar **) g_ptr_array_free (args, FALSE);
 
-  if (tabs_right && !has_right_uri)
+  if (tabs_right && !has_right_uri && !help)
     {
       g_printerr ("Thunar: %s\n", _("--tabs-right needs at least one location"));
       *exit_status = EXIT_FAILURE;
@@ -571,6 +575,7 @@ thunar_application_tab_directories (GApplicationCommandLine *command_line,
   GList      *directories = NULL;
   ThunarFile *file;
   GError     *error = NULL;
+  gchar      *message;
   gchar      *path;
 
   for (guint n = 0; filenames != NULL && filenames[n] != NULL; n++)
@@ -595,7 +600,9 @@ thunar_application_tab_directories (GApplicationCommandLine *command_line,
         }
 
       thunar_dialogs_show_error (NULL, error, _("Failed to open \"%s\""), filenames[n]);
-      g_application_command_line_printerr (command_line, "Thunar: %s\n", error->message);
+      message = g_strdup_printf (_("Failed to open \"%s\": %s"), filenames[n], error->message);
+      g_application_command_line_printerr (command_line, "Thunar: %s\n", message);
+      g_free (message);
       g_clear_error (&error);
     }
 
