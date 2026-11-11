@@ -114,7 +114,6 @@ typedef struct
   ThunarFile            *file;
   gchar                 *name;
   gboolean               needs_poke;
-  gboolean               queued;
 } ThunarApplicationTab;
 
 /* Prototype for the Thunar job launchers */
@@ -649,7 +648,7 @@ thunar_application_tabs_poked (ThunarBrowser *browser,
   ThunarApplicationTab *tab = user_data;
   GError               *not_directory = NULL;
 
-  if (error == NULL && !thunar_file_is_directory (target_file))
+  if (error == NULL && (target_file == NULL || !thunar_file_is_directory (target_file)))
     error = not_directory = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_NOT_DIRECTORY, g_strerror (ENOTDIR));
 
   g_clear_object (&tab->file);
@@ -659,8 +658,7 @@ thunar_application_tabs_poked (ThunarBrowser *browser,
     thunar_dialogs_show_error (NULL, error, _("Failed to open \"%s\""), tab->name);
 
   g_clear_error (&not_directory);
-  if (tab->queued)
-    thunar_application_tabs_poke_queued (tab->tabs);
+  thunar_application_tabs_poke_queued (tab->tabs);
   thunar_application_tabs_done (tab->tabs);
 }
 
@@ -758,7 +756,6 @@ thunar_application_open_tabs (ThunarApplication       *application,
   ThunarFile            *file;
   GError                *error = NULL;
   gboolean               needs_poke;
-  GFileType              kind;
   gboolean               succeeded = TRUE;
 
   tabs->application = application;
@@ -806,12 +803,7 @@ thunar_application_open_tabs (ThunarApplication       *application,
           continue;
 
         tabs->pending++;
-        kind = thunar_file_get_kind (tab->file);
-        tab->queued = !thunar_file_is_mounted (tab->file) || kind == G_FILE_TYPE_SHORTCUT || kind == G_FILE_TYPE_MOUNTABLE;
-        if (tab->queued)
-          tabs->queue = g_list_append (tabs->queue, tab);
-        else
-          thunar_browser_poke_file (THUNAR_BROWSER (application), tab->file, NULL, thunar_application_tabs_poked, tab);
+        tabs->queue = g_list_append (tabs->queue, tab);
       }
   thunar_application_tabs_poke_queued (tabs);
   thunar_application_tabs_done (tabs);
