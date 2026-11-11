@@ -289,15 +289,16 @@ explainers/74-statusbar-totals.narration.json  # its narration</pre>
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage</code> in maintainer mode, by the build-verify agent in this session's cloud container</td><td class="ok">built; no compiler warnings in changed files</td></tr>
-    <tr data-k="c2"><td>Every test passes on this build</td><td><code>verify-proof.sh run</code> with the built debs installed, on the final verify/74.sh: smoke test and verify scripts 14, 15, 19, 21, 22, 3, 49, 68 and 74, each under its own Xvfb</td><td class="ok">10 of 10 pass</td></tr>
+    <tr data-k="c2"><td>Every test passes on this build</td><td><code>verify-proof.sh run</code> with the built debs installed, on verify/74.sh as it was then: smoke test and verify scripts 14, 15, 19, 21, 22, 3, 49, 68 and 74, each under its own Xvfb</td><td class="ok">10 of 10 pass</td></tr>
     <tr data-k="c3"><td>Test 74 itself</td><td>The same run; verify/74.sh selects rows with Ctrl+A, Home, Down so the cursor starts in a known place, takes its shots in 53 s, and asserts that Thunar keeps running and the trash move works</td><td class="ok">pass, 53 s</td></tr>
     <tr data-k="c4"><td>Test 74's shot names</td><td>An earlier run named the four single shots after-…, so the job looked for their before shots; renamed to status-search, status-bytes-on, status-trash and status-rapid</td><td class="no">failed, then fixed</td></tr>
     <tr data-k="c7"><td>Test 74 selects the right rows</td><td>A second run passed, but its shot audit found the rows selected one off: keyboard selection depended on where the cursor was. Fixed with Ctrl+A, Home, Down</td><td class="no">audit failed, then fixed</td></tr>
-    <tr data-k="c5"><td>The status bar text in each shot</td><td>The test doesn't read the text; the shot-auditor agent read it from the final run's screenshots, e.g. <code>"a.bin" | 1.0 MiB | Unknown | Total: 1 folder, 3 files: 6.0 MiB | Free space: 29.5 GiB</code>, the search <code>3 files found: 6.0 MiB | Free space: 29.5 GiB</code>, and no Free space part in the trash</td><td class="ok">PASS: 10 of 10 shots, 3 pairs OK</td></tr>
+    <tr data-k="c8"><td>CI's shots, on head efbb06d</td><td><code>/visual-verify pr:94</code> on CI's shots: shot 64, status-trash, had its status text cut off at the window edge by CI's long work path. Fixed in ec7e26c7: the trash shot shows only the Size part, in a 1270 px window</td><td class="no">FAIL, then fixed</td></tr>
+    <tr data-k="c5"><td>The status bar text in each shot</td><td>The test doesn't read the text; the shot-auditor agent read it from that run's screenshots, e.g. <code>"a.bin" | 1.0 MiB | Unknown | Total: 1 folder, 3 files: 6.0 MiB | Free space: 29.5 GiB</code>, the search <code>3 files found: 6.0 MiB | Free space: 29.5 GiB</code>, and no Free space part in the trash</td><td class="ok">PASS: 10 of 10 shots, 3 pairs OK</td></tr>
     <tr data-k="c6"><td>Your own session</td><td>Needs your machine and your settings</td><td class="no">not run</td></tr>
   </table>
   </div>
-  <div class="note warn" data-k="code-after">The code changed after this local run: the 10 of 10 run and the shot audit were on the code before CI's review fixes (R1 to R3, R5, R7, R9). CI's verify runs on the final code.</div>
+  <div class="note warn" data-k="code-after">The code and the test changed after this local run: the 10 of 10 run and the local shot audit were before CI's review fixes and the later verify/74.sh changes. CI's verify runs on the final code.</div>
   </section>
 
   <section class="sub" id="review">
@@ -312,8 +313,22 @@ explainers/74-statusbar-totals.narration.json  # its narration</pre>
   <p data-k="ci-review">CI's own review (<a href="https://github.com/alexhu98/thunar/actions/runs/43084296657">run 43084296657</a>, level high, on head 960d5f2) found 9 things, R1 to R9, listed in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/94">PR #94</a>.</p>
   <ul class="tight">
     <li data-k="ci1"><b>Fixed by CI's commit 60e3568:</b> R1 (medium), the search's cached free space kept its old units when the binary or decimal size setting changed; R2 (low), an empty one-file text got a leading separator; R3 (low), an extra reference to the folder's file.</li>
-    <li data-k="ci2"><b>Fixed in this session's commit:</b> R7, counting for Total now stops when the job is cancelled; R9, a folder without a matching file no longer drops the selection job; R5 in part, the Total pass no longer reads modification times, though the selected files are still read once more for Selection.</li>
-    <li data-k="ci3"><b>Open, for your decision:</b> R4, a search keeps its own free space query beside the job's, where the issue asks for one per search; R6, verify/74.sh can't read the status bar text, so the shots and /visual-verify are the proof; R8, the search size walks the results on the window's thread, as the issue asked, with no disk access.</li>
+    <li data-k="ci2"><b>Fixed in this session's commit:</b> R7, counting for Total now stops when the job is cancelled; R9, a folder without a matching file no longer drops the selection job.</li>
+    <li data-k="ci3"><b>Fixed after later reviews:</b> R10 (medium) and R11 (low) by CI's commit efbb06d; R18 (medium), the trash shot could run off the screen, fixed in 0f6790f8 by moving the window to 0,0.</li>
+    <li data-k="ci4"><b>Accepted by you, one by one:</b>
+      <ul class="tight">
+        <li><b>R4:</b> a search keeps its own free space lookup, once per search, as the issue asks.</li>
+        <li><b>R5:</b> the selected files are read twice, both times in the background.</li>
+        <li><b>R6:</b> the script can't read the status bar; the screenshots and /visual-verify are the proof.</li>
+        <li><b>R8:</b> the search size is summed in memory on the window's thread, as the issue asks, with no disk access.</li>
+        <li><b>R12:</b> Total re-reads the folder in the background on each selection change, and is cancelled when a newer one comes.</li>
+      </ul></li>
+    <li data-k="ci5"><b>Accepted under the later-review rule (unconfirmed lows):</b>
+      <ul class="tight">
+        <li><b>R13 to R17 and R19 to R22:</b> low findings from later reviews that the review didn't confirm.</li>
+        <li><b>R23:</b> a 1270 px window plus its frame borders only just fits the screen.</li>
+        <li><b>R24:</b> the window moves to 0,0 only before the trash shot.</li>
+      </ul></li>
   </ul>
   </section>
 
@@ -323,7 +338,7 @@ explainers/74-statusbar-totals.narration.json  # its narration</pre>
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
     <tr data-k="a1"><td>CI build and verify on the final code</td><td>CI runs on the PR's commits; its runs on PR #94's latest head are still pending</td><td class="open">pending on PR #94</td></tr>
-    <tr data-k="a2"><td>CI's shots show what they claim</td><td><code>/visual-verify pr:94</code> needs CI's shots on the shots branch</td><td class="open">after CI's verify</td></tr>
+    <tr data-k="a2"><td>CI's shots show what they claim, on the final head</td><td><code>/visual-verify pr:94</code> needs CI's shots of the final head on the shots branch</td><td class="open">after CI's verify</td></tr>
     <tr data-k="a3"><td>Your own folders and drives</td><td>A network mount or your own setting of the property only exist on your machine</td><td class="open">after the merge</td></tr>
   </table>
   </div>
