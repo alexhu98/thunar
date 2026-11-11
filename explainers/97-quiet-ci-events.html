@@ -227,12 +227,12 @@
   <div class="lane-h" style="color:var(--accent)">② A question waits for you</div>
   <ol class="steps" start="4" style="counter-reset: s 3">
     <li data-k="4"><b>Ask once.</b> The "What I need from you" section appears once per question, and is repeated only when you ask for it. A turn that only waits on a question already asked ends with one short line.</li>
-    <li data-k="5"><b>Pause the watch.</b> In an interactive session (any session where you answer in its chat, batch group sessions included), the agent unsubscribes from the PR's activity and schedules a <code>send_later</code> check-in about 50 minutes later. A check-in acts on a CI result or your answer as if subscribed; if neither has come, it schedules the next one about 4 hours later, and stops after 3 check-ins in a row that found nothing new.</li>
-    <li data-k="6"><b>You answer.</b> The agent cancels the pending check-in, subscribes to the PR again and checks its state through <code>pr-digest</code>, since events missed while unsubscribed aren't replayed. It also cancels the check-in when the PR is merged or closed, or a new question replaces the old one. The watch-the-PR line in "Branches and PRs" now says a check-in watches while a question waits.</li>
+    <li data-k="5"><b>Pause the watch.</b> In an interactive session (any session where you answer in its chat, batch group sessions included), the agent unsubscribes from the PR's activity and schedules a <code>send_later</code> check-in about 50 minutes later. A check-in acts on a CI result or your answer as if subscribed. While the question still waits after that, it schedules the next one about 4 hours later, and stops after 3 check-ins in a row that found nothing new. The batch orchestrator no longer reads a waiting group session's <code>working</code> status as an answer: only that session's next message clears <code>waiting on owner</code>.</li>
+    <li data-k="6"><b>You answer.</b> The agent cancels the pending check-in, subscribes to the PR again and checks its state through <code>pr-digest</code>, since events missed while unsubscribed aren't replayed. It also cancels the check-in when the PR is merged or closed, or a new question replaces the old one. The watch-the-PR line in "Branches and PRs" now says a check-in watches while a question waits in an interactive session.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">③ The build-verify agent builds</div>
   <ol class="steps" start="7" style="counter-reset: s 6">
-    <li data-k="7"><b>Hide outputs.</b> Before building in a cloud container, where the Stop hook runs, <code>.claude/agents/build-verify.md</code> step 0 creates the folder of the clone's exclude file (<code>git rev-parse --git-path info/exclude</code>, which also works in a linked worktree) if needed, then appends each build output path to it, unless that exact line is already there: <code>/dist/</code>, <code>/ar-lib</code>, the policy file, the thunarx ABI-check files, and the <code>debian/</code> build files, with one folder per package in <code>debian/control</code>. A cloud build outside build-verify runs step 0 first ("Building" in CLAUDE.md).</li>
+    <li data-k="7"><b>Hide outputs.</b> Before building in a cloud container, where the Stop hook runs, <code>.claude/agents/build-verify.md</code> step 0 creates the folder of the clone's exclude file (<code>git rev-parse --git-path info/exclude</code>, which also works in a linked worktree) if needed, then appends each build output path to it, unless that exact line is already there: <code>/dist/</code>, <code>/ar-lib</code>, the policy file, the thunarx ABI-check files, and the <code>debian/</code> build files, with one folder per package in <code>debian/control</code>.</li>
     <li data-k="8"><b>Stop hook quiet.</b> Git no longer lists those files as untracked, so the Stop hook stops re-prompting after every turn.</li>
   </ol>
   </div>
@@ -259,15 +259,14 @@
 <span class="add">- While a question waits for the owner in an interactive session,</span>
 <span class="add">  unsubscribe from the PR's activity and schedule a send_later check-in …</span>
 <span class="add">  about 50 minutes later … then about 4 hours later, and stop after 3</span>
-<span class="add">  check-ins in a row that found nothing new. Cancel the pending check-in …</span>
-## Building
-<span class="add">- In a cloud container, a build run outside build-verify first runs its step 0 …</span></pre>
+<span class="add">  check-ins in a row that found nothing new. Cancel the pending check-in …</span></pre>
   </section>
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
-<pre data-k="tree">CLAUDE.md                                     # three owner rules, two lines point to them, a Building line
+<pre data-k="tree">CLAUDE.md                                     # three owner rules; two lines point to them
 .claude/agents/build-verify.md                # new step 0: exclude build outputs
+.claude/skills/batch/SKILL.md                 # a waiting child's "working" changes nothing
 explainers/97-quiet-ci-events.html            # this page
 explainers/97-quiet-ci-events.narration.json  # its narration</pre>
   <div class="note" data-k="undo">To undo: revert the squash commit. A clone that already ran step 0 keeps its exclude lines; they only hide build outputs and can be deleted from <code>.git/info/exclude</code> by hand.</div>
@@ -302,7 +301,9 @@ explainers/97-quiet-ci-events.narration.json  # its narration</pre>
     <tr data-k="c8"><td>CI explainer job, first push</td><td>CI run 43093403082: this page wasn't pushed yet</td><td class="no">failed</td></tr>
     <tr data-k="c9"><td>CI code review, second push</td><td>CI run 43094459893 on head 26e6fb4, level high</td><td class="ok">R1 resolved, 9 new</td></tr>
     <tr data-k="c10"><td>CI build, verify and explainer, second push</td><td>CI run 43094459893: build and verify ran "No code changed"; the explainer job ran its steps</td><td class="ok">pass</td></tr>
-    <tr data-k="c11"><td>CI code review of the round 2 push</td><td>Runs on the review round 2 push</td><td class="open">pending</td></tr>
+    <tr data-k="c11"><td>CI code review, third push</td><td>CI run 43108431999 on 8b046b2 (round 2 merged with current main), level high</td><td class="ok">R2, R10 resolved, 8 new</td></tr>
+    <tr data-k="c12"><td>CI build, verify and explainer, third push</td><td>CI run 43108431999: build and verify ran "No code changed"; the explainer job ran its steps</td><td class="ok">pass</td></tr>
+    <tr data-k="c13"><td>CI code review of the round 3 push</td><td>Runs on the review round 3 push</td><td class="open">pending</td></tr>
     <tr data-k="c7"><td>This page</td><td><code>explainer-proof.sh render</code> and <code>make-video.py status</code>, run by the explainer subagent</td><td class="ok">rendered, stamped</td></tr>
   </table>
   </div>
@@ -318,15 +319,18 @@ explainers/97-quiet-ci-events.narration.json  # its narration</pre>
     <li data-k="b4"><b>Dead entry (low):</b> <code>debian/*.debhelper.log</code> matched nothing, so it was removed.</li>
     <li data-k="b5"><b>Check-in delay (partly addressed):</b> no <code>send_later</code> delay is named. Round 1 left the delay to the agent; CI's R10 later led to fixed delays.</li>
   </ul>
-  <p data-k="ci">CI's review of the first push (run 43093403082, level high) found 9 more. One fix commit (review round 1) fixed R1 to R8. Its review of the second push (run 43094459893) resolved R1, kept R2 open and found R10 to R18. Review round 2 fixed R2, R9 and R10 to R16; R17 and R18 were accepted. Every finding is in the <a href="https://github.com/alexhu98/thunar/pull/98#issuecomment-6806078372">code review comment</a> on PR #98.</p>
+  <p data-k="ci">CI's review of the first push (run 43093403082, level high) found 9 more. One fix commit (review round 1) fixed R1 to R8. Its review of the second push (run 43094459893) resolved R1, kept R2 open and found R10 to R18. Review round 2 fixed R2, R9 and R10 to R16; R17 and R18 were accepted. The review of the third push (run 43108431999, on top of current main) resolved R2 and R10, settled R11 to R18 and found R19 to R26. Review round 3 fixed R19 to R22; R23 to R26 were accepted. Every finding is in the <a href="https://github.com/alexhu98/thunar/pull/98#issuecomment-6806078372">code review comment</a> on PR #98.</p>
   <ul class="tight">
     <li data-k="r1"><b>R1, R2 (medium, confirmed):</b> the one check-in was never rescheduled, and resubscribing didn't look for events missed meanwhile. Round 1 fixed both; CI resolved R1 and kept R2 open, and round 2 closed it by checking the PR through pr-digest after resubscribing.</li>
     <li data-k="r3"><b>R3 to R5 (low):</b> "CI comment edited" was too broad, since CI edits its comments to report results; your comments weren't on the post-worthy list; "Read it" clashed with the pr-digest rule. Round 1 said "with no new result" (reworded again for R13), made your comment post-worthy, and CI comments are still read only through pr-digest.</li>
-    <li data-k="r6"><b>R6 to R8 (low):</b> a hard-coded .git/info/exclude breaks in a linked worktree, hand builds weren't covered, and step 0 would edit your own machine's clone. Step 0 now asks git for the path, runs only in a cloud container, and CLAUDE.md's "Building" runs it before a hand build there.</li>
+    <li data-k="r6"><b>R6 to R8 (low):</b> a hard-coded .git/info/exclude breaks in a linked worktree, hand builds weren't covered, and step 0 would edit your own machine's clone. Step 0 now asks git for the path and runs only in a cloud container. A "Building" line for hand builds was added, then removed in round 3 (R22), since builds already run in build-verify.</li>
     <li data-k="r9"><b>R9 (low):</b> it said the exclusion step is unrelated to #97, but the issue itself asks build-verify to add the exclusions. Round 2 names #97 in step 0 to make that plain.</li>
     <li data-k="r10"><b>R10 to R12 (medium, R10 confirmed):</b> check-ins were rescheduled with no delay or limit, a pending check-in was never cancelled, and the watch-the-PR line conflicted with the new rule. Now: about 50 minutes, then about 4 hours, stopping after 3 empty ones; cancelled on your answer, a merge or close, or a replacing question; and the watch line names the check-in.</li>
     <li data-k="r13"><b>R13 to R16 (low):</b> judging an edit as routine meant reading the comment, "at most" allowed an empty turn, "once per question" clashed with the closing-block line, and the info/ folder might not exist. Now a routine edit is one made while its check still runs, every quiet turn is one short line, a waiting turn ends with one short line, and step 0 runs mkdir -p first.</li>
     <li data-k="r17"><b>R17, R18 (low), accepted:</b> closed with a Review-accept trailer, per CLAUDE.md's rule for later-review lows that aren't confirmed. The output list covers what the build makes today, and a new output only brings back the hook prompt. The Verify sandbox recipe runs through build-verify, which runs step 0.</li>
+    <li data-k="r19"><b>R19 (medium, confirmed):</b> a check-in that acted on a CI result while the question still waited scheduled no next one. Now it does.</li>
+    <li data-k="r20"><b>R20 to R22 (low, confirmed):</b> the batch orchestrator cleared "waiting on owner" when a waiting child showed "working", which its own check-ins now cause; the watch line didn't say "interactive session"; and the Building line repeated what the Context section says. Now "working" changes nothing in the batch skill, the watch line matches, and the Building line is gone (also covering R7).</li>
+    <li data-k="r23"><b>R23 to R26 (low), accepted:</b> closed with a Review-accept trailer, per the same rule. Your PR comment while unsubscribed is caught by the pr-digest check on resubscribe; stopping after 3 empty check-ins is by design, and resubscribing catches up; at debhelper compat 13 the flagged files live under debian/.debhelper/, already excluded; and step 2's pathspec predates this PR, with warnings that never name debian/ files.</li>
   </ul>
   </section>
 
