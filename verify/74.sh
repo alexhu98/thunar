@@ -97,6 +97,7 @@ xfconf-query -c thunar -p /misc-status-bar-active-info -r || true
 gio trash "$WORK/trashed.txt" || fail "could not move a file to the trash"
 go trash:/// Trash
 xfconf-query -c thunar -p /misc-status-bar-active-info -n -t uint -s 1
+xdotool windowmove --sync "$WID" 0 0
 xdotool windowsize --sync "$WID" 1270 "$H"
 select_one
 shot "$WID" status-trash "Trash with trashed.txt selected and only the Size part switched on: 6 bytes | Original Path: … | Total: 1 file: 6 bytes, with Free space only if the trash reports it, and no error"
