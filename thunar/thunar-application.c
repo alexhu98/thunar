@@ -102,6 +102,7 @@ typedef struct
   ThunarApplication *application;
   gchar             *working_directory;
   GList             *tabs[2];
+  GList             *unmounted;
   guint              pending;
   gboolean           left_given;
   gboolean           right_given;
@@ -112,6 +113,7 @@ typedef struct
   ThunarApplicationTabs *tabs;
   ThunarFile            *file;
   gchar                 *name;
+  gboolean               unmounted;
 } ThunarApplicationTab;
 
 /* Prototype for the Thunar job launchers */
@@ -635,6 +637,9 @@ thunar_application_tab_free (gpointer data)
 
 
 static void
+thunar_application_tabs_poke_unmounted (ThunarApplicationTabs *tabs);
+
+static void
 thunar_application_tabs_poked (ThunarBrowser *browser,
                                ThunarFile    *file,
                                ThunarFile    *target_file,
@@ -654,7 +659,24 @@ thunar_application_tabs_poked (ThunarBrowser *browser,
     thunar_dialogs_show_error (NULL, error, _("Failed to open \"%s\""), tab->name);
 
   g_clear_error (&not_directory);
+  if (tab->unmounted)
+    thunar_application_tabs_poke_unmounted (tab->tabs);
   thunar_application_tabs_done (tab->tabs);
+}
+
+
+
+static void
+thunar_application_tabs_poke_unmounted (ThunarApplicationTabs *tabs)
+{
+  ThunarApplicationTab *tab;
+
+  if (tabs->unmounted == NULL)
+    return;
+
+  tab = tabs->unmounted->data;
+  tabs->unmounted = g_list_delete_link (tabs->unmounted, tabs->unmounted);
+  thunar_browser_poke_file (THUNAR_BROWSER (tabs->application), tab->file, NULL, thunar_application_tabs_poked, tab);
 }
 
 
@@ -780,8 +802,13 @@ thunar_application_open_tabs (ThunarApplication       *application,
           continue;
 
         tabs->pending++;
-        thunar_browser_poke_file (THUNAR_BROWSER (application), tab->file, NULL, thunar_application_tabs_poked, tab);
+        tab->unmounted = !thunar_file_is_mounted (tab->file);
+        if (tab->unmounted)
+          tabs->unmounted = g_list_append (tabs->unmounted, tab);
+        else
+          thunar_browser_poke_file (THUNAR_BROWSER (application), tab->file, NULL, thunar_application_tabs_poked, tab);
       }
+  thunar_application_tabs_poke_unmounted (tabs);
   thunar_application_tabs_done (tabs);
 
   return succeeded;
