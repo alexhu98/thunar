@@ -4366,12 +4366,21 @@ thunar_file_unwatch (ThunarFile *file)
 gboolean
 thunar_file_reload (ThunarFile *file)
 {
+  return thunar_file_reload_with_error (file, NULL);
+}
+
+
+
+gboolean
+thunar_file_reload_with_error (ThunarFile *file,
+                               GError    **error)
+{
   _thunar_return_val_if_fail (THUNAR_IS_FILE (file), FALSE);
 
   /* clear file pxmap cache */
   thunar_icon_factory_clear_pixmap_cache (file);
 
-  if (!thunar_file_load (file, NULL, NULL))
+  if (!thunar_file_load (file, NULL, error))
     {
       /* destroy the file if we cannot query any file information */
       thunar_file_destroy (file);
