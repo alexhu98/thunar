@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>#89 Folders by name</title>
+<title>PR #91 Folders by name</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -100,7 +100,7 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">#89: Folders listed first always sort by name</h1>
+  <h1 data-k="title">PR #91: Folders listed first always sort by name</h1>
   <p class="lead" data-k="lead">Branch <code>89-folders-name-order</code> → <code>main</code>, closes #89. With Sort folders before files on, the folders at the top always stay in natural name order, A to Z (Alpha, dir2, dir10), whatever column or direction you sort by. The files below them still follow your sort.</p>
 
   <nav class="parts" aria-label="Parts of this page">
@@ -114,7 +114,7 @@
   <section class="part" id="adds">
   <p class="part-label" data-k="label">Part 1</p>
   <h2 data-k="heading">What this PR adds</h2>
-  <p class="intro" data-k="intro">Two added lines in each of Thunar's two sort functions compare two folders by name only, and <code>verify/89.sh</code> checks the order of every row under five different sorts.</p>
+  <p class="intro" data-k="intro">A few added lines in each of Thunar's two sort functions compare two folders by name first, and <code>verify/89.sh</code> checks the order of every row under six different sorts.</p>
 
   <section class="sub" id="flow">
   <div class="diagram" role="img" aria-label="Thunar sorts a folder: folders go before files, two folders now compare by name A to Z, two files follow the chosen sort; verify/89.sh makes test files, relaunches Thunar with each sort, and checks every row">
@@ -190,10 +190,10 @@
     </g>
     <g data-k="8">
       <rect class="box-merge" x="20" y="260" width="210" height="120" rx="10"/>
-      <text x="36" y="290" class="t">Five sorts</text>
+      <text x="36" y="290" class="t">Six sorts</text>
       <text x="36" y="314" class="b">Name, Size, Date,</text>
       <text x="36" y="334" class="b">Name descending,</text>
-      <text x="36" y="354" class="b">folders-first off</text>
+      <text x="36" y="354" class="b">icon view, ff off</text>
       <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">8</text>
     </g>
     <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
@@ -220,21 +220,21 @@
   <ol class="steps">
     <li data-k="1"><b>Pick a sort.</b> You click a column header in the detailed view, or choose View → Arrange Items. Thunar re-sorts the folder's rows with its compare function: <code>thunar_list_model_cmp_func</code> for the icon and compact views, <code>thunar_tree_view_model_cmp_nodes</code> for the detailed view.</li>
     <li data-k="2"><b>Folder vs file.</b> When Sort folders before files is on and one row is a folder and the other a file, the folder comes first. This check was already there and is unchanged.</li>
-    <li data-k="3"><b>Two folders.</b> New: when both rows are folders, the function returns <code>thunar_file_compare_by_name</code> and skips the sort direction (<code>sort_sign</code>). That is Thunar's own natural name compare, so <code>dir2</code> comes before <code>dir10</code>, and the case-sensitivity setting still applies.</li>
+    <li data-k="3"><b>Two folders.</b> New: when both rows are folders, the function returns <code>thunar_file_compare_by_name</code> and skips the sort direction (<code>sort_sign</code>). That is Thunar's own natural name compare, so <code>dir2</code> comes before <code>dir10</code>, and the case-sensitivity setting still applies. When two folders have the same name, for example in search results from different places, it falls back to the chosen column and direction rather than calling them equal.</li>
     <li data-k="4"><b>Two files.</b> Files still go through the chosen column's compare times the direction, as before. With Sort folders before files off, steps 2 and 3 never run, so nothing changes.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② verify/89.sh — how it is checked</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
     <li data-k="5"><b>Test files.</b> The script makes folders <code>Alpha</code>, <code>dir2</code> and <code>dir10</code> and files <code>a.txt</code> (2000 bytes), <code>b.txt</code> (100) and <code>c.txt</code> (3000), with dates and contents chosen so that no other column gives the name order.</li>
     <li data-k="6"><b>Relaunch sorted.</b> For each sort it quits Thunar, sets <code>last-sort-column</code> and <code>last-sort-order</code> with <code>xfconf-query</code>, and opens the folder again in the detailed list view.</li>
-    <li data-k="7"><b>Check each row.</b> It clicks each row in turn, copies it, pastes it into a fresh folder in a second window, and checks that the pasted name is the one expected for that row. A wrong order fails the test.</li>
-    <li data-k="8"><b>Five sorts.</b> Name ascending, Size descending, Date Modified ascending, Name descending, and Name descending with Sort folders before files off, which must look as before. Each ends with a screenshot.</li>
+    <li data-k="7"><b>Check each row.</b> It clicks each row in turn, copies it, pastes it into a fresh folder in a second window, and checks that the pasted name is the one expected for that row. It waits until the pasted folder's contents match the original, so a slow copy isn't misread. A wrong order fails the test.</li>
+    <li data-k="8"><b>Six sorts.</b> Name ascending, Size descending, Date Modified ascending, Name descending, Size descending in the icon view, and Name descending with Sort folders before files off, which must look as before. Each ends with a screenshot.</li>
   </ol>
   </div>
   </section>
 
   <section class="sub" id="cases">
-  <h3 class="sec">The five sorts the test checks</h3>
+  <h3 class="sec">The six sorts the test checks</h3>
   <div class="table-wrap">
   <table>
     <tr><th>Sort</th><th>Folders (top)</th><th>Files (below)</th><th>Shot</th></tr>
@@ -242,17 +242,22 @@
     <tr data-k="s2"><td>Size, descending</td><td>Alpha, dir2, dir10</td><td>c.txt, a.txt, b.txt (largest first)</td><td><code>after-size-desc</code></td></tr>
     <tr data-k="s3"><td>Date Modified, ascending</td><td>Alpha, dir2, dir10 (by date they would be dir10, Alpha, dir2)</td><td>b.txt, c.txt, a.txt (oldest first)</td><td><code>date-modified</code></td></tr>
     <tr data-k="s4"><td>Name, descending</td><td>Alpha, dir2, dir10 (still A to Z)</td><td>c.txt, b.txt, a.txt (Z to A)</td><td><code>name-desc</code></td></tr>
+    <tr data-k="s6"><td>Size, descending, icon view</td><td>Alpha, dir2, dir10</td><td>c.txt first (the largest)</td><td><code>icon-view</code></td></tr>
     <tr data-k="s5"><td>Name, descending, folders first off</td><td colspan="2">mixed, as before: dir10, dir2, c.txt, b.txt, Alpha, a.txt</td><td><code>folders-first-off</code></td></tr>
   </table>
   </div>
 <pre data-k="diff">      if (isdir_a != isdir_b)
         return isdir_a ? -1 : 1;
 <span class="add">+     if (isdir_a)
-+       return thunar_file_compare_by_name (a, b, store->sort_case_sensitive);</span>
++       {
++         result = thunar_file_compare_by_name (a, b, store->sort_case_sensitive);
++         if (result != 0)
++           return result;
++       }</span>
     }
 
   return (*store->sort_func) (a, b, store->sort_case_sensitive) * store->sort_sign;</pre>
-  <p data-k="diff-note">The same two lines go into <code>thunar/thunar-tree-view-model.c</code>, with <code>model</code> in place of <code>store</code>, so all views agree.</p>
+  <p data-k="diff-note">The same lines go into <code>thunar/thunar-tree-view-model.c</code>, with <code>model</code> in place of <code>store</code>, so all views agree.</p>
   <div class="note" data-k="arrow">Worth knowing: in the detailed view the column header's arrow still shows the column and direction you chose. That now describes only the files. Sorted by Name descending, the folders read A to Z while the files read Z to A. You confirmed both in the issue.</div>
   <div class="note" data-k="also">The location bar's path completion uses the same list with folders first, so its folder suggestions are now also in name order.</div>
   <div class="note" data-k="undo">To undo it, revert this PR. No setting is added or stored. Upstream merges (#30) will meet a small local change in two compare functions.</div>
@@ -261,10 +266,10 @@
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">thunar/
-├── thunar-list-model.c        # 2 lines: two folders compare by name (icon, compact views)
-└── thunar-tree-view-model.c   # the same 2 lines for the detailed view
+├── thunar-list-model.c        # two folders compare by name; same name falls back (icon, compact)
+└── thunar-tree-view-model.c   # the same lines for the detailed view
 verify/
-└── 89.sh                      # checks every row under five sorts, takes 5 shots
+└── 89.sh                      # checks every row under six sorts, takes 6 shots
 explainers/
 ├── 89-folders-name-order.html            # this page
 └── 89-folders-name-order.narration.json  # its narration</pre>
@@ -275,7 +280,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The fix reuses Thunar's own name compare. In this session it was built, installed in the cloud container, and all 10 tests passed there, including the new one. CI and the screenshot audit have not run yet.</p>
+  <p class="intro" data-k="intro">The fix reuses Thunar's own name compare. CI passed on the first push, and its review found six possible issues. After the fixes, all 10 tests passed again in the cloud container. CI on the new push and the screenshot audit are pending.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -293,12 +298,14 @@ explainers/
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage</code> in the cloud container (this session)</td><td class="ok">built; 1 warning, pre-existing</td></tr>
     <tr data-k="c2"><td>The one warning</td><td>Build log: a gtk-doc comment at <code>thunar-list-model.c:1849</code>, not part of this change</td><td class="ok">not from this PR</td></tr>
-    <tr data-k="c3"><td>Folder and file order under five sorts</td><td><code>verify/89.sh</code> via <code>verify-proof.sh install</code> and <code>run</code>, the same Xvfb, xfwm4 and D-Bus setup as CI (this session)</td><td class="ok">pass, 30 rows checked, 70 s</td></tr>
+    <tr data-k="c3"><td>Folder and file order under six sorts</td><td><code>verify/89.sh</code> via <code>verify-proof.sh install</code> and <code>run</code>, the same Xvfb, xfwm4 and D-Bus setup as CI, after the review fixes (this session)</td><td class="ok">pass, 34 rows checked, 83 s</td></tr>
     <tr data-k="c4"><td>Existing tests still pass</td><td>Same run: smoke test and <code>verify/</code> 3, 14, 15, 19, 21, 22, 49 and 68</td><td class="ok">10 of 10 pass</td></tr>
-    <tr data-k="c5"><td>Icon and compact views</td><td><code>verify/89.sh</code> uses the detailed view only, so the list model's copy of the fix isn't driven by a test; the review read it</td><td class="no">not run</td></tr>
-    <tr data-k="c6"><td>Before shot of main</td><td>CI installs one build, so main's shuffled folders can't be shot; the before shot is this build sorted by Name</td><td class="no">not possible</td></tr>
-    <tr data-k="c7"><td>CI on this PR</td><td>Build, verify, explainer, review and summary jobs, on the first push</td><td class="open">pending CI</td></tr>
-    <tr data-k="c8"><td>Screenshots show what they claim</td><td><code>/visual-verify</code> on CI's shots, after its first verify run</td><td class="open">pending CI</td></tr>
+    <tr data-k="c5"><td>Icon view</td><td>Same run: <code>verify/89.sh</code> sorts the icon view, which uses <code>thunar_list_model_cmp_func</code>, by Size descending</td><td class="ok">Alpha, dir2, dir10, then c.txt</td></tr>
+    <tr data-k="c9"><td>Compact view</td><td>Uses the same list model compare as the icon view, but no test switches to it</td><td class="no">not run</td></tr>
+    <tr data-k="c6"><td>Before shot of main</td><td>CI installs one build, so main's shuffled folders can't be shot; the before shot is this build sorted by Name, and the pair's caption says that before #89 the folders were reversed here too</td><td class="no">not possible</td></tr>
+    <tr data-k="c7"><td>CI on the first push</td><td>CI run 43078875089 on head <code>2f827e7</code>: build, verify, explainer jobs</td><td class="ok">build pass, verify 10 of 10, explainer pass</td></tr>
+    <tr data-k="c10"><td>CI after the fixes</td><td>Build, verify, explainer, review and summary jobs on the new head</td><td class="open">pending CI</td></tr>
+    <tr data-k="c8"><td>Screenshots show what they claim</td><td><code>/visual-verify</code> on CI's shots from the new head</td><td class="open">pending CI</td></tr>
   </table>
   </div>
   </section>
@@ -311,7 +318,13 @@ explainers/
     <li data-k="b2"><b>Also affected:</b> path completion in the location bar uses folders first too, and now lists folders by name.</li>
     <li data-k="b3"><b>Risk, kept:</b> 30 row checks might get near the test's 120 s limit. The local run took 70 s, so it stays as is.</li>
   </ul>
-  <p data-k="ci-review">CI's own review hasn't run yet. It runs on the first push and reports in the code review comment on this PR.</p>
+  <p data-k="ci-review">CI's own review, at high, on the first push found six possible issues, none confirmed: R1 medium, R2 to R6 low. They are listed in the code review comment on this PR.</p>
+  <ul class="tight">
+    <li data-k="r1"><b>Fixed, R1:</b> two folders with the same name now fall back to the chosen column instead of counting as equal.</li>
+    <li data-k="r3"><b>Fixed, R3, R4, R6:</b> the test now checks the icon view, says the folders were reversed before #89, and waits for each copy to finish.</li>
+    <li data-k="r2"><b>Waiting on you, R2:</b> with folders first, folders ignore Date Deleted in Trash, Recency in Recent and Location in search results.</li>
+    <li data-k="r5"><b>Waiting on you, R5:</b> the folders-first lines are copied in the list and tree models rather than shared in one helper.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -319,7 +332,7 @@ explainers/
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>Your own folders, in every view</td><td>The test uses six names in the detailed view; your folders, icon and compact views, and your case setting only show in your session</td><td class="open">your first sort after updating</td></tr>
+    <tr data-k="a1"><td>Your own folders, in every view</td><td>The test uses six names in the detailed and icon views; your folders, the compact view and your case setting only show in your session</td><td class="open">your first sort after updating</td></tr>
   </table>
   </div>
   </section>
@@ -327,8 +340,8 @@ explainers/
   <section class="sub" id="see">
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
-    <li data-k="l1">The changes: this PR → “Files changed”, or <code>git diff origin/main...89-folders-name-order</code></li>
-    <li data-k="l2">CI's checks, its review and its five shots: the summary, code review and verify comments on this PR, once CI has run</li>
+    <li data-k="l1">The changes: <a href="https://github.com/alexhu98/thunar/pull/91">PR #91</a> → “Files changed”, or <code>git diff origin/main...89-folders-name-order</code></li>
+    <li data-k="l2">CI's checks, its review and its six shots: the summary, code review and verify comments on PR #91</li>
     <li data-k="l3">Locally: <code>verify-proof.sh run</code> puts the shots and <code>verify.tsv</code> in <code>${TMPDIR:-/tmp}/verify-proof/</code></li>
   </ul>
   </section>
