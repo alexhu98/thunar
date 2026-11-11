@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PR for #74 Status totals</title>
+<title>PR #94 Status totals</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -100,7 +100,7 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">This PR: the status bar always shows free space and folder totals, without byte counts</h1>
+  <h1 data-k="title">PR #94: the status bar always shows free space and folder totals, without byte counts</h1>
   <p class="lead" data-k="lead">Branch <code><a href="https://github.com/alexhu98/thunar/tree/74-statusbar-totals">74-statusbar-totals</a></code> → <code>main</code>, closes <a href="https://github.com/alexhu98/thunar/issues/74">#74</a>. Selecting files or searching no longer hides the free space or the folder's totals, and sizes no longer carry an exact byte count after them.</p>
 
   <nav class="parts" aria-label="Parts of this page">
@@ -289,14 +289,14 @@ explainers/74-statusbar-totals.narration.json  # its narration</pre>
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage</code> in maintainer mode, by the build-verify agent in this session's cloud container</td><td class="ok">built; no compiler warnings in changed files</td></tr>
-    <tr data-k="c2"><td>Every test passes on this build</td><td><code>verify-proof.sh run</code> with the built debs installed: smoke test and verify scripts 14, 15, 19, 21, 22, 3, 49, 68 and 74, each under its own Xvfb</td><td class="ok">10 of 10 pass</td></tr>
-    <tr data-k="c3"><td>Test 74 itself</td><td>The same run; verify/74.sh took its shots in 50 s and asserts that Thunar keeps running and the trash move works</td><td class="ok">pass, 50 s</td></tr>
+    <tr data-k="c2"><td>Every test passes on this build</td><td><code>verify-proof.sh run</code> with the built debs installed, on the final verify/74.sh: smoke test and verify scripts 14, 15, 19, 21, 22, 3, 49, 68 and 74, each under its own Xvfb</td><td class="ok">10 of 10 pass</td></tr>
+    <tr data-k="c3"><td>Test 74 itself</td><td>The same run; verify/74.sh selects rows with Ctrl+A, Home, Down so the cursor starts in a known place, takes its shots in 53 s, and asserts that Thunar keeps running and the trash move works</td><td class="ok">pass, 53 s</td></tr>
     <tr data-k="c4"><td>Test 74's shot names</td><td>An earlier run named the four single shots after-…, so the job looked for their before shots; renamed to status-search, status-bytes-on, status-trash and status-rapid</td><td class="no">failed, then fixed</td></tr>
-    <tr data-k="c5"><td>The status bar text in each shot</td><td>The test doesn't read the text; a shot audit reads it from the screenshots</td><td class="open">local shot audit: see the visual-verify PR comment</td></tr>
+    <tr data-k="c7"><td>Test 74 selects the right rows</td><td>A second run passed, but its shot audit found the rows selected one off: keyboard selection depended on where the cursor was. Fixed with Ctrl+A, Home, Down</td><td class="no">audit failed, then fixed</td></tr>
+    <tr data-k="c5"><td>The status bar text in each shot</td><td>The test doesn't read the text; the shot-auditor agent read it from the final run's screenshots, e.g. <code>"a.bin" | 1.0 MiB | Unknown | Total: 1 folder, 3 files: 6.0 MiB | Free space: 29.5 GiB</code>, the search <code>3 files found: 6.0 MiB | Free space: 29.5 GiB</code>, and no Free space part in the trash</td><td class="ok">PASS: 10 of 10 shots, 3 pairs OK</td></tr>
     <tr data-k="c6"><td>Your own session</td><td>Needs your machine and your settings</td><td class="no">not run</td></tr>
   </table>
   </div>
-  <div class="note" data-k="later-edits">verify/74.sh was edited again after that run, changing which rows it selects and its byte-count captions. CI runs the final script after the push.</div>
   </section>
 
   <section class="sub" id="review">
@@ -308,7 +308,7 @@ explainers/74-statusbar-totals.narration.json  # its narration</pre>
     <li data-k="b3"><b>Kept, low:</b> each selection change counts the folder again for Total. That is the same work the nothing-selected text does today, and it runs in the background job.</li>
     <li data-k="b4"><b>Kept, low:</b> the search size is summed on the window's thread. It reads sizes already loaded, with no disk access, as the issue asks.</li>
   </ul>
-  <p data-k="ci-review">CI's own review runs after the push and lists its findings in the code review comment on this PR.</p>
+  <p data-k="ci-review">CI's own review runs after the push and lists its findings in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/94">PR #94</a>.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -316,8 +316,8 @@ explainers/74-statusbar-totals.narration.json  # its narration</pre>
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI build, verify and review</td><td>CI runs on the PR's commits</td><td class="open">first push</td></tr>
-    <tr data-k="a2"><td>CI's shots show what they claim</td><td><code>/visual-verify pr:&lt;n&gt;</code> needs CI's shots on the shots branch</td><td class="open">after CI's verify</td></tr>
+    <tr data-k="a1"><td>CI build, verify and review</td><td>CI runs on the PR's commits; its runs on PR #94 are still pending</td><td class="open">pending on PR #94</td></tr>
+    <tr data-k="a2"><td>CI's shots show what they claim</td><td><code>/visual-verify pr:94</code> needs CI's shots on the shots branch</td><td class="open">after CI's verify</td></tr>
     <tr data-k="a3"><td>Your own folders and drives</td><td>A network mount or your own setting of the property only exist on your machine</td><td class="open">after the merge</td></tr>
   </table>
   </div>
@@ -327,8 +327,8 @@ explainers/74-statusbar-totals.narration.json  # its narration</pre>
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
     <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/74">#74</a></li>
-    <li data-k="l2">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...74-statusbar-totals">main...74-statusbar-totals</a></li>
-    <li data-k="l3">The shots: the verify comment on this PR, saved on the <code>shots</code> branch, and the visual-verify verdict comment</li>
+    <li data-k="l2">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/94">PR #94</a> → “Files changed”; its checks: <a href="https://github.com/alexhu98/thunar/pull/94/checks">PR #94 checks</a></li>
+    <li data-k="l3">The shots: the verify comment on PR #94, saved on the <code>shots</code> branch under <code>pr-94/</code>, and the visual-verify verdict comment</li>
   </ul>
   </section>
   </section>
