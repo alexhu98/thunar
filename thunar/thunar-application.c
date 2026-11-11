@@ -102,7 +102,7 @@ typedef struct
   ThunarApplication *application;
   gchar             *working_directory;
   GList             *tabs[2];
-  GList             *unmounted;
+  GList             *queue;
   guint              pending;
   gboolean           left_given;
   gboolean           right_given;
@@ -113,7 +113,8 @@ typedef struct
   ThunarApplicationTabs *tabs;
   ThunarFile            *file;
   gchar                 *name;
-  gboolean               unmounted;
+  gboolean               needs_poke;
+  gboolean               queued;
 } ThunarApplicationTab;
 
 /* Prototype for the Thunar job launchers */
@@ -172,6 +173,8 @@ thunar_application_handle_local_options (GApplication *application,
                                          GVariantDict *options);
 static void
 thunar_application_tabs_done (ThunarApplicationTabs *tabs);
+static void
+thunar_application_tabs_poke_queued (ThunarApplicationTabs *tabs);
 static int
 thunar_application_command_line (GApplication            *application,
                                  GApplicationCommandLine *command_line);
@@ -637,9 +640,6 @@ thunar_application_tab_free (gpointer data)
 
 
 static void
-thunar_application_tabs_poke_unmounted (ThunarApplicationTabs *tabs);
-
-static void
 thunar_application_tabs_poked (ThunarBrowser *browser,
                                ThunarFile    *file,
                                ThunarFile    *target_file,
@@ -659,23 +659,23 @@ thunar_application_tabs_poked (ThunarBrowser *browser,
     thunar_dialogs_show_error (NULL, error, _("Failed to open \"%s\""), tab->name);
 
   g_clear_error (&not_directory);
-  if (tab->unmounted)
-    thunar_application_tabs_poke_unmounted (tab->tabs);
+  if (tab->queued)
+    thunar_application_tabs_poke_queued (tab->tabs);
   thunar_application_tabs_done (tab->tabs);
 }
 
 
 
 static void
-thunar_application_tabs_poke_unmounted (ThunarApplicationTabs *tabs)
+thunar_application_tabs_poke_queued (ThunarApplicationTabs *tabs)
 {
   ThunarApplicationTab *tab;
 
-  if (tabs->unmounted == NULL)
+  if (tabs->queue == NULL)
     return;
 
-  tab = tabs->unmounted->data;
-  tabs->unmounted = g_list_delete_link (tabs->unmounted, tabs->unmounted);
+  tab = tabs->queue->data;
+  tabs->queue = g_list_delete_link (tabs->queue, tabs->queue);
   thunar_browser_poke_file (THUNAR_BROWSER (tabs->application), tab->file, NULL, thunar_application_tabs_poked, tab);
 }
 
@@ -757,6 +757,8 @@ thunar_application_open_tabs (ThunarApplication       *application,
   gchar                **filenames[2] = { left_filenames, right_filenames };
   ThunarFile            *file;
   GError                *error = NULL;
+  gboolean               needs_poke;
+  GFileType              kind;
   gboolean               succeeded = TRUE;
 
   tabs->application = application;
@@ -768,7 +770,8 @@ thunar_application_open_tabs (ThunarApplication       *application,
     for (guint n = 0; filenames[pane] != NULL && filenames[pane][n] != NULL; n++)
       {
         file = thunar_application_file_for_filename (working_directory, filenames[pane][n], &error);
-        if (file != NULL && !thunar_application_tab_needs_poke (file) && !thunar_file_is_directory (file))
+        needs_poke = file != NULL && thunar_application_tab_needs_poke (file);
+        if (file != NULL && !needs_poke && !thunar_file_is_directory (file))
           {
             g_set_error_literal (&error, G_IO_ERROR, G_IO_ERROR_NOT_DIRECTORY, g_strerror (ENOTDIR));
             g_clear_object (&file);
@@ -788,6 +791,7 @@ thunar_application_open_tabs (ThunarApplication       *application,
         tab = g_slice_new0 (ThunarApplicationTab);
         tab->tabs = tabs;
         tab->file = file;
+        tab->needs_poke = needs_poke;
         tab->name = g_strdup (filenames[pane][n]);
         tabs->tabs[pane] = g_list_append (tabs->tabs[pane], tab);
       }
@@ -798,17 +802,18 @@ thunar_application_open_tabs (ThunarApplication       *application,
     for (GList *lp = tabs->tabs[pane]; lp != NULL; lp = lp->next)
       {
         tab = lp->data;
-        if (!thunar_application_tab_needs_poke (tab->file))
+        if (!tab->needs_poke)
           continue;
 
         tabs->pending++;
-        tab->unmounted = !thunar_file_is_mounted (tab->file);
-        if (tab->unmounted)
-          tabs->unmounted = g_list_append (tabs->unmounted, tab);
+        kind = thunar_file_get_kind (tab->file);
+        tab->queued = !thunar_file_is_mounted (tab->file) || kind == G_FILE_TYPE_SHORTCUT || kind == G_FILE_TYPE_MOUNTABLE;
+        if (tab->queued)
+          tabs->queue = g_list_append (tabs->queue, tab);
         else
           thunar_browser_poke_file (THUNAR_BROWSER (application), tab->file, NULL, thunar_application_tabs_poked, tab);
       }
-  thunar_application_tabs_poke_unmounted (tabs);
+  thunar_application_tabs_poke_queued (tabs);
   thunar_application_tabs_done (tabs);
 
   return succeeded;
