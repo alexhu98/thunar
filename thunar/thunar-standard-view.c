@@ -2046,6 +2046,15 @@ thunar_standard_view_update_search_free_space (ThunarStandardView *standard_view
 
 
 
+static void
+thunar_standard_view_refresh_search_free_space (ThunarStandardView *standard_view)
+{
+  thunar_standard_view_clear_search_free_space (standard_view);
+  thunar_standard_view_update_search_free_space (standard_view, thunar_standard_view_model_get_folder (standard_view->model));
+}
+
+
+
 static gboolean
 thunar_standard_view_add_file_size (GtkTreeModel *model,
                                     GtkTreePath  *path,
@@ -2074,7 +2083,10 @@ thunar_standard_view_append_search_free_space (ThunarStandardView *standard_view
   if (standard_view->priv->search_free_space_text == NULL)
     return text;
 
-  joined = g_strjoin ("  |  ", text, standard_view->priv->search_free_space_text, NULL);
+  if (*text == '\0')
+    joined = g_strdup (standard_view->priv->search_free_space_text);
+  else
+    joined = g_strjoin ("  |  ", text, standard_view->priv->search_free_space_text, NULL);
   g_free (text);
   return joined;
 }
@@ -5161,6 +5173,7 @@ thunar_standard_view_set_model (ThunarStandardView *standard_view)
   g_signal_connect_swapped (G_OBJECT (standard_view->model), "notify::num-files", G_CALLBACK (thunar_standard_view_update_statusbar_text), standard_view);
 
   /* be sure to update the statusbar text whenever the file-size-binary property changes */
+  g_signal_connect_swapped (G_OBJECT (standard_view->model), "notify::file-size-binary", G_CALLBACK (thunar_standard_view_refresh_search_free_space), standard_view);
   g_signal_connect_swapped (G_OBJECT (standard_view->model), "notify::file-size-binary", G_CALLBACK (thunar_standard_view_update_statusbar_text), standard_view);
 
   /* pass down the "loading" property into the new model */

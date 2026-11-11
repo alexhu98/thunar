@@ -2070,7 +2070,7 @@ thunar_io_jobs_load_statusbar_text (ThunarStandardView *standard_view,
 
   job = thunar_simple_job_new (_thunar_job_load_statusbar_text, 11,
                                THUNAR_TYPE_STANDARD_VIEW, standard_view,
-                               THUNAR_TYPE_FILE, file != NULL ? g_object_ref (file) : NULL,
+                               THUNAR_TYPE_FILE, file,
                                THUNAR_TYPE_G_FILE_HASH_TABLE, folder_g_files,
                                THUNAR_TYPE_G_FILE_HASH_TABLE, selected_g_files,
                                G_TYPE_STRING, selection_text,
@@ -2084,7 +2084,5 @@ thunar_io_jobs_load_statusbar_text (ThunarStandardView *standard_view,
   if (folder_g_files != NULL)
     g_hash_table_destroy (folder_g_files);
 
-  if (file != NULL)
-    g_signal_connect_swapped (job, "finished", G_CALLBACK (g_object_unref), file);
   return job;
 }
