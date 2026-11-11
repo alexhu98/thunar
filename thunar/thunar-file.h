@@ -366,6 +366,9 @@ thunar_file_unwatch (ThunarFile *file);
 
 gboolean
 thunar_file_reload (ThunarFile *file);
+gboolean
+thunar_file_reload_with_error (ThunarFile *file,
+                               GError    **error);
 void
 thunar_file_reload_idle (ThunarFile *file);
 void
