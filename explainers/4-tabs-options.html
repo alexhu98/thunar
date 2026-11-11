@@ -243,6 +243,7 @@
     <tr data-k="k2"><td><code>thunar -t a b</code></td><td>a, b (a selected)</td><td>none, split view off</td></tr>
     <tr data-k="k3"><td><code>thunar -T c</code></td><td>the folder you ran it in</td><td>c</td></tr>
     <tr data-k="k4"><td><code>thunar -T</code></td><td colspan="2">error <code>--tabs-right needs at least one location</code>, no window, exit status 1</td></tr>
+    <tr data-k="k9"><td><code>thunar -B a -T c</code></td><td colspan="2">error <code>--bulk-rename can't be combined with --tabs or --tabs-right</code>, no window, exit status 1</td></tr>
     <tr data-k="k5"><td><code>thunar -t a missing b</code></td><td>"Failed to open" dialog, then a, b; exit status 1</td><td>none</td></tr>
     <tr data-k="k7"><td><code>thunar -t missing -T c</code></td><td>"Failed to open" dialog, then the folder you ran it in</td><td>c</td></tr>
     <tr data-k="k8"><td><code>thunar -t sftp://host/dir</code></td><td>mounted first, as with plain <code>thunar</code>, then opened; if the mount fails, only the dialog</td><td>none</td></tr>
@@ -259,7 +260,8 @@
 ├── thunar-application.c   # the two options, the hidden right-pane list, the split
 │                          #   at -T, checking every location in the handler,
 │                          #   then mounting the ones that need it, one at a
-│                          #   time, the new-window path, the shared file lookup
+│                          #   time, the new-window path, the shared file lookup;
+│                          #   -B with -t or -T is refused
 ├── thunar-browser.c       # a failed reload after a mount is now reported
 │                          #   with its real reason instead of silently dropped
 ├── thunar-file.c          # thunar_file_reload_with_error: a reload that
@@ -296,7 +298,7 @@ explainers/4-tabs-options.narration.json  # its narration</pre>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr data-k="c1"><td>Builds without new warnings</td><td><code>dpkg-buildpackage</code> from the latest head bec8dee (this session's build-verify agent), checking gcc's warnings in the changed files</td><td class="ok">built, no gcc warnings</td></tr>
+    <tr data-k="c1"><td>Builds without new warnings</td><td><code>dpkg-buildpackage</code> from bec8dee, before main was merged in and before CI's R59 fix (this session's build-verify agent), checking gcc's warnings in the changed files</td><td class="ok">built, no gcc warnings</td></tr>
     <tr data-k="c2"><td>Nothing else broke</td><td><code>verify-proof.sh install</code> and <code>run</code> on that build: the smoke test and every <code>verify/*.sh</code>, each under its own Xvfb (local run, not CI)</td><td class="ok">smoke + 10 of 10 pass</td></tr>
     <tr data-k="c3"><td>The issue's example, no Thunar running</td><td><code>verify/4.sh</code>: <code>-t alpha beta -T gamma delta</code> → 1 window titled alpha; Ctrl+PgDn gives beta, so focus was in the left pane; a click in the right pane gives gamma, Ctrl+PgDn delta</td><td class="ok">pass</td></tr>
     <tr data-k="c4"><td>Thunar running, new windows as tabs on</td><td>Same script: <code>--tabs … --tabs-right …</code> with <code>misc-open-new-window-as-tab</code> on → a 2nd window, alpha then beta</td><td class="ok">pass, 2 windows</td></tr>
@@ -311,14 +313,14 @@ explainers/4-tabs-options.narration.json  # its narration</pre>
     <tr data-k="c15"><td>CI's screenshots of the final head</td><td><code>/visual-verify pr:92</code> on the shots CI takes for the final head</td><td class="open">still to come</td></tr>
     <tr data-k="c13"><td>CI on the earlier head 992027f</td><td>CI's build, verify and review jobs</td><td class="ok">build passed, verify 10 of 10, review passed</td></tr>
     <tr data-k="c16"><td>CI's verify on 062dc27</td><td>CI's verify job: its tests passed, then its artifact-upload step failed, a CI infrastructure problem, not this change</td><td class="no">upload step failed</td></tr>
-    <tr data-k="c14"><td>CI on the latest head</td><td>CI's build, verify and review jobs</td><td class="no">not finished yet</td></tr>
+    <tr data-k="c14"><td>CI on the latest head 6b68924</td><td>CI's build, verify and review jobs</td><td class="open">still to come</td></tr>
   </table>
   </div>
   </section>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">A fresh general-purpose agent, given only the diff and issue #4, reviewed the PR six times in this session. Before the first push it found 6 things: 5 were fixed and 1 was kept on purpose. After CI's first round it found 4: 2 were fixed and 2 kept. After CI's third round it found 4 more, and all 4 were fixed. After CI's fifth round it found 1, which was fixed. Its reviews of be114e1 and of the latest head, bec8dee, found nothing.</p>
+  <p data-k="summary">A fresh general-purpose agent, given only the diff and issue #4, reviewed the PR six times in this session. Before the first push it found 6 things: 5 were fixed and 1 was kept on purpose. After CI's first round it found 4: 2 were fixed and 2 kept. After CI's third round it found 4 more, and all 4 were fixed. After CI's fifth round it found 1, which was fixed. Its reviews of be114e1 and of bec8dee found nothing.</p>
   <ul class="tight">
     <li data-k="b1"><b>Test script:</b> a loop in <code>verify/4.sh</code> never ran (a <code>-z</code> test inside arithmetic), a check could never fail and was dropped, and <code>-t</code> alone had no window-count check. All three are fixed.</li>
     <li data-k="b2"><b>Messages:</b> <code>thunar -T --help</code> printed the error instead of help, and the stderr line didn't name the folder. Both are fixed.</li>
@@ -328,7 +330,7 @@ explainers/4-tabs-options.narration.json  # its narration</pre>
     <li data-k="b6"><b>Third review, fixed (11f98a2):</b> a location that vanished after its mount left Thunar held open with no window; shortcuts and mountables were wrongly rejected as "Not a directory"; a relative name with no working directory wasn't handled; and the wrong tab was selected if split view stayed on.</li>
     <li data-k="b7"><b>Fourth review, fixed (062dc27):</b> checking locations in parallel could mount one volume twice, so locations that aren't mounted now wait in a queue and mount one at a time.</li>
   </ul>
-  <p data-k="ci-review">CI reviews every code push at level high, and lists every finding in the <a href="https://github.com/alexhu98/thunar/pull/92">code review comment on PR #92</a>. It has reviewed the PR seven times, with 52 findings, R1–R52:</p>
+  <p data-k="ci-review">CI reviews every code push at level high, and lists every finding in the <a href="https://github.com/alexhu98/thunar/pull/92">code review comment on PR #92</a>. It has reviewed the PR eight times, with 65 findings, R1–R65:</p>
   <ul class="tight">
     <li data-k="ci1"><b>First review, R1–R10, all fixed:</b> the split at <code>-T</code> handles <code>-tT</code>, <code>--sm-client-id</code>'s value, and <code>--help</code> or <code>--version</code> with <code>-T</code>; locations are mounted before the window opens; <code>main.c</code> returns the exit status; the right pane opens straight on its folder; nothing opens when every location fails; and two tidy-ups.</li>
     <li data-k="ci2"><b>Second review (on 216796d), R11–R17:</b> CI fixed them itself in db2b47c, among them a failed <code>-t</code> location still exiting 0, a remote client held until its mount finished, and errors shown out of argument order.</li>
@@ -340,9 +342,13 @@ explainers/4-tabs-options.narration.json  # its narration</pre>
     <li data-k="ci8"><b>Sixth review (on 062dc27), R41, R46, R48, fixed in be114e1:</b> shortcuts and mountables could still mount in parallel, so they now join the queue; a prototype was in the wrong place; and <code>needs_poke</code> was worked out twice.</li>
     <li data-k="ci9"><b>Sixth review, accepted:</b> R42, several failures each show a modal dialog, as plain <code>thunar</code> does. R43, a failed queued mount waits for its dialog before the next starts, as before. R44, the "not found" fallback is almost never used but kept as a safety net. R45, other poke callers can still mount at the same time, which is outside this issue. R47, no doc block on the new function, because this repo adds no new explanatory comments.</li>
     <li data-k="ci10"><b>Seventh review (on 992027f), R49–R52, fixed in bec8dee:</b> R49, Thunar's "mounted" flag can be stale, so a remote location could skip the queue; R50 and R51, the test for which locations join the queue was redundant and written twice. All three went away with the single queue. R52, a mountable could come back with no location and no error; it is now treated as "Not a directory".</li>
+    <li data-k="ci12"><b>Seventh review, R53–R57, accepted:</b> R53, one queue for every check, is the owner's decision below. R54–R57 are all low and not confirmed.</li>
     <li data-k="ci11"><b>Owner decision: one at a time.</b> CI's reviews kept trading R35 (checking mounted remote locations one after another is slow) against R41 and R49 (checking them in parallel can mount one volume twice, and the "mounted" flag can be stale, so no safe split exists). The owner was asked and chose one at a time: every location that needs a check goes through one queue, and remote tabs that are already mounted open a little slower.</li>
+    <li data-k="ci13"><b>Eighth review (on 1449158, after main was merged in), R58–R65:</b> CI fixed R59 itself in 6b68924: <code>-B</code> with <code>-t</code> or <code>-T</code> silently dropped the right-pane folders, and is now refused with an error and exit status 1.</li>
+    <li data-k="ci14"><b>Owner decision: <code>-t</code> alone opens one pane.</b> R58, low and confirmed: <code>-t</code> alone always turns split view off, overriding "always enable split view". The owner kept it, as issue #4 asks for the left pane only.</li>
+    <li data-k="ci15"><b>Eighth review, accepted:</b> all low and not confirmed. R60, a mount that fails after the command returns only shows a dialog, as plain <code>thunar</code> does. R61, a narrow race where the fallback to the current folder can't be resolved. R62, a missing working directory, which can't happen. R63, <code>needs_poke</code> mirrors the browser's own dispatch. R64, the split view helper overlaps the restore-tabs setup. R65, setting the left folder again changes nothing.</li>
   </ul>
-  <p data-k="ci-next">CI's run on the latest head, bec8dee, hasn't finished yet.</p>  </section>
+  <p data-k="ci-next">CI's run on the latest head, 6b68924, is still to come, and so is <code>/visual-verify</code> on its shots.</p>  </section>
 
   <section class="sub" id="aftermerge">
   <h3 class="sec">Checked only after the merge</h3>
