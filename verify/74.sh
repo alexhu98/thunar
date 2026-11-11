@@ -96,9 +96,13 @@ xfconf-query -c thunar -p /misc-status-bar-active-info -r || true
 
 gio trash "$WORK/trashed.txt" || fail "could not move a file to the trash"
 go trash:/// Trash
+xfconf-query -c thunar -p /misc-status-bar-active-info -n -t uint -s 1
+xdotool windowsize --sync "$WID" 1270 "$H"
 select_one
-shot "$WID" status-trash "Trash with trashed.txt selected: its name, type, original path and Total: 1 file; Free space only if the trash reports it, and no error"
+shot "$WID" status-trash "Trash with trashed.txt selected and only the Size part switched on: 6 bytes | Original Path: … | Total: 1 file: 6 bytes, with Free space only if the trash reports it, and no error"
 kill -0 "$THUNAR_PID" 2>/dev/null || fail "Thunar quit after selecting a file in the trash"
+xdotool windowsize --sync "$WID" "$W" "$H"
+xfconf-query -c thunar -p /misc-status-bar-active-info -r || true
 
 go "$DIR" files
 clear_selection
