@@ -84,6 +84,9 @@ static const GOptionEntry option_entries[] =
 {
   { "bulk-rename", 'B', 0, G_OPTION_ARG_NONE, NULL, N_ ("Open the bulk rename dialog"), NULL, },
   { "window", 'w', 0, G_OPTION_ARG_NONE, NULL, N_ ("Force open in a new window"), NULL, },
+  { "tabs", 't', 0, G_OPTION_ARG_NONE, NULL, N_ ("Open the locations as tabs in one new window"), NULL, },
+  { "tabs-right", 'T', 0, G_OPTION_ARG_NONE, NULL, N_ ("Open the locations after this option as tabs in the right pane"), NULL, },
+  { "tabs-right-uri", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_FILENAME_ARRAY, NULL, NULL, NULL, },
   { "daemon", 0, 0, G_OPTION_ARG_NONE, NULL, N_ ("Run in daemon mode"), NULL, },
   { "sm-client-id", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_STRING, &opt_sm_client_id, NULL, NULL, },
   { "quit", 'q', 0, G_OPTION_ARG_NONE, NULL, N_ ("Quit a running Thunar instance"), NULL, },
@@ -141,6 +144,10 @@ static void
 thunar_application_shutdown (GApplication *application);
 static void
 thunar_application_activate (GApplication *application);
+static gboolean
+thunar_application_local_command_line (GApplication *application,
+                                       gchar      ***arguments,
+                                       gint         *exit_status);
 static int
 thunar_application_handle_local_options (GApplication *application,
                                          GVariantDict *options);
@@ -293,6 +300,7 @@ thunar_application_class_init (ThunarApplicationClass *klass)
   gapplication_class->startup = thunar_application_startup;
   gapplication_class->activate = thunar_application_activate;
   gapplication_class->shutdown = thunar_application_shutdown;
+  gapplication_class->local_command_line = thunar_application_local_command_line;
   gapplication_class->handle_local_options = thunar_application_handle_local_options;
   gapplication_class->command_line = thunar_application_command_line;
   gapplication_class->dbus_register = thunar_application_dbus_register;
@@ -503,6 +511,99 @@ thunar_application_finalize (GObject *object)
 
 
 
+static gboolean
+thunar_application_local_command_line (GApplication *gapp,
+                                       gchar      ***arguments,
+                                       gint         *exit_status)
+{
+  gchar    **argv = *arguments;
+  GPtrArray *args = g_ptr_array_new ();
+  gboolean   tabs_right = FALSE;
+  gboolean   dash_dash = FALSE;
+  gboolean   has_right_uri = FALSE;
+
+  for (guint n = 0; argv[n] != NULL; n++)
+    {
+      if (n > 0 && !dash_dash && !tabs_right
+          && (g_strcmp0 (argv[n], "-T") == 0 || g_strcmp0 (argv[n], "--tabs-right") == 0))
+        {
+          tabs_right = TRUE;
+          g_ptr_array_add (args, g_strdup (argv[n]));
+        }
+      else if (n > 0 && !dash_dash && g_strcmp0 (argv[n], "--") == 0)
+        {
+          dash_dash = TRUE;
+          if (!tabs_right)
+            g_ptr_array_add (args, g_strdup (argv[n]));
+        }
+      else if (tabs_right && (dash_dash || argv[n][0] != '-'))
+        {
+          g_ptr_array_add (args, g_strconcat ("--tabs-right-uri=", argv[n], NULL));
+          has_right_uri = TRUE;
+        }
+      else
+        {
+          g_ptr_array_add (args, g_strdup (argv[n]));
+        }
+    }
+  g_ptr_array_add (args, NULL);
+
+  g_strfreev (*arguments);
+  *arguments = (gchar **) g_ptr_array_free (args, FALSE);
+
+  if (tabs_right && !has_right_uri)
+    {
+      g_printerr ("Thunar: %s\n", _("--tabs-right needs at least one location"));
+      *exit_status = EXIT_FAILURE;
+      return TRUE;
+    }
+
+  return G_APPLICATION_CLASS (thunar_application_parent_class)->local_command_line (gapp, arguments, exit_status);
+}
+
+
+
+static GList *
+thunar_application_tab_directories (GApplicationCommandLine *command_line,
+                                    const gchar             *cwd,
+                                    gchar                  **filenames)
+{
+  GList      *directories = NULL;
+  ThunarFile *file;
+  GError     *error = NULL;
+  gchar      *path;
+
+  for (guint n = 0; filenames != NULL && filenames[n] != NULL; n++)
+    {
+      if (g_path_is_absolute (filenames[n]) || g_uri_is_valid (filenames[n], G_URI_FLAGS_NONE, NULL))
+        path = g_strdup (filenames[n]);
+      else
+        path = g_build_filename (cwd, filenames[n], NULL);
+      file = thunar_file_get_for_uri (path, &error);
+      g_free (path);
+
+      if (file != NULL && !thunar_file_is_directory (file))
+        {
+          g_set_error_literal (&error, G_IO_ERROR, G_IO_ERROR_NOT_DIRECTORY, g_strerror (ENOTDIR));
+          g_clear_object (&file);
+        }
+
+      if (file != NULL)
+        {
+          directories = g_list_append (directories, file);
+          continue;
+        }
+
+      thunar_dialogs_show_error (NULL, error, _("Failed to open \"%s\""), filenames[n]);
+      g_application_command_line_printerr (command_line, "Thunar: %s\n", error->message);
+      g_clear_error (&error);
+    }
+
+  return directories;
+}
+
+
+
 static int
 thunar_application_handle_local_options (GApplication *gapp,
                                          GVariantDict *options)
@@ -533,7 +634,10 @@ thunar_application_command_line (GApplication            *gapp,
   gboolean           bulk_rename = FALSE;
   gboolean           daemon = FALSE;
   gboolean           quit = FALSE;
+  gboolean           tabs = FALSE;
+  gboolean           tabs_right = FALSE;
   GStrv              filenames = NULL;
+  GStrv              right_filenames = NULL;
   const char        *cwd = g_application_command_line_get_cwd (command_line);
   GVariantDict      *options_dict = g_application_command_line_get_options_dict (command_line);
   GError            *error = NULL;
@@ -548,6 +652,9 @@ thunar_application_command_line (GApplication            *gapp,
   g_variant_dict_lookup (options_dict, "quit", "b", &quit);
   g_variant_dict_lookup (options_dict, "daemon", "b", &daemon);
   g_variant_dict_lookup (options_dict, G_OPTION_REMAINING, "^aay", &filenames);
+  g_variant_dict_lookup (options_dict, "tabs", "b", &tabs);
+  g_variant_dict_lookup (options_dict, "tabs-right", "b", &tabs_right);
+  g_variant_dict_lookup (options_dict, "tabs-right-uri", "^aay", &right_filenames);
 
   /* FIXME: --quit should be named --suicide */
   if (G_UNLIKELY (quit))
@@ -580,6 +687,26 @@ thunar_application_command_line (GApplication            *gapp,
           /* FIXME? */
           g_application_command_line_printerr (command_line, "Thunar: Failed to open bulk rename: %s\n", error->message);
         }
+      goto out;
+    }
+
+  if (tabs || tabs_right)
+    {
+      GList *left = thunar_application_tab_directories (command_line, cwd, filenames);
+      GList *right = thunar_application_tab_directories (command_line, cwd, right_filenames);
+
+      if (left == NULL && (right != NULL || filenames == NULL))
+        left = thunar_application_tab_directories (command_line, cwd, current_directory);
+
+      if (left != NULL)
+        {
+          GtkWidget *window = thunar_application_open_window (application, left->data, NULL, NULL, TRUE);
+          thunar_window_open_pane_tabs (THUNAR_WINDOW (window), left, right);
+        }
+
+      application->force_new_window = FALSE;
+      thunar_g_list_free_full (left);
+      thunar_g_list_free_full (right);
       goto out;
     }
 
@@ -669,6 +796,7 @@ thunar_application_command_line (GApplication            *gapp,
 out:
   /* cleanup */
   g_strfreev (filenames);
+  g_strfreev (right_filenames);
 
   if (error)
     {

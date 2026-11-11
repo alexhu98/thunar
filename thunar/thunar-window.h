@@ -150,6 +150,10 @@ thunar_window_notebook_set_current_tab (ThunarWindow *window,
                                         gint          tab);
 void
 thunar_window_paned_notebooks_switch (ThunarWindow *window);
+void
+thunar_window_open_pane_tabs (ThunarWindow *window,
+                              GList        *left,
+                              GList        *right);
 gboolean
 thunar_window_has_shortcut_sidepane (ThunarWindow *window);
 gboolean

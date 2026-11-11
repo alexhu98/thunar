@@ -3537,6 +3537,43 @@ thunar_window_notebook_set_current_tab (ThunarWindow *window,
 
 
 void
+thunar_window_open_pane_tabs (ThunarWindow *window,
+                              GList        *left,
+                              GList        *right)
+{
+  GList *lp;
+  GList *panes[2] = { left, right };
+
+  _thunar_return_if_fail (THUNAR_IS_WINDOW (window));
+  _thunar_return_if_fail (left != NULL);
+
+  if (thunar_window_split_view_is_active (window) && window->notebook_selected != window->notebook_left)
+    thunar_window_paned_notebooks_switch (window);
+
+  if (thunar_window_split_view_is_active (window) != (right != NULL))
+    thunar_window_action_toggle_split_view (window);
+
+  for (guint pane = 0; pane < G_N_ELEMENTS (panes); pane++)
+    {
+      if (panes[pane] == NULL)
+        continue;
+
+      if (pane > 0)
+        thunar_window_paned_notebooks_switch (window);
+
+      thunar_window_set_current_directory (window, panes[pane]->data);
+      for (lp = panes[pane]->next; lp != NULL; lp = lp->next)
+        thunar_window_notebook_add_new_tab (window, lp->data, THUNAR_NEW_TAB_BEHAVIOR_SWITCH);
+      thunar_window_notebook_set_current_tab (window, 0);
+    }
+
+  if (right != NULL)
+    thunar_window_paned_notebooks_switch (window);
+}
+
+
+
+void
 thunar_window_update_directories (ThunarWindow *window,
                                   ThunarFile   *old_directory,
                                   ThunarFile   *new_directory)
