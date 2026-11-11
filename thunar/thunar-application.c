@@ -642,7 +642,7 @@ thunar_application_command_line (GApplication            *gapp,
   gboolean           daemon = FALSE;
   gboolean           quit = FALSE;
   gboolean           tabs = FALSE;
-  gboolean           tabs_right = FALSE;
+  gboolean           tabs_right_option = FALSE;
   GStrv              filenames = NULL;
   GStrv              right_filenames = NULL;
   const char        *cwd = g_application_command_line_get_cwd (command_line);
@@ -660,7 +660,7 @@ thunar_application_command_line (GApplication            *gapp,
   g_variant_dict_lookup (options_dict, "daemon", "b", &daemon);
   g_variant_dict_lookup (options_dict, G_OPTION_REMAINING, "^aay", &filenames);
   g_variant_dict_lookup (options_dict, "tabs", "b", &tabs);
-  g_variant_dict_lookup (options_dict, "tabs-right", "b", &tabs_right);
+  g_variant_dict_lookup (options_dict, "tabs-right", "b", &tabs_right_option);
   g_variant_dict_lookup (options_dict, "tabs-right-uri", "^aay", &right_filenames);
 
   /* FIXME: --quit should be named --suicide */
@@ -697,7 +697,7 @@ thunar_application_command_line (GApplication            *gapp,
       goto out;
     }
 
-  if (tabs || tabs_right)
+  if (tabs || tabs_right_option)
     {
       GList *left = thunar_application_tab_directories (command_line, cwd, filenames);
       GList *right = thunar_application_tab_directories (command_line, cwd, right_filenames);
