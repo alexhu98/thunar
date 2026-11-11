@@ -1267,6 +1267,8 @@ typedef struct
 
 static void
 thunar_util_count_files (GHashTable            *files,
+                         GCancellable          *cancellable,
+                         gboolean               with_last_modified,
                          ThunarStatusbarCounts *counts)
 {
   guint64        last_modified_date = 0;
@@ -1277,12 +1279,14 @@ thunar_util_count_files (GHashTable            *files,
   memset (counts, 0, sizeof (*counts));
 
   g_hash_table_iter_init (&iter, files);
-  while (g_hash_table_iter_next (&iter, &key, NULL))
+  while (g_hash_table_iter_next (&iter, &key, NULL) && !g_cancellable_is_cancelled (cancellable))
     {
       GFileInfo *file_info = g_file_query_info (G_FILE (key),
-                                                G_FILE_ATTRIBUTE_STANDARD_TYPE "," G_FILE_ATTRIBUTE_STANDARD_SIZE "," G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP "," G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN "," G_FILE_ATTRIBUTE_TIME_MODIFIED,
+                                                with_last_modified
+                                                ? G_FILE_ATTRIBUTE_STANDARD_TYPE "," G_FILE_ATTRIBUTE_STANDARD_SIZE "," G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP "," G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN "," G_FILE_ATTRIBUTE_TIME_MODIFIED
+                                                : G_FILE_ATTRIBUTE_STANDARD_TYPE "," G_FILE_ATTRIBUTE_STANDARD_SIZE "," G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP "," G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN,
                                                 G_FILE_QUERY_INFO_NONE,
-                                                NULL,
+                                                cancellable,
                                                 NULL);
       if (file_info == NULL)
         continue;
@@ -1299,6 +1303,12 @@ thunar_util_count_files (GHashTable            *files,
           if (g_file_info_get_attribute_boolean (file_info, G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN) || g_file_info_get_attribute_boolean (file_info, G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP))
             counts->hidden_file_count++;
           counts->size += g_file_info_get_attribute_uint64 (file_info, G_FILE_ATTRIBUTE_STANDARD_SIZE);
+        }
+
+      if (!with_last_modified)
+        {
+          g_object_unref (file_info);
+          continue;
         }
 
       temp_last_modified_date = thunar_util_get_file_time (file_info, THUNAR_FILE_DATE_MODIFIED);
@@ -1416,13 +1426,14 @@ thunar_util_get_statusbar_text_for_files (GHashTable     *files,
                                           gboolean        show_file_size_binary_format,
                                           ThunarDateStyle date_style,
                                           const gchar    *date_custom_style,
-                                          guint           status_bar_actve_info)
+                                          guint           status_bar_actve_info,
+                                          GCancellable   *cancellable)
 {
   ThunarStatusbarCounts counts;
   GList                *text_list;
   gchar                *temp_string;
 
-  thunar_util_count_files (files, &counts);
+  thunar_util_count_files (files, cancellable, TRUE, &counts);
 
   text_list = thunar_util_get_statusbar_count_texts (&counts, show_hidden, show_file_size_binary_format, status_bar_actve_info);
   if (text_list == NULL)
@@ -1445,19 +1456,18 @@ thunar_util_get_statusbar_text_for_files (GHashTable     *files,
 
 
 gchar *
-thunar_util_get_statusbar_total_text_for_files (GHashTable *files,
-                                                gboolean    show_hidden,
-                                                gboolean    show_file_size_binary_format,
-                                                guint       status_bar_active_info)
+thunar_util_get_statusbar_total_text_for_files (GHashTable   *files,
+                                                gboolean      show_hidden,
+                                                gboolean      show_file_size_binary_format,
+                                                guint         status_bar_active_info,
+                                                GCancellable *cancellable)
 {
   ThunarStatusbarCounts counts;
   GList                *text_list;
   gchar                *joined;
   gchar                *text = NULL;
 
-  thunar_util_count_files (files, &counts);
-  if (counts.last_modified_file != NULL)
-    g_object_unref (counts.last_modified_file);
+  thunar_util_count_files (files, cancellable, FALSE, &counts);
 
   text_list = thunar_util_get_statusbar_count_texts (&counts, show_hidden, show_file_size_binary_format, status_bar_active_info);
   if (text_list != NULL)

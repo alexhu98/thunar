@@ -2010,7 +2010,7 @@ thunar_standard_view_search_free_space_ready (GObject      *source_object,
       g_object_get (G_OBJECT (standard_view->preferences), "misc-file-size-binary", &show_file_size_binary_format, NULL);
       g_free (standard_view->priv->search_free_space_text);
       standard_view->priv->search_free_space_text = thunar_util_get_statusbar_free_space_text (g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_FILESYSTEM_FREE),
-                                                                                              show_file_size_binary_format);
+                                                                                               show_file_size_binary_format);
       thunar_standard_view_update_statusbar_text (standard_view);
     }
   g_object_unref (info);
