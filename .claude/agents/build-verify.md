@@ -23,7 +23,7 @@ Run every command from the repo root as `cmd > "$LOGS/<step>.log" 2>&1; echo "ex
 Read a log only with `tail -n 30` or `grep -n`, never whole.
 
 0. **Exclude build outputs**, only in a cloud container (`$CLAUDE_CODE_REMOTE` is `true`), so the Stop hook's
-   untracked-files check doesn't re-prompt after every turn: append
+   untracked-files check doesn't re-prompt after every turn (#97): `mkdir -p` the file's folder, then append
    each of `/dist/`, `/ar-lib`, `/org.xfce.thunar.policy.in`, `thunarx/actual-abi`, `thunarx/expected-abi`,
    `thunarx/*.log`, `thunarx/*.trs`, `debian/.debhelper/`, `debian/tmp/`, `debian/files`, `debian/*.substvars`,
    `debian/autoreconf.*`, `debian/debhelper-build-stamp` and one `debian/<package>/` per `Package:` in
