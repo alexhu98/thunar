@@ -280,7 +280,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The fix reuses Thunar's own name compare. CI passed on the first push, and its review found six possible issues. After the fixes, all 10 tests passed again in the cloud container. CI on the new push and the screenshot audit are pending.</p>
+  <p class="intro" data-k="intro">The fix reuses Thunar's own name compare. CI passed on the first push, and its review found six possible issues. After the fixes, CI passed again, its second review found six more low, unconfirmed issues, and the screenshot audit passed. The rest were accepted.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -304,8 +304,8 @@ explainers/
     <tr data-k="c9"><td>Compact view</td><td>Uses the same list model compare as the icon view, but no test switches to it</td><td class="no">not run</td></tr>
     <tr data-k="c6"><td>Before shot of main</td><td>CI installs one build, so main's shuffled folders can't be shot; the before shot is this build sorted by Name, and the pair's caption says that before #89 the folders were reversed here too</td><td class="no">not possible</td></tr>
     <tr data-k="c7"><td>CI on the first push</td><td>CI run 43078875089 on head <code>2f827e7</code>: build, verify, explainer jobs</td><td class="ok">build pass, verify 10 of 10, explainer pass</td></tr>
-    <tr data-k="c10"><td>CI after the fixes</td><td>Build, verify, explainer, review and summary jobs on the new head</td><td class="open">pending CI</td></tr>
-    <tr data-k="c8"><td>Screenshots show what they claim</td><td><code>/visual-verify</code> on CI's shots from the new head</td><td class="open">pending CI</td></tr>
+    <tr data-k="c10"><td>CI after the fixes</td><td>CI run 43081775874 on head <code>832f967</code>: build, verify, explainer and review (high) jobs</td><td class="ok">build pass, verify 10 of 10, explainer pass, review found R7 to R12, all low</td></tr>
+    <tr data-k="c8"><td>Screenshots show what they claim</td><td><code>/visual-verify</code> on CI's 64 shots from <code>832f967</code>, posted on the PR</td><td class="ok">PASS, all 64 OK</td></tr>
   </table>
   </div>
   </section>
@@ -322,9 +322,20 @@ explainers/
   <ul class="tight">
     <li data-k="r1"><b>Fixed, R1:</b> two folders with the same name now fall back to the chosen column instead of counting as equal.</li>
     <li data-k="r3"><b>Fixed, R3, R4, R6:</b> the test now checks the icon view, says the folders were reversed before #89, and waits for each copy to finish.</li>
-    <li data-k="r2"><b>Waiting on you, R2:</b> with folders first, folders ignore Date Deleted in Trash, Recency in Recent and Location in search results.</li>
-    <li data-k="r5"><b>Waiting on you, R5:</b> the folders-first lines are copied in the list and tree models rather than shared in one helper.</li>
   </ul>
+  <p data-k="ci-review2">CI's second review, at high, covered the commits since <code>2f827e7</code> and found R7 to R12, all low and unconfirmed. Every finding not fixed was accepted:</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Finding</th><th>What it says</th><th>Why it was accepted</th></tr>
+    <tr data-k="r2"><td>R2</td><td>Folders ignore Date Deleted in Trash, Recency in Recent and Location in search</td><td>By you: folders stay A to Z under every column, as the issue decided</td></tr>
+    <tr data-k="r5"><td>R5, R12</td><td>The folders-first lines are copied in the list and tree models, not shared</td><td>By you: it keeps upstream's layout, so upstream merges (#30) stay small</td></tr>
+    <tr data-k="r7"><td>R7</td><td>The same-name fallback rarely runs in Trash, since the name compare already breaks ties by original path</td><td>That tiebreak is upstream's own rule; no defect</td></tr>
+    <tr data-k="r8"><td>R8</td><td>Sorting by Name, the fallback changes nothing</td><td>Equal names already tie, as before the change</td></tr>
+    <tr data-k="r9"><td>R9</td><td>The test's last paste check compares only the name</td><td>The name alone identifies the selected row</td></tr>
+    <tr data-k="r10"><td>R10</td><td>The icon view walk needs the first 4 icons on one row</td><td>CI's icon view shot shows all 6 icons on one row</td></tr>
+    <tr data-k="r11"><td>R11</td><td><code>verify/89.sh</code> takes about 83 s of its 120 s limit</td><td>Measured 83 s locally, within the limit</td></tr>
+  </table>
+  </div>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -341,7 +352,7 @@ explainers/
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
     <li data-k="l1">The changes: <a href="https://github.com/alexhu98/thunar/pull/91">PR #91</a> → “Files changed”, or <code>git diff origin/main...89-folders-name-order</code></li>
-    <li data-k="l2">CI's checks, its review and its six shots: the summary, code review and verify comments on PR #91</li>
+    <li data-k="l2">CI's checks, its reviews and its shots: the summary, code review and verify comments on PR #91</li>
     <li data-k="l3">Locally: <code>verify-proof.sh run</code> puts the shots and <code>verify.tsv</code> in <code>${TMPDIR:-/tmp}/verify-proof/</code></li>
   </ul>
   </section>
