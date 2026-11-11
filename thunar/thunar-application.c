@@ -110,7 +110,6 @@ typedef struct
   GList             *tabs[2];
   GList             *next;
   GList             *poking;
-  gulong             vanished_id;
   guint              pane;
   gboolean           left_given;
   gboolean           right_given;
@@ -608,6 +607,12 @@ thunar_application_file_for_filename (const gchar *working_directory,
   if (g_path_is_absolute (filename) || g_uri_is_valid (filename, G_URI_FLAGS_NONE, NULL))
     return thunar_file_get_for_uri (filename, error);
 
+  if (working_directory == NULL)
+    {
+      g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, g_strerror (EINVAL));
+      return NULL;
+    }
+
   path = g_build_filename (working_directory, filename, NULL);
   file = thunar_file_get_for_uri (path, error);
   g_free (path);
@@ -641,7 +646,6 @@ thunar_application_tabs_poked (ThunarBrowser *browser,
   ThunarApplicationTab  *tab = tabs->poking->data;
   GError                *not_directory = NULL;
 
-  g_signal_handler_disconnect (tab->file, tabs->vanished_id);
   if (error == NULL && !thunar_file_is_directory (target_file))
     error = not_directory = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_NOT_DIRECTORY, g_strerror (ENOTDIR));
 
@@ -657,28 +661,12 @@ thunar_application_tabs_poked (ThunarBrowser *browser,
 
 
 
-static void
-thunar_application_tabs_vanished (ThunarApplicationTabs *tabs)
-{
-  ThunarApplicationTab *tab = tabs->poking->data;
-  GError               *error;
-
-  g_signal_handler_disconnect (tab->file, tabs->vanished_id);
-  g_clear_object (&tab->file);
-  error = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_NOT_FOUND, g_strerror (ENOENT));
-  thunar_dialogs_show_error (NULL, error, _("Failed to open \"%s\""), tab->name);
-  g_error_free (error);
-  thunar_application_tabs_next (tabs);
-}
-
-
-
 static gboolean
 thunar_application_tab_needs_poke (ThunarFile *file)
 {
   GFileType kind = thunar_file_get_kind (file);
 
-  return !thunar_file_is_mounted (file) || kind == G_FILE_TYPE_SHORTCUT || kind == G_FILE_TYPE_MOUNTABLE;
+  return !thunar_file_is_mounted (file) || !thunar_file_is_local (file) || kind == G_FILE_TYPE_SHORTCUT || kind == G_FILE_TYPE_MOUNTABLE;
 }
 
 
@@ -723,7 +711,6 @@ thunar_application_tabs_next (ThunarApplicationTabs *tabs)
       tab = tabs->poking->data;
       if (thunar_application_tab_needs_poke (tab->file))
         {
-          tabs->vanished_id = g_signal_connect_swapped (tab->file, "destroy", G_CALLBACK (thunar_application_tabs_vanished), tabs);
           thunar_browser_poke_file (THUNAR_BROWSER (tabs->application), tab->file, NULL, thunar_application_tabs_poked, tabs);
           return;
         }
@@ -777,16 +764,7 @@ thunar_application_open_tabs (ThunarApplication       *application,
   for (guint pane = 0; pane < G_N_ELEMENTS (filenames); pane++)
     for (guint n = 0; filenames[pane] != NULL && filenames[pane][n] != NULL; n++)
       {
-        if (working_directory != NULL)
-          file = thunar_application_file_for_filename (working_directory, filenames[pane][n], &error);
-        else if (g_path_is_absolute (filenames[pane][n]) || g_uri_is_valid (filenames[pane][n], G_URI_FLAGS_NONE, NULL))
-          file = thunar_file_get_for_uri (filenames[pane][n], &error);
-        else
-          {
-            file = NULL;
-            g_set_error_literal (&error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, g_strerror (EINVAL));
-          }
-
+        file = thunar_application_file_for_filename (working_directory, filenames[pane][n], &error);
         if (file != NULL && !thunar_application_tab_needs_poke (file) && !thunar_file_is_directory (file))
           {
             g_set_error_literal (&error, G_IO_ERROR, G_IO_ERROR_NOT_DIRECTORY, g_strerror (ENOTDIR));

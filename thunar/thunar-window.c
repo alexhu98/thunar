@@ -3548,7 +3548,6 @@ thunar_window_open_pane_tabs (ThunarWindow *window,
 {
   GList *lp;
   GList *panes[2] = { left, right };
-  gint   first;
 
   _thunar_return_if_fail (THUNAR_IS_WINDOW (window));
   _thunar_return_if_fail (left != NULL);
@@ -3566,11 +3565,6 @@ thunar_window_open_pane_tabs (ThunarWindow *window,
 
       if (pane == 0)
         thunar_window_set_current_directory (window, panes[pane]->data);
-      else if (thunar_window_split_view_is_active (window))
-        {
-          thunar_window_paned_notebooks_switch (window);
-          thunar_window_set_current_directory (window, panes[pane]->data);
-        }
       else
         {
           thunar_window_split_view_add (window, panes[pane]->data);
@@ -3578,10 +3572,9 @@ thunar_window_open_pane_tabs (ThunarWindow *window,
           thunar_window_paned_notebooks_switch (window);
         }
 
-      first = gtk_notebook_get_current_page (GTK_NOTEBOOK (window->notebook_selected));
       for (lp = panes[pane]->next; lp != NULL; lp = lp->next)
         thunar_window_notebook_add_new_tab (window, lp->data, THUNAR_NEW_TAB_BEHAVIOR_SWITCH);
-      thunar_window_notebook_set_current_tab (window, first);
+      thunar_window_notebook_set_current_tab (window, 0);
     }
 
   if (right != NULL)
