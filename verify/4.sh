@@ -55,7 +55,6 @@ next_tab() {  # expected title
 G1='thunar -t alpha beta -T gamma delta, no Thunar running'
 G2='Edge cases'
 
-# No Thunar running: the short options
 open_thunar -t "$A" "$B" -T "$C" "$D"
 place
 wait_start alpha
@@ -72,7 +71,6 @@ next_tab delta
 shot "$WID" after-right-tab "Ctrl+Page Down moved the right pane to its second tab, delta"
 pair right-tab "Clicked in the right pane, then pressed Ctrl+Page Down" "The right pane holds gamma then delta, gamma selected" "right pane on gamma" "right pane on delta" "$G1"
 
-# Thunar running, with new windows set to open as tabs: the long options still open a new window
 xfconf-query -c thunar -p /misc-open-new-window-as-tab -n -t bool -s true
 open_thunar --tabs "$A" "$B" --tabs-right "$C" "$D"
 place
@@ -81,7 +79,6 @@ count_windows 2
 next_tab beta
 shot "$WID" long-options "With Thunar running and Open new windows as tabs on, --tabs/--tabs-right opened a second window with the same layout (the script asserts two windows and alpha then beta in the left pane)"
 
-# -t without -T: left pane only
 open_thunar -t "$A" "$B"
 place
 wait_start alpha
@@ -89,7 +86,6 @@ count_windows 3
 next_tab beta
 shot "$WID" tabs-only "thunar -t alpha beta: one new window without split view, tabs alpha and beta (the script stepped from alpha to beta)"
 
-# -T with nothing before it: the left pane opens the current directory
 pushd "$WORK/epsilon" > /dev/null
 open_thunar -T "$C"
 popd > /dev/null
@@ -101,14 +97,14 @@ pane_click $((W / 4))
 wait_start epsilon
 shot "$WID" right-only "thunar -T gamma run in epsilon: the left pane shows epsilon, the current directory, and the right pane gamma"
 
-# -T with nothing after it: an error, and no window
 before=$(windows)
-thunar -T 2> "$WORK/err.txt" || true
+rc=0
+thunar -T 2> "$WORK/err.txt" || rc=$?
+(( rc == 1 )) || fail "thunar -T exited with $rc, expected 1"
 grep -q -- '--tabs-right needs at least one location' "$WORK/err.txt" || fail "thunar -T printed '$(cat "$WORK/err.txt")'"
 sleep 1
 [[ $(windows) == "$before" ]] || fail "thunar -T opened a window"
 
-# A location that doesn't exist: Thunar's usual error, and the other tabs still open
 before=$(windows)
 thunar -t "$A" "$WORK/missing" "$B" &
 ERR=''
@@ -134,7 +130,6 @@ next_tab beta
 shot "$WID" after-missing "After the error, the window still opened with tabs alpha and beta (the script stepped from alpha to beta)"
 pair missing "Ran thunar -t alpha missing beta and dismissed the error" "A missing location gets the usual error and the other tabs still open" "error: Failed to open missing" "window with tabs alpha and beta" "$G2"
 
-# --help lists both options
 help=$(thunar --help)
 grep -q -- '-t, --tabs' <<<"$help" || fail "thunar --help doesn't list -t, --tabs"
 grep -q -- '-T, --tabs-right' <<<"$help" || fail "thunar --help doesn't list -T, --tabs-right"

@@ -297,6 +297,11 @@ thunar_window_action_reload (ThunarWindow *window,
                              GtkWidget    *menu_item);
 static gboolean
 thunar_window_action_toggle_split_view (ThunarWindow *window);
+static void
+thunar_window_split_view_add (ThunarWindow *window,
+                              ThunarFile   *directory);
+static void
+thunar_window_split_view_update_toggle (ThunarWindow *window);
 static gboolean
 thunar_window_action_switch_next_tab (ThunarWindow *window);
 static gboolean
@@ -3550,7 +3555,7 @@ thunar_window_open_pane_tabs (ThunarWindow *window,
   if (thunar_window_split_view_is_active (window) && window->notebook_selected != window->notebook_left)
     thunar_window_paned_notebooks_switch (window);
 
-  if (thunar_window_split_view_is_active (window) != (right != NULL))
+  if (thunar_window_split_view_is_active (window))
     thunar_window_action_toggle_split_view (window);
 
   for (guint pane = 0; pane < G_N_ELEMENTS (panes); pane++)
@@ -3558,10 +3563,15 @@ thunar_window_open_pane_tabs (ThunarWindow *window,
       if (panes[pane] == NULL)
         continue;
 
-      if (pane > 0)
-        thunar_window_paned_notebooks_switch (window);
+      if (pane == 0)
+        thunar_window_set_current_directory (window, panes[pane]->data);
+      else
+        {
+          thunar_window_split_view_add (window, panes[pane]->data);
+          thunar_window_split_view_update_toggle (window);
+          thunar_window_paned_notebooks_switch (window);
+        }
 
-      thunar_window_set_current_directory (window, panes[pane]->data);
       for (lp = panes[pane]->next; lp != NULL; lp = lp->next)
         thunar_window_notebook_add_new_tab (window, lp->data, THUNAR_NEW_TAB_BEHAVIOR_SWITCH);
       thunar_window_notebook_set_current_tab (window, 0);
@@ -4331,11 +4341,6 @@ thunar_window_action_reload (ThunarWindow *window,
 static gboolean
 thunar_window_action_toggle_split_view (ThunarWindow *window)
 {
-  ThunarFile *directory;
-  gint        page_num, last_splitview_separator_position;
-  GType       view_type;
-  GtkWidget  *view;
-
   _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);
   _thunar_return_val_if_fail (window->view_type != G_TYPE_NONE, FALSE);
 
@@ -4366,43 +4371,63 @@ thunar_window_action_toggle_split_view (ThunarWindow *window)
     }
   else
     {
-      window->notebook_selected = thunar_window_paned_notebooks_add (window);
-      directory = thunar_window_get_current_directory (window);
-
-      /* find the correct view type */
-      view_type = thunar_window_view_type_for_directory (window, directory);
-
-      /* insert the new view */
-      page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (window->notebook_selected));
-      view = thunar_window_create_view (window, directory, view_type);
-      thunar_window_notebook_insert_page (window, page_num + 1, view);
-
-      /* restore the last separator position */
-      g_object_get (G_OBJECT (window->preferences), "last-splitview-separator-position", &last_splitview_separator_position, NULL);
-      if (last_splitview_separator_position <= 0)
-        {
-          /* prevent notebook expand on tab creation */
-          last_splitview_separator_position = thunar_gtk_orientable_get_center_pos (GTK_ORIENTABLE (window->paned_notebooks));
-        }
-      gtk_paned_set_position (GTK_PANED (window->paned_notebooks), last_splitview_separator_position);
-
-      /* keep focus on the first notebook */
-      thunar_window_paned_notebooks_switch (window);
-
-      g_signal_connect_swapped (window->paned_notebooks, "accept-position", G_CALLBACK (thunar_window_save_paned_notebooks), window);
-      g_signal_connect_swapped (window->paned_notebooks, "button-release-event", G_CALLBACK (thunar_window_save_paned_notebooks), window);
-      g_signal_connect (window->paned_notebooks, "button-press-event", G_CALLBACK (thunar_window_paned_notebooks_button_press_event), NULL);
+      thunar_window_split_view_add (window, thunar_window_get_current_directory (window));
     }
 
+  thunar_window_split_view_update_toggle (window);
+
+  /* required in case of shortcut activation, in order to signal that the accel key got handled */
+  return TRUE;
+}
+
+
+
+static void
+thunar_window_split_view_add (ThunarWindow *window,
+                              ThunarFile   *directory)
+{
+  gint       page_num, last_splitview_separator_position;
+  GType      view_type;
+  GtkWidget *view;
+
+  window->notebook_selected = thunar_window_paned_notebooks_add (window);
+
+  /* find the correct view type */
+  view_type = thunar_window_view_type_for_directory (window, directory);
+
+  /* insert the new view */
+  page_num = gtk_notebook_get_current_page (GTK_NOTEBOOK (window->notebook_selected));
+  view = thunar_window_create_view (window, directory, view_type);
+  thunar_window_notebook_insert_page (window, page_num + 1, view);
+
+  /* restore the last separator position */
+  g_object_get (G_OBJECT (window->preferences), "last-splitview-separator-position", &last_splitview_separator_position, NULL);
+  if (last_splitview_separator_position <= 0)
+    {
+      /* prevent notebook expand on tab creation */
+      last_splitview_separator_position = thunar_gtk_orientable_get_center_pos (GTK_ORIENTABLE (window->paned_notebooks));
+    }
+  gtk_paned_set_position (GTK_PANED (window->paned_notebooks), last_splitview_separator_position);
+
+  /* keep focus on the first notebook */
+  thunar_window_paned_notebooks_switch (window);
+
+  g_signal_connect_swapped (window->paned_notebooks, "accept-position", G_CALLBACK (thunar_window_save_paned_notebooks), window);
+  g_signal_connect_swapped (window->paned_notebooks, "button-release-event", G_CALLBACK (thunar_window_save_paned_notebooks), window);
+  g_signal_connect (window->paned_notebooks, "button-press-event", G_CALLBACK (thunar_window_paned_notebooks_button_press_event), NULL);
+}
+
+
+
+static void
+thunar_window_split_view_update_toggle (ThunarWindow *window)
+{
   if (thunar_window_split_view_is_active (window) != gtk_toggle_tool_button_get_active (GTK_TOGGLE_TOOL_BUTTON (window->location_toolbar_item_split_view)))
     {
       g_signal_handlers_block_by_func (window->location_toolbar_item_split_view, get_action_entry (THUNAR_WINDOW_ACTION_VIEW_SPLIT)->callback, window);
       gtk_toggle_tool_button_set_active (GTK_TOGGLE_TOOL_BUTTON (window->location_toolbar_item_split_view), thunar_window_split_view_is_active (window));
       g_signal_handlers_unblock_by_func (window->location_toolbar_item_split_view, get_action_entry (THUNAR_WINDOW_ACTION_VIEW_SPLIT)->callback, window);
     }
-
-  /* required in case of shortcut activation, in order to signal that the accel key got handled */
-  return TRUE;
 }
 
 

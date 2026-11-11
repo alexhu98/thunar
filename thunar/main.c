@@ -49,6 +49,7 @@ main (int argc, char **argv)
 {
   ThunarApplication *application;
   GError            *error = NULL;
+  int                status;
 
   /* setup translation domain */
   xfce_textdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR, "UTF-8");
@@ -83,7 +84,7 @@ main (int argc, char **argv)
   gtk_window_set_default_icon_name ("org.xfce.thunar");
 
   /* do further processing inside gapplication */
-  g_application_run (G_APPLICATION (application), argc, argv);
+  status = g_application_run (G_APPLICATION (application), argc, argv);
 
   /* release the application reference */
   g_object_unref (G_OBJECT (application));
@@ -92,5 +93,5 @@ main (int argc, char **argv)
   thunar_notify_uninit ();
 #endif
 
-  return EXIT_SUCCESS;
+  return status;
 }

@@ -97,6 +97,17 @@ static const GOptionEntry option_entries[] =
 /* clang-format on */
 
 
+typedef struct
+{
+  ThunarApplication       *application;
+  GApplicationCommandLine *command_line;
+  GList                   *pending[2];
+  GList                   *directories[2];
+  ThunarFile              *current_directory;
+  gboolean                 right_given;
+  guint                    pane;
+} ThunarApplicationTabs;
+
 /* Prototype for the Thunar job launchers */
 typedef ThunarJob *(*Launcher) (GList *source_path_list,
                                 GList *target_path_list);
@@ -151,6 +162,8 @@ thunar_application_local_command_line (GApplication *application,
 static int
 thunar_application_handle_local_options (GApplication *application,
                                          GVariantDict *options);
+static void
+thunar_application_tabs_next (ThunarApplicationTabs *tabs);
 static int
 thunar_application_command_line (GApplication            *application,
                                  GApplicationCommandLine *command_line);
@@ -525,11 +538,20 @@ thunar_application_local_command_line (GApplication *gapp,
 
   for (guint n = 0; argv[n] != NULL; n++)
     {
-      if (n > 0 && !dash_dash && (g_strcmp0 (argv[n], "-h") == 0 || g_str_has_prefix (argv[n], "--help")))
+      gboolean short_group = n > 0 && !dash_dash && argv[n][0] == '-' && argv[n][1] != '-' && argv[n][1] != '\0';
+
+      if ((short_group && strpbrk (argv[n] + 1, "h?V") != NULL)
+          || (n > 0 && !dash_dash && (g_str_has_prefix (argv[n], "--help") || g_strcmp0 (argv[n], "--version") == 0)))
         help = TRUE;
 
-      if (n > 0 && !dash_dash && !tabs_right
-          && (g_strcmp0 (argv[n], "-T") == 0 || g_strcmp0 (argv[n], "--tabs-right") == 0))
+      if (n > 0 && !dash_dash && g_strcmp0 (argv[n], "--sm-client-id") == 0 && argv[n + 1] != NULL)
+        {
+          g_ptr_array_add (args, g_strdup (argv[n]));
+          g_ptr_array_add (args, g_strdup (argv[++n]));
+        }
+      else if (!tabs_right
+               && ((short_group && strchr (argv[n] + 1, 'T') != NULL)
+                   || (n > 0 && !dash_dash && g_strcmp0 (argv[n], "--tabs-right") == 0)))
         {
           tabs_right = TRUE;
           g_ptr_array_add (args, g_strdup (argv[n]));
@@ -567,46 +589,152 @@ thunar_application_local_command_line (GApplication *gapp,
 
 
 
-static GList *
-thunar_application_tab_directories (GApplicationCommandLine *command_line,
-                                    const gchar             *cwd,
-                                    gchar                  **filenames)
+static ThunarFile *
+thunar_application_file_for_filename (const gchar *working_directory,
+                                      const gchar *filename,
+                                      GError     **error)
 {
-  GList      *directories = NULL;
+  ThunarFile *file;
+  gchar      *path;
+
+  if (g_path_is_absolute (filename) || g_uri_is_valid (filename, G_URI_FLAGS_NONE, NULL))
+    return thunar_file_get_for_uri (filename, error);
+
+  path = g_build_filename (working_directory, filename, NULL);
+  file = thunar_file_get_for_uri (path, error);
+  g_free (path);
+
+  return file;
+}
+
+
+
+static void
+thunar_application_tabs_error (ThunarApplicationTabs *tabs,
+                               GError                *error,
+                               const gchar           *name)
+{
+  gchar *message;
+
+  thunar_dialogs_show_error (NULL, error, _("Failed to open \"%s\""), name);
+  message = g_strdup_printf (_("Failed to open \"%s\": %s"), name, error->message);
+  g_application_command_line_printerr (tabs->command_line, "Thunar: %s\n", message);
+  g_free (message);
+}
+
+
+
+static GList *
+thunar_application_tabs_files (ThunarApplicationTabs *tabs,
+                               const gchar           *working_directory,
+                               gchar                **filenames)
+{
+  GList      *files = NULL;
   ThunarFile *file;
   GError     *error = NULL;
-  gchar      *message;
-  gchar      *path;
 
   for (guint n = 0; filenames != NULL && filenames[n] != NULL; n++)
     {
-      if (g_path_is_absolute (filenames[n]) || g_uri_is_valid (filenames[n], G_URI_FLAGS_NONE, NULL))
-        path = g_strdup (filenames[n]);
-      else
-        path = g_build_filename (cwd, filenames[n], NULL);
-      file = thunar_file_get_for_uri (path, &error);
-      g_free (path);
-
-      if (file != NULL && !thunar_file_is_directory (file))
-        {
-          g_set_error_literal (&error, G_IO_ERROR, G_IO_ERROR_NOT_DIRECTORY, g_strerror (ENOTDIR));
-          g_clear_object (&file);
-        }
-
+      file = thunar_application_file_for_filename (working_directory, filenames[n], &error);
       if (file != NULL)
+        files = g_list_append (files, file);
+      else
         {
-          directories = g_list_append (directories, file);
-          continue;
+          thunar_application_tabs_error (tabs, error, filenames[n]);
+          g_clear_error (&error);
         }
-
-      thunar_dialogs_show_error (NULL, error, _("Failed to open \"%s\""), filenames[n]);
-      message = g_strdup_printf (_("Failed to open \"%s\": %s"), filenames[n], error->message);
-      g_application_command_line_printerr (command_line, "Thunar: %s\n", message);
-      g_free (message);
-      g_clear_error (&error);
     }
 
-  return directories;
+  return files;
+}
+
+
+
+static void
+thunar_application_tabs_poked (ThunarBrowser *browser,
+                               ThunarFile    *file,
+                               ThunarFile    *target_file,
+                               GError        *error,
+                               gpointer       user_data)
+{
+  ThunarApplicationTabs *tabs = user_data;
+  GError                *not_directory = NULL;
+
+  if (error == NULL && !thunar_file_is_directory (target_file))
+    error = not_directory = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_NOT_DIRECTORY, g_strerror (ENOTDIR));
+
+  if (error == NULL)
+    tabs->directories[tabs->pane] = g_list_append (tabs->directories[tabs->pane], g_object_ref (target_file));
+  else if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    thunar_application_tabs_error (tabs, error, thunar_file_get_display_name (file));
+
+  g_clear_error (&not_directory);
+  thunar_application_tabs_next (tabs);
+}
+
+
+
+static void
+thunar_application_tabs_next (ThunarApplicationTabs *tabs)
+{
+  ThunarFile *file;
+  GList      *left;
+  GList      *right;
+  GtkWidget  *window;
+
+  for (; tabs->pane < G_N_ELEMENTS (tabs->pending); tabs->pane++)
+    {
+      if (tabs->pending[tabs->pane] == NULL)
+        continue;
+
+      file = tabs->pending[tabs->pane]->data;
+      tabs->pending[tabs->pane] = g_list_delete_link (tabs->pending[tabs->pane], tabs->pending[tabs->pane]);
+      thunar_browser_poke_file (THUNAR_BROWSER (tabs->application), file, NULL, thunar_application_tabs_poked, tabs);
+      g_object_unref (file);
+      return;
+    }
+
+  left = tabs->directories[0];
+  right = tabs->directories[1];
+  if (left == NULL && tabs->current_directory != NULL && (right != NULL || !tabs->right_given))
+    left = g_list_append (NULL, g_object_ref (tabs->current_directory));
+
+  if (left != NULL)
+    {
+      window = thunar_application_open_window (tabs->application, left->data, NULL, NULL, TRUE);
+      thunar_window_open_pane_tabs (THUNAR_WINDOW (window), left, right);
+    }
+
+  thunar_g_list_free_full (left);
+  thunar_g_list_free_full (right);
+  if (tabs->current_directory != NULL)
+    g_object_unref (tabs->current_directory);
+  g_object_unref (tabs->command_line);
+  g_application_release (G_APPLICATION (tabs->application));
+  g_slice_free (ThunarApplicationTabs, tabs);
+}
+
+
+
+static void
+thunar_application_open_tabs (ThunarApplication       *application,
+                              GApplicationCommandLine *command_line,
+                              const gchar             *working_directory,
+                              gchar                  **left_filenames,
+                              gchar                  **right_filenames)
+{
+  ThunarApplicationTabs *tabs = g_slice_new0 (ThunarApplicationTabs);
+
+  tabs->application = application;
+  tabs->command_line = g_object_ref (command_line);
+  tabs->pending[0] = thunar_application_tabs_files (tabs, working_directory, left_filenames);
+  tabs->pending[1] = thunar_application_tabs_files (tabs, working_directory, right_filenames);
+  tabs->right_given = right_filenames != NULL;
+  if (left_filenames == NULL)
+    tabs->current_directory = thunar_application_file_for_filename (working_directory, ".", NULL);
+
+  g_application_hold (G_APPLICATION (application));
+  thunar_application_tabs_next (tabs);
 }
 
 
@@ -641,7 +769,7 @@ thunar_application_command_line (GApplication            *gapp,
   gboolean           bulk_rename = FALSE;
   gboolean           daemon = FALSE;
   gboolean           quit = FALSE;
-  gboolean           tabs = FALSE;
+  gboolean           tabs_option = FALSE;
   gboolean           tabs_right_option = FALSE;
   GStrv              filenames = NULL;
   GStrv              right_filenames = NULL;
@@ -659,7 +787,7 @@ thunar_application_command_line (GApplication            *gapp,
   g_variant_dict_lookup (options_dict, "quit", "b", &quit);
   g_variant_dict_lookup (options_dict, "daemon", "b", &daemon);
   g_variant_dict_lookup (options_dict, G_OPTION_REMAINING, "^aay", &filenames);
-  g_variant_dict_lookup (options_dict, "tabs", "b", &tabs);
+  g_variant_dict_lookup (options_dict, "tabs", "b", &tabs_option);
   g_variant_dict_lookup (options_dict, "tabs-right", "b", &tabs_right_option);
   g_variant_dict_lookup (options_dict, "tabs-right-uri", "^aay", &right_filenames);
 
@@ -697,23 +825,10 @@ thunar_application_command_line (GApplication            *gapp,
       goto out;
     }
 
-  if (tabs || tabs_right_option)
+  if (tabs_option || tabs_right_option)
     {
-      GList *left = thunar_application_tab_directories (command_line, cwd, filenames);
-      GList *right = thunar_application_tab_directories (command_line, cwd, right_filenames);
-
-      if (left == NULL && (right != NULL || filenames == NULL))
-        left = thunar_application_tab_directories (command_line, cwd, current_directory);
-
-      if (left != NULL)
-        {
-          GtkWidget *window = thunar_application_open_window (application, left->data, NULL, NULL, TRUE);
-          thunar_window_open_pane_tabs (THUNAR_WINDOW (window), left, right);
-        }
-
       application->force_new_window = FALSE;
-      thunar_g_list_free_full (left);
-      thunar_g_list_free_full (right);
+      thunar_application_open_tabs (application, command_line, cwd, filenames, right_filenames);
       goto out;
     }
 
@@ -1973,7 +2088,6 @@ thunar_application_process_filenames (ThunarApplication             *application
 {
   ThunarFile *file;
   GError     *derror = NULL;
-  gchar      *filename;
   GList      *file_list = NULL;
   GList      *lp;
   gint        n;
@@ -1988,19 +2102,7 @@ thunar_application_process_filenames (ThunarApplication             *application
   /* try to process all filenames and convert them to the appropriate file objects */
   for (n = 0; filenames[n] != NULL; ++n)
     {
-      /* check if the filename is an absolute path or looks like an URI */
-      if (g_path_is_absolute (filenames[n]) || g_uri_is_valid (filenames[n], G_URI_FLAGS_NONE, NULL))
-        {
-          /* determine the file for the filename directly */
-          file = thunar_file_get_for_uri (filenames[n], &derror);
-        }
-      else
-        {
-          /* translate the filename into an absolute path first */
-          filename = g_build_filename (working_directory, filenames[n], NULL);
-          file = thunar_file_get_for_uri (filename, &derror);
-          g_free (filename);
-        }
+      file = thunar_application_file_for_filename (working_directory, filenames[n], &derror);
 
       /* verify that we have a valid file */
       if (G_LIKELY (file != NULL))
