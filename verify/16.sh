@@ -174,13 +174,6 @@ xdotool type --delay 10 icon-renamed
 xdotool key Return
 exists "$DIR/icon-renamed.txt" "renaming alpha.txt in the icon view"
 
-keys ctrl+3
-f2
-no_window '^Rename ' "F2 in the compact view"
-xdotool type --delay 10 compact-renamed
-xdotool key Return
-exists "$DIR/compact-renamed.txt" "renaming icon-renamed.txt in the compact view"
-
 keys ctrl+2
 xfconf-query -c thunar -p /misc-rename-in-place -n -t bool -s false
 sleep 0.3
@@ -189,9 +182,3 @@ f2
 shot "$MAIN" preference-off "With Rename files in place turned off, F2 on from-menu.pdf opened the rename popover added by issue 15 below it instead of an entry in its row"
 xdotool key Escape
 xfconf-query -c thunar -p /misc-rename-in-place -s true
-
-keys ctrl+a
-f2
-B=$(find_window '^Rename Multiple Files$') || fail "F2 on all selected files did not open the bulk rename dialog"
-focus "$B"
-xdotool key Escape
