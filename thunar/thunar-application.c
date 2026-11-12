@@ -126,6 +126,9 @@ typedef struct
 {
   ThunarFile                     *file;
   ThunarApplicationWindowOptions *window_options;
+  ThunarApplicationProcessAction  action;
+  gboolean                        force_new_window;
+  guint                           request;
 } ThunarApplicationLaunch;
 
 typedef struct
@@ -332,7 +335,7 @@ struct _ThunarApplication
 #endif
 
   GList                         *files_to_launch;
-  ThunarApplicationProcessAction process_file_action;
+  guint                          launch_request;
 
   guint dbus_owner_id_xfce;
   guint dbus_owner_id_fdo;
@@ -407,7 +410,7 @@ thunar_application_init (ThunarApplication *application)
 
   application->force_new_window = FALSE;
   application->files_to_launch = NULL;
-  application->process_file_action = THUNAR_APPLICATION_SELECT_FILES;
+  application->launch_request = 0;
   application->progress_dialog = NULL;
   application->preferences = NULL;
 
@@ -2311,25 +2314,39 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
                                        thunar_file_get_display_name (file));
         }
 
-      /* unset the startup ids and stop processing any files */
-      for (GList *lp = application->files_to_launch; lp != NULL; lp = lp->next)
-        g_object_set_qdata (G_OBJECT (((ThunarApplicationLaunch *) lp->data)->file), thunar_application_startup_id_quark, NULL);
-      g_list_free_full (application->files_to_launch, thunar_application_launch_free);
-      application->files_to_launch = NULL;
+      /* unset the startup ids and stop processing the files of the same request */
+      guint  request = ((ThunarApplicationLaunch *) application->files_to_launch->data)->request;
+      GList *next;
+
+      for (GList *lp = application->files_to_launch; lp != NULL; lp = next)
+        {
+          ThunarApplicationLaunch *entry = lp->data;
+
+          next = lp->next;
+          if (entry->request != request)
+            continue;
+
+          g_object_set_qdata (G_OBJECT (entry->file), thunar_application_startup_id_quark, NULL);
+          thunar_application_launch_free (entry);
+          application->files_to_launch = g_list_delete_link (application->files_to_launch, lp);
+        }
+
+      if (application->files_to_launch != NULL)
+        thunar_application_process_files (application);
     }
   else
     {
       ThunarApplicationLaunch        *launch = application->files_to_launch->data;
       ThunarApplicationWindowOptions *window_options = launch->window_options;
 
-      if (application->process_file_action == THUNAR_APPLICATION_LAUNCH_FILES)
+      if (launch->action == THUNAR_APPLICATION_LAUNCH_FILES)
         {
           /* try to launch the file / open the directory */
           thunar_file_launch (target_file, screen, startup_id, &error);
         }
       else if (thunar_file_is_directory (file))
         {
-          GtkWidget *window = thunar_application_open_window_full (application, file, screen, startup_id, application->force_new_window, window_options);
+          GtkWidget *window = thunar_application_open_window_full (application, file, screen, startup_id, launch->force_new_window, window_options);
 
           gtk_widget_show (window);
         }
@@ -2344,7 +2361,7 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
               GList     *files = NULL;
               GtkWidget *window;
 
-              window = thunar_application_open_window_full (application, parent, screen, startup_id, application->force_new_window, window_options);
+              window = thunar_application_open_window_full (application, parent, screen, startup_id, launch->force_new_window, window_options);
               g_object_unref (parent);
 
               files = g_list_append (files, thunar_file_get_file (file));
@@ -2426,6 +2443,7 @@ thunar_application_process_filenames_full (ThunarApplication              *appli
   GList                   *lp;
   gint                     n;
   gboolean                 busy;
+  guint                    request;
 
   _thunar_return_val_if_fail (THUNAR_IS_APPLICATION (application), FALSE);
   _thunar_return_val_if_fail (working_directory != NULL, FALSE);
@@ -2462,6 +2480,7 @@ thunar_application_process_filenames_full (ThunarApplication              *appli
     }
 
   busy = application->files_to_launch != NULL;
+  request = ++application->launch_request;
 
   /* loop over all files */
   for (lp = file_list; lp != NULL; lp = lp->next)
@@ -2477,6 +2496,9 @@ thunar_application_process_filenames_full (ThunarApplication              *appli
       launch = g_new0 (ThunarApplicationLaunch, 1);
       launch->file = lp->data;
       launch->window_options = g_steal_pointer (&window_options);
+      launch->action = action;
+      launch->force_new_window = application->force_new_window;
+      launch->request = request;
 
       /* append the file to the list of files we need to launch */
       application->files_to_launch = g_list_append (application->files_to_launch, launch);
@@ -2484,10 +2506,7 @@ thunar_application_process_filenames_full (ThunarApplication              *appli
 
   /* start processing files if we have any to launch */
   if (application->files_to_launch != NULL && !busy)
-    {
-      application->process_file_action = action;
-      thunar_application_process_files (application);
-    }
+    thunar_application_process_files (application);
 
   /* free the file list */
   g_list_free (file_list);
