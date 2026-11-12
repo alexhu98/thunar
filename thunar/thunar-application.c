@@ -1149,6 +1149,13 @@ thunar_application_command_line (GApplication            *gapp,
   g_variant_dict_lookup (options_dict, "workspace", "s", &workspace);
   g_variant_dict_lookup (options_dict, "split", "s", &split);
 
+  if (split != NULL && !thunar_application_parse_split (split, &split_percent))
+    {
+      g_application_command_line_printerr (command_line, "Thunar: %s\n", _("--split takes a percentage from 10 to 90"));
+      split_failed = TRUE;
+      goto out;
+    }
+
   /* FIXME: --quit should be named --suicide */
   if (G_UNLIKELY (quit))
     {
@@ -1161,13 +1168,6 @@ thunar_application_command_line (GApplication            *gapp,
   if (G_UNLIKELY (daemon))
     {
       thunar_application_set_daemon (application, TRUE);
-      goto out;
-    }
-
-  if (split != NULL && !thunar_application_parse_split (split, &split_percent))
-    {
-      g_application_command_line_printerr (command_line, "Thunar: %s\n", _("--split takes a percentage from 10 to 90"));
-      split_failed = TRUE;
       goto out;
     }
 

@@ -5876,7 +5876,7 @@ thunar_window_save_paned_notebooks (ThunarWindow *window)
                 : gtk_paned_get_position (GTK_PANED (window->paned_notebooks)),
                 NULL);
 
-  /* for button release event */
+  /* for the accept-position signal */
   return FALSE;
 }
 
@@ -5930,7 +5930,11 @@ thunar_window_open_split (ThunarWindow *window,
   if (thunar_window_split_view_is_active (window))
     thunar_window_paned_notebooks_queue_split (window);
   else
-    thunar_window_action_toggle_split_view (window);
+    {
+      thunar_window_action_toggle_split_view (window);
+      if (!thunar_window_split_view_is_active (window))
+        window->split_percent = 0;
+    }
 }
 
 
