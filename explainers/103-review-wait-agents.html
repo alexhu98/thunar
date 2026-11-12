@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #104 Review waits</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #104: CI's code review waits for its checking agents</h1>
+  <p class="lead" data-k="lead">Branch <code>103-review-wait-agents</code> → <code>main</code>, closes #103. Once merged, a review answers every finding it checks, or fails and is re-run, instead of leaving them half-checked.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing depends on it</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">The reviewer's prompt now says to start all its checking agents at once and wait for every one, and to mark each answer <code>checked</code>. The review job fails, saying why, when the answer shows it didn't wait. Both live in <code>.github/scripts/review-proof.sh</code>.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="The reviewer finds issues, checks new and open findings with agents it starts together and waits for, returns its output marked checked, and collect fails the job when an open finding has no answer or a finding is not checked">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Review step — the reviewer's prompt</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Review the diff</text>
+      <text x="36" y="114" class="m">code-review skill</text>
+      <text x="36" y="134" class="b">reports new findings</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Check new ones</text>
+      <text x="286" y="114" class="b">one agent per finding</text>
+      <text x="286" y="134" class="b">started with ③'s</text>
+      <text x="286" y="154" class="b">CONFIRMED / PLAUSIBLE</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Re-check open</text>
+      <text x="536" y="114" class="m">open.json</text>
+      <text x="536" y="134" class="b">same message as ②</text>
+      <text x="536" y="154" class="b">waits for all of both</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Return output</text>
+      <text x="786" y="114" class="b">only after every</text>
+      <text x="786" y="134" class="b">agent has reported,</text>
+      <text x="786" y="154" class="b">each marked checked</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② collect — checks the output</text>
+    <g data-k="5">
+      <rect class="box-merge" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Every id answered</text>
+      <text x="786" y="314" class="b">an open.json id with</text>
+      <text x="786" y="334" class="b">no previous entry</text>
+      <text x="786" y="354" class="b">fails the job</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">All checked</text>
+      <text x="536" y="314" class="b">checked not true, or</text>
+      <text x="536" y="334" class="b">a not-reported note,</text>
+      <text x="536" y="354" class="b">fails the job</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-you" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Re-run the review</text>
+      <text x="286" y="314" class="b">the comment says why;</text>
+      <text x="286" y="334" class="b">nothing is recorded;</text>
+      <text x="286" y="354" class="b">a re-run retries</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M520,320 H484" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>the reviewer, following its prompt</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>the script's new checks</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you or the agent, when a check fails</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">CI reviews every code push. The reviewer finds problems, then starts a fresh agent for each one to confirm or disprove it, and another for each finding still open from earlier reviews to see whether it is fixed now. On PR #102 the reviewer handed in its answer before those agents had reported. R21, a confirmed medium, was never re-checked and stayed "not fixed" for three rounds, and dozens of new findings stayed PLAUSIBLE. #102 needed six review rounds.</p>
+  <div class="note" data-k="note">It wasn't a timeout: reviews took 3–5 minutes of a 30-minute limit. The agents run in the background by default, and nothing told the reviewer to wait for them.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Review step — the reviewer's prompt</div>
+  <ol class="steps">
+    <li data-k="1"><b>Review the diff.</b> The reviewer runs the code-review skill on the pushed diff, which reports new findings. Unchanged.</li>
+    <li data-k="2"><b>Check new ones.</b> Prompt step 2 now starts one agent per new finding and all of step 4's agents together, in one message, each with <code>run_in_background: false</code>, and doesn't go on to step 3, the fix, until every one has reported. A finding is CONFIRMED only when its agent confirms it.</li>
+    <li data-k="3"><b>Re-check open.</b> Prompt step 4's agents, one per finding in <code>open.json</code>, are the ones started in step 2, so both batches run at the same time and step 3 already has their verdicts. Each decides from the code at HEAD whether its finding is resolved.</li>
+    <li data-k="4"><b>Return output.</b> Prompt step 5 returns the findings only after every step 2 and step 4 agent has reported, with an entry in <code>previous</code> for every id in <code>open.json</code>. A new required <code>checked</code> field on each finding and entry is true only if its agent reported.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② collect — checks the output</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Every id answered.</b> <code>collect</code> fails the job with an <code>::error::</code> when an id in <code>open.json</code> has no entry in <code>previous</code>, naming the ids. Ids are upper-cased and stripped of spaces first, so <code>r21 </code> still matches R21.</li>
+    <li data-k="6"><b>All checked.</b> It also fails when a new finding, or the entry for an id in <code>open.json</code>, has <code>checked</code> missing or false. As a backup, a reason or note saying an agent hadn't, didn't or never reported "before", "when", "by the time" or "in time", the wording #102's reviews used, fails it too.</li>
+    <li data-k="7"><b>Re-run the review.</b> <code>collect</code> still saves <code>findings.json</code> and <code>fix.patch</code> for the run's artifact, and writes the reason to <code>collect-error.txt</code>. The code review comment then says "The review of &lt;sha&gt; is not recorded: &lt;reason&gt;. Re-run the review job (run)." Nothing shows as an unchecked "not fixed", and re-running the review job retries.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="parts">
+  <h3 class="sec">The two new checks in collect</h3>
+<pre data-k="diff"><span class="add">  local missing unchecked err=</span>
+<span class="add">  missing=$(jq … '[.[].id] - [$f[0].previous[]?.id] | join(", ")' "$OUT/open.json")</span>
+<span class="add">  unchecked=$(jq … '[new findings, previous entries for open.json ids</span>
+<span class="add">    | select(.checked != true or (reason or note | test("\\bagents? (… not|didn't|never) (reported|…) (before|when|by the time|in time)\\b")))]</span>
+<span class="add">    | length' "$OUT/findings.json")</span>
+<span class="add">  [[ -z $missing ]] || err="it returned no result for open finding(s) $missing"</span>
+<span class="add">  (( unchecked == 0 )) || err+="${err:+, and }it returned before the checking agents of $unchecked finding(s) reported"</span>
+<span class="add">  if [[ -n $err ]]; then printf '%s\n' "$err" &gt; "$OUT/collect-error.txt"; echo "::error::the review is not recorded: $err; …"; exit 1; fi</span></pre>
+  <div class="note" data-k="regex">The <code>checked</code> field is the main check. The wording check is only a backup, and needs a timing word after the verb, so ordinary notes such as "the checking agent has not reported any change at HEAD" or "the ThunarJob has not finished when…" don't trip it.</div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">.github/scripts/
+└── review-proof.sh                       # prompt steps 2, 4, 5 and checked; collect's checks; the report's reason
+.github/workflows/
+└── build.yml                             # uploads collect-error.txt with the review artifact
+explainers/103-review-wait-agents.html    # this page
+explainers/103-review-wait-agents.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo it, revert this PR's commit: it changes only <code>review-proof.sh</code> and one line of <code>build.yml</code>. If the new checks ever fail good reviews, that revert brings back the old behaviour.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The checks were tried with fake review output in a scratch repo, after all fixes. CI's first review of this PR found R1–R9, which were fixed. A real review run at #102's head was not done.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>PR #102's six review rounds</h3><p>The failure itself: R21's step 4 note and the step 2 reasons ("the verification agents had not reported before output was required") are the wording collect now catches.</p></div>
+    <div class="card" data-k="r2"><h3>The existing prompt</h3><p>Steps 2 and 4 already said "all at once, in parallel". The PR keeps that, starts both batches together, and adds the wait, so the review still checks findings side by side.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>An open finding with no answer fails</td><td><code>collect</code> dry run in a scratch git repo after all fixes, fake findings with no previous entry for R22 (this session)</td><td class="ok">exit 1, names R22</td></tr>
+    <tr data-k="c2"><td>#102's step 4 wording fails</td><td>Same dry runs, R21's note as on #102: "the step 4 agent hadn't reported when the output was due"</td><td class="ok">exit 1</td></tr>
+    <tr data-k="c3"><td>#102's step 2 wording fails</td><td>Same dry runs, a finding's reason as on #102: "verification agents had not reported before output was required"</td><td class="ok">exit 1</td></tr>
+    <tr data-k="c7"><td>An unchecked finding fails</td><td>Same dry runs, <code>checked</code> false, then <code>checked</code> missing</td><td class="ok">2 of 2 exit 1</td></tr>
+    <tr data-k="c8"><td>Both problems are named</td><td>Same dry runs, "the agent didn't report in time" and a missing id together</td><td class="ok">exit 1, names both</td></tr>
+    <tr data-k="c4"><td>Ordinary notes pass</td><td>Same dry runs, "the checking agent has not reported any change at HEAD" and "the ThunarJob has not finished when…"</td><td class="ok">2 of 2 exit 0</td></tr>
+    <tr data-k="c9"><td>Ids match loosely, stray ids are ignored</td><td>Same dry runs, id <code>r21 </code> for R21, and a previous id R5 not in <code>open.json</code> with <code>checked</code> false</td><td class="ok">2 of 2 exit 0</td></tr>
+    <tr data-k="c5"><td>A review with nothing open passes</td><td>Dry run before the fix round, no open findings and an empty previous; not re-run after it</td><td class="ok">exit 0</td></tr>
+    <tr data-k="c6"><td>Re-running the review at #102's head</td><td>The issue's test. #102 belongs to another session, and a real review needs CI's Claude action, so the dry runs stand in</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh general-purpose agent reviewed the diff with the issue in this session. It found 1 problem, which was fixed. After the fixes for CI's review, a second fresh agent found no correctness bugs and 3 low notes, all fixed. The dry runs above ran after all of them.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Wording check too broad:</b> the first pattern also matched ordinary sentences and would have failed good reviews. It now needs the verb right after "agent".</li>
+    <li data-k="b2"><b>Checked and fine:</b> the jq expressions, the script's strict mode, <code>open.json</code> always existing when collect runs, and the report after a failed collect.</li>
+    <li data-k="b4"><b>Second review's 3 low notes:</b> the backup wording now also matches "didn't report … in time" and "never reported … before"; <code>checked</code> is enforced only for new findings and <code>open.json</code> ids; when both problems occur, the message names both.</li>
+  </ul>
+  <h3 class="sec">CI's review</h3>
+  <p data-k="ci">CI's first review, of <code>1e4d4d2f8297</code> in CI run 43167545997, found R1–R9. R1, a confirmed medium, failed the review job. This push fixes all but R9:</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Finding</th><th>What it found</th><th>How it was handled</th></tr>
+    <tr data-k="r1"><td>R1</td><td>A failed collect only showed "did not finish", without the reason</td><td>Reason saved to <code>collect-error.txt</code>, uploaded, and quoted in the code review comment</td></tr>
+    <tr data-k="r2"><td>R2, R5</td><td>The check relied on the reviewer's wording</td><td>A required <code>checked</code> field; the wording is a backup that needs a timing word</td></tr>
+    <tr data-k="r3"><td>R3</td><td>A failed collect lost the findings and the fix</td><td>Both are written before it fails, so the run's artifact keeps them</td></tr>
+    <tr data-k="r4"><td>R4, R8</td><td>Previous ids had to match exactly as typed</td><td>Upper-cased and stripped of spaces; the missing ids found by jq array subtraction</td></tr>
+    <tr data-k="r6"><td>R6, R7</td><td>Step 4's agents ran after step 2's, and step 3 could run before their verdicts</td><td>Both batches start together in step 2, and step 3 waits for all of them</td></tr>
+    <tr data-k="r9"><td>R9</td><td>The commit landed on <code>main</code> without a PR</td><td>Disproved by the review itself; nothing to change</td></tr>
+  </table>
+  </div>
+  <p data-k="b3">This fix push gets its own CI review: see the <a href="https://github.com/alexhu98/thunar/pull/104#issuecomment-6816365778">code review comment</a> on PR #104. It runs this PR's script, so it uses the new prompt.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>An open finding fixed in another file comes back resolved</td><td>Needs a real review with an open finding and its fix elsewhere</td><td class="open">next such PR</td></tr>
+    <tr data-k="a2"><td>Reviews stay well inside the 30-minute limit</td><td>Waiting makes each review longer; only real reviews show by how much</td><td class="open">first reviews after the merge</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/104">PR #104</a> → “Files changed”</li>
+    <li data-k="l2">The issue with #102's evidence: <a href="https://github.com/alexhu98/thunar/issues/103">issue #103</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing depends on it</h2>
+  <p class="intro" data-k="intro">No open issue builds on #103. The next PRs' reviews are the first to run with the wait, and their round counts are the test.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR, then the next PRs' reviews wait for their agents, then you see fewer review rounds">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">After the merge</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Review waits</text>
+      <text x="36" y="114" class="b">prompt and collect</text>
+      <text x="36" y="134" class="b">in review-proof.sh</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Next PRs reviewed</text>
+      <text x="286" y="114" class="b">every finding checked</text>
+      <text x="286" y="134" class="b">before the report</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-you" x="520" y="60" width="210" height="120" rx="10" style="stroke-dasharray:6 5"/>
+      <text x="536" y="90" class="t">Fewer rounds</text>
+      <text x="536" y="114" class="b">you see fixed findings</text>
+      <text x="536" y="134" class="b">close on the next push</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not happened yet</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text);border-style:dashed"></span>you, later</span>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="review"><dt>Code review job</dt><dd>CI's job that has Claude review every code push and report findings R1, R2, ….</dd></div>
+    <div data-k="agent"><dt>Checking agent</dt><dd>A fresh agent the reviewer starts to confirm or disprove one finding.</dd></div>
+    <div data-k="bg"><dt>run_in_background</dt><dd>An agent setting: when true, the reviewer carries on without waiting for the agent's answer.</dd></div>
+    <div data-k="open"><dt>open.json</dt><dd>The findings from earlier reviews that are still open, written before each review.</dd></div>
+    <div data-k="prev"><dt>previous</dt><dd>The part of the review's output that says, for each open finding, whether it is now resolved.</dd></div>
+    <div data-k="verdict"><dt>CONFIRMED / PLAUSIBLE</dt><dd>A finding's verdict: confirmed by its checking agent, or not (yet) confirmed.</dd></div>
+    <div data-k="collect"><dt>collect</dt><dd>The step of <code>review-proof.sh</code> that saves the review's output and fix after the review.</dd></div>
+    <div data-k="checked"><dt>checked</dt><dd>A new field on each finding and previous entry: true only if its checking agent reported.</dd></div>
+    <div data-k="err"><dt>::error::</dt><dd>A GitHub Actions log line that shows as an error on the failed job.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
