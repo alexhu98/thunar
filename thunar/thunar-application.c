@@ -92,6 +92,7 @@ static const GOptionEntry option_entries[] =
   { "tabs-right", 'T', 0, G_OPTION_ARG_NONE, NULL, N_ ("Open the locations after this option as tabs in the right pane"), NULL, },
   { "geometry", 'g', 0, G_OPTION_ARG_STRING, NULL, N_ ("Set the size and position of the new window"), N_ ("GEOMETRY"), },
   { "workspace", 's', 0, G_OPTION_ARG_STRING, NULL, N_ ("Open the new window on workspace N"), N_ ("N"), },
+  { "split", 0, 0, G_OPTION_ARG_STRING, NULL, N_ ("Open a new window in split view, the left or top pane taking PERCENT of it"), N_ ("PERCENT"), },
   { "tabs-right-uri", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_FILENAME_ARRAY, NULL, NULL, NULL, },
   { "daemon", 0, 0, G_OPTION_ARG_NONE, NULL, N_ ("Run in daemon mode"), NULL, },
   { "sm-client-id", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_STRING, &opt_sm_client_id, NULL, NULL, },
@@ -128,6 +129,7 @@ typedef struct
   ThunarApplicationWindowOptions *window_options;
   ThunarApplicationProcessAction  action;
   gboolean                        force_new_window;
+  gint                            split;
   guint                           request;
 } ThunarApplicationLaunch;
 
@@ -140,6 +142,7 @@ typedef struct
   guint              pending;
   gboolean           left_given;
   gboolean           right_given;
+  gint               split;
 
   ThunarApplicationWindowOptions *window_options;
 } ThunarApplicationTabs;
@@ -225,7 +228,8 @@ thunar_application_process_filenames_full (ThunarApplication              *appli
                                            const gchar                    *startup_id,
                                            GError                        **error,
                                            ThunarApplicationProcessAction  action,
-                                           ThunarApplicationWindowOptions *window_options);
+                                           ThunarApplicationWindowOptions *window_options,
+                                           gint                            split);
 
 static void
 thunar_application_tabs_poke_queued (ThunarApplicationTabs *tabs);
@@ -612,7 +616,7 @@ thunar_application_local_command_line (GApplication *gapp,
             if (*c == 'g' || *c == 's')
               n_values++;
         }
-      else if (n > 0 && !dash_dash && (g_strcmp0 (argv[n], "--geometry") == 0 || g_strcmp0 (argv[n], "--workspace") == 0))
+      else if (n > 0 && !dash_dash && (g_strcmp0 (argv[n], "--geometry") == 0 || g_strcmp0 (argv[n], "--workspace") == 0 || g_strcmp0 (argv[n], "--split") == 0))
         n_values = 1;
 
       if ((short_group && strpbrk (argv[n] + 1, "h?V") != NULL)
@@ -801,8 +805,12 @@ thunar_application_tabs_done (ThunarApplicationTabs *tabs)
 
   if (left != NULL)
     {
+      if (tabs->split > 0 && right == NULL)
+        right = g_list_append (NULL, g_object_ref (left->data));
       window = thunar_application_open_window_full (tabs->application, left->data, NULL, NULL, TRUE, tabs->window_options);
       thunar_window_open_pane_tabs (THUNAR_WINDOW (window), left, right);
+      if (tabs->split > 0)
+        thunar_window_open_split (THUNAR_WINDOW (window), tabs->split);
       gtk_widget_show (window);
     }
 
@@ -824,7 +832,8 @@ thunar_application_open_tabs (ThunarApplication       *application,
                               const gchar             *working_directory,
                               gchar                  **left_filenames,
                               gchar                  **right_filenames,
-                              ThunarApplicationWindowOptions *window_options)
+                              ThunarApplicationWindowOptions *window_options,
+                              gint                            split)
 {
   ThunarApplicationTabs *tabs = g_slice_new0 (ThunarApplicationTabs);
   ThunarApplicationTab  *tab;
@@ -837,6 +846,7 @@ thunar_application_open_tabs (ThunarApplication       *application,
   tabs->application = application;
   tabs->working_directory = g_strdup (working_directory);
   tabs->window_options = window_options;
+  tabs->split = split;
   tabs->left_given = left_filenames != NULL;
   tabs->right_given = right_filenames != NULL;
 
@@ -1037,6 +1047,26 @@ thunar_application_window_map_to_workspace (GtkWidget *window,
 
 
 
+static gboolean
+thunar_application_parse_split (const gchar *string,
+                                gint        *percent)
+{
+  gchar  *end;
+  guint64 number;
+
+  if (!g_ascii_isdigit (*string))
+    return FALSE;
+
+  number = g_ascii_strtoull (string, &end, 10);
+  if (*end != '\0' || number < 10 || number > 90)
+    return FALSE;
+
+  *percent = (gint) number;
+  return TRUE;
+}
+
+
+
 static void
 thunar_application_apply_window_options (ThunarApplicationWindowOptions *options,
                                          GtkWindow                      *window)
@@ -1100,6 +1130,9 @@ thunar_application_command_line (GApplication            *gapp,
   GList             *window_list;
   gchar             *geometry = NULL;
   gchar             *workspace = NULL;
+  gchar             *split = NULL;
+  gint               split_percent = 0;
+  gboolean           split_failed = FALSE;
   ThunarApplicationWindowOptions *window_options = NULL;
 
   /* retrieve arguments */
@@ -1114,6 +1147,7 @@ thunar_application_command_line (GApplication            *gapp,
   g_variant_dict_lookup (options_dict, "tabs-right-uri", "^aay", &right_filenames);
   g_variant_dict_lookup (options_dict, "geometry", "s", &geometry);
   g_variant_dict_lookup (options_dict, "workspace", "s", &workspace);
+  g_variant_dict_lookup (options_dict, "split", "s", &split);
 
   /* FIXME: --quit should be named --suicide */
   if (G_UNLIKELY (quit))
@@ -1129,6 +1163,15 @@ thunar_application_command_line (GApplication            *gapp,
       thunar_application_set_daemon (application, TRUE);
       goto out;
     }
+
+  if (split != NULL && !thunar_application_parse_split (split, &split_percent))
+    {
+      g_application_command_line_printerr (command_line, "Thunar: %s\n", _("--split takes a percentage from 10 to 90"));
+      split_failed = TRUE;
+      goto out;
+    }
+  if (split_percent > 0)
+    application->force_new_window = TRUE;
 
   window_list = thunar_application_get_windows (application);
   if (window_list != NULL)
@@ -1168,7 +1211,7 @@ thunar_application_command_line (GApplication            *gapp,
   if (tabs_option || tabs_right_option)
     {
       application->force_new_window = FALSE;
-      tabs_failed = !thunar_application_open_tabs (application, command_line, cwd, filenames, right_filenames, window_options);
+      tabs_failed = !thunar_application_open_tabs (application, command_line, cwd, filenames, right_filenames, window_options, split_percent);
       window_options = NULL;
       goto out;
     }
@@ -1178,7 +1221,7 @@ thunar_application_command_line (GApplication            *gapp,
     g_application_command_line_printerr (command_line, "Thunar: --geometry and --workspace ignored: the location opens as a tab in an existing window\n");
 
   /* if no filenames are provided, open current directory as default */
-  if (!thunar_application_process_filenames_full (application, cwd, filenames == NULL ? current_directory : filenames, NULL, NULL, &error, THUNAR_APPLICATION_SELECT_FILES, g_steal_pointer (&window_options)))
+  if (!thunar_application_process_filenames_full (application, cwd, filenames == NULL ? current_directory : filenames, NULL, NULL, &error, THUNAR_APPLICATION_SELECT_FILES, g_steal_pointer (&window_options), split_percent))
     {
       /* we failed to process the filenames or the bulk rename failed */
       g_application_command_line_printerr (command_line, "Thunar: %s\n", error->message);
@@ -1266,6 +1309,7 @@ out:
   g_strfreev (right_filenames);
   g_free (geometry);
   g_free (workspace);
+  g_free (split);
   g_free (window_options);
 
   if (error)
@@ -1274,7 +1318,7 @@ out:
       return EXIT_FAILURE;
     }
   else
-    return tabs_failed ? EXIT_FAILURE : EXIT_SUCCESS;
+    return (tabs_failed || split_failed) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 
@@ -2349,6 +2393,8 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
         {
           GtkWidget *window = thunar_application_open_window_full (application, file, screen, startup_id, launch->force_new_window, window_options);
 
+          if (launch->split > 0)
+            thunar_window_open_split (THUNAR_WINDOW (window), launch->split);
           gtk_widget_show (window);
         }
       else
@@ -2368,6 +2414,8 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
               files = g_list_append (files, thunar_file_get_file (file));
               thunar_window_show_and_select_files (THUNAR_WINDOW (window), files);
               g_list_free (files);
+              if (launch->split > 0)
+                thunar_window_open_split (THUNAR_WINDOW (window), launch->split);
               gtk_widget_show (window);
             }
         }
@@ -2433,7 +2481,8 @@ thunar_application_process_filenames_full (ThunarApplication              *appli
                                            const gchar                    *startup_id,
                                            GError                        **error,
                                            ThunarApplicationProcessAction  action,
-                                           ThunarApplicationWindowOptions *window_options)
+                                           ThunarApplicationWindowOptions *window_options,
+                                           gint                            split)
 {
   ThunarApplicationLaunch *launch;
   ThunarFile              *file;
@@ -2496,7 +2545,8 @@ thunar_application_process_filenames_full (ThunarApplication              *appli
       launch->file = lp->data;
       launch->window_options = g_steal_pointer (&window_options);
       launch->action = action;
-      launch->force_new_window = application->force_new_window && lp == file_list;
+      launch->force_new_window = (application->force_new_window && lp == file_list) || split > 0;
+      launch->split = split;
       launch->request = request;
 
       /* append the file to the list of files we need to launch */
@@ -2543,7 +2593,7 @@ thunar_application_process_filenames (ThunarApplication             *application
                                       GError                       **error,
                                       ThunarApplicationProcessAction action)
 {
-  return thunar_application_process_filenames_full (application, working_directory, filenames, screen, startup_id, error, action, NULL);
+  return thunar_application_process_filenames_full (application, working_directory, filenames, screen, startup_id, error, action, NULL, 0);
 }
 
 
