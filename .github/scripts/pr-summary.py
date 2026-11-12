@@ -8,13 +8,14 @@ VERDICT: line; the latest posted wins). Without RUN_ID it uses the latest build 
 (ready for review, or the first failing, running or awaited check), the checks table and a link to the verify
 comment, which holds the key result and the shots table, through pr-comment.sh. Does nothing when HEAD_SHA is no
 longer the PR's head, so an older run can't overwrite a newer summary, and leaves the comment alone when it already
-covers the head and no check's result changed (<!-- pr-proof:results {...} -->: the head, every check that isn't
-running with its link, the verify note and the run), so a run posts "running" once and then edits only on a result.
-Every job that writes a comment calls it and the summary job calls it last; when an audit comment is posted or
-edited, the pr-summary workflow calls it too, once the head's build run has finished. After writing it reads
-everything again and writes again, up to twice, if a result changed meanwhile.
+covers the head and no check's result changed (<!-- pr-proof:results {...} -->: the head and a hash of every check
+that isn't running with its link, the verify note and the run), so a run posts "running" once and then edits only on
+a result. Every job that writes a comment calls it and the summary job calls it last; when an audit comment is
+posted or edited, the pr-summary workflow calls it too, once the head's build run has finished. After writing it
+reads everything again and writes again, up to twice, if a result changed meanwhile.
 Env: PR, GH_REPO, HEAD_SHA, RUN_ID, RUN_URL, BUILD_RESULT, OUT. DRY_RUN=1 prints the comment instead of writing it.
 """
+import hashlib
 import json
 import os
 import re
@@ -180,9 +181,9 @@ def summary(runs):
     else:
         note = 'No key result or shots yet: verify has not published shots for this head.'
     out += ['', note]
-    results = {'v': 2, 'sha': head, 'checks': [[n, s, t, w] for n, s, t, w in checks if s != 'running'],
-               'note': note, 'run': run_url}
-    marker = '<!-- pr-proof:results ' + json.dumps(results, ensure_ascii=False, separators=(',', ':')).replace('>', '\\u003e') + ' -->'
+    results = [2, [[n, s, t, w] for n, s, t, w in checks if s != 'running'], note, run_url]
+    digest = hashlib.sha256(json.dumps(results, ensure_ascii=False).encode()).hexdigest()[:16]
+    marker = '<!-- pr-proof:results ' + json.dumps({'sha': head, 'hash': digest}, separators=(',', ':')) + ' -->'
     return marker + '\n' + '\n'.join(out) + '\n', mine.get('summary', {}).get('body')
 
 
