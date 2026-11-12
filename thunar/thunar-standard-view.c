@@ -5405,6 +5405,8 @@ thunar_standard_view_rename_pressed (GtkGesture         *gesture,
 {
   const GdkEvent *event;
   GtkWidget      *widget;
+  GtkWidget      *toplevel;
+  GtkWidget      *titlebar;
   GtkEntry       *entry = standard_view->priv->rename_entry;
 
   if (entry == NULL)
@@ -5413,6 +5415,11 @@ thunar_standard_view_rename_pressed (GtkGesture         *gesture,
   event = gtk_gesture_get_last_event (gesture, gtk_gesture_get_last_updated_sequence (gesture));
   widget = event != NULL ? gtk_get_event_widget ((GdkEvent *) event) : NULL;
   if (widget == GTK_WIDGET (entry) || (widget != NULL && gtk_widget_is_ancestor (widget, GTK_WIDGET (entry))))
+    return;
+
+  toplevel = gtk_event_controller_get_widget (GTK_EVENT_CONTROLLER (gesture));
+  titlebar = GTK_IS_WINDOW (toplevel) ? gtk_window_get_titlebar (GTK_WINDOW (toplevel)) : NULL;
+  if (titlebar != NULL && widget != NULL && (widget == titlebar || gtk_widget_is_ancestor (widget, titlebar)))
     return;
 
   if (thunar_standard_view_rename_show_error (entry))
@@ -5486,14 +5493,18 @@ thunar_standard_view_rename_canceled (GtkCellRenderer    *renderer,
       && GTK_IS_WINDOW (toplevel))
     {
       active = gtk_window_is_active (GTK_WINDOW (toplevel));
-      if (active)
+      event = gtk_get_current_event ();
+      clicked = active && event != NULL
+                && (event->type == GDK_BUTTON_PRESS || event->type == GDK_2BUTTON_PRESS
+                    || event->type == GDK_3BUTTON_PRESS || event->type == GDK_TOUCH_BEGIN);
+      if (event != NULL)
+        gdk_event_free (event);
+      if (clicked)
+        resume = thunar_standard_view_rename_check (gtk_entry_get_text (entry)) != NULL;
+      else if (active)
         resume = gtk_widget_has_focus (GTK_WIDGET (entry));
       else
         resume = gtk_window_get_focus (GTK_WINDOW (toplevel)) == GTK_WIDGET (entry);
-      event = gtk_get_current_event ();
-      clicked = active && event != NULL && event->type == GDK_BUTTON_PRESS;
-      if (event != NULL)
-        gdk_event_free (event);
       if (clicked || resume)
         text = g_strdup (gtk_entry_get_text (entry));
       if (resume)
@@ -5565,6 +5576,7 @@ thunar_standard_view_rename_idle (gpointer user_data)
           g_object_unref (application);
         }
       g_clear_pointer (&standard_view->priv->rename_text, g_free);
+      g_clear_object (&standard_view->priv->rename_gesture);
       if (file != NULL)
         g_object_unref (file);
     }
