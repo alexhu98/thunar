@@ -13,8 +13,8 @@ verify-shots.py manifest OUT
 verify-shots.py comment OUT
     Prints the verify comment's body (the results, the key result, the shots table, then every other shot) from $OUT/numbered.json, $OUT/results.tsv, the logs and $OUT/urls.tsv
     ("<local file><tab><url or ->"). Env: HEAD_SHA, HEAD_REF, RUN_URL.
-verify-shots.py marker NAME
-    Prints <!-- pr-proof:NAME {...} --> for the JSON object on stdin.
+verify-shots.py marker NAME KEY=VALUE...
+    Prints <!-- pr-proof:NAME {...} --> for the object of those string fields.
 """
 import json
 import os
@@ -298,7 +298,7 @@ if __name__ == '__main__':
         entries = json.load(open(os.path.join(out, 'numbered.json')))
         sys.stdout.write(manifest(out, entries, 'shots', {k for k, v in urls(out).items() if v == '-'}))
     elif cmd == 'marker':
-        print(marker(f'pr-proof:{args[0]}', json.load(sys.stdin)))
+        print(marker(f'pr-proof:{args[0]}', dict(kv.split('=', 1) for kv in args[1:])))
     elif cmd == 'comment':
         status, lines = comment(args[0])
         print('\n'.join([hidden('status', status), *lines]))
