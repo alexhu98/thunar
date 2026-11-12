@@ -437,7 +437,8 @@ struct _ThunarStandardViewPrivate
   /* the "new-files" closure, which is used to select files whenever
    * new files are created by a ThunarJob associated with this view
    */
-  GClosure *new_files_closure;
+  GClosure  *new_files_closure;
+  GtkWidget *new_files_source_view;
 
   /* the "new-files" path list that was remembered in the closure callback
    * if the view is currently being loaded and as such the folder may
@@ -1199,6 +1200,9 @@ thunar_standard_view_finalize (GObject *object)
       g_closure_unref (standard_view->priv->new_files_closure);
       standard_view->priv->new_files_closure = NULL;
     }
+
+  if (standard_view->priv->new_files_source_view != NULL)
+    g_object_remove_weak_pointer (G_OBJECT (standard_view->priv->new_files_source_view), (gpointer *) &standard_view->priv->new_files_source_view);
 
   /* drop any remaining "new-files" paths */
   thunar_g_list_free_full (standard_view->priv->new_files_path_list);
@@ -3107,6 +3111,17 @@ thunar_standard_view_unselect_all_files (ThunarView *view)
 
 
 
+static gboolean
+thunar_standard_view_is_other_pane (ThunarStandardView *standard_view,
+                                    GtkWidget          *source_view)
+{
+  return THUNAR_IS_VIEW (source_view)
+         && gtk_widget_get_toplevel (source_view) == gtk_widget_get_toplevel (GTK_WIDGET (standard_view))
+         && gtk_widget_get_ancestor (source_view, GTK_TYPE_NOTEBOOK) != gtk_widget_get_ancestor (GTK_WIDGET (standard_view), GTK_TYPE_NOTEBOOK);
+}
+
+
+
 static GClosure *
 thunar_standard_view_new_files_closure (ThunarStandardView *standard_view,
                                         GtkWidget          *source_view)
@@ -3120,8 +3135,12 @@ thunar_standard_view_new_files_closure (ThunarStandardView *standard_view,
       g_closure_unref (standard_view->priv->new_files_closure);
     }
 
-  /* set the remove view data we possibly need to reload */
-  g_object_set_data (G_OBJECT (standard_view), I_ ("source-view"), source_view);
+  /* remember the source view we possibly need to reload */
+  if (standard_view->priv->new_files_source_view != NULL)
+    g_object_remove_weak_pointer (G_OBJECT (standard_view->priv->new_files_source_view), (gpointer *) &standard_view->priv->new_files_source_view);
+  standard_view->priv->new_files_source_view = source_view;
+  if (source_view != NULL)
+    g_object_add_weak_pointer (G_OBJECT (source_view), (gpointer *) &standard_view->priv->new_files_source_view);
 
   /* allocate a new "new-files" closure */
   standard_view->priv->new_files_closure = g_cclosure_new_swap (G_CALLBACK (thunar_standard_view_new_files), standard_view, NULL);
@@ -3142,10 +3161,13 @@ thunar_standard_view_new_files (ThunarStandardView *standard_view,
   GList      *file_list = NULL;
   GList      *lp;
   GtkWidget  *source_view;
+  GtkWidget  *window;
   GFile      *parent_file;
   gboolean    belongs_here;
 
   _thunar_return_if_fail (THUNAR_IS_STANDARD_VIEW (standard_view));
+
+  source_view = standard_view->priv->new_files_source_view;
 
   /* release the previous "new-files" paths (if any) */
   if (G_UNLIKELY (standard_view->priv->new_files_path_list != NULL))
@@ -3186,7 +3208,9 @@ thunar_standard_view_new_files (ThunarStandardView *standard_view,
           g_list_free_full (file_list, g_object_unref);
 
           /* grab the focus to the view widget */
-          gtk_widget_grab_focus (gtk_bin_get_child (GTK_BIN (standard_view)));
+          window = gtk_widget_get_toplevel (GTK_WIDGET (standard_view));
+          if (!THUNAR_IS_WINDOW (window) || thunar_window_get_view (THUNAR_WINDOW (window)) == GTK_WIDGET (standard_view))
+            gtk_widget_grab_focus (gtk_bin_get_child (GTK_BIN (standard_view)));
         }
       else if (belongs_here)
         {
@@ -3198,7 +3222,6 @@ thunar_standard_view_new_files (ThunarStandardView *standard_view,
     }
 
   /* when performing dnd between 2 views, we force a reload on the source as well */
-  source_view = g_object_get_data (G_OBJECT (standard_view), I_ ("source-view"));
   if (THUNAR_IS_VIEW (source_view))
     thunar_view_reload (THUNAR_VIEW (source_view), FALSE);
 }
@@ -3729,14 +3752,6 @@ thunar_standard_view_receive_text_uri_list (GdkDragContext     *context,
       /* perform the requested action */
       if (G_LIKELY (action != 0))
         {
-          /* move the focus to the target widget */
-          window = gtk_widget_get_toplevel (GTK_WIDGET (standard_view));
-          if (GTK_IS_WINDOW (window))
-            {
-              /* if split view is active, give focus to the pane containing the view */
-              thunar_window_focus_view (THUNAR_WINDOW (window), GTK_WIDGET (standard_view));
-            }
-
           /* look if we can find the drag source widget */
           source_widget = gtk_drag_get_source_widget (context);
           if (source_widget != NULL)
@@ -3746,6 +3761,14 @@ thunar_standard_view_receive_text_uri_list (GdkDragContext     *context,
               source_view = gtk_widget_get_parent (source_widget);
               if (!THUNAR_IS_VIEW (source_view))
                 source_view = NULL;
+            }
+
+          /* move the focus to the target widget */
+          window = gtk_widget_get_toplevel (GTK_WIDGET (standard_view));
+          if (GTK_IS_WINDOW (window))
+            {
+              /* if split view is active, give focus to the pane containing the view */
+              thunar_window_focus_view (THUNAR_WINDOW (window), thunar_standard_view_is_other_pane (standard_view, source_view) ? source_view : GTK_WIDGET (standard_view));
             }
 
           succeed = thunar_dnd_perform (GTK_WIDGET (standard_view), file, standard_view->priv->drop_file_list,

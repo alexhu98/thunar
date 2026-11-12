@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #106 Drop focus</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #106: Keep keyboard focus in the pane you dragged from</h1>
+  <p class="lead" data-k="lead">Branch <code>96-dnd-focus</code> → <code>main</code>, closes #96 (<a href="https://github.com/alexhu98/thunar/pull/106">PR #106</a>). In split view, after you drag files onto the other pane, the next key still acts on the pane the drag started from.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing depends on #96 yet</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">A drop from one pane onto the other no longer moves keyboard focus or the active pane to the drop pane. The whole change is in <code>thunar/thunar-standard-view.c</code>, tested by <code>verify/96.sh</code>.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="A drag from the right pane onto the left pane: the drop handler sends focus back to the right pane, the move runs, and when it finishes the dropped files are selected in the left pane, which takes focus only if it is the active pane. Other drops, Paste, New Folder and Insert behave as before.">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① A drop on the other pane — changed</text>
+    <g data-k="1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">You drag</text>
+      <text x="36" y="114" class="b">a file from the right</text>
+      <text x="36" y="134" class="b">pane and drop it on</text>
+      <text x="36" y="154" class="b">the left pane</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Drop handler</text>
+      <text x="286" y="114" class="b">other pane? Then the</text>
+      <text x="286" y="134" class="b">source pane gets the</text>
+      <text x="286" y="154" class="b">focus, not the drop</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-merge" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Move or copy</text>
+      <text x="536" y="114" class="m">thunar_dnd_perform</text>
+      <text x="536" y="134" class="b">runs the job, as</text>
+      <text x="536" y="154" class="b">before</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Job finishes</text>
+      <text x="786" y="114" class="b">dropped files are</text>
+      <text x="786" y="134" class="b">selected; focus only</text>
+      <text x="786" y="154" class="b">in the active pane</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② Everything else — unchanged</text>
+    <g data-k="5">
+      <rect class="box-merge" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Other drops</text>
+      <text x="36" y="314" class="b">from another app or</text>
+      <text x="36" y="334" class="b">in one pane: focus</text>
+      <text x="36" y="354" class="b">goes to the drop pane</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Paste, New Folder</text>
+      <text x="286" y="314" class="b">and rename still</text>
+      <text x="286" y="334" class="b">focus the new item,</text>
+      <text x="286" y="354" class="b">by their own path</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Insert (#95)</text>
+      <text x="536" y="314" class="b">sends files to the</text>
+      <text x="536" y="334" class="b">other pane and never</text>
+      <text x="536" y="354" class="b">moved focus</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">7</text>
+    </g>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>changed by this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>unchanged code</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Split view (F3) shows two folders side by side. One pane is the active one: the location bar, the status bar and the keyboard all follow it. Before this PR, dragging a file from the right pane onto the left one made the left pane active, so the next key (Down, Delete, Ctrl+A) acted on the pane you dropped on, not the one you were working in.</p>
+  <div class="note" data-k="note">The focus moved twice: once when the drop landed, and again when the move or copy finished. The drop now focuses the source pane when the drag came from the other pane, and the finished job grabs focus only in the window's active pane.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① A drop on the other pane — changed</div>
+  <ol class="steps">
+    <li data-k="1"><b>You drag.</b> You drag a file from the right pane and drop it on the left pane, as in the issue's report.</li>
+    <li data-k="2"><b>Drop handler.</b> <code>thunar_standard_view_receive_text_uri_list</code> used to call <code>thunar_window_focus_view</code> on the drop pane. It now asks the new helper <code>thunar_standard_view_is_other_pane</code> first, and when the drag came from the other pane it focuses the source view instead. That also hands focus back when a spring-loaded folder switched panes during the drag.</li>
+    <li data-k="3"><b>Move or copy.</b> <code>thunar_dnd_perform</code> starts the job exactly as before, with the same new-files closure.</li>
+    <li data-k="4"><b>Job finishes.</b> <code>thunar_standard_view_new_files</code> still selects the dropped files in the left pane, but calls <code>gtk_widget_grab_focus</code> only when that view is the window's active view (<code>thunar_window_get_view</code>), checked when the job ends. It reads the drag's source view through a weak pointer, so a source view closed during a long transfer is never read after it's freed.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② Everything else — unchanged</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Other drops.</b> A drop from another app or another window, or within one pane, fails the helper's check, so focus goes to the drop pane as it always did.</li>
+    <li data-k="6"><b>Paste, New Folder and rename.</b> These focus the new item through <code>ThunarActionManager</code>'s own new-files path, which this PR doesn't touch. Shift+Insert and Ctrl+Insert are Paste and Copy, so they're in this group too.</li>
+    <li data-k="7"><b>Insert (#95).</b> “Drop on Other Pane” passes no new-files closure and never moved focus. <code>verify/96.sh</code> now checks that as well.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="parts">
+  <h3 class="sec">A closer look at the other-pane check</h3>
+<pre data-k="diff">static gboolean
+thunar_standard_view_is_other_pane (ThunarStandardView *standard_view,
+                                    GtkWidget          *source_view)
+{
+  return THUNAR_IS_VIEW (source_view)
+         &amp;&amp; gtk_widget_get_toplevel (source_view) == gtk_widget_get_toplevel (GTK_WIDGET (standard_view))
+         &amp;&amp; gtk_widget_get_ancestor (source_view, GTK_TYPE_NOTEBOOK) != gtk_widget_get_ancestor (GTK_WIDGET (standard_view), GTK_TYPE_NOTEBOOK);
+}</pre>
+  <div class="grid" style="margin-top:14px">
+    <div class="card" data-k="c1"><h3>Same window</h3><p>The source must be a Thunar view in the same top-level window, so drags from other apps and other Thunar windows don't count.</p></div>
+    <div class="card" data-k="c2"><h3>Different pane</h3><p>Each pane is its own tab notebook. A different notebook means the other pane; the same one means a drop within one pane.</p></div>
+    <div class="card" data-k="c3"><h3>Tab-label drops (#19)</h3><p>A drop on the other pane's tab label passes no new-files closure and doesn't switch panes, so it needed no change.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+└── thunar-standard-view.c          # new is_other_pane helper; drop focus goes to the source pane;
+                                    # new_files grabs focus only in the active view;
+                                    # source view held through a weak pointer
+verify/
+└── 96.sh                           # drag, Insert and New Folder focus test, 3 shots
+explainers/
+├── 96-dnd-focus.html               # this page
+└── 96-dnd-focus.narration.json     # its narration</pre>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built and tested in a cloud container the way CI does it, reviewed by a fresh agent, then reviewed three times by CI. CI's tests and the screenshot audit of the last head haven't finished yet.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>The issue's report</h3><p>The owner's steps on Zorin OS: drag from the right pane, drop on the left, press Down. <code>verify/96.sh</code> repeats them.</p></div>
+    <div class="card" data-k="r2"><h3>verify/15.sh</h3><p>Its first-row position is where <code>verify/96.sh</code> starts looking for the file to drag, which keeps the test short.</p></div>
+    <div class="card" data-k="r3"><h3>Insert from #95</h3><p>Already keeps focus in the source pane; the test checks it still does next to the drop fix.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>It builds</td><td><code>build-verify</code> agent: <code>dpkg-buildpackage</code> in the cloud container, as CI</td><td class="ok">build OK, no warnings in changed files</td></tr>
+    <tr data-k="c2"><td>The debs install</td><td>Same agent: <code>verify-proof.sh install</code></td><td class="ok">installed</td></tr>
+    <tr data-k="c3"><td>All verify tests pass</td><td>Same agent: <code>verify-proof.sh run</code>, each test under its own Xvfb</td><td class="ok">15 of 15 pass</td></tr>
+    <tr data-k="c4"><td>Drop keeps focus in the source pane</td><td><code>verify/96.sh</code>: drag <code>a.txt</code> right → left, press Down; the right pane stays active (pair drop-down)</td><td class="ok">pass (96 took 23 s)</td></tr>
+    <tr data-k="c5"><td>Insert keeps focus too</td><td><code>verify/96.sh</code>: Ctrl+A and Insert in the right pane move <code>b.txt</code> and <code>c.txt</code> left, press Down; the right pane stays active (pair insert-down)</td><td class="ok">pass</td></tr>
+    <tr data-k="c6"><td>New Folder still focuses the new folder</td><td><code>verify/96.sh</code>: Ctrl+Shift+N makes <code>made</code>, F2 renames it to <code>renamed</code> in the left pane (shot new-folder)</td><td class="ok">pass</td></tr>
+    <tr data-k="c7"><td>Drops from another app, Shift+Insert, Ctrl+Insert, tab-label drops</td><td>Not tested: they don't pass the other-pane check or the new-files closure, read from the code</td><td class="no">not run</td></tr>
+    <tr data-k="c8"><td>CI build</td><td>CI's build job on head <code>7d0c022</code></td><td class="ok">pass</td></tr>
+    <tr data-k="c10"><td>CI verify and explainer</td><td>CI's verify and explainer jobs on head <code>7d0c022</code></td><td class="no">still running</td></tr>
+    <tr data-k="c9"><td>Screenshot audit</td><td><code>/visual-verify</code> of CI's shots from the <code>shots</code> branch</td><td class="no">not run yet</td></tr>
+  </table>
+  </div>
+  <div class="note warn" data-k="caveat">The local build and the 15 tests ran before the CI review fixes (<code>2915d9c</code>, <code>7d0c022</code>). Only CI's build has run on the final code so far; its verify run is the one to trust.</div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh general-purpose agent, given only the diff and the issue, found 3 problems. 2 were fixed then; the third, older than this PR, was fixed after CI's review flagged it too.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Test too slow (fixed):</b> the drag in <code>verify/96.sh</code> scanned so many rows that it could pass the 120-second test limit. It now starts at the known first-row position, as <code>verify/15.sh</code> does.</li>
+    <li data-k="b2"><b>Spring-loaded folders (fixed):</b> hovering over a folder during the drag could still leave focus in the drop pane. The drop handler now focuses the source view.</li>
+    <li data-k="b3"><b>Older risk (fixed later):</b> the view stored the drag's source view without a weak reference, so a source view closed during a long transfer could be read after it's freed. It is now held through a weak pointer (R4, below).</li>
+  </ul>
+  <p data-k="ci">CI reviewed every code push at <code>high</code> and reports in <a href="https://github.com/alexhu98/thunar/pull/106#issuecomment-6818182359">this PR's code review comment</a>:</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Review of</th><th>Findings</th><th>What happened</th></tr>
+    <tr data-k="ci1"><td><code>750ebf1</code></td><td>R1–R7</td><td>CI fixed R1–R3 itself (test asserts, a double read, a stale comment). R4–R7 fixed in <code>2915d9c</code>: weak pointer, decide once, PR text, test row offsets.</td></tr>
+    <tr data-k="ci2"><td><code>2915d9c</code></td><td>R8 (medium), R9–R15 (low)</td><td>R8: the drop-time decision could go stale. R8, R9, R10, R12, R13 fixed in <code>7d0c022</code> by the active-view check. Accepted: R11 (the weak pointer is removed in finalize, so safe), R14 (wants back a row offset R7 removed), R15 (the next Ctrl+A and Insert step proves where focus is).</td></tr>
+    <tr data-k="ci3"><td><code>7d0c022</code></td><td>R16 (medium), R17–R19 (low)</td><td>R16: focus is now decided at the job's end, not at the drop. The owner chose to keep it, so R16 is accepted. Accepted: R17, R18 (comment wording), R19 (no test that a drop within one pane still grabs focus).</td></tr>
+  </table>
+  </div>
+  <div class="note" data-k="r16">Why keep the job-end check (R16): if you switch panes or tabs during a long copy, the finished copy then doesn't pull focus away from where you are now.</div>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>A real mouse drag on the owner's desktop</td><td>The tests drive Thunar with <code>xdotool</code> under Xvfb, not a real mouse on Zorin OS</td><td class="open">when the owner installs the next build</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l0">The PR: <a href="https://github.com/alexhu98/thunar/pull/106">#106</a>, and CI's <a href="https://github.com/alexhu98/thunar/pull/106#issuecomment-6818182359">code review comment</a></li>
+    <li data-k="l1">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...96-dnd-focus">main…96-dnd-focus</a>, or this PR's “Files changed”</li>
+    <li data-k="l2">CI's summary, code review, verify and explainer comments on this PR, with the screenshots of <code>verify/96.sh</code></li>
+    <li data-k="l3">The issue: <a href="https://github.com/alexhu98/thunar/issues/96">#96</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing depends on #96 yet</h2>
+  <p class="intro" data-k="intro">No open issue says “Depends on #96”. The batch in #100 starts #40 and #41 once this merges, and #16 must keep this fix working.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR merges, then the batch moves on to #40 and #41 and later #16, which must keep this fix.">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">After this PR, in batch order (#100)</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">#96 drop focus</text>
+      <text x="36" y="114" class="b">focus stays in the</text>
+      <text x="36" y="134" class="b">drag's source pane</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">#40, #41 split</text>
+      <text x="286" y="114" class="b">50/50 split and a</text>
+      <text x="286" y="134" class="b">--split option; next</text>
+      <text x="286" y="154" class="b">in the batch</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">#16 rename</text>
+      <text x="536" y="114" class="b">in place; must keep</text>
+      <text x="536" y="134" class="b">this focus fix</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-40">
+  <h3 class="sec">#40 and #41 Split ratio (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Batch order only.</b> #40 opens every new split at 50/50 and #41 adds <code>--split</code>. They change other code and don't use this PR; the batch just starts them once it merges.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-16">
+  <h3 class="sec">#16 Rename files in place</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Keeps this fix.</b> It changes <code>thunar-standard-view.c</code> too, and the batch notes it must keep the new-files focus rule from this PR and the Insert actions working.</li>
+  </ol>
+  </div>
+  </section>
+
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="split"><dt>Split view</dt><dd>Two folder panes side by side in one window, toggled with F3.</dd></div>
+    <div data-k="active"><dt>Active pane</dt><dd>The pane the location bar, status bar and keyboard follow (<code>notebook_selected</code>).</dd></div>
+    <div data-k="focus"><dt>Keyboard focus</dt><dd>The widget that receives key presses; “grabbing focus” moves it there.</dd></div>
+    <div data-k="notebook"><dt>Notebook</dt><dd>GTK's tabbed container; each pane is one.</dd></div>
+    <div data-k="spring"><dt>Spring-loaded folder</dt><dd>A folder that opens when you hover over it while dragging.</dd></div>
+    <div data-k="closure"><dt>New-files closure</dt><dd>A callback a drop hands to the job, run with the new files when it finishes.</dd></div>
+    <div data-k="insert"><dt>Insert (#95)</dt><dd>“Drop on Other Pane”: sends the selection to the other pane's folder.</dd></div>
+    <div data-k="weak"><dt>Weak reference</dt><dd>A pointer that is cleared automatically when its object is freed.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb, xdotool</dt><dd>A screenless X server, and a tool that sends it clicks and keys.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
