@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import sys
+from importlib import import_module
 
 OPEN = ('suggested', 'not fixed')
 KEEP = 400
@@ -229,7 +230,7 @@ def render(out, repo, sha, result, note, failed):
 def body(state, status, ids, open_, repo, note, rows):
     findings = state.get('findings', [])
     shown = [f for f in findings if f['id'] in ids]
-    lines = ['<!-- pr-proof:status ' + json.dumps(status, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
+    lines = [import_module('verify-shots').hidden('status', status),
              '<!-- review:state ' + json.dumps(state, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
              '### Code review', '']
     if state.get('sha'):

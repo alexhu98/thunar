@@ -25,7 +25,6 @@ import time
 from importlib import import_module
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
 ICON = {'pass': '✅', 'fail': '❌', 'running': '⏳', 'wait': '⏳', 'skip': '⏭️'}
 TRUSTED = ('OWNER', 'MEMBER', 'COLLABORATOR')
 JOBS = {'verify': ('verify',), 'review': ('review', 'review-report'), 'explainer': ('explainer',)}
@@ -48,7 +47,7 @@ def lines_json(*args):
     return [json.loads(ln) for ln in gh(*args).splitlines() if ln.strip()]
 
 
-def hidden(body, kind):
+def read_hidden(body, kind):
     m = re.search(r'^<!-- pr-proof:' + kind + r' (\{.*?\}) -->$', body or '', re.M)
     return json.loads(m.group(1)) if m else None
 
@@ -147,7 +146,7 @@ def summary(runs):
                  {'pass': 'passed', 'fail': 'failed', 'running': 'running', 'skip': 'skipped', 'nocode': NO_CODE}.get(b[0], b[0]),
                  f'[build job]({b[1]})' if b[1] else '')
     checks.append(('Build', build[0], build[1], build[2]))
-    status = {n: hidden(mine.get(n, {}).get('body'), 'status') for n in JOBS}
+    status = {n: read_hidden(mine.get(n, {}).get('body'), 'status') for n in JOBS}
     v = section_state('verify', status['verify'], head, jobs)
     checks.append(('Verify', v[0], v[1], link('verify', 'Verify comment')))
     a = ('skip', 'not needed: verify took no shots', '') if v[1] == NO_CODE else audit(comments, head)
@@ -176,7 +175,7 @@ def summary(runs):
     vsha = (status['verify'] or {}).get('sha', '')
     if v[1] == NO_CODE:
         note = 'No key result or shots: verify did not run, because the PR changes no code, packaging or CI files.'
-    elif not vsha or (status['verify'] or {}).get('text') == 'did not run':
+    elif not vsha or (t := (status['verify'] or {}).get('text', '')) == 'did not run' or 'could not be numbered' in t:
         note = 'No key result or shots yet: verify has not published shots for this head.'
     elif vsha != head:
         note = f"The key result and the shots table in the {link('verify', 'Verify comment')} are from `{vsha[:12]}`, not the head."
@@ -200,7 +199,7 @@ def main():
         if got is None:
             return
         body, old = got
-        if old and hidden(body, 'results') == hidden(old, 'results'):
+        if old and read_hidden(body, 'results') == read_hidden(old, 'results'):
             print("the summary is unchanged: it covers the head and no check's result changed")
             if os.environ.get('DRY_RUN') == '1':
                 print(body)
