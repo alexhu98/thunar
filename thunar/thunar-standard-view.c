@@ -5418,7 +5418,7 @@ thunar_standard_view_rename_pressed (GtkGesture         *gesture,
     return;
 
   toplevel = gtk_event_controller_get_widget (GTK_EVENT_CONTROLLER (gesture));
-  if (widget == toplevel)
+  if (widget == toplevel && gtk_gesture_single_get_current_button (GTK_GESTURE_SINGLE (gesture)) < 8)
     return;
   for (button = widget; button != NULL; button = gtk_widget_get_parent (button))
     if (gtk_style_context_has_class (gtk_widget_get_style_context (button), "titlebutton"))
