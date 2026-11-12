@@ -423,6 +423,7 @@ thunar_location_entry_open_or_launch (ThunarLocationEntry *location_entry,
                   files = g_list_prepend (NULL, thunar_file_get_file (file));
                   thunar_window_show_and_select_files (THUNAR_WINDOW (window), files);
                   g_list_free (files);
+                  gtk_widget_grab_focus (thunar_window_get_view (THUNAR_WINDOW (window)));
                 }
             }
         }
