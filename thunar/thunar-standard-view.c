@@ -439,7 +439,6 @@ struct _ThunarStandardViewPrivate
    */
   GClosure  *new_files_closure;
   GtkWidget *new_files_source_view;
-  gboolean   new_files_from_other_pane;
 
   /* the "new-files" path list that was remembered in the closure callback
    * if the view is currently being loaded and as such the folder may
@@ -3136,13 +3135,12 @@ thunar_standard_view_new_files_closure (ThunarStandardView *standard_view,
       g_closure_unref (standard_view->priv->new_files_closure);
     }
 
-  /* set the remove view data we possibly need to reload */
+  /* remember the source view we possibly need to reload */
   if (standard_view->priv->new_files_source_view != NULL)
     g_object_remove_weak_pointer (G_OBJECT (standard_view->priv->new_files_source_view), (gpointer *) &standard_view->priv->new_files_source_view);
   standard_view->priv->new_files_source_view = source_view;
   if (source_view != NULL)
     g_object_add_weak_pointer (G_OBJECT (source_view), (gpointer *) &standard_view->priv->new_files_source_view);
-  standard_view->priv->new_files_from_other_pane = thunar_standard_view_is_other_pane (standard_view, source_view);
 
   /* allocate a new "new-files" closure */
   standard_view->priv->new_files_closure = g_cclosure_new_swap (G_CALLBACK (thunar_standard_view_new_files), standard_view, NULL);
@@ -3163,6 +3161,7 @@ thunar_standard_view_new_files (ThunarStandardView *standard_view,
   GList      *file_list = NULL;
   GList      *lp;
   GtkWidget  *source_view;
+  GtkWidget  *window;
   GFile      *parent_file;
   gboolean    belongs_here;
 
@@ -3208,8 +3207,9 @@ thunar_standard_view_new_files (ThunarStandardView *standard_view,
           /* release the file list */
           g_list_free_full (file_list, g_object_unref);
 
-          /* grab the focus to the view widget, unless the drag came from the other pane */
-          if (!standard_view->priv->new_files_from_other_pane)
+          /* grab the focus to the view widget */
+          window = gtk_widget_get_toplevel (GTK_WIDGET (standard_view));
+          if (!THUNAR_IS_WINDOW (window) || thunar_window_get_view (THUNAR_WINDOW (window)) == GTK_WIDGET (standard_view))
             gtk_widget_grab_focus (gtk_bin_get_child (GTK_BIN (standard_view)));
         }
       else if (belongs_here)
@@ -3767,7 +3767,7 @@ thunar_standard_view_receive_text_uri_list (GdkDragContext     *context,
           window = gtk_widget_get_toplevel (GTK_WIDGET (standard_view));
           if (GTK_IS_WINDOW (window))
             {
-              /* if split view is active, give focus to the pane containing the view, or keep it on the drag's source pane */
+              /* if split view is active, give focus to the pane containing the view */
               thunar_window_focus_view (THUNAR_WINDOW (window), thunar_standard_view_is_other_pane (standard_view, source_view) ? source_view : GTK_WIDGET (standard_view));
             }
 
