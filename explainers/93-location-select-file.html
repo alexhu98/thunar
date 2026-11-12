@@ -282,6 +282,7 @@ explainers/93-location-select-file.narration.json  # its narration</pre>
     <tr data-k="c10"><td>Remote path, hidden file, Recent</td><td>No test drives an <code>sftp://</code> path, a hidden file or the Recent list</td><td class="no">not run</td></tr>
     <tr data-k="c11"><td>CI on PR #113</td><td>CI run 43294090275 on the final head <code>5527238</code>: build, verify (all tests), explainer</td><td class="ok">built; 17 of 17 pass</td></tr>
     <tr data-k="c12"><td>Screenshot audit</td><td><code>/visual-verify pr:113</code>, an independent shot auditor reading every CI shot</td><td class="ok">PASS, 153 of 153 OK</td></tr>
+    <tr data-k="c13"><td>CI on <code>de42b9c</code></td><td>CI on the explainer commit: build, verify (all tests), then <code>/visual-verify pr:113</code> on its shots</td><td class="ok">built; 17 of 17 pass; PASS, 153 of 153 OK</td></tr>
   </table>
   </div>
   <div class="note" data-k="caveat">Both local verify runs came before the review fixes. CI's run 43294090275 built and verified the final code, including the new buttons bar test.</div>
@@ -307,6 +308,12 @@ explainers/93-location-select-file.narration.json  # its narration</pre>
   <ul class="tight">
     <li data-k="r5"><b>Fixed by CI's own commit:</b> R11, low, confirmed: a window closed mid-poke left the callback using the bar's destroyed entry.</li>
     <li data-k="r6"><b>Accepted:</b> R9 and R10, low, plausible: the closed-window check reads the window's folder; the buttons test doesn't check the bar style, though its shot shows it.</li>
+  </ul>
+  <p data-k="ci3">The third review, on <code>de42b9c</code>, the explainer commit, covered the commits since <code>2e6012d</code> and found 2 more:</p>
+  <ul class="tight">
+    <li data-k="r7"><b>Accepted:</b> R12, low, not confirmed: the closed-window check only runs when a window was found at Enter. CI noted a location entry that can be activated always sits in a Thunar window, so that path has no real caller.</li>
+    <li data-k="r8"><b>Accepted:</b> R13, low, not confirmed: when the window has closed during the remote lookup, the lookup's error is dropped without a message. The action was abandoned with the window, and the old code would at best have shown an orphaned dialog.</li>
+    <li data-k="r9">Both were accepted under <code>CLAUDE.md</code>'s rule for later-review lows, with a <code>Review-accept</code> trailer.</li>
   </ul>
   </section>
 
