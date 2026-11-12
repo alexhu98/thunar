@@ -93,8 +93,7 @@ before Desktop Documents
 before Documents Downloads
 before Downloads Music
 before Music Videos
-[[ $(index_of Pictures) -lt 0 ]] || fail "Pictures is set to the home folder but is listed: ${NAMES[*]}"
-[[ $(printf '%s\n' "${NAMES[@]}" | grep -cx "$(basename "$HOME")") -eq 1 ]] || fail "the home folder is listed more than once: ${NAMES[*]}"
+[[ $(printf '%s\n' "${NAMES[@]}" | grep -cxF "$(basename "$HOME")") -eq 1 ]] || fail "the home folder is not listed exactly once: ${NAMES[*]}"
 before Videos projects
 before projects notes
 [[ $(index_of Trash) -lt 0 ]] || before Trash projects

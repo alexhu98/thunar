@@ -1105,7 +1105,10 @@ thunar_shortcuts_model_shortcut_places (ThunarShortcutsModel *model)
   GFile          *trash;
   GFile          *location;
   ThunarFile     *file;
+  GFile          *other_location;
   const gchar    *path;
+  const gchar    *other;
+  gboolean        equal;
   guint           n, m;
   const GUserDirectory special_dirs[] = {
     G_USER_DIRECTORY_DOCUMENTS,
@@ -1138,6 +1141,8 @@ thunar_shortcuts_model_shortcut_places (ThunarShortcutsModel *model)
       thunar_shortcuts_model_add_shortcut (model, shortcut);
     }
 
+  g_reload_user_special_dirs_cache ();
+
   /* add desktop entry */
   desktop = thunar_g_file_new_for_desktop ();
   if (!g_file_equal (desktop, home))
@@ -1155,20 +1160,31 @@ thunar_shortcuts_model_shortcut_places (ThunarShortcutsModel *model)
         }
     }
 
-  g_reload_user_special_dirs_cache ();
   for (n = 0; n < G_N_ELEMENTS (special_dirs); n++)
     {
       path = g_get_user_special_dir (special_dirs[n]);
       if (path == NULL)
         continue;
 
-      for (m = 0; m < n; m++)
-        if (g_strcmp0 (g_get_user_special_dir (special_dirs[m]), path) == 0)
-          break;
-      if (m < n)
-        continue;
-
       location = g_file_new_for_path (path);
+      for (m = 0; m < n; m++)
+        {
+          other = g_get_user_special_dir (special_dirs[m]);
+          if (other != NULL)
+            {
+              other_location = g_file_new_for_path (other);
+              equal = g_file_equal (other_location, location);
+              g_object_unref (other_location);
+              if (equal)
+                break;
+            }
+        }
+      if (m < n)
+        {
+          g_object_unref (location);
+          continue;
+        }
+
       file = NULL;
       if (!g_file_equal (location, home) && !g_file_equal (location, desktop))
         file = thunar_file_get (location, NULL);
@@ -1786,11 +1802,19 @@ thunar_shortcuts_model_device_changed (ThunarDeviceMonitor  *device_monitor,
           mount_point = thunar_device_get_root (device);
           if (mount_point != NULL)
             {
-              shortcut->file = thunar_file_get (mount_point, NULL);
+              ThunarFile *file = thunar_file_get (mount_point, NULL);
 
               /* enable monitoring for the file */
-              if (shortcut->file != NULL)
-                thunar_file_watch (shortcut->file);
+              if (file != NULL)
+                {
+                  thunar_file_watch (file);
+                  if (!thunar_shortcuts_model_file_in_use (model, file))
+                    {
+                      g_signal_connect (G_OBJECT (file), "destroy", G_CALLBACK (thunar_shortcuts_model_file_destroyed), model);
+                      g_signal_connect (G_OBJECT (file), "changed", G_CALLBACK (thunar_shortcuts_model_file_changed), model);
+                    }
+                }
+              shortcut->file = file;
 
               g_object_unref (mount_point);
             }
