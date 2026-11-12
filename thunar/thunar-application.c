@@ -1104,6 +1104,7 @@ thunar_application_command_line (GApplication            *gapp,
 
   /* retrieve arguments */
   g_variant_dict_lookup (options_dict, "bulk-rename", "b", &bulk_rename);
+  application->force_new_window = FALSE;
   g_variant_dict_lookup (options_dict, "window", "b", &application->force_new_window);
   g_variant_dict_lookup (options_dict, "quit", "b", &quit);
   g_variant_dict_lookup (options_dict, "daemon", "b", &daemon);
@@ -2382,8 +2383,6 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
           thunar_application_process_files (application);
         }
 
-      application->force_new_window = FALSE;
-
       /* unset the startup id */
       if (startup_id != NULL)
         g_object_set_qdata (G_OBJECT (file), thunar_application_startup_id_quark, NULL);
@@ -2497,7 +2496,7 @@ thunar_application_process_filenames_full (ThunarApplication              *appli
       launch->file = lp->data;
       launch->window_options = g_steal_pointer (&window_options);
       launch->action = action;
-      launch->force_new_window = application->force_new_window;
+      launch->force_new_window = application->force_new_window && lp == file_list;
       launch->request = request;
 
       /* append the file to the list of files we need to launch */
