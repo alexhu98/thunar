@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Issue #115 Verify budget</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">The PR for #115: CI's verify job gets a 25-minute time budget</h1>
+  <p class="lead" data-k="lead">Branch <code>115-verify-budget</code> → <code>main</code>, closes #115. The smoke test and every <code>verify/&lt;issue&gt;.sh</code> fit in CI's verify run again, so PR #114 and later feature PRs stop failing with "not run (time budget)".</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: PR #114 reruns on top</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">Three numbers go up: the verify run's shared budget from 15 to 25 minutes, and the two GitHub timeouts around it. No Thunar code changes.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="verify-proof.sh runs the tests one after another and checks the budget before each; this PR raises the budget to 1500 s, the run step's timeout to 30 minutes and the job's to 45 minutes">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① How verify spends its time (unchanged)</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="270" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Tests run in turn</text>
+      <text x="36" y="114" class="m">verify-proof.sh run</text>
+      <text x="36" y="134" class="b">smoke test, then each</text>
+      <text x="36" y="154" class="b">verify script in order</text>
+      <circle class="badge" cx="270" cy="82" r="12"/><text class="badge-n" x="270" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="365" y="60" width="270" height="120" rx="10"/>
+      <text x="381" y="90" class="t">Budget check</text>
+      <text x="381" y="114" class="m">elapsed + 120 ≤ BUDGET</text>
+      <text x="381" y="134" class="b">before each script:</text>
+      <text x="381" y="154" class="b">can it end in time?</text>
+      <circle class="badge" cx="615" cy="82" r="12"/><text class="badge-n" x="615" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="710" y="60" width="270" height="120" rx="10"/>
+      <text x="726" y="90" class="t">Run or skip</text>
+      <text x="726" y="114" class="b">fits: it runs</text>
+      <text x="726" y="134" class="b">doesn't: "not run",</text>
+      <text x="726" y="154" class="b">and verify fails</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <path class="arrow" d="M290,120 H361" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M635,120 H706" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② The new limits (this PR)</text>
+    <g data-k="4">
+      <rect class="box-merge" x="20" y="260" width="270" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Budget: 25 min</text>
+      <text x="36" y="314" class="m">BUDGET=1500</text>
+      <text x="36" y="334" class="b">was 900 s (15 min)</text>
+      <text x="36" y="354" class="b">about 12 min more room</text>
+      <circle class="badge" cx="270" cy="282" r="12"/><text class="badge-n" x="270" y="286.5" text-anchor="middle">4</text>
+    </g>
+    <g data-k="5">
+      <rect class="box-merge" x="365" y="260" width="270" height="120" rx="10"/>
+      <text x="381" y="290" class="t">Run step: 30 min</text>
+      <text x="381" y="314" class="m">build.yml</text>
+      <text x="381" y="334" class="b">was 20 min; must top</text>
+      <text x="381" y="354" class="b">25 + 2 = 27 min</text>
+      <circle class="badge" cx="615" cy="282" r="12"/><text class="badge-n" x="615" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="710" y="260" width="270" height="120" rx="10"/>
+      <text x="726" y="290" class="t">Job: 45 min</text>
+      <text x="726" y="314" class="m">build.yml</text>
+      <text x="726" y="334" class="b">was 30 min; also covers</text>
+      <text x="726" y="354" class="b">install and upload</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow" d="M290,320 H361" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M635,320 H706" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>how a verify run decides what to run (unchanged)</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>the limits this PR raises, inside out</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">CI's verify job runs the smoke test and every <code>verify/&lt;issue&gt;.sh</code> one after another, each under its own virtual screen. Every feature PR adds a script, so the run keeps getting longer. On <code>main</code> after PR #113 the smoke test and 16 scripts took 776 s of a 900 s budget. PR #114 adds <code>verify/16.sh</code>, and the last two scripts, <code>verify/95.sh</code> and <code>verify/96.sh</code>, were no longer started, so verify failed.</p>
+  <div class="note" data-k="note">The budget is checked before each script starts, assuming the script could take its full 120 s. So a script needs 120 s of budget left to start at all, even if it usually takes 20.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① How verify spends its time (unchanged)</div>
+  <ol class="steps">
+    <li data-k="1"><b>Tests run in turn.</b> The verify job's step "Smoke test and verify/*.sh" calls <code>.github/scripts/verify-proof.sh run</code>. It runs the smoke test, then each <code>verify/&lt;digits&gt;.sh</code>, one at a time, each with its own Xvfb, window manager and D-Bus session and a 120 s limit (<code>TIMEOUT</code>).</li>
+    <li data-k="2"><b>Budget check.</b> Before each script, the run checks <code>SECONDS - begin + TIMEOUT &lt;= BUDGET</code>: the time used so far plus the script's 120 s limit must fit in the budget. This PR doesn't change the check.</li>
+    <li data-k="3"><b>Run or skip.</b> A script that fits runs. One that doesn't is reported as "not run (time budget)" in the verify comment, and the job fails, because a script that never ran proves nothing.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② The new limits (this PR)</div>
+  <ol class="steps" start="4" style="counter-reset: s 3">
+    <li data-k="4"><b>Budget: 25 min.</b> <code>verify-proof.sh</code>'s default <code>BUDGET</code> goes from 900 s to 1500 s. With today's 776 s of tests, that leaves about 724 s, roughly 12 more minutes of scripts.</li>
+    <li data-k="5"><b>Run step: 30 min.</b> In <code>.github/workflows/build.yml</code>, the run step's <code>timeout-minutes</code> goes from 20 to 30. It must be longer than the budget plus the last script's 120 s, 27 minutes, or GitHub would cancel the step before the budget runs out.</li>
+    <li data-k="6"><b>Job: 45 min.</b> The verify job's <code>timeout-minutes</code> goes from 30 to 45. It also covers installing the debs, the cache, and uploading the screenshots and writing the verify comment after the tests.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="numbers">
+  <h3 class="sec">The numbers</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Run</th><th>Tests</th><th>Budget</th><th>Result</th></tr>
+    <tr data-k="n1"><td><code>main</code> after PR #113 (#93)</td><td>smoke + 16 scripts, 776 s; the last one started at about 754 s, so it could end by 874 s</td><td>900 s</td><td class="ok">all ran, about 26 s to spare</td></tr>
+    <tr data-k="n2"><td>PR #114 (#16) adds <code>verify/16.sh</code></td><td>90 s at first, about 38 s once trimmed</td><td>900 s</td><td class="no">95.sh, 96.sh not run</td></tr>
+    <tr data-k="n3"><td>With this PR</td><td>any script may start up to 1380 s into the run</td><td>1500 s</td><td class="open">checked by CI</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="tradeoffs">
+  <h3 class="sec">Trade-offs</h3>
+  <div class="grid">
+    <div class="card" data-k="t1"><h3>Slower CI</h3><p>Scripts run one after another, so every new one adds its time to every code PR's verify run.</p></div>
+    <div class="card" data-k="t2"><h3>Slow scripts hide</h3><p>A bigger budget no longer pushes back on a script that gets slow. Nothing flags it until the budget fills again.</p></div>
+    <div class="card" data-k="t3"><h3>Not done here</h3><p>The issue's optional extras: a warning for a slow script, and a "budget left" line in the summary.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">.github/scripts/verify-proof.sh  # BUDGET default 900 → 1500 s
+.github/workflows/build.yml      # run step 20 → 30 min, verify job 30 → 45 min
+CLAUDE.md                        # "15-minute budget" → "25-minute budget"
+explainers/115-verify-budget.html            # this page
+explainers/115-verify-budget.narration.json  # its narration</pre>
+  <div class="note warn" data-k="undo">To undo, revert the PR. Verify then goes back to 15 minutes, and PRs with many scripts fail with "not run (time budget)" again.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The change was checked by reading and parsing it here. The real proof is CI's verify run on this PR, which hasn't happened yet.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>PR #113's verify run</h3><p>The timing the issue measured: the smoke test and 16 scripts in 776 s, the last starting at about 754 s.</p></div>
+    <div class="card" data-k="r2"><h3>PR #114's failing run</h3><p>Run 43308126377 on <code>8233a2b</code>: with <code>verify/16.sh</code> added, 95.sh and 96.sh were not run.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Only the limits changed</td><td><code>git show 93c550e</code>, read while writing this page</td><td class="ok">2 defaults, 2 timeouts, 1 doc line; the check itself unchanged</td></tr>
+    <tr data-k="c2"><td>The script still parses</td><td><code>bash -n .github/scripts/verify-proof.sh</code>, run while writing this page</td><td class="ok">exit 0</td></tr>
+    <tr data-k="c3"><td>The workflow's new timeouts</td><td>Loaded <code>build.yml</code> with Python's YAML parser and read the verify job</td><td class="ok">job 45, run step 30</td></tr>
+    <tr data-k="c4"><td>No old values left</td><td><code>grep</code> for "15-minute", "15 minutes" and 900 in <code>.github/</code>, <code>.claude/</code> and <code>CLAUDE.md</code></td><td class="ok">none; only an unrelated window size</td></tr>
+    <tr data-k="c5"><td>Thunar's behaviour</td><td>No <code>verify/115.sh</code> and no screenshots: the PR changes no Thunar code</td><td class="no">not run</td></tr>
+    <tr data-k="c6"><td>Every test runs in CI</td><td>This PR changes <code>.github/</code>, so build and verify run: the smoke test and all 17 scripts, none "not run"</td><td class="open">not run yet</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh agent reviewed the branch against <code>origin/main</code> at the high level. It fixed nothing and skipped 5 findings:</p>
+  <ul class="tight">
+    <li data-k="s1"><b>S1, tests run in turn:</b> by the review's estimate the budget fills again at about 30 scripts. Running them in parallel would be a separate issue.</li>
+    <li data-k="s2"><b>S2, every script on every PR:</b> each code PR reruns all verify scripts and can hold a runner up to 45 minutes. Running only the changed ones would be a separate issue.</li>
+    <li data-k="s3"><b>S3, no explainer:</b> the branch had none when it was reviewed; this page is it.</li>
+    <li data-k="s4"><b>S4, local runs cut off:</b> <code>build-verify</code>'s local run is stopped by the Bash tool at 10 minutes, which the old 900 s budget already passed. A separate issue.</li>
+    <li data-k="s5"><b>S5, job headroom:</b> 45 minutes leaves about 15 beyond the 30-minute step for install and upload. Raise it to 50 only if installs without the cache prove slow.</li>
+  </ul>
+  <p data-k="ci">CI reviews every code push to the PR and reports in its code review comment, the second of CI's four comments on the PR.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after CI runs</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>All 18 tests run (smoke + 17 scripts), none "not run (time budget)"</td><td>Needs CI's verify job with the new budget</td><td class="open">this PR's CI run</td></tr>
+    <tr data-k="a2"><td>PR #114's verify passes the budget, <code>verify/16.sh</code>, 95.sh and 96.sh included</td><td>PR #114 needs this change on <code>main</code> first</td><td class="open">PR #114's rerun after the merge</td></tr>
+    <tr data-k="a3"><td>How much budget is left</td><td>Read from each verify run's time; no summary line shows it yet</td><td class="open">every later feature PR</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/115">#115</a></li>
+    <li data-k="l2">The run that hit the limit: <a href="https://github.com/alexhu98/thunar/actions/runs/43308126377">run 43308126377</a> on <a href="https://github.com/alexhu98/thunar/pull/114">PR #114</a></li>
+    <li data-k="l3">The timing it was measured from: <a href="https://github.com/alexhu98/thunar/pull/113">PR #113</a>'s verify comment</li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: PR #114 reruns on top</h2>
+  <p class="intro" data-k="intro">No open issue says it depends on #115, but PR #114 is blocked by it, and batch #111 waits on PR #114.</p>
+
+  <section class="sub" id="chain">
+  <div class="diagram" role="img" aria-label="This PR raises the budget, then PR #114 reruns its verify on top, then batch #111 can finish">
+  <svg viewBox="0 0 1000 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <g data-k="1">
+      <rect class="box-merge" x="20" y="40" width="270" height="120" rx="10"/>
+      <text x="36" y="70" class="t">This PR (#115)</text>
+      <text x="36" y="94" class="b">verify budget</text>
+      <text x="36" y="114" class="b">15 → 25 minutes</text>
+      <circle class="badge" cx="270" cy="62" r="12"/><text class="badge-n" x="270" y="66.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-future" x="365" y="40" width="270" height="120" rx="10"/>
+      <text x="381" y="70" class="t">PR #114 (#16)</text>
+      <text x="381" y="94" class="b">rename in place; verify</text>
+      <text x="381" y="114" class="b">reruns on top: next</text>
+      <circle class="badge" cx="615" cy="62" r="12"/><text class="badge-n" x="615" y="66.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-future" x="710" y="40" width="270" height="120" rx="10"/>
+      <text x="726" y="70" class="t">Batch #111</text>
+      <text x="726" y="94" class="b">#93 and #17 merged;</text>
+      <text x="726" y="114" class="b">#16 finishes it</text>
+      <circle class="badge" cx="960" cy="62" r="12"/><text class="badge-n" x="960" y="66.5" text-anchor="middle">3</text>
+    </g>
+    <path class="arrow-future" d="M290,100 H361" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M635,100 H706" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>waits on this PR</span>
+  </div>
+  </section>
+
+  <section class="sub" id="pr114">
+  <h3 class="sec">PR #114: rename files in place (#16), next</h3>
+  <ol class="steps">
+    <li data-k="1"><b>Update the branch.</b> Once this PR is on <code>main</code>, PR #114 is brought up to date with it.</li>
+    <li data-k="2"><b>Rerun verify.</b> Its run now has the 1500 s budget, so <code>verify/16.sh</code>, 95.sh and 96.sh all start.</li>
+  </ol>
+  </section>
+
+  <section class="sub" id="batch">
+  <h3 class="sec">Batch #111: #93, #17, #16</h3>
+  <ol class="steps">
+    <li data-k="1"><b>Finish the batch.</b> #93 and #17 are merged; with PR #114 through, the batch is done.</li>
+  </ol>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="verify"><dt>Verify job</dt><dd>The CI job that installs the built Thunar and runs the smoke test and every verify script.</dd></div>
+    <div data-k="script"><dt><code>verify/&lt;issue&gt;.sh</code></dt><dd>A feature PR's test: it drives Thunar with <code>xdotool</code> and takes screenshots.</dd></div>
+    <div data-k="smoke"><dt>Smoke test</dt><dd>The first test: Thunar is still running 10 s after launch.</dd></div>
+    <div data-k="budget"><dt>Budget</dt><dd>The total time all tests in one verify run may take, now 1500 s.</dd></div>
+    <div data-k="timeout"><dt><code>TIMEOUT</code></dt><dd>The most one script may take, 120 s; the budget check assumes it takes all of it.</dd></div>
+    <div data-k="notrun"><dt>"not run (time budget)"</dt><dd>A script skipped because it could end after the budget; it fails the job.</dd></div>
+    <div data-k="tm"><dt><code>timeout-minutes</code></dt><dd>GitHub's own limit on a step or job; past it, GitHub cancels it.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual screen with no monitor, so Thunar can run in CI.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
