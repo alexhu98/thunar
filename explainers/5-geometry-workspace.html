@@ -117,7 +117,7 @@
   <p class="intro" data-k="intro"><code>thunar -s 2 -g 1200x800+100+50 ~/a</code> now opens a new 1200×800 window at (100, 50) on workspace 2, and you stay where you are. The work is in <code>thunar-application.c</code> and <code>thunar-window.c</code>.</p>
 
   <section class="sub" id="flow">
-  <div class="diagram" role="img" aria-label="The options travel from your command to the running Thunar, ride on the first file it opens, and are applied only when that file gets a new window">
+  <div class="diagram" role="img" aria-label="The options travel from your command to the running Thunar, wait in a queue beside the files it opens, and are applied only when the first of them gets a new window">
   <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -152,8 +152,8 @@
     </g>
     <g data-k="4">
       <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
-      <text x="786" y="90" class="t">On the 1st file</text>
-      <text x="786" y="114" class="m">qdata or tab set</text>
+      <text x="786" y="90" class="t">With the 1st file</text>
+      <text x="786" y="114" class="m">queue or tab set</text>
       <text x="786" y="134" class="b">tied to this command,</text>
       <text x="786" y="154" class="b">not to Thunar</text>
       <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
@@ -221,15 +221,15 @@
   <ol class="steps">
     <li data-k="1"><b>You run thunar.</b> <code>-g WxH+X+Y</code> (or <code>--geometry=</code>) sets the size and place; <code>-s N</code> (or <code>--workspace=N</code>) picks the workspace, counting from 1 as Xfce names them. Both work with <code>-w</code>, <code>-t</code> and <code>-T</code>.</li>
     <li data-k="2"><b>Values kept.</b> In your own process, <code>thunar_application_local_command_line</code> passes the option values on untouched. Without this, a value after <code>-T</code> would be taken as a right-pane folder. It also counts each <code>g</code> and <code>s</code> in a group like <code>-gs</code>.</li>
-    <li data-k="3"><b>Parsed once.</b> <code>thunar_application_command_line</code>, in the running Thunar, reads <code>WxH</code>, <code>+X+Y</code>, <code>WxH+X+Y</code> and negative offsets, and a workspace from 1 to the number of workspaces. A bad value prints <code>Thunar: invalid geometry "…"</code> or <code>invalid workspace "…"</code>, and the window opens as usual.</li>
-    <li data-k="4"><b>On the 1st file.</b> The parsed options are attached to the first file the command opens, the way Thunar already attaches the startup id, or to the <code>-t</code>/<code>-T</code> set of tabs. They belong to this one command, so they can't reach a window from Ctrl+N or from another command.</li>
+    <li data-k="3"><b>Parsed once.</b> <code>thunar_application_command_line</code>, in the running Thunar, reads <code>WxH</code>, <code>+X+Y</code>, <code>WxH+X+Y</code> and negative offsets, and a workspace from 1 to the number of workspaces. Numbers must fit X's 16-bit range, and a display with no workspaces rejects <code>-s</code>. A bad value prints <code>Thunar: invalid geometry "…"</code> or <code>invalid workspace "…"</code>, and the window opens as usual.</li>
+    <li data-k="4"><b>With the 1st file.</b> The parsed options join a queue, <code>window_options_to_launch</code>, that runs alongside the files waiting to open, or go with the <code>-t</code>/<code>-T</code> set of tabs. They are handed to the window code as a parameter, so they belong to this one command: not to a window from Ctrl+N, nor to another command for the same folder.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② The new window gets them</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>New window only.</b> <code>thunar_application_open_window</code> applies the options only when it creates a window. If the folder opens as a tab in a window you already have, they are ignored, as the issues ask.</li>
-    <li data-k="6"><b>Size and place.</b> The size goes in with <code>gtk_window_set_default_size</code>, after un-maximizing. The place uses a gravity and <code>gtk_window_move</code>, so <code>-40-40</code> means 40 pixels from the right and bottom edges. Placing works on X11; on Wayland only the size applies.</li>
-    <li data-k="7"><b>Workspace at map.</b> Just before a window first appears, GTK deletes its workspace property. So a one-shot handler sets <code>_NET_WM_DESKTOP</code> as the window is mapped, in the same batch of X requests. xfwm4 puts it straight on that workspace, and your view doesn't move.</li>
-    <li data-k="8"><b>Size not saved.</b> Thunar saves its window size a second after each resize. <code>thunar_window_keep_size_unsaved</code> skips that save while the window keeps the size <code>-g</code> gave it, or the size the window manager settled on in its first 5 seconds. Once you resize it by hand, saving works as before.</li>
+    <li data-k="5"><b>New window only.</b> <code>thunar_application_open_window_full</code> applies the options only when it creates a window; the public <code>thunar_application_open_window</code> passes none. If the folder opens as a tab in a window you already have, they are ignored, as the issues ask.</li>
+    <li data-k="6"><b>Size and place.</b> The window is un-maximized first, even for a place only, so a remembered maximized state can't override <code>-g</code>. The size goes in with <code>gtk_window_set_default_size</code>. The place uses a gravity and <code>gtk_window_move</code>, so <code>-40-40</code> means 40 pixels from the right and bottom edges. Placing works on X11; on Wayland only the size applies.</li>
+    <li data-k="7"><b>Workspace at map.</b> Just before a window first appears, GTK deletes its workspace property. So a one-shot handler sets <code>_NET_WM_DESKTOP</code> as the window is mapped, in the same batch of X requests. xfwm4 puts it straight on that workspace, and your view doesn't move. In case a window manager read the property first, it also sends <code>gdk_x11_window_move_to_desktop</code>.</li>
+    <li data-k="8"><b>Size not saved.</b> Thunar saves its window size a second after each resize. <code>thunar_window_keep_size_unsaved</code> skips that save while the window keeps the size <code>-g</code> gave it, or the size the window manager settled on at the first save within 5 seconds. After that first save, any resize by hand is saved as before.</li>
   </ol>
   </div>
   </section>
@@ -255,7 +255,7 @@
   <h3 class="sec">One change from the issue's plan</h3>
   <div class="grid">
     <div class="card" data-k="d1"><h3>The issue suggested</h3><p><code>gdk_x11_window_move_to_desktop</code> after realizing the window. It only sends a message to the window manager, and xfwm4 ignores that for a window that isn't on screen yet.</p></div>
-    <div class="card" data-k="d2"><h3>What the PR does</h3><p>Sets the <code>_NET_WM_DESKTOP</code> property itself from a <code>map</code> handler, after GTK has cleared it, so the window manager reads it as the window appears.</p></div>
+    <div class="card" data-k="d2"><h3>What the PR does</h3><p>Sets the <code>_NET_WM_DESKTOP</code> property itself from a <code>map</code> handler, after GTK has cleared it, so the window manager reads it as the window appears. The suggested call follows as a fallback.</p></div>
   </div>
   </section>
 
@@ -263,8 +263,8 @@
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">thunar/
 ├── thunar-application.c   # -g and -s options, passing them through, parsing,
-│                          #   carrying them on the first file, applying them
-├── thunar-window.c        # save timer skips the size -g gave the window
+│                          #   queuing them beside the files to open, applying them
+├── thunar-window.c        # save timer skips the size -g gave the window, once
 └── thunar-window.h        # declares thunar_window_keep_size_unsaved
 verify/5.sh                # the test: sizes, places, workspace, errors, --help
 explainers/5-geometry-workspace.html            # this page
@@ -277,7 +277,7 @@ explainers/5-geometry-workspace.narration.json  # its video narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested in this session's cloud container, not yet by CI. A fresh review agent read the diff; CI's own checks come once PR #102 is open.</p>
+  <p class="intro" data-k="intro">Built and tested in this session's cloud container. A fresh review agent read the diff, then CI reviewed PR #102 and found 10 more things. The fixes since are being built and tested again.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -294,7 +294,7 @@ explainers/5-geometry-workspace.narration.json  # its video narration</pre>
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>Builds and installs</td><td><code>dpkg-buildpackage</code> from git with maintainer mode, then the debs installed, by the build-verify agent in the cloud container</td><td class="ok">build OK, install OK</td></tr>
-    <tr data-k="c2"><td>Nothing else broke</td><td>Smoke test and the 12 earlier <code>verify/</code> scripts (3, 4, 14, 15, 19, 21, 22, 49, 68, 74, 89, 95), same run, on the code after the review fixes</td><td class="ok">13 of 13 pass, smoke 12 s</td></tr>
+    <tr data-k="c2"><td>Nothing else broke</td><td>Smoke test and the 12 earlier <code>verify/</code> scripts (3, 4, 14, 15, 19, 21, 22, 49, 68, 74, 89, 95), same run, after the local review's fixes and before CI's review</td><td class="ok">13 of 13 pass, smoke 12 s</td></tr>
     <tr data-k="c3"><td>Size and place, no Thunar running</td><td><code>verify/5.sh</code>: <code>-g 1000x560+200+120</code>, read back with <code>xwininfo</code> and the frame extents. Run with <code>verify-proof.sh run</code>, smoke test and 5 only, same debs, after fixing only the test</td><td class="ok">1000×560, frame at (200, 120) ±2</td></tr>
     <tr data-k="c4"><td>Negative offsets, Thunar running</td><td>Same run: <code>-w -g 600x400-40-40</code></td><td class="ok">600×400, 40 ±2 px from right and bottom</td></tr>
     <tr data-k="c5"><td>Place only</td><td>Same run: <code>-g +20+30</code></td><td class="ok">frame at (20, 30) ±2</td></tr>
@@ -307,6 +307,7 @@ explainers/5-geometry-workspace.narration.json  # its video narration</pre>
     <tr data-k="c12"><td>With <code>-t</code>/<code>-T</code>, and a tab in a window you have</td><td>Not in <code>verify/5.sh</code>; only read in the code</td><td class="no">not run</td></tr>
     <tr data-k="c13"><td>No flash on your workspace</td><td>By design (the property goes out with the map), not watched frame by frame</td><td class="no">not observed</td></tr>
     <tr data-k="c14"><td>Wayland</td><td>No Wayland session in the container</td><td class="no">not run</td></tr>
+    <tr data-k="c16"><td>After CI's review fixes</td><td>The build-verify agent is building and testing commit <code>886ee71</code> in the cloud container; CI runs again on the push</td><td class="open">running</td></tr>
     <tr data-k="c15"><td>Screenshot audit</td><td>The 3 shots haven't been audited yet; <code>/visual-verify</code> runs on CI's shots</td><td class="open">pending</td></tr>
   </table>
   </div>
@@ -317,12 +318,21 @@ explainers/5-geometry-workspace.narration.json  # its video narration</pre>
   <p data-k="summary">A fresh general-purpose agent, at level high, given only the diff and the two issues, found 5 things. 4 were fixed before the test run above; 1 was kept.</p>
   <ul class="tight">
     <li data-k="b1"><b>Workspace (high):</b> GTK deletes <code>_NET_WM_DESKTOP</code> just before showing the window, so setting it earlier did nothing. It's now set from a map handler.</li>
-    <li data-k="b2"><b>Saved size (medium):</b> if the window manager shrank the window to fit, that size would have been saved as the remembered one. The first 5 seconds now count as the <code>-g</code> size too.</li>
-    <li data-k="b3"><b>Leak to another window (low):</b> options held on Thunar itself could reach a window opened before the first file finished opening. They now ride on the file.</li>
+    <li data-k="b2"><b>Saved size (medium):</b> if the window manager shrank the window to fit, that size would have been saved as the remembered one. The size it settles on at the first save now counts as the <code>-g</code> size too.</li>
+    <li data-k="b3"><b>Leak to another window (low):</b> options held on Thunar itself could reach a window opened before the first file finished opening. They then rode on the file; after CI's review they wait in a queue.</li>
     <li data-k="b4"><b>Grouped flags (low):</b> <code>-gs</code> after <code>-T</code> lost its values. Each <code>g</code> and <code>s</code> in a group now takes one value.</li>
     <li data-k="b5"><b>Kept (low):</b> negative offsets are worked out from the default size, not the final one, the same as <code>gtk_window_parse_geometry</code>.</li>
   </ul>
-  <p data-k="ci-review">CI's own review, at level high, hasn't run yet. It reports in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/102">PR #102</a>.</p>
+  <p data-k="ci-review">CI's own review, at level high, of commit <code>96309afbc</code> (<a href="https://github.com/alexhu98/thunar/actions/runs/43156400985">run 43156400985</a>) found 10 things, R1 to R10. CI's commit <code>1264eb2</code> fixed 5, commit <code>886ee71</code> fixed 4, and 1 was kept. They are listed in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/102">PR #102</a>.</p>
+  <ul class="tight">
+    <li data-k="ci1"><b>Fixed by CI (R1, R4, R5, R6, R7):</b> <code>-g</code> with only a place now un-maximizes too; a display with no workspaces no longer trips a GLib check; numbers are limited to X's 16-bit range; the test waits before measuring <code>+20+30</code>; comments removed from the test.</li>
+    <li data-k="ci2"><b>Resize swallowed (R2, medium):</b> for 5 seconds after a <code>-g</code> open, a resize by hand wasn't saved. The grace now ends at the first save.</li>
+    <li data-k="ci3"><b>Options swapped (R3, low):</b> they sat on the file object, which Thunar shares, so two commands for one folder could swap them. They now wait in their own queue.</li>
+    <li data-k="ci4"><b>Hidden hand-off (R10, low):</b> options reached the window code through fields on Thunar itself. Two private <code>_full</code> functions now take them as a parameter.</li>
+    <li data-k="ci5"><b>Workspace fallback (R8, low):</b> after setting the property at map, it also sends <code>gdk_x11_window_move_to_desktop</code>, in case the window manager read the property first.</li>
+    <li data-k="ci6"><b>Kept (R9, low):</b> <code>-g</code> and <code>-s</code> are ignored when a setting turns the open into a tab. Issues #5 and #6 ask for exactly that.</li>
+  </ul>
+  <p data-k="ci-next">The fixes in <code>886ee71</code> have no results yet: the local build and test is running, and CI reviews and tests the push again.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -330,7 +340,7 @@ explainers/5-geometry-workspace.narration.json  # its video narration</pre>
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI build, verify and review</td><td>They run on the PR's pushes, and PR #102 isn't open yet</td><td class="open">first push to PR #102</td></tr>
+    <tr data-k="a1"><td>CI build, verify and review of the fixes</td><td>CI's first run covered <code>96309afbc</code>; the fixes since need a new run</td><td class="open">next push to PR #102</td></tr>
     <tr data-k="a2"><td>Visual check of CI's screenshots</td><td>Needs CI's shots on the <code>shots</code> branch</td><td class="open">after CI's verify run</td></tr>
     <tr data-k="a3"><td>Your own desktop: real workspaces, no flash, Wayland if you use it</td><td>Needs your session, not a test display</td><td class="open">after the merge</td></tr>
   </table>
@@ -342,6 +352,7 @@ explainers/5-geometry-workspace.narration.json  # its video narration</pre>
   <ul class="tight">
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/102">PR #102</a> → “Files changed”</li>
     <li data-k="l2">CI's checks, screenshots and review: the comments on <a href="https://github.com/alexhu98/thunar/pull/102">PR #102</a></li>
+    <li data-k="l4">CI's first review: <a href="https://github.com/alexhu98/thunar/actions/runs/43156400985">run 43156400985</a></li>
     <li data-k="l3">The issues: <a href="https://github.com/alexhu98/thunar/issues/5">#5 geometry</a> and <a href="https://github.com/alexhu98/thunar/issues/6">#6 workspace</a></li>
   </ul>
   </section>
@@ -409,7 +420,7 @@ explainers/5-geometry-workspace.narration.json  # its video narration</pre>
     <div data-k="gravity"><dt>Gravity</dt><dd>Which corner of the window a position refers to, e.g. bottom-right for <code>-X-Y</code>.</dd></div>
     <div data-k="frame"><dt>Frame</dt><dd>The title bar and border the window manager adds around a window.</dd></div>
     <div data-k="goption"><dt>GOption</dt><dd>GLib's command-line option parser; its entries also reach an already running Thunar.</dd></div>
-    <div data-k="qdata"><dt>qdata</dt><dd>A value attached to a GLib object under a name, here to the file being opened.</dd></div>
+    <div data-k="queue"><dt>Launch queue</dt><dd>The list of files a command asked to open; the options now wait in a matching list beside it.</dd></div>
     <div data-k="xfconf"><dt>xfconf</dt><dd>Xfce's settings store; <code>/last-window-width</code> is where Thunar remembers its size.</dd></div>
     <div data-k="xdotool"><dt>xdotool</dt><dd>A tool that drives and reads X11 windows; the test uses it.</dd></div>
     <div data-k="pair"><dt>Pair</dt><dd>A before and after screenshot around one action in a test.</dd></div>
