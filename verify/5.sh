@@ -69,6 +69,7 @@ near "$Y" 30 80 "thunar -g +20+30: the window's y"
 sleep 2
 [[ $(remembered) == "$WIDTH_BEFORE" ]] || fail "/last-window-width changed from $WIDTH_BEFORE to $(remembered) after --geometry"
 
+sleep 3
 xdotool windowsize --sync "$BETA" 700 450
 sleep 2
 [[ $(remembered) == 700 ]] || fail "after resizing beta by hand to 700 wide, /last-window-width is $(remembered)"

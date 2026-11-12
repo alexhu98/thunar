@@ -685,8 +685,9 @@ struct _ThunarWindow
 
   /* support to remember window geometry */
   guint save_geometry_timer_id;
-  gint  unsaved_width;
-  gint  unsaved_height;
+  gint   unsaved_width;
+  gint   unsaved_height;
+  gint64 unsaved_since;
 
   /* type of the sidepane */
   ThunarSidepaneType sidepane_type;
@@ -5882,9 +5883,14 @@ thunar_window_save_geometry_timer (gpointer user_data)
   if (window->unsaved_width > 0)
     {
       gtk_window_get_size (GTK_WINDOW (window), &width, &height);
-      if (width == window->unsaved_width && height == window->unsaved_height
-          && (gdk_window_get_state (gtk_widget_get_window (GTK_WIDGET (window))) & (GDK_WINDOW_STATE_MAXIMIZED | GDK_WINDOW_STATE_FULLSCREEN)) == 0)
-        return G_SOURCE_REMOVE;
+      if ((gdk_window_get_state (gtk_widget_get_window (GTK_WIDGET (window))) & (GDK_WINDOW_STATE_MAXIMIZED | GDK_WINDOW_STATE_FULLSCREEN)) == 0
+          && ((width == window->unsaved_width && height == window->unsaved_height)
+              || g_get_monotonic_time () - window->unsaved_since < 5 * G_USEC_PER_SEC))
+        {
+          window->unsaved_width = width;
+          window->unsaved_height = height;
+          return G_SOURCE_REMOVE;
+        }
 
       window->unsaved_width = 0;
       window->unsaved_height = 0;
@@ -5904,6 +5910,7 @@ thunar_window_keep_size_unsaved (ThunarWindow *window,
 
   window->unsaved_width = width;
   window->unsaved_height = height;
+  window->unsaved_since = g_get_monotonic_time ();
 }
 
 

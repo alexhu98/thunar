@@ -105,25 +105,6 @@ static const GOptionEntry option_entries[] =
 
 typedef struct
 {
-  ThunarApplication *application;
-  gchar             *working_directory;
-  GList             *tabs[2];
-  GList             *queue;
-  guint              pending;
-  gboolean           left_given;
-  gboolean           right_given;
-} ThunarApplicationTabs;
-
-typedef struct
-{
-  ThunarApplicationTabs *tabs;
-  ThunarFile            *file;
-  gchar                 *name;
-  gboolean               needs_poke;
-} ThunarApplicationTab;
-
-typedef struct
-{
   gboolean has_size;
   gboolean has_position;
   gboolean x_negative;
@@ -133,6 +114,34 @@ typedef struct
   gint     x;
   gint     y;
 } ThunarApplicationGeometry;
+
+typedef struct
+{
+  gboolean                  has_geometry;
+  ThunarApplicationGeometry geometry;
+  gint                      workspace;
+} ThunarApplicationWindowOptions;
+
+typedef struct
+{
+  ThunarApplication *application;
+  gchar             *working_directory;
+  GList             *tabs[2];
+  GList             *queue;
+  guint              pending;
+  gboolean           left_given;
+  gboolean           right_given;
+
+  ThunarApplicationWindowOptions *window_options;
+} ThunarApplicationTabs;
+
+typedef struct
+{
+  ThunarApplicationTabs *tabs;
+  ThunarFile            *file;
+  gchar                 *name;
+  gboolean               needs_poke;
+} ThunarApplicationTab;
 
 /* Prototype for the Thunar job launchers */
 typedef ThunarJob *(*Launcher) (GList *source_path_list,
@@ -190,8 +199,7 @@ thunar_application_handle_local_options (GApplication *application,
                                          GVariantDict *options);
 static void
 thunar_application_tabs_done (ThunarApplicationTabs *tabs);
-static void
-thunar_application_clear_window_options (ThunarApplication *application);
+
 static void
 thunar_application_tabs_poke_queued (ThunarApplicationTabs *tabs);
 static int
@@ -285,9 +293,8 @@ struct _ThunarApplication
   gboolean daemon;
   gboolean force_new_window;
 
-  gboolean                  has_geometry;
-  ThunarApplicationGeometry geometry;
-  gint                      workspace;
+  ThunarApplicationWindowOptions *window_options;
+  ThunarApplicationWindowOptions *pending_window_options;
 
   guint        accel_map_save_id;
   GtkAccelMap *accel_map;
@@ -318,6 +325,7 @@ struct _ThunarApplication
 static GQuark thunar_application_screen_quark;
 static GQuark thunar_application_startup_id_quark;
 static GQuark thunar_application_file_quark;
+static GQuark thunar_application_window_options_quark;
 
 
 
@@ -339,6 +347,8 @@ thunar_application_class_init (ThunarApplicationClass *klass)
   g_quark_from_static_string ("thunar-application-startup-id");
   thunar_application_file_quark =
   g_quark_from_static_string ("thunar-application-file");
+  thunar_application_window_options_quark =
+  g_quark_from_static_string ("thunar-application-window-options");
 
   gobject_class->finalize = thunar_application_finalize;
   gobject_class->get_property = thunar_application_get_property;
@@ -378,8 +388,8 @@ thunar_application_init (ThunarApplication *application)
    * in the primary instance anyways */
 
   application->force_new_window = FALSE;
-  application->has_geometry = FALSE;
-  application->workspace = -1;
+  application->window_options = NULL;
+  application->pending_window_options = NULL;
   application->files_to_launch = NULL;
   application->process_file_action = THUNAR_APPLICATION_SELECT_FILES;
   application->progress_dialog = NULL;
@@ -575,6 +585,16 @@ thunar_application_local_command_line (GApplication *gapp,
   for (guint n = 0; argv[n] != NULL; n++)
     {
       gboolean short_group = n > 0 && !dash_dash && argv[n][0] == '-' && argv[n][1] != '-' && argv[n][1] != '\0';
+      guint    n_values = 0;
+
+      if (short_group)
+        {
+          for (const gchar *c = argv[n] + 1; *c != '\0'; c++)
+            if (*c == 'g' || *c == 's')
+              n_values++;
+        }
+      else if (n > 0 && !dash_dash && (g_strcmp0 (argv[n], "--geometry") == 0 || g_strcmp0 (argv[n], "--workspace") == 0))
+        n_values = 1;
 
       if ((short_group && strpbrk (argv[n] + 1, "h?V") != NULL)
           || (n > 0 && !dash_dash && (g_str_has_prefix (argv[n], "--help") || g_strcmp0 (argv[n], "--version") == 0)))
@@ -585,14 +605,13 @@ thunar_application_local_command_line (GApplication *gapp,
           g_ptr_array_add (args, g_strdup (argv[n]));
           g_ptr_array_add (args, g_strdup (argv[++n]));
         }
-      else if (n > 0 && !dash_dash && argv[n + 1] != NULL
-               && ((short_group && (argv[n][strlen (argv[n]) - 1] == 'g' || argv[n][strlen (argv[n]) - 1] == 's'))
-                   || g_strcmp0 (argv[n], "--geometry") == 0 || g_strcmp0 (argv[n], "--workspace") == 0))
+      else if (n_values > 0)
         {
           if (short_group && strchr (argv[n] + 1, 'T') != NULL)
             tabs_right = TRUE;
           g_ptr_array_add (args, g_strdup (argv[n]));
-          g_ptr_array_add (args, g_strdup (argv[++n]));
+          for (; n_values > 0 && argv[n + 1] != NULL; n_values--)
+            g_ptr_array_add (args, g_strdup (argv[++n]));
         }
       else if (!tabs_right
                && ((short_group && strchr (argv[n] + 1, 'T') != NULL)
@@ -763,17 +782,18 @@ thunar_application_tabs_done (ThunarApplicationTabs *tabs)
 
   if (left != NULL)
     {
+      tabs->application->window_options = tabs->window_options;
       window = thunar_application_open_window (tabs->application, left->data, NULL, NULL, TRUE);
+      tabs->application->window_options = NULL;
       thunar_window_open_pane_tabs (THUNAR_WINDOW (window), left, right);
     }
-
-  thunar_application_clear_window_options (tabs->application);
 
   thunar_g_list_free_full (left);
   thunar_g_list_free_full (right);
   g_list_free_full (tabs->tabs[0], thunar_application_tab_free);
   g_list_free_full (tabs->tabs[1], thunar_application_tab_free);
   g_free (tabs->working_directory);
+  g_free (tabs->window_options);
   g_application_release (G_APPLICATION (tabs->application));
   g_slice_free (ThunarApplicationTabs, tabs);
 }
@@ -785,7 +805,8 @@ thunar_application_open_tabs (ThunarApplication       *application,
                               GApplicationCommandLine *command_line,
                               const gchar             *working_directory,
                               gchar                  **left_filenames,
-                              gchar                  **right_filenames)
+                              gchar                  **right_filenames,
+                              ThunarApplicationWindowOptions *window_options)
 {
   ThunarApplicationTabs *tabs = g_slice_new0 (ThunarApplicationTabs);
   ThunarApplicationTab  *tab;
@@ -797,6 +818,7 @@ thunar_application_open_tabs (ThunarApplication       *application,
 
   tabs->application = application;
   tabs->working_directory = g_strdup (working_directory);
+  tabs->window_options = window_options;
   tabs->left_given = left_filenames != NULL;
   tabs->right_given = right_filenames != NULL;
 
@@ -875,15 +897,6 @@ thunar_application_handle_local_options (GApplication *gapp,
 
   /* continue processing on the primary instance */
   return -1;
-}
-
-
-
-static void
-thunar_application_clear_window_options (ThunarApplication *application)
-{
-  application->has_geometry = FALSE;
-  application->workspace = -1;
 }
 
 
@@ -974,17 +987,34 @@ thunar_application_parse_workspace (const gchar *string,
 
 
 
+#ifdef GDK_WINDOWING_X11
 static void
-thunar_application_apply_window_options (ThunarApplication *application,
-                                         GtkWindow         *window)
+thunar_application_window_map_to_workspace (GtkWidget *window,
+                                            gpointer   user_data)
 {
-  ThunarApplicationGeometry *geometry = &application->geometry;
+  gulong desktop = GPOINTER_TO_UINT (user_data) - 1;
+
+  g_signal_handlers_disconnect_by_func (window, thunar_application_window_map_to_workspace, user_data);
+  gdk_property_change (gtk_widget_get_window (window),
+                       gdk_atom_intern_static_string ("_NET_WM_DESKTOP"),
+                       gdk_atom_intern_static_string ("CARDINAL"),
+                       32, GDK_PROP_MODE_REPLACE, (const guchar *) &desktop, 1);
+}
+#endif
+
+
+
+static void
+thunar_application_apply_window_options (ThunarApplicationWindowOptions *options,
+                                         GtkWindow                      *window)
+{
+  ThunarApplicationGeometry *geometry = &options->geometry;
   GdkWindow                 *root;
   GdkGravity                 gravity;
   gint                       width;
   gint                       height;
 
-  if (application->has_geometry)
+  if (options->has_geometry)
     {
       if (geometry->has_size)
         {
@@ -1009,19 +1039,9 @@ thunar_application_apply_window_options (ThunarApplication *application,
     }
 
 #ifdef GDK_WINDOWING_X11
-  if (application->workspace >= 0 && GDK_IS_X11_SCREEN (gtk_window_get_screen (window)))
-    {
-      gulong desktop = application->workspace;
-
-      gtk_widget_realize (GTK_WIDGET (window));
-      gdk_property_change (gtk_widget_get_window (GTK_WIDGET (window)),
-                           gdk_atom_intern_static_string ("_NET_WM_DESKTOP"),
-                           gdk_atom_intern_static_string ("CARDINAL"),
-                           32, GDK_PROP_MODE_REPLACE, (const guchar *) &desktop, 1);
-    }
+  if (options->workspace >= 0 && GDK_IS_X11_SCREEN (gtk_window_get_screen (window)))
+    g_signal_connect (window, "map", G_CALLBACK (thunar_application_window_map_to_workspace), GUINT_TO_POINTER (options->workspace + 1));
 #endif
-
-  thunar_application_clear_window_options (application);
 }
 
 
@@ -1048,6 +1068,7 @@ thunar_application_command_line (GApplication            *gapp,
   GList             *window_list;
   gchar             *geometry = NULL;
   gchar             *workspace = NULL;
+  ThunarApplicationWindowOptions *window_options = NULL;
 
   /* retrieve arguments */
   g_variant_dict_lookup (options_dict, "bulk-rename", "b", &bulk_rename);
@@ -1060,8 +1081,6 @@ thunar_application_command_line (GApplication            *gapp,
   g_variant_dict_lookup (options_dict, "tabs-right-uri", "^aay", &right_filenames);
   g_variant_dict_lookup (options_dict, "geometry", "s", &geometry);
   g_variant_dict_lookup (options_dict, "workspace", "s", &workspace);
-
-  thunar_application_clear_window_options (application);
 
   /* FIXME: --quit should be named --suicide */
   if (G_UNLIKELY (quit))
@@ -1097,32 +1116,39 @@ thunar_application_command_line (GApplication            *gapp,
       goto out;
     }
 
+  if (geometry != NULL || workspace != NULL)
+    {
+      window_options = g_new0 (ThunarApplicationWindowOptions, 1);
+      window_options->workspace = -1;
+    }
+
   if (geometry != NULL)
     {
-      application->has_geometry = thunar_application_parse_geometry (geometry, &application->geometry);
-      if (!application->has_geometry)
+      window_options->has_geometry = thunar_application_parse_geometry (geometry, &window_options->geometry);
+      if (!window_options->has_geometry)
         g_application_command_line_printerr (command_line, "Thunar: invalid geometry \"%s\"\n", geometry);
     }
 
-  if (workspace != NULL && !thunar_application_parse_workspace (workspace, &application->workspace))
+  if (workspace != NULL && !thunar_application_parse_workspace (workspace, &window_options->workspace))
     g_application_command_line_printerr (command_line, "Thunar: invalid workspace \"%s\"\n", workspace);
 
   if (tabs_option || tabs_right_option)
     {
       application->force_new_window = FALSE;
-      tabs_failed = !thunar_application_open_tabs (application, command_line, cwd, filenames, right_filenames);
-      if (tabs_failed)
-        thunar_application_clear_window_options (application);
+      tabs_failed = !thunar_application_open_tabs (application, command_line, cwd, filenames, right_filenames, window_options);
+      window_options = NULL;
       goto out;
     }
+
+  application->pending_window_options = g_steal_pointer (&window_options);
 
   /* if no filenames are provided, open current directory as default */
   if (!thunar_application_process_filenames (application, cwd, filenames == NULL ? current_directory : filenames, NULL, NULL, &error, THUNAR_APPLICATION_SELECT_FILES))
     {
       /* we failed to process the filenames or the bulk rename failed */
       g_application_command_line_printerr (command_line, "Thunar: %s\n", error->message);
-      thunar_application_clear_window_options (application);
     }
+  g_clear_pointer (&application->pending_window_options, g_free);
 
   /* reopen tabs if desired and this is the first thunar window we open */
   g_object_get (G_OBJECT (application->preferences), "last-restore-tabs", &restore_tabs, NULL);
@@ -1206,6 +1232,7 @@ out:
   g_strfreev (right_filenames);
   g_free (geometry);
   g_free (workspace);
+  g_free (window_options);
 
   if (error)
     {
@@ -2063,7 +2090,11 @@ thunar_application_open_window (ThunarApplication *application,
   /* hook up the window */
   thunar_application_take_window (application, GTK_WINDOW (window));
 
-  thunar_application_apply_window_options (application, GTK_WINDOW (window));
+  if (application->window_options != NULL)
+    {
+      thunar_application_apply_window_options (application->window_options, GTK_WINDOW (window));
+      application->window_options = NULL;
+    }
 
   /* show the new window */
   gtk_widget_show (window);
@@ -2244,12 +2275,17 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
       /* unset the startup ids and stop processing any files */
       for (GList *lp = application->files_to_launch; lp != NULL; lp = lp->next)
         g_object_set_qdata (G_OBJECT (lp->data), thunar_application_startup_id_quark, NULL);
+      for (GList *lp = application->files_to_launch; lp != NULL; lp = lp->next)
+        g_object_set_qdata (G_OBJECT (lp->data), thunar_application_window_options_quark, NULL);
       thunar_g_list_free_full (application->files_to_launch);
       application->files_to_launch = NULL;
-      thunar_application_clear_window_options (application);
     }
   else
     {
+      ThunarApplicationWindowOptions *window_options = g_object_steal_qdata (G_OBJECT (file), thunar_application_window_options_quark);
+
+      application->window_options = window_options;
+
       if (application->process_file_action == THUNAR_APPLICATION_LAUNCH_FILES)
         {
           /* try to launch the file / open the directory */
@@ -2279,6 +2315,9 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
             }
         }
 
+      application->window_options = NULL;
+      g_free (window_options);
+
       /* remove the file from the list */
       application->files_to_launch = g_list_delete_link (application->files_to_launch,
                                                          application->files_to_launch);
@@ -2291,7 +2330,6 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
         }
 
       application->force_new_window = FALSE;
-      thunar_application_clear_window_options (application);
 
       /* unset the startup id */
       if (startup_id != NULL)
@@ -2413,6 +2451,10 @@ thunar_application_process_filenames (ThunarApplication             *application
       if (G_LIKELY (startup_id != NULL && *startup_id != '\0'))
         g_object_set_qdata_full (G_OBJECT (lp->data), thunar_application_startup_id_quark,
                                  g_strdup (startup_id), (GDestroyNotify) g_free);
+
+      if (application->pending_window_options != NULL)
+        g_object_set_qdata_full (G_OBJECT (lp->data), thunar_application_window_options_quark,
+                                 g_steal_pointer (&application->pending_window_options), g_free);
 
       /* append the file to the list of files we need to launch */
       application->files_to_launch = g_list_append (application->files_to_launch,
