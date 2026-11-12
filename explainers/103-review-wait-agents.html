@@ -216,8 +216,8 @@
   </ol>
   <div class="lane-h" style="color:var(--merge)">② collect — checks the output</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>Every id answered.</b> <code>collect</code> fails the job with an <code>::error::</code> when an id in <code>open.json</code> has no entry in <code>previous</code>, naming the ids. Ids are upper-cased and stripped of spaces first, so <code>r21 </code> still matches R21.</li>
-    <li data-k="6"><b>All checked.</b> It also fails when a new finding, or the entry for an id in <code>open.json</code>, has <code>checked</code> missing or false. As a backup, a reason or note saying an agent hadn't, didn't or never reported "before", "when", "by the time" or "in time", the wording #102's reviews used, fails it too.</li>
+    <li data-k="5"><b>Every id answered.</b> <code>collect</code> fails the job with an <code>::error::</code> when an id in <code>open.json</code> has no entry in <code>previous</code>, naming the ids. String ids are upper-cased and stripped of spaces first, so <code>r21 </code> still matches R21.</li>
+    <li data-k="6"><b>All checked.</b> It also fails when any new finding, or the entry for an id in <code>open.json</code>, has <code>checked</code> missing or false. As a backup, a reason or note saying an agent hadn't, didn't or never reported (or "yet"), followed by "before", "when", "by the time", "in time" or the end of a sentence, fails it too: #102's reviews used that wording.</li>
     <li data-k="7"><b>Re-run the review.</b> <code>collect</code> still saves <code>findings.json</code> and <code>fix.patch</code> for the run's artifact, and writes the reason to <code>collect-error.txt</code>. The code review comment then says "The review of &lt;sha&gt; is not recorded: &lt;reason&gt;. Re-run the review job (run)." Nothing shows as an unchecked "not fixed", and re-running the review job retries.</li>
   </ol>
   </div>
@@ -227,13 +227,13 @@
   <h3 class="sec">The two new checks in collect</h3>
 <pre data-k="diff"><span class="add">  local missing unchecked err=</span>
 <span class="add">  missing=$(jq … '[.[].id] - [$f[0].previous[]?.id] | join(", ")' "$OUT/open.json")</span>
-<span class="add">  unchecked=$(jq … '[new findings, previous entries for open.json ids</span>
-<span class="add">    | select(.checked != true or (reason or note | test("\\bagents? (… not|didn't|never) (reported|…) (before|when|by the time|in time)\\b")))]</span>
+<span class="add">  unchecked=$(jq … '[every new finding, previous entries for open.json ids</span>
+<span class="add">    | select(.checked != true or (reason or note | test("\\bagents? (… not|didn't|never) (reported|…)( yet)?( (before|when|by the time|in time)\\b|[.;,!]|$)")))]</span>
 <span class="add">    | length' "$OUT/findings.json")</span>
 <span class="add">  [[ -z $missing ]] || err="it returned no result for open finding(s) $missing"</span>
 <span class="add">  (( unchecked == 0 )) || err+="${err:+, and }it returned before the checking agents of $unchecked finding(s) reported"</span>
 <span class="add">  if [[ -n $err ]]; then printf '%s\n' "$err" &gt; "$OUT/collect-error.txt"; echo "::error::the review is not recorded: $err; …"; exit 1; fi</span></pre>
-  <div class="note" data-k="regex">The <code>checked</code> field is the main check. The wording check is only a backup, and needs a timing word after the verb, so ordinary notes such as "the checking agent has not reported any change at HEAD" or "the ThunarJob has not finished when…" don't trip it.</div>
+  <div class="note" data-k="regex">The <code>checked</code> field is the main check. The wording check is only a backup, and needs a timing word or a sentence end after the verb, so ordinary notes such as "the checking agent has not reported any change at HEAD" or "the ThunarJob has not finished when…" don't trip it.</div>
   </section>
 
   <section class="sub" id="files">
@@ -252,7 +252,7 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The checks were tried with fake review output in a scratch repo, after all fixes. CI's first review of this PR found R1–R9, which were fixed. A real review run at #102's head was not done.</p>
+  <p class="intro" data-k="intro">The checks were tried with fake review output in a scratch repo, after all fixes. CI's first review found R1–R9; its second passed and found R10–R16, of which 3 were fixed and 4 accepted. A real review run at #102's head was not done.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -270,11 +270,14 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
     <tr data-k="c1"><td>An open finding with no answer fails</td><td><code>collect</code> dry run in a scratch git repo after all fixes, fake findings with no previous entry for R22 (this session)</td><td class="ok">exit 1, names R22</td></tr>
     <tr data-k="c2"><td>#102's step 4 wording fails</td><td>Same dry runs, R21's note as on #102: "the step 4 agent hadn't reported when the output was due"</td><td class="ok">exit 1</td></tr>
     <tr data-k="c3"><td>#102's step 2 wording fails</td><td>Same dry runs, a finding's reason as on #102: "verification agents had not reported before output was required"</td><td class="ok">exit 1</td></tr>
-    <tr data-k="c7"><td>An unchecked finding fails</td><td>Same dry runs, <code>checked</code> false, then <code>checked</code> missing</td><td class="ok">2 of 2 exit 1</td></tr>
-    <tr data-k="c8"><td>Both problems are named</td><td>Same dry runs, "the agent didn't report in time" and a missing id together</td><td class="ok">exit 1, names both</td></tr>
+    <tr data-k="c7"><td>An unchecked finding fails</td><td>Earlier dry runs, before the R10–R12 fixes, <code>checked</code> false, then <code>checked</code> missing; not re-run after them</td><td class="ok">2 of 2 exit 1</td></tr>
+    <tr data-k="c10"><td>A new finding with a stray id and no check fails</td><td>Same dry runs, a new finding "R12" with <code>checked</code> false</td><td class="ok">exit 1</td></tr>
+    <tr data-k="c11"><td>A bare not-reported note fails</td><td>Same dry runs, "the step 2 agent hadn't reported." mid-text and at the end, "the agent has not reported yet." and "the agent has not reported, so pending"</td><td class="ok">4 of 4 exit 1</td></tr>
+    <tr data-k="c8"><td>Both problems are named</td><td>Earlier dry runs, before the R10–R12 fixes, "the agent didn't report in time" and a missing id together; not re-run after them</td><td class="ok">exit 1, names both</td></tr>
     <tr data-k="c4"><td>Ordinary notes pass</td><td>Same dry runs, "the checking agent has not reported any change at HEAD" and "the ThunarJob has not finished when…"</td><td class="ok">2 of 2 exit 0</td></tr>
     <tr data-k="c9"><td>Ids match loosely, stray ids are ignored</td><td>Same dry runs, id <code>r21 </code> for R21, and a previous id R5 not in <code>open.json</code> with <code>checked</code> false</td><td class="ok">2 of 2 exit 0</td></tr>
-    <tr data-k="c5"><td>A review with nothing open passes</td><td>Dry run before the fix round, no open findings and an empty previous; not re-run after it</td><td class="ok">exit 0</td></tr>
+    <tr data-k="c12"><td>A null previous id doesn't stop collect</td><td>Same dry runs, a previous entry whose id is null</td><td class="ok">exit 0</td></tr>
+    <tr data-k="c5"><td>A review with nothing open passes</td><td>Dry run before the first fix round, no open findings and an empty previous; not re-run after it</td><td class="ok">exit 0</td></tr>
     <tr data-k="c6"><td>Re-running the review at #102's head</td><td>The issue's test. #102 belongs to another session, and a real review needs CI's Claude action, so the dry runs stand in</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -282,11 +285,12 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">A fresh general-purpose agent reviewed the diff with the issue in this session. It found 1 problem, which was fixed. After the fixes for CI's review, a second fresh agent found no correctness bugs and 3 low notes, all fixed. The dry runs above ran after all of them.</p>
+  <p data-k="summary">A fresh general-purpose agent reviewed the diff with the issue in this session. It found 1 problem, which was fixed. After the fixes for CI's first review, a second fresh agent found no correctness bugs and 3 low notes, all fixed. After the R10–R12 fixes, a third found no bugs and 3 low gaps, 2 of them fixed. The dry runs above ran after all of them, except where noted.</p>
   <ul class="tight">
     <li data-k="b1"><b>Wording check too broad:</b> the first pattern also matched ordinary sentences and would have failed good reviews. It now needs the verb right after "agent".</li>
     <li data-k="b2"><b>Checked and fine:</b> the jq expressions, the script's strict mode, <code>open.json</code> always existing when collect runs, and the report after a failed collect.</li>
     <li data-k="b4"><b>Second review's 3 low notes:</b> the backup wording now also matches "didn't report … in time" and "never reported … before"; <code>checked</code> is enforced only for new findings and <code>open.json</code> ids; when both problems occur, the message names both.</li>
+    <li data-k="b5"><b>Third review's 3 low gaps:</b> "yet" after the verb, and <code>,</code> and <code>!</code> as sentence ends, are now matched; a false match on text like "reported.5" was left, as unlikely.</li>
   </ul>
   <h3 class="sec">CI's review</h3>
   <p data-k="ci">CI's first review, of <code>1e4d4d2f8297</code> in CI run 43167545997, found R1–R9. R1, a confirmed medium, failed the review job. This push fixes all but R9:</p>
@@ -301,7 +305,26 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
     <tr data-k="r9"><td>R9</td><td>The commit landed on <code>main</code> without a PR</td><td>Disproved by the review itself; nothing to change</td></tr>
   </table>
   </div>
-  <p data-k="b3">This fix push gets its own CI review: see the <a href="https://github.com/alexhu98/thunar/pull/104#issuecomment-6816365778">code review comment</a> on PR #104. It runs this PR's script, so it uses the new prompt.</p>
+  </section>
+
+  <section class="sub" id="ci2">
+  <h3 class="sec">CI's second review</h3>
+  <p data-k="ci2">CI's second review, of <code>203db45b3ca3</code> in CI run 43168796619, passed. R1, R2 and R4 came back resolved. R5–R8 are unconfirmed and named in the fix commit's "Fixes" line; R9 is unconfirmed, disproved by CI's own check. It found R10–R16, all low:</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Finding</th><th>What it found</th><th>How it was handled</th></tr>
+    <tr data-k="s3"><td>R3</td><td>Still open, CONFIRMED: a failed collect throws away the whole run's new findings and fix, which is what the issue asks for</td><td class="open">waiting on your decision</td></tr>
+    <tr data-k="s10"><td>R10</td><td>CONFIRMED: the open-id filter also dropped new findings, so a new finding with a stray id and <code>checked</code> false passed</td><td>Fixed in <code>e42a598</code>: every new finding is checked; only previous entries are limited to <code>open.json</code> ids</td></tr>
+    <tr data-k="s11"><td>R11</td><td>The wording needed a timing word, so a bare "agent hadn't reported." passed</td><td>Fixed: it also matches at <code>. ; , !</code> or the end of the text, and "yet" after the verb</td></tr>
+    <tr data-k="s12"><td>R12</td><td>A null or non-string previous id stopped collect</td><td>Fixed: only string ids are normalised</td></tr>
+    <tr data-k="s13"><td>R13</td><td>An honest <code>checked</code> false fails the whole job, with no fallback</td><td>Accepted: the issue asks for this</td></tr>
+    <tr data-k="s14"><td>R14</td><td>Duplicate previous ids are counted twice</td><td>Accepted: the job fails either way</td></tr>
+    <tr data-k="s15"><td>R15</td><td>One big blocking batch of agents within 30 minutes</td><td>Accepted: it waits less than two batches would</td></tr>
+    <tr data-k="s16"><td>R16</td><td><code>fix.patch</code> is written before the failure but unused after it</td><td>Accepted: kept on purpose in the artifact, from R3's fix</td></tr>
+  </table>
+  </div>
+  <p data-k="accept">R13–R16 are low, not confirmed and from a later review, so under CLAUDE.md's CI review rules a <code>Review-accept</code> trailer on this explainer commit accepts them.</p>
+  <p data-k="b3">The R10–R12 fix push gets its own CI review: see the <a href="https://github.com/alexhu98/thunar/pull/104#issuecomment-6816365778">code review comment</a> on PR #104.</p>
   </section>
 
   <section class="sub" id="aftermerge">
