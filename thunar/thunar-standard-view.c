@@ -5555,6 +5555,7 @@ thunar_standard_view_rename_idle (gpointer user_data)
   ThunarApplication  *application;
   ThunarFile         *file;
   GList              *paths;
+  gchar              *text;
 
   standard_view->priv->rename_idle_id = 0;
 
@@ -5569,12 +5570,22 @@ thunar_standard_view_rename_idle (gpointer user_data)
 
   if (standard_view->priv->rename_entry == NULL)
     {
+      if (standard_view->priv->rename_text != NULL
+          && thunar_standard_view_rename_check (standard_view->priv->rename_text) == NULL)
+        {
+          text = g_steal_pointer (&standard_view->priv->rename_text);
+          thunar_standard_view_rename_finish (standard_view, text);
+          g_free (text);
+          return G_SOURCE_REMOVE;
+        }
+
       file = g_steal_pointer (&standard_view->priv->rename_file);
       if (file != NULL
-          && standard_view->priv->rename_text == NULL
           && gtk_widget_get_mapped (GTK_WIDGET (standard_view))
-          && standard_view->priv->current_directory != NULL
-          && thunar_file_is_ancestor (file, standard_view->priv->current_directory))
+          && (standard_view->priv->rename_text != NULL
+                ? thunar_file_exists (file)
+                : standard_view->priv->current_directory != NULL
+                    && thunar_file_is_ancestor (file, standard_view->priv->current_directory)))
         {
           application = thunar_application_get ();
           thunar_application_rename_file (application, file, standard_view, NULL, THUNAR_OPERATION_LOG_OPERATIONS);
