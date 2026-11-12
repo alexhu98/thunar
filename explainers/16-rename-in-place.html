@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PR Rename in place</title>
+<title>PR #114 Rename in place</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -100,7 +100,7 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">PR: Rename files in place, like Nemo</h1>
+  <h1 data-k="title">PR #114: Rename files in place, like Nemo</h1>
   <p class="lead" data-k="lead">Branch <code>16-rename-in-place</code> → <code>main</code>, closes #16. Once merged, F2 in the details view turns the file's name into a text box right in its row, and you type the new name there.</p>
 
   <nav class="parts" aria-label="Parts of this page">
@@ -203,11 +203,11 @@
     <li data-k="1"><b>F2 or Rename….</b> In <code>thunar-action-manager.c</code>, a rename of one file first checks the <code>misc-rename-in-place</code> preference, that the file isn't a <code>.desktop</code> launcher, and that the current view is the details view; then it calls the new <code>thunar_standard_view_rename_in_place</code>.</li>
     <li data-k="2"><b>Scroll into view.</b> If the file's row isn't on screen, the view scrolls to it at once, as #15's popover does. Editing then starts in a low-priority idle callback, after the scroll has been drawn, so the entry lands on the row and not where it used to be.</li>
     <li data-k="3"><b>Entry in Name.</b> The name cell is made editable just for this call and GTK opens a text entry in it. The entry goes in the Name column wherever it is, not in the first column. The name is selected without its extension (all of it for a folder), with the same function as the dialog.</li>
-    <li data-k="4"><b>Enter renames.</b> Enter or clicking elsewhere renames through <code>thunar_application_rename_file_to</code>: the dialog's own rename job, so Ctrl+Z, the operation log and the "Failed to rename" error dialog work as before. Escape cancels. An empty name, or one with <code>/</code>, keeps the entry open with an error icon.</li>
+    <li data-k="4"><b>Enter renames.</b> Enter, or a click elsewhere in the window, renames through <code>thunar_application_rename_file_start</code>: the one function the dialog, the popover and the in-place rename now share, so Ctrl+Z, the operation log and the "Failed to rename" error dialog work as before. Escape, closing the tab or switching to another window cancels. An empty name, one with <code>/</code>, or one longer than 255 bytes keeps the entry open with an error icon.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Everything else — as before</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>Popover (#15).</b> The icon and compact views, the preference turned off, or editing that couldn't start (the folder was still loading, say) open #15's rename popover instead.</li>
+    <li data-k="5"><b>Popover (#15).</b> The icon and compact views, the preference turned off, or editing that couldn't start (the folder was still loading, say) open #15's rename popover instead, but only while the view is still on screen and showing the file's folder.</li>
     <li data-k="6"><b>Dialogs as now.</b> A <code>.desktop</code> launcher still asks Rename Launcher Options first, a rename asked for over D-Bus still opens the dialog, and F2 on several files still opens Rename Multiple Files.</li>
   </ol>
   </div>
@@ -219,11 +219,12 @@
   <table>
     <tr><th>You do</th><th>What happens</th></tr>
     <tr data-k="k1"><td>Type a new name, press Enter</td><td>The file is renamed; Ctrl+Z renames it back.</td></tr>
-    <tr data-k="k2"><td>Click elsewhere</td><td>Renames too, like Enter.</td></tr>
+    <tr data-k="k2"><td>Click elsewhere in the window</td><td>Renames too, like Enter.</td></tr>
     <tr data-k="k3"><td>Press Escape</td><td>Nothing is renamed; the old name comes back.</td></tr>
-    <tr data-k="k4"><td>Enter on an empty name, or one with <code>/</code></td><td>The entry stays open with a red error icon; nothing is renamed.</td></tr>
+    <tr data-k="k4"><td>Enter on an empty name, one with <code>/</code>, or one longer than 255 bytes</td><td>The entry stays open with a red error icon; nothing is renamed.</td></tr>
     <tr data-k="k5"><td>Enter on a name that's taken</td><td>Thunar's "Failed to rename" dialog; the old name stays.</td></tr>
-    <tr data-k="k6"><td>GTK closes the entry itself (a thumbnail loads, the folder changes)</td><td>Treated like Escape: a half-typed name is never saved.</td></tr>
+    <tr data-k="k6"><td>GTK closes the entry itself (the row changes or is re-sorted)</td><td>Editing starts again on that row, with what you typed kept.</td></tr>
+    <tr data-k="k7"><td>Switch window (Alt+Tab) or close the tab</td><td>Treated like Escape: a half-typed name is never saved.</td></tr>
   </table>
   </div>
   </section>
@@ -243,8 +244,8 @@
 ├── thunar-action-manager.c      # F2 on one file tries in place first
 ├── thunar-standard-view.c, .h   # the in-place rename: scroll, entry, checks, rename
 ├── thunar-details-view.c        # edit the Name column, not column 0
-├── thunar-application.c, .h     # rename_file_to: the dialog's rename job, shared
-├── thunar-dialogs.c, .h         # "name without extension" selection made public
+├── thunar-application.c, .h     # rename_file_start: the rename job, shared by all
+├── thunar-dialogs.c, .h         # name selection made public; callback gets new name
 ├── thunar-preferences.c         # misc-rename-in-place, default on
 └── thunar-preferences-dialog.c  # "Rename files in place" checkbox, Behavior tab
 verify/
@@ -261,7 +262,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container; CI's build, tests, review and the audit of its screenshots run after the push.</p>
+  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container, before CI's review. CI's first review found 8 findings; all are fixed, the last two pending CI's next run.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good pieces</h3>
@@ -274,6 +275,7 @@ explainers/
 
   <section class="sub" id="checks">
   <h3 class="sec">What was checked</h3>
+  <p data-k="before">Every local result below ran at 2f43ed4, before CI's review fixes; none was re-run after them.</p>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
@@ -286,6 +288,7 @@ explainers/
     <tr data-k="c7"><td>#15 and #96 still pass</td><td><code>verify/15.sh</code> (now with the preference off) and <code>verify/96.sh</code> (F2 on a new folder) at 2f43ed4</td><td class="ok">2 of 2 pass</td></tr>
     <tr data-k="c8"><td>The other tests</td><td>All 17 tests at the first commit, 67cb170; only 16.sh failed, because it selected the wrong row, fixed by clicking the first row. Not re-run after the later fixes</td><td class="no">16 of 17, first commit only</td></tr>
     <tr data-k="c9"><td>Screenshots look right</td><td>The shot-auditor read the second run's shots and found two problems, both fixed: the entry drawn at a stale spot after a scroll, and ExoIconView's misplaced, clipped entry</td><td class="open">final run: audited after CI's run</td></tr>
+    <tr data-k="c10"><td>CI's review fixes</td><td>R1–R6 (CI's commit d9fa615) and R7–R8 (the building session's next push): not built or tested locally</td><td class="no">not run here; pending the next CI run</td></tr>
   </table>
   </div>
   </section>
@@ -301,7 +304,17 @@ explainers/
     <li data-k="b5"><b>Left as is:</b> Ctrl+Z while typing runs Thunar's file undo, as it does in #15's popover; that's outside this issue.</li>
     <li data-k="b6"><b>Answered:</b> the missing explainer is this page.</li>
   </ul>
-  <p data-k="ci">CI's own review of every push appears in the code review comment on the PR for #16.</p>
+  <p data-k="ci">Then CI reviewed the first push, head 60d59c5, in run 43293478571 (Opus at high, 12 minutes): 8 findings. CI fixed R1–R6 in its own commit, d9fa615; the building session fixed R7 and R8 in the next push, which CI hasn't built or run yet.</p>
+  <ul class="tight">
+    <li data-k="R1"><b>R1, medium, fixed by CI:</b> switching window (Alt+Tab) or closing the tab mid-edit saved a half-typed name. Now only a click elsewhere in the active window renames; Escape, closing the tab and leaving the window don't.</li>
+    <li data-k="R2"><b>R2, medium, fixed by CI:</b> when GTK cancelled the edit itself, because the row changed or was re-sorted, the typed name was silently dropped. Editing now restarts on the row with the typed text kept.</li>
+    <li data-k="R3"><b>R3, low, fixed by CI:</b> the idle fallback could open the popover after the view was hidden or showed another folder; it now checks both.</li>
+    <li data-k="R4"><b>R4, low, fixed by CI:</b> the details view's scroll still used the first column; now the Name column.</li>
+    <li data-k="R5"><b>R5, low, fixed by CI:</b> the rename job's create-and-launch steps were written twice; the dialog, the popover and the in-place rename now share <code>thunar_application_rename_file_start</code>.</li>
+    <li data-k="R6"><b>R6, low, fixed by CI:</b> an explanatory reason in a doc comment, removed.</li>
+    <li data-k="R7"><b>R7, low, fixed in the next push:</b> the pending rename idle is now removed when the view is disposed, beside the drag timers.</li>
+    <li data-k="R8"><b>R8, low, fixed in the next push:</b> a name longer than 255 bytes now keeps the entry open with an error, like an empty name; the dialog's filename box refuses it too. This replaces the local review's "left as is" on length.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -309,8 +322,8 @@ explainers/
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI's build, smoke test and all verify scripts</td><td>CI runs on the PR, which isn't open yet</td><td class="open">first push</td></tr>
-    <tr data-k="a2"><td>CI's code review</td><td>Runs on each push to the PR</td><td class="open">first push</td></tr>
+    <tr data-k="a1"><td>CI's build, smoke test and all verify scripts with R1–R8 fixed</td><td>The R7 and R8 fixes are in a push CI hasn't run yet</td><td class="open">next CI run</td></tr>
+    <tr data-k="a2"><td>CI's review of the R7 and R8 fixes</td><td>Runs on each code push to the PR</td><td class="open">next CI run</td></tr>
     <tr data-k="a3"><td>Audit of CI's screenshots (<code>/visual-verify</code>)</td><td>Needs CI's shots on the shots branch</td><td class="open">after CI's run</td></tr>
     <tr data-k="a4"><td>Daily use on your desktop</td><td>The package reaches your machine only after the merge</td><td class="open">after the merge</td></tr>
   </table>
@@ -321,7 +334,8 @@ explainers/
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
     <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/16">#16 Rename files in place (inline), like Nemo</a></li>
-    <li data-k="l2">The PR for #16, once open: its verify comment shows every screenshot from <code>verify/16.sh</code>, before and after.</li>
+    <li data-k="l2">The PR: <a href="https://github.com/alexhu98/thunar/pull/114">#114</a>. Its verify comment shows every screenshot from <code>verify/16.sh</code>, before and after.</li>
+    <li data-k="l4">CI's first run, with its code review: <a href="https://github.com/alexhu98/thunar/actions/runs/43293478571">run 43293478571</a></li>
     <li data-k="l3">After the merge: select a file in the details view and press F2.</li>
   </ul>
   </section>
