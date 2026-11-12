@@ -1272,6 +1272,32 @@ thunar_shortcuts_model_shortcut_places (ThunarShortcutsModel *model)
 
 
 
+static gchar *
+thunar_shortcuts_model_hidden_key (ThunarShortcut *shortcut)
+{
+  gchar *uri;
+  gchar *key;
+
+  if (shortcut->file != NULL)
+    uri = thunar_file_dup_uri (shortcut->file);
+  else if (shortcut->location != NULL)
+    uri = g_file_get_uri (shortcut->location);
+  else
+    {
+      g_warn_if_reached ();
+      return NULL;
+    }
+
+  if (uri == NULL || shortcut->group != THUNAR_SHORTCUT_GROUP_PLACES_DEFAULT || shortcut->sort_id < 2)
+    return uri;
+
+  key = g_strconcat ("places:", uri, NULL);
+  g_free (uri);
+  return key;
+}
+
+
+
 static gboolean
 thunar_shortcuts_model_get_hidden (ThunarShortcutsModel *model,
                                    ThunarShortcut       *shortcut)
@@ -1286,17 +1312,7 @@ thunar_shortcuts_model_get_hidden (ThunarShortcutsModel *model,
   if (model->hidden_bookmarks == NULL)
     return FALSE;
 
-  /* get the uri */
-  if (shortcut->file != NULL)
-    uri = thunar_file_dup_uri (shortcut->file);
-  else if (shortcut->location != NULL)
-    uri = g_file_get_uri (shortcut->location);
-  else
-    {
-      g_warn_if_reached ();
-      return FALSE;
-    }
-
+  uri = thunar_shortcuts_model_hidden_key (shortcut);
   if (uri == NULL)
     return FALSE;
 
@@ -2519,16 +2535,9 @@ thunar_shortcuts_model_set_hidden (ThunarShortcutsModel *model,
       return;
     }
 
-  /* get the uri */
-  if (shortcut->file != NULL)
-    uri = thunar_file_dup_uri (shortcut->file);
-  else if (shortcut->location != NULL)
-    uri = g_file_get_uri (shortcut->location);
-  else
-    {
-      g_warn_if_reached ();
-      return;
-    }
+  uri = thunar_shortcuts_model_hidden_key (shortcut);
+  if (uri == NULL)
+    return;
 
   /* prepare array */
   length = model->hidden_bookmarks != NULL ? g_strv_length (model->hidden_bookmarks) : 0;

@@ -61,8 +61,13 @@ before() {
 }
 
 hidden_has() {
-  xfconf-query -c thunar -p /hidden-bookmarks 2>/dev/null | grep -qF "file://$1" \
-    || fail "file://$1 is not in hidden-bookmarks: $(xfconf-query -c thunar -p /hidden-bookmarks 2>&1)"
+  xfconf-query -c thunar -p /hidden-bookmarks 2>/dev/null | grep -qxF "$1" \
+    || fail "$1 is not in hidden-bookmarks: $(xfconf-query -c thunar -p /hidden-bookmarks 2>&1)"
+}
+
+hidden_lacks() {
+  ! xfconf-query -c thunar -p /hidden-bookmarks 2>/dev/null | grep -qxF "$1" \
+    || fail "$1 is in hidden-bookmarks: $(xfconf-query -c thunar -p /hidden-bookmarks 2>&1)"
 }
 
 toggle() {
@@ -107,18 +112,22 @@ shot "$WID" before-hide-bookmarks "Places lists Desktop, Documents, Downloads, M
 
 
 toggle "$(y_of projects)" 2 1 bookmarks-menu "The Bookmarks header's right-click menu is open on its Bookmarks submenu, which lists projects and notes, each with a checked show/hide box"
-hidden_has "$WORK/projects"
+hidden_has "file://$WORK/projects"
 toggle "$(y_of projects)" 2 2
-hidden_has "$WORK/notes"
+hidden_has "file://$WORK/notes"
 xdotool mousemove --window "$WID" $((W - 100)) $((H - 100))
 shot "$WID" after-hide-bookmarks "With projects and notes hidden, the Bookmarks header is gone too: Places is followed directly by the Devices header"
 pair hide-bookmarks "Unticked projects, then notes, in the Bookmarks header's right-click menu" "Bookmarks can be hidden from their header's menu, and the header hides when every bookmark is hidden" "Bookmarks: projects, notes" "Both hidden: no Bookmarks header" "Bookmarks section"
 [[ $(cat "$CONF/gtk-3.0/bookmarks") == "$BOOKMARKS_BEFORE" ]] || fail "hiding bookmarks changed the bookmarks file"
 
 DL=$(($(index_of Downloads) + 1))
-shot "$WID" before-hide-downloads "Places lists Downloads between Documents and Music"
+printf 'file://%s\n' "$HOME/Downloads" >> "$CONF/gtk-3.0/bookmarks"
+sleep 2
+xdotool mousemove --window "$WID" $((W - 100)) $((H - 100))
+shot "$WID" before-hide-downloads "Downloads is listed twice: in Places between Documents and Music, and under the Bookmarks header that came back for the new Downloads bookmark"
 toggle "${YS[0]}" 1 "$DL"
-hidden_has "$HOME/Downloads"
+hidden_has "places:file://$HOME/Downloads"
+hidden_lacks "file://$HOME/Downloads"
 
 kill "$THUNAR_PID"
 for ((i = 0; i < 50; i++)); do kill -0 "$THUNAR_PID" 2>/dev/null || break; sleep 0.2; done
@@ -129,10 +138,12 @@ wait_title "$WID" start
 sleep 1
 scan
 echo "side pane after restart: ${NAMES[*]}"
-for name in Downloads projects notes; do
+for name in projects notes; do
   [[ $(index_of "$name") -lt 0 ]] || fail "$name came back after a restart: ${NAMES[*]}"
 done
 before Documents Music
+before Videos Downloads
+[[ $(printf '%s\n' "${NAMES[@]}" | grep -cxF Downloads) -eq 1 ]] || fail "Downloads should be listed once, as a bookmark: ${NAMES[*]}"
 xdotool mousemove --window "$WID" $((W - 100)) $((H - 100))
-shot "$WID" after-hide-downloads "After a restart Places goes from Documents straight to Music, without Downloads, and the Bookmarks section is still hidden"
-pair hide-downloads "Unticked Downloads in the Places submenu, then quit and restarted Thunar" "A standard folder can be hidden, and hidden entries stay hidden after a restart" "Downloads in Places" "Restarted: Downloads still hidden" "Standard folders"
+shot "$WID" after-hide-downloads "After a restart Places goes from Documents straight to Music, without Downloads, while the Downloads bookmark still shows under the Bookmarks header; projects and notes stay hidden"
+pair hide-downloads "Unticked Downloads in the Places submenu, then quit and restarted Thunar" "Hiding a standard folder doesn't hide a bookmark to the same folder, and stays hidden after a restart" "Downloads in Places and Bookmarks" "Restarted: only the bookmark shows" "Standard folders"
