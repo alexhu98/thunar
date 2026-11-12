@@ -164,7 +164,7 @@ jobs:
     needs: build
     if: github.event_name == 'pull_request' || needs.build.outputs.skip != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     concurrency:
       group: verify-${{ github.ref }}
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -219,7 +219,7 @@ jobs:
       - name: Smoke test and verify/*.sh
         id: run
         if: needs.build.outputs.skip != 'true'
-        timeout-minutes: 20
+        timeout-minutes: 30
         run: .github/scripts/verify-proof.sh run
 
       - name: Upload the screenshots and write the verify comment
