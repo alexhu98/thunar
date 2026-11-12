@@ -389,11 +389,11 @@ thunar_location_entry_accept_focus (ThunarLocationEntry *location_entry,
 
 static void
 thunar_location_entry_open_or_launch (ThunarLocationEntry *location_entry,
-                                      ThunarFile          *file)
+                                      ThunarFile          *file,
+                                      GtkWidget           *window)
 {
   GError     *error = NULL;
   ThunarFile *parent;
-  GtkWidget  *window;
   GList      *files;
 
   _thunar_return_if_fail (THUNAR_IS_LOCATION_ENTRY (location_entry));
@@ -402,11 +402,14 @@ thunar_location_entry_open_or_launch (ThunarLocationEntry *location_entry,
   /* check if the file is mounted */
   if (thunar_file_is_mounted (file))
     {
-      /* check if we have a new directory or a file to launch */
+      /* check if we have a new directory or a file to select */
       if (thunar_file_is_directory (file))
         {
           /* open the new directory */
           thunar_navigator_change_directory (THUNAR_NAVIGATOR (location_entry), file);
+
+          /* add opened folder to `recent:///` */
+          thunar_file_add_to_recent (file);
         }
       else
         {
@@ -417,8 +420,13 @@ thunar_location_entry_open_or_launch (ThunarLocationEntry *location_entry,
               thunar_navigator_change_directory (THUNAR_NAVIGATOR (location_entry), parent);
               g_object_unref (parent);
 
-              window = gtk_widget_get_toplevel (GTK_WIDGET (location_entry));
-              if (THUNAR_IS_WINDOW (window))
+              if (G_LIKELY (location_entry->current_directory != NULL))
+                {
+                  thunar_path_entry_set_current_file (THUNAR_PATH_ENTRY (location_entry->path_entry),
+                                                      location_entry->current_directory);
+                }
+
+              if (window != NULL)
                 {
                   files = g_list_prepend (NULL, thunar_file_get_file (file));
                   thunar_window_show_and_select_files (THUNAR_WINDOW (window), files);
@@ -441,11 +449,6 @@ thunar_location_entry_open_or_launch (ThunarLocationEntry *location_entry,
                                  thunar_file_get_display_name (file));
       g_error_free (error);
     }
-  else
-    {
-      /* add opened file to `recent:///` */
-      thunar_file_add_to_recent (file);
-    }
 }
 
 
@@ -455,7 +458,7 @@ thunar_location_entry_poke_file_finish (ThunarBrowser *browser,
                                         ThunarFile    *file,
                                         ThunarFile    *target_file,
                                         GError        *error,
-                                        gpointer       ignored)
+                                        gpointer       window)
 {
   _thunar_return_if_fail (THUNAR_IS_LOCATION_ENTRY (browser));
   _thunar_return_if_fail (THUNAR_IS_FILE (file));
@@ -464,7 +467,7 @@ thunar_location_entry_poke_file_finish (ThunarBrowser *browser,
     {
       /* try to open or launch the target file */
       thunar_location_entry_open_or_launch (THUNAR_LOCATION_ENTRY (browser),
-                                            target_file);
+                                            target_file, window);
     }
   else
     {
@@ -473,6 +476,9 @@ thunar_location_entry_poke_file_finish (ThunarBrowser *browser,
                                  error, _("Failed to open \"%s\""),
                                  thunar_file_get_display_name (file));
     }
+
+  if (window != NULL)
+    g_object_unref (window);
 }
 
 
@@ -482,6 +488,7 @@ thunar_location_entry_activate (GtkWidget           *path_entry,
                                 ThunarLocationEntry *location_entry)
 {
   ThunarFile *file;
+  GtkWidget  *window;
 
   _thunar_return_if_fail (THUNAR_IS_LOCATION_ENTRY (location_entry));
   _thunar_return_if_fail (location_entry->path_entry == path_entry);
@@ -490,8 +497,10 @@ thunar_location_entry_activate (GtkWidget           *path_entry,
   file = thunar_path_entry_get_current_file (THUNAR_PATH_ENTRY (path_entry));
   if (G_LIKELY (file != NULL))
     {
+      window = gtk_widget_get_toplevel (GTK_WIDGET (location_entry));
       thunar_browser_poke_file (THUNAR_BROWSER (location_entry), file, path_entry,
-                                thunar_location_entry_poke_file_finish, NULL);
+                                thunar_location_entry_poke_file_finish,
+                                THUNAR_IS_WINDOW (window) ? g_object_ref (window) : NULL);
 
       thunar_location_entry_emit_edit_done (location_entry);
     }
