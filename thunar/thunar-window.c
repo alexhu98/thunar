@@ -3438,7 +3438,6 @@ thunar_window_other_pane_drop_files (ThunarWindow *window,
   GtkWidget  *other_view;
   ThunarFile *target;
   GFile      *target_file;
-  GFile      *parent;
   GList      *file_list = NULL;
   GList      *lp;
 
@@ -3456,13 +3455,8 @@ thunar_window_other_pane_drop_files (ThunarWindow *window,
 
   target_file = thunar_file_get_file (target);
   for (lp = thunar_view_get_selected_files (THUNAR_VIEW (window->view)); lp != NULL; lp = lp->next)
-    {
-      parent = g_file_get_parent (thunar_file_get_file (lp->data));
-      if (parent == NULL || !g_file_equal (parent, target_file))
-        file_list = g_list_prepend (file_list, g_object_ref (thunar_file_get_file (lp->data)));
-      if (parent != NULL)
-        g_object_unref (parent);
-    }
+    if (!g_file_has_parent (thunar_file_get_file (lp->data), target_file))
+      file_list = g_list_prepend (file_list, g_object_ref (thunar_file_get_file (lp->data)));
   file_list = g_list_reverse (file_list);
 
   for (lp = file_list; lp != NULL; lp = lp->next)

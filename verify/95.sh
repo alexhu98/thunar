@@ -88,6 +88,20 @@ pair insert "Selected a.txt in the right pane and pressed Insert" "Insert drops 
 echo b > "$WORK/right/b.txt"
 sleep 1.5
 select_right
+xdotool key F9
+sleep 0.5
+click_at 60 $((H - 80))
+sleep 0.3
+starts right || fail "clicking the side pane changed the window to '$(title)'"
+shot "$WID" before-side-pane "The side pane is shown and focused by a click on its empty area, while b.txt is selected in the active right pane"
+xdotool key Insert
+sleep 1.5
+[[ -e $WORK/right/b.txt && ! -e $WORK/left/b.txt ]] || fail "Insert with focus in the side pane transferred b.txt"
+shot "$WID" after-side-pane "1.5 s after Insert with focus in the side pane, b.txt is still in right and not in left (the script asserts it)"
+pair side-pane "Selected b.txt in the right pane, clicked the side pane's empty area and pressed Insert" "Insert acts only when focus is in the file view" "side pane focused, b.txt in right" "b.txt still in right, left empty" "$G"
+xdotool key F9
+sleep 0.5
+select_right
 xdotool key ctrl+l
 sleep 0.3
 xdotool key ctrl+a
