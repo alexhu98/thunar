@@ -15,7 +15,7 @@
 #            (verify-<test>-<shot>.png, pair-<test>-<what>.png, verify.tsv) through shots.sh, writes the verify
 #            comment through pr-comment.sh and then the summary through pr-summary.py. Run it whether or not run
 #            passed. A failed upload is marked in the comment and in the manifest (file -), and publish then fails.
-# Env: PR, HEAD_SHA, HEAD_REF, GH_REPO, RUN_ID, RUN_URL, OUT, DEBS, TIMEOUT (default 120), BUDGET (default 900).
+# Env: PR, HEAD_SHA, HEAD_REF, GH_REPO, RUN_ID, RUN_URL, OUT, DEBS, TIMEOUT (default 120), BUDGET (default 1500).
 # DRY_RUN=1 makes publish print the comment instead of uploading and posting it.
 set -euo pipefail
 
@@ -23,7 +23,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 OUT=${OUT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/verify-proof}
 DEBS=${DEBS:-$HOME/verify-debs}
 TIMEOUT=${TIMEOUT:-120}
-BUDGET=${BUDGET:-900}
+BUDGET=${BUDGET:-1500}
 TOOLS=(xvfb xfwm4 xdotool imagemagick x11-utils dbus gvfs gvfs-daemons zorin-desktop-themes)
 mkdir -p "$OUT"
 
