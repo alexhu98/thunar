@@ -8,11 +8,11 @@ VERDICT: line; the latest posted wins). Without RUN_ID it uses the latest build 
 (ready for review, or the first failing, running or awaited check), the checks table and a link to the verify
 comment, which holds the key result and the shots table, through pr-comment.sh. Does nothing when HEAD_SHA is no
 longer the PR's head, so an older run can't overwrite a newer summary, and leaves the comment alone when it already
-covers the head and no check's result changed (<!-- pr-proof:results {...} -->, the head and every check that isn't
-running), so a run posts "running" once and then edits only on a result. Every job that writes a comment calls it
-and the summary job calls it last; when an audit comment is posted or edited, the pr-summary workflow calls it too,
-once the head's build run has finished. After writing it reads everything again and writes again, up to twice, if a
-result changed meanwhile.
+covers the head and no check's result changed (<!-- pr-proof:results {...} -->: the head, every check that isn't
+running with its link, the verify note and the run), so a run posts "running" once and then edits only on a result.
+Every job that writes a comment calls it and the summary job calls it last; when an audit comment is posted or
+edited, the pr-summary workflow calls it too, once the head's build run has finished. After writing it reads
+everything again and writes again, up to twice, if a result changed meanwhile.
 Env: PR, GH_REPO, HEAD_SHA, RUN_ID, RUN_URL, BUILD_RESULT, OUT. DRY_RUN=1 prints the comment instead of writing it.
 """
 import json
@@ -170,11 +170,18 @@ def summary(runs):
     out = [f'## PR proof: {title}', '', f"Head `{head[:12]}`" + (f' · [workflow run]({run_url})' if run_url else ''), '',
            '| Check | Result | Where |', '|---|---|---|']
     out += [f'| {n} | {ICON.get(s, "⚠️")} {cell(t)} | {w} |' for n, s, t, w in checks]
+    vsha = (status['verify'] or {}).get('sha', '')
     if v[1] == NO_CODE:
-        out += ['', 'No key result or shots: verify did not run, because the PR changes no code, packaging or CI files.']
+        note = 'No key result or shots: verify did not run, because the PR changes no code, packaging or CI files.'
+    elif vsha and vsha != head:
+        note = f"The key result and the shots table in the {link('verify', 'Verify comment')} are from `{vsha[:12]}`, not the head."
+    elif vsha:
+        note = f"The key result and the shots table are in the {link('verify', 'Verify comment')}."
     else:
-        out += ['', f"The key result and the shots table are in the {link('verify', 'Verify comment')}."]
-    results = {'sha': head, 'checks': [[n, s, t] for n, s, t, _ in checks if s != 'running']}
+        note = 'No key result or shots yet: verify has not published shots for this head.'
+    out += ['', note]
+    results = {'v': 2, 'sha': head, 'checks': [[n, s, t, w] for n, s, t, w in checks if s != 'running'],
+               'note': note, 'run': run_url}
     marker = '<!-- pr-proof:results ' + json.dumps(results, ensure_ascii=False, separators=(',', ':')).replace('>', '\\u003e') + ' -->'
     return marker + '\n' + '\n'.join(out) + '\n', mine.get('summary', {}).get('body')
 
@@ -192,6 +199,8 @@ def main():
         body, old = got
         if old and hidden(body, 'results') == hidden(old, 'results'):
             print("the summary is unchanged: it covers the head and no check's result changed")
+            if os.environ.get('DRY_RUN') == '1':
+                print(body)
             return
         open(path, 'w').write(body)
         subprocess.run([os.path.join(HERE, 'pr-comment.sh'), 'put', 'summary', path], check=True, env=env)
