@@ -3158,6 +3158,8 @@ thunar_standard_view_new_files (ThunarStandardView *standard_view,
 
   _thunar_return_if_fail (THUNAR_IS_STANDARD_VIEW (standard_view));
 
+  source_view = g_object_get_data (G_OBJECT (standard_view), I_ ("source-view"));
+
   /* release the previous "new-files" paths (if any) */
   if (G_UNLIKELY (standard_view->priv->new_files_path_list != NULL))
     {
@@ -3196,8 +3198,8 @@ thunar_standard_view_new_files (ThunarStandardView *standard_view,
           /* release the file list */
           g_list_free_full (file_list, g_object_unref);
 
-          /* grab the focus to the view widget */
-          if (!thunar_standard_view_is_other_pane (standard_view, g_object_get_data (G_OBJECT (standard_view), I_ ("source-view"))))
+          /* grab the focus to the view widget, unless the drag came from the other pane */
+          if (!thunar_standard_view_is_other_pane (standard_view, source_view))
             gtk_widget_grab_focus (gtk_bin_get_child (GTK_BIN (standard_view)));
         }
       else if (belongs_here)
@@ -3210,7 +3212,6 @@ thunar_standard_view_new_files (ThunarStandardView *standard_view,
     }
 
   /* when performing dnd between 2 views, we force a reload on the source as well */
-  source_view = g_object_get_data (G_OBJECT (standard_view), I_ ("source-view"));
   if (THUNAR_IS_VIEW (source_view))
     thunar_view_reload (THUNAR_VIEW (source_view), FALSE);
 }

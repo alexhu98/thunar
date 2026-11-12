@@ -99,8 +99,8 @@ shot "$WID" before-drop-down "After dropping a.txt from right on left: left show
 xdotool key Down
 sleep 1
 starts right || fail "Down after the drop switched the window to '$(title)': focus was in the drop pane"
-shot "$WID" after-drop-down "After Down the right pane is still active, so Down moved its cursor and not the left pane's (the script asserts the title)"
-pair drop-down "Dragged a.txt from the right pane onto the left pane, then pressed Down" "After a drop between panes, keyboard focus stays in the pane the drag started from" "a.txt dropped on left, right active" "right still active after Down" "$G"
+shot "$WID" after-drop-down "After Down the right pane is still the active pane (the script asserts the title)"
+pair drop-down "Dragged a.txt from the right pane onto the left pane, then pressed Down" "After a drop between panes, the pane the drag started from stays active" "a.txt dropped on left, right active" "right still active after Down" "$G"
 
 # The next keys act on the right pane: Ctrl+A then Insert move right's files, not left's a.txt
 xdotool key ctrl+a
