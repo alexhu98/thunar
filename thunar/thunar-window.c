@@ -3456,8 +3456,10 @@ static gboolean
 thunar_window_action_drop_on_other_pane (ThunarWindow *window)
 {
   GdkDragAction action;
+  GdkEvent     *event;
   ThunarFile   *target;
   GtkWidget    *focus;
+  gboolean      from_key;
   GFile        *target_file;
   GFile        *parent;
   GList        *file_list = NULL;
@@ -3467,8 +3469,15 @@ thunar_window_action_drop_on_other_pane (ThunarWindow *window)
   _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);
 
   target = thunar_window_other_pane_directory (window);
+  if (target == NULL)
+    return FALSE;
+
+  event = gtk_get_current_event ();
   focus = gtk_window_get_focus (GTK_WINDOW (window));
-  if (target == NULL || focus == NULL || (focus != window->view && !gtk_widget_is_ancestor (focus, window->view)))
+  from_key = (event != NULL && event->type == GDK_KEY_PRESS);
+  if (event != NULL)
+    gdk_event_free (event);
+  if (from_key && (focus == NULL || (focus != window->view && !gtk_widget_is_ancestor (focus, window->view))))
     return FALSE;
 
   target_file = thunar_file_get_file (target);
