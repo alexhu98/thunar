@@ -9,8 +9,8 @@ review-state.py open STATE OUT
     Writes the confirmed findings still open to $OUT/open.json and the accepted ones to $OUT/accepted.json.
 review-state.py render OUT REPO SHA RESULT NOTE [FAILED_ID...]
     Marks the findings whose suggestion couldn't be posted, writes the review comment to $OUT/section.md (this
-    review's findings, then every finding the PR has had, closed ones with their text and reason) and prints how many
-    confirmed medium or high findings are unresolved.
+    review's findings, then every finding the PR has had; closed ones from earlier reviews keep only 80 characters of
+    their text and no reason) and prints how many confirmed medium or high findings are unresolved.
 """
 import json
 import os
@@ -63,6 +63,12 @@ def short(f, n):
     for k in ('summary', 'detail'):
         if k in g:
             g[k] = cap(g[k], n) if n else ''
+    return g
+
+
+def settled(f):
+    g = short(f, 80)
+    g.pop('detail', None)
     return g
 
 
@@ -154,7 +160,7 @@ def decide(state_p, inp, out, sha, commit, mins, run_url, result):
             findings.append(f)
         state.update(next=n, sha=sha, mode=plan['mode'], level=plan['level'], model=plan['model'],
                      reason=plan['reason'], minutes=int(mins) if mins else None, run=run_url)
-    state['findings'] = [f if f['status'] in OPEN + ('accepted',) or f.get('new') else short(f, 120) for f in findings]
+    state['findings'] = [f if f['status'] in OPEN + ('accepted',) or f.get('new') else settled(f) for f in findings]
     json.dump(state, open(os.path.join(out, 'state-new.json'), 'w'))
     json.dump({'commit_id': sha, 'event': 'COMMENT',
                'body': f'CI code review of {sha[:12]}: {len(comments)} suggested change(s).', 'comments': comments},
