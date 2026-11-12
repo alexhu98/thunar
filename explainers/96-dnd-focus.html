@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PR · Drop focus</title>
+<title>PR #106 Drop focus</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -100,8 +100,8 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">PR: Keep keyboard focus in the pane you dragged from</h1>
-  <p class="lead" data-k="lead">Branch <code>96-dnd-focus</code> → <code>main</code>, closes #96. In split view, after you drag files onto the other pane, the next key still acts on the pane the drag started from.</p>
+  <h1 data-k="title">PR #106: Keep keyboard focus in the pane you dragged from</h1>
+  <p class="lead" data-k="lead">Branch <code>96-dnd-focus</code> → <code>main</code>, closes #96 (<a href="https://github.com/alexhu98/thunar/pull/106">PR #106</a>). In split view, after you drag files onto the other pane, the next key still acts on the pane the drag started from.</p>
 
   <nav class="parts" aria-label="Parts of this page">
     <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
@@ -117,7 +117,7 @@
   <p class="intro" data-k="intro">A drop from one pane onto the other no longer moves keyboard focus or the active pane to the drop pane. The whole change is in <code>thunar/thunar-standard-view.c</code>, tested by <code>verify/96.sh</code>.</p>
 
   <section class="sub" id="flow">
-  <div class="diagram" role="img" aria-label="A drag from the right pane onto the left pane: the drop handler sends focus back to the right pane, the move runs, and when it finishes the dropped files are selected in the left pane without taking focus. Other drops, Paste, New Folder and Insert behave as before.">
+  <div class="diagram" role="img" aria-label="A drag from the right pane onto the left pane: the drop handler sends focus back to the right pane, the move runs, and when it finishes the dropped files are selected in the left pane, which takes focus only if it is the active pane. Other drops, Paste, New Folder and Insert behave as before.">
   <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -154,8 +154,8 @@
       <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
       <text x="786" y="90" class="t">Job finishes</text>
       <text x="786" y="114" class="b">dropped files are</text>
-      <text x="786" y="134" class="b">selected in the left</text>
-      <text x="786" y="154" class="b">pane, no focus grab</text>
+      <text x="786" y="134" class="b">selected; focus only</text>
+      <text x="786" y="154" class="b">in the active pane</text>
       <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
     </g>
     <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
@@ -199,7 +199,7 @@
   <section class="sub" id="bigpic">
   <h3 class="sec">The big picture</h3>
   <p data-k="why">Split view (F3) shows two folders side by side. One pane is the active one: the location bar, the status bar and the keyboard all follow it. Before this PR, dragging a file from the right pane onto the left one made the left pane active, so the next key (Down, Delete, Ctrl+A) acted on the pane you dropped on, not the one you were working in.</p>
-  <div class="note" data-k="note">The focus moved twice: once when the drop landed, and again when the move or copy finished. Both now check whether the drag came from the other pane of the same window, and only then leave focus on the source pane.</div>
+  <div class="note" data-k="note">The focus moved twice: once when the drop landed, and again when the move or copy finished. The drop now focuses the source pane when the drag came from the other pane, and the finished job grabs focus only in the window's active pane.</div>
   </section>
 
   <section class="sub" id="steps">
@@ -210,7 +210,7 @@
     <li data-k="1"><b>You drag.</b> You drag a file from the right pane and drop it on the left pane, as in the issue's report.</li>
     <li data-k="2"><b>Drop handler.</b> <code>thunar_standard_view_receive_text_uri_list</code> used to call <code>thunar_window_focus_view</code> on the drop pane. It now asks the new helper <code>thunar_standard_view_is_other_pane</code> first, and when the drag came from the other pane it focuses the source view instead. That also hands focus back when a spring-loaded folder switched panes during the drag.</li>
     <li data-k="3"><b>Move or copy.</b> <code>thunar_dnd_perform</code> starts the job exactly as before, with the same new-files closure.</li>
-    <li data-k="4"><b>Job finishes.</b> <code>thunar_standard_view_new_files</code> still selects the dropped files in the left pane, but skips its <code>gtk_widget_grab_focus</code> when the source view is in the other pane.</li>
+    <li data-k="4"><b>Job finishes.</b> <code>thunar_standard_view_new_files</code> still selects the dropped files in the left pane, but calls <code>gtk_widget_grab_focus</code> only when that view is the window's active view (<code>thunar_window_get_view</code>), checked when the job ends. It reads the drag's source view through a weak pointer, so a source view closed during a long transfer is never read after it's freed.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Everything else — unchanged</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
@@ -242,7 +242,8 @@ thunar_standard_view_is_other_pane (ThunarStandardView *standard_view,
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">thunar/
 └── thunar-standard-view.c          # new is_other_pane helper; drop focus goes to the source pane;
-                                    # new_files skips its focus grab for those drops
+                                    # new_files grabs focus only in the active view;
+                                    # source view held through a weak pointer
 verify/
 └── 96.sh                           # drag, Insert and New Folder focus test, 3 shots
 explainers/
@@ -255,7 +256,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested in a cloud container the way CI does it, and reviewed by a fresh agent. CI and its screenshot audit run after the push.</p>
+  <p class="intro" data-k="intro">Built and tested in a cloud container the way CI does it, reviewed by a fresh agent, then reviewed three times by CI. CI's tests and the screenshot audit of the last head haven't finished yet.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -278,22 +279,32 @@ explainers/
     <tr data-k="c5"><td>Insert keeps focus too</td><td><code>verify/96.sh</code>: Ctrl+A and Insert in the right pane move <code>b.txt</code> and <code>c.txt</code> left, press Down; the right pane stays active (pair insert-down)</td><td class="ok">pass</td></tr>
     <tr data-k="c6"><td>New Folder still focuses the new folder</td><td><code>verify/96.sh</code>: Ctrl+Shift+N makes <code>made</code>, F2 renames it to <code>renamed</code> in the left pane (shot new-folder)</td><td class="ok">pass</td></tr>
     <tr data-k="c7"><td>Drops from another app, Shift+Insert, Ctrl+Insert, tab-label drops</td><td>Not tested: they don't pass the other-pane check or the new-files closure, read from the code</td><td class="no">not run</td></tr>
-    <tr data-k="c8"><td>CI build, verify and explainer</td><td>Run by CI on the pushed head</td><td class="no">not run yet</td></tr>
+    <tr data-k="c8"><td>CI build</td><td>CI's build job on head <code>7d0c022</code></td><td class="ok">pass</td></tr>
+    <tr data-k="c10"><td>CI verify and explainer</td><td>CI's verify and explainer jobs on head <code>7d0c022</code></td><td class="no">still running</td></tr>
     <tr data-k="c9"><td>Screenshot audit</td><td><code>/visual-verify</code> of CI's shots from the <code>shots</code> branch</td><td class="no">not run yet</td></tr>
   </table>
   </div>
-  <div class="note warn" data-k="caveat">It isn't certain that the local build and test run included the last commit, the review fixes; the agent was told to rebuild. CI's run on the pushed head is the one to trust.</div>
+  <div class="note warn" data-k="caveat">The local build and the 15 tests ran before the CI review fixes (<code>2915d9c</code>, <code>7d0c022</code>). Only CI's build has run on the final code so far; its verify run is the one to trust.</div>
   </section>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">A fresh general-purpose agent, given only the diff and the issue, found 3 problems. 2 were fixed; 1 is older than this PR and was left alone.</p>
+  <p data-k="summary">A fresh general-purpose agent, given only the diff and the issue, found 3 problems. 2 were fixed then; the third, older than this PR, was fixed after CI's review flagged it too.</p>
   <ul class="tight">
     <li data-k="b1"><b>Test too slow (fixed):</b> the drag in <code>verify/96.sh</code> scanned so many rows that it could pass the 120-second test limit. It now starts at the known first-row position, as <code>verify/15.sh</code> does.</li>
     <li data-k="b2"><b>Spring-loaded folders (fixed):</b> hovering over a folder during the drag could still leave focus in the drop pane. The drop handler now focuses the source view.</li>
-    <li data-k="b3"><b>Older risk (not fixed):</b> the view stores the drag's source view without a weak reference, so a source view closed during a long transfer could be checked after it's freed. That predates this PR; see Part 3.</li>
+    <li data-k="b3"><b>Older risk (fixed later):</b> the view stored the drag's source view without a weak reference, so a source view closed during a long transfer could be read after it's freed. It is now held through a weak pointer (R4, below).</li>
   </ul>
-  <p data-k="ci">CI's own review runs on the push and reports in this PR's code review comment. It hasn't run yet.</p>
+  <p data-k="ci">CI reviewed every code push at <code>high</code> and reports in <a href="https://github.com/alexhu98/thunar/pull/106#issuecomment-6818182359">this PR's code review comment</a>:</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Review of</th><th>Findings</th><th>What happened</th></tr>
+    <tr data-k="ci1"><td><code>750ebf1</code></td><td>R1–R7</td><td>CI fixed R1–R3 itself (test asserts, a double read, a stale comment). R4–R7 fixed in <code>2915d9c</code>: weak pointer, decide once, PR text, test row offsets.</td></tr>
+    <tr data-k="ci2"><td><code>2915d9c</code></td><td>R8 (medium), R9–R15 (low)</td><td>R8: the drop-time decision could go stale. R8, R9, R10, R12, R13 fixed in <code>7d0c022</code> by the active-view check. Accepted: R11 (the weak pointer is removed in finalize, so safe), R14 (wants back a row offset R7 removed), R15 (the next Ctrl+A and Insert step proves where focus is).</td></tr>
+    <tr data-k="ci3"><td><code>7d0c022</code></td><td>R16 (medium), R17–R19 (low)</td><td>R16: focus is now decided at the job's end, not at the drop. Waiting on the owner; the agent recommends keeping it. Accepted: R17, R18 (comment wording), R19 (no test that a drop within one pane still grabs focus).</td></tr>
+  </table>
+  </div>
+  <div class="note" data-k="r16">Why keep the job-end check (R16): if you switch panes or tabs during a long copy, the finished copy then doesn't pull focus away from where you are now.</div>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -309,6 +320,7 @@ explainers/
   <section class="sub" id="see">
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
+    <li data-k="l0">The PR: <a href="https://github.com/alexhu98/thunar/pull/106">#106</a>, and CI's <a href="https://github.com/alexhu98/thunar/pull/106#issuecomment-6818182359">code review comment</a></li>
     <li data-k="l1">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...96-dnd-focus">main…96-dnd-focus</a>, or this PR's “Files changed”</li>
     <li data-k="l2">CI's summary, code review, verify and explainer comments on this PR, with the screenshots of <code>verify/96.sh</code></li>
     <li data-k="l3">The issue: <a href="https://github.com/alexhu98/thunar/issues/96">#96</a></li>
@@ -320,10 +332,10 @@ explainers/
   <section class="part" id="later">
   <p class="part-label" data-k="label">Part 3</p>
   <h2 data-k="heading">What comes later: nothing depends on #96 yet</h2>
-  <p class="intro" data-k="intro">No open issue says “Depends on #96”. The batch in #100 starts #40 and #41 once this merges, and #16 must keep this fix working. One older risk could become its own issue.</p>
+  <p class="intro" data-k="intro">No open issue says “Depends on #96”. The batch in #100 starts #40 and #41 once this merges, and #16 must keep this fix working.</p>
 
   <section class="sub" id="next">
-  <div class="diagram" role="img" aria-label="This PR merges, then the batch moves on to #40 and #41 and later #16, which must keep this fix. A weak-reference fix is a possible follow-up, not filed.">
+  <div class="diagram" role="img" aria-label="This PR merges, then the batch moves on to #40 and #41 and later #16, which must keep this fix.">
   <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -353,12 +365,6 @@ explainers/
       <text x="536" y="114" class="b">in place; must keep</text>
       <text x="536" y="134" class="b">this focus fix</text>
     </g>
-    <g data-k="n4">
-      <rect class="box-future" x="770" y="60" width="210" height="120" rx="10"/>
-      <text x="786" y="90" class="t">Weak ref</text>
-      <text x="786" y="114" class="b">possible follow-up,</text>
-      <text x="786" y="134" class="b">not filed</text>
-    </g>
     <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
     <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
   </svg>
@@ -387,14 +393,6 @@ explainers/
   </div>
   </section>
 
-  <section class="sub" id="weakref">
-  <h3 class="sec">Possible follow-up: a weak reference to the source view</h3>
-  <div class="panel">
-  <ol class="steps">
-    <li data-k="1"><b>Not filed.</b> Holding the drag's source view with a weak reference would make the other-pane check safe if that view is closed during a long transfer. It's an older risk, not part of #96.</li>
-  </ol>
-  </div>
-  </section>
   </section>
 
   <section class="sub" id="glossary">
