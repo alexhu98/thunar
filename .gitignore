@@ -176,3 +176,4 @@ po/remove-potcdate.sin
 thunar/libthunar.a
 po/remove-potcdate.sed
 po/thunar.pot
+__pycache__/

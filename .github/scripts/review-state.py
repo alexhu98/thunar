@@ -9,14 +9,15 @@ review-state.py open STATE OUT
     Writes the confirmed findings still open to $OUT/open.json and the accepted ones to $OUT/accepted.json.
 review-state.py render OUT REPO SHA RESULT NOTE [FAILED_ID...]
     Marks the findings whose suggestion couldn't be posted, writes the review comment to $OUT/section.md (this
-    review's findings, then every finding the PR has had, closed ones with their text and reason) and prints how many
-    confirmed medium or high findings are unresolved.
+    review's findings, then every finding the PR has had; closed ones from earlier reviews keep only 80 characters of
+    their text and reason) and prints how many confirmed medium or high findings are unresolved.
 """
 import json
 import os
 import re
 import subprocess
 import sys
+from importlib import import_module
 
 OPEN = ('suggested', 'not fixed')
 KEEP = 400
@@ -154,7 +155,7 @@ def decide(state_p, inp, out, sha, commit, mins, run_url, result):
             findings.append(f)
         state.update(next=n, sha=sha, mode=plan['mode'], level=plan['level'], model=plan['model'],
                      reason=plan['reason'], minutes=int(mins) if mins else None, run=run_url)
-    state['findings'] = [f if f['status'] in OPEN + ('accepted',) or f.get('new') else short(f, 120) for f in findings]
+    state['findings'] = [f if f['status'] in OPEN + ('accepted', 'unconfirmed') or f.get('new') else short(f, 80) for f in findings]
     json.dump(state, open(os.path.join(out, 'state-new.json'), 'w'))
     json.dump({'commit_id': sha, 'event': 'COMMENT',
                'body': f'CI code review of {sha[:12]}: {len(comments)} suggested change(s).', 'comments': comments},
@@ -229,8 +230,8 @@ def render(out, repo, sha, result, note, failed):
 def body(state, status, ids, open_, repo, note, rows):
     findings = state.get('findings', [])
     shown = [f for f in findings if f['id'] in ids]
-    lines = ['<!-- pr-proof:status ' + json.dumps(status, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
-             '<!-- review:state ' + json.dumps(state, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
+    shots = import_module('verify-shots')
+    lines = [shots.hidden('status', status), shots.marker('review:state', state),
              '### Code review', '']
     if state.get('sha'):
         model = {'claude-opus-5-5': 'Opus 5.5'}.get(state['model'], state['model'])

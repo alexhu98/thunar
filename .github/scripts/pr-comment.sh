@@ -95,7 +95,7 @@ put() {
     echo "the $name comment is unchanged"
     return
   fi
-  api -X PATCH "repos/{owner}/{repo}/issues/comments/$id" -F body=@"$OUT/comment.md" --jq '"updated \(.html_url)"'
+  api -X PATCH "repos/{owner}/{repo}/issues/comments/$id" -F body=@"$OUT/comment.md" --jq '"updated \(.html_url) (\(.body | length) characters)"'
 }
 
 case ${1:-} in
