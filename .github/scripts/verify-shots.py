@@ -13,8 +13,8 @@ verify-shots.py manifest OUT
 verify-shots.py comment OUT
     Prints the verify comment's body (the results, the key result, the shots table, then every other shot) from $OUT/numbered.json, $OUT/results.tsv, the logs and $OUT/urls.tsv
     ("<local file><tab><url or ->"). Env: HEAD_SHA, HEAD_REF, RUN_URL.
-verify-shots.py marker NAME KEY=VALUE...
-    Prints <!-- pr-proof:NAME {...} --> for the object of those string fields.
+verify-shots.py status SHA STATE TEXT
+    Prints the <!-- pr-proof:status {...} --> marker of a comment with that head, state and text.
 """
 import json
 import os
@@ -297,11 +297,10 @@ if __name__ == '__main__':
         out = args[0]
         entries = json.load(open(os.path.join(out, 'numbered.json')))
         sys.stdout.write(manifest(out, entries, 'shots', {k for k, v in urls(out).items() if v == '-'}))
-    elif cmd == 'marker':
-        bad = [kv for kv in args[1:] if '=' not in kv]
-        if bad:
-            sys.exit(f'marker: {bad[0]!r} is not KEY=VALUE\n\n{__doc__}')
-        print(hidden(args[0], dict(kv.split('=', 1) for kv in args[1:])))
+    elif cmd == 'status':
+        if len(args) != 3:
+            sys.exit(__doc__)
+        print(hidden('status', dict(zip(('sha', 'state', 'text'), args))))
     elif cmd == 'comment':
         status, lines = comment(args[0])
         print('\n'.join([hidden('status', status), *lines]))
