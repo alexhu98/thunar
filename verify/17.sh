@@ -71,7 +71,7 @@ hidden_lacks() {
 }
 
 toggle() {
-  local y=$(($1 - 12)) i
+  local y=$(($1 - STEP)) i
   focus "$WID"
   xdotool mousemove --window "$WID" "$PANE_X" "$y" click 3
   sleep 0.6
@@ -122,10 +122,14 @@ pair hide-bookmarks "Unticked projects, then notes, in the Bookmarks header's ri
 
 DL=$(($(index_of Downloads) + 1))
 PLACES_Y=${YS[0]}
+DOCS_Y=$(y_of Documents)
 printf 'file://%s\n' "$HOME/Downloads" >> "$CONF/gtk-3.0/bookmarks"
 sleep 2
 scan "$(y_of Documents)"
-[[ $(printf '%s\n' "${NAMES[@]}" | grep -cxF Downloads) -eq 2 ]] || fail "the Downloads bookmark didn't appear next to the Places row: ${NAMES[*]}"
+DLS=()
+for i in "${!NAMES[@]}"; do [[ ${NAMES[$i]} == Downloads ]] && DLS+=("$i"); done
+((${#DLS[@]} == 2 && DLS[0] > $(index_of Documents) && DLS[0] < $(index_of Music) && DLS[1] > $(index_of Videos))) \
+  || fail "expected Downloads in Places between Documents and Music, and again as a bookmark after Videos: ${NAMES[*]}"
 xdotool mousemove --window "$WID" $((W - 100)) $((H - 100))
 shot "$WID" before-hide-downloads "Downloads is listed twice: in Places between Documents and Music, and under the Bookmarks header that came back for the new Downloads bookmark"
 toggle "$PLACES_Y" 1 "$DL"
@@ -139,7 +143,7 @@ open_thunar "$WORK/start"
 xdotool windowsize --sync "$WID" "$W" "$H"
 wait_title "$WID" start
 sleep 1
-scan
+scan "$DOCS_Y"
 echo "side pane after restart: ${NAMES[*]}"
 for name in projects notes; do
   [[ $(index_of "$name") -lt 0 ]] || fail "$name came back after a restart: ${NAMES[*]}"
