@@ -297,6 +297,8 @@ thunar_window_action_reload (ThunarWindow *window,
                              GtkWidget    *menu_item);
 static gboolean
 thunar_window_action_toggle_split_view (ThunarWindow *window);
+static ThunarFile *
+thunar_window_other_pane_directory (ThunarWindow *window);
 static gboolean
 thunar_window_action_drop_on_other_pane (ThunarWindow *window);
 static void
@@ -1567,7 +1569,6 @@ thunar_window_update_edit_menu (ThunarWindow *window,
   GList                    *pp, *lp;
   const XfceGtkActionEntry *action_entry;
   gchar                    *action_tooltip;
-  gboolean                  other_pane_sensitive;
 
   _thunar_return_if_fail (THUNAR_IS_WINDOW (window));
 
@@ -1592,11 +1593,8 @@ thunar_window_update_edit_menu (ThunarWindow *window,
   thunar_menu_add_sections (THUNAR_MENU (menu), THUNAR_MENU_SECTION_CUT
                                                 | THUNAR_MENU_SECTION_COPY_PASTE
                                                 | THUNAR_MENU_SECTION_TRASH_DELETE);
-  other_pane_sensitive = thunar_window_split_view_is_active (window)
-                         && window->view != NULL
-                         && thunar_view_get_selected_files (THUNAR_VIEW (window->view)) != NULL;
   gtk_menu_item = xfce_gtk_menu_item_new_from_action_entry (get_action_entry (THUNAR_WINDOW_ACTION_DROP_ON_OTHER_PANE), G_OBJECT (window), GTK_MENU_SHELL (menu));
-  gtk_widget_set_sensitive (gtk_menu_item, other_pane_sensitive);
+  gtk_widget_set_sensitive (gtk_menu_item, thunar_window_other_pane_directory (window) != NULL);
   xfce_gtk_menu_append_separator (GTK_MENU_SHELL (menu));
   if (window->view != NULL)
     {
@@ -3428,65 +3426,74 @@ thunar_window_split_view_is_active (ThunarWindow *window)
 
 
 
-static gboolean
-thunar_window_action_drop_on_other_pane (ThunarWindow *window)
+static ThunarFile *
+thunar_window_other_pane_directory (ThunarWindow *window)
 {
-  GdkDragAction      action;
-  ThunarApplication *application;
-  GtkWidget         *other_notebook;
-  GtkWidget         *other_view;
-  ThunarFile        *target;
-  GFile             *target_file;
-  GFile             *parent;
-  GList             *selected_files;
-  GList             *file_list;
-  GList             *lp;
-  gboolean           refused = FALSE;
+  GtkWidget  *other_notebook;
+  GtkWidget  *other_view;
+  ThunarFile *target;
 
-  _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);
-
-  if (!thunar_window_split_view_is_active (window) || window->view == NULL)
-    return FALSE;
-
-  selected_files = thunar_view_get_selected_files (THUNAR_VIEW (window->view));
-  if (selected_files == NULL)
-    return FALSE;
+  if (!thunar_window_split_view_is_active (window) || window->view == NULL
+      || thunar_view_get_selected_files (THUNAR_VIEW (window->view)) == NULL)
+    return NULL;
 
   other_notebook = (window->notebook_selected == window->notebook_left) ? window->notebook_right : window->notebook_left;
   other_view = gtk_notebook_get_nth_page (GTK_NOTEBOOK (other_notebook), gtk_notebook_get_current_page (GTK_NOTEBOOK (other_notebook)));
   if (other_view == NULL)
-    return TRUE;
+    return NULL;
 
   target = thunar_navigator_get_current_directory (THUNAR_NAVIGATOR (other_view));
-  if (target == NULL || !thunar_file_is_directory (target) || !thunar_file_is_writable (target))
-    return TRUE;
+  if (target == NULL || target == window->current_directory
+      || !thunar_file_is_directory (target) || !thunar_file_is_writable (target))
+    return NULL;
+
+  return target;
+}
+
+
+
+static gboolean
+thunar_window_action_drop_on_other_pane (ThunarWindow *window)
+{
+  GdkDragAction action;
+  ThunarFile   *target;
+  GtkWidget    *focus;
+  GFile        *target_file;
+  GFile        *parent;
+  GList        *file_list = NULL;
+  GList        *lp;
+  gboolean      started = FALSE;
+
+  _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);
+
+  target = thunar_window_other_pane_directory (window);
+  focus = gtk_window_get_focus (GTK_WINDOW (window));
+  if (target == NULL || focus == NULL || (focus != window->view && !gtk_widget_is_ancestor (focus, window->view)))
+    return FALSE;
 
   target_file = thunar_file_get_file (target);
-  file_list = thunar_file_list_to_thunar_g_file_list (selected_files);
-  for (lp = file_list; lp != NULL && !refused; lp = lp->next)
+  for (lp = thunar_view_get_selected_files (THUNAR_VIEW (window->view)); lp != NULL; lp = lp->next)
     {
-      parent = g_file_get_parent (lp->data);
-      refused = g_file_equal (target_file, lp->data) || g_file_has_prefix (target_file, lp->data)
-                || (parent != NULL && g_file_equal (target_file, parent))
-                || (thunar_g_file_is_trashed (lp->data) && thunar_file_is_trashed (target));
+      parent = g_file_get_parent (thunar_file_get_file (lp->data));
+      if (parent == NULL || !g_file_equal (parent, target_file))
+        file_list = g_list_prepend (file_list, g_object_ref (thunar_file_get_file (lp->data)));
       if (parent != NULL)
         g_object_unref (parent);
     }
+  file_list = g_list_reverse (file_list);
 
-  if (!refused)
+  for (lp = file_list; lp != NULL; lp = lp->next)
+    if (g_file_has_prefix (target_file, lp->data))
+      break;
+
+  if (file_list != NULL && lp == NULL && !thunar_file_drop_refused (target, file_list))
     {
       action = thunar_file_is_trash (target) ? GDK_ACTION_MOVE : thunar_file_drop_copy_or_move (target, file_list);
-
-      application = thunar_application_get ();
-      if (action == GDK_ACTION_COPY)
-        thunar_application_copy_into (application, window, file_list, target_file, THUNAR_OPERATION_LOG_OPERATIONS, NULL);
-      else
-        thunar_application_move_into (application, window, file_list, target_file, THUNAR_OPERATION_LOG_OPERATIONS, NULL);
-      g_object_unref (application);
+      started = thunar_dnd_perform (GTK_WIDGET (window), target, file_list, action, NULL);
     }
 
   thunar_g_list_free_full (file_list);
-  return TRUE;
+  return started;
 }
 
 

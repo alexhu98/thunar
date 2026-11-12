@@ -190,6 +190,10 @@ thunar_file_rename (ThunarFile   *file,
                     gboolean      called_from_job,
                     GError      **error);
 
+gboolean
+thunar_file_drop_refused (ThunarFile *file,
+                          GList      *file_list);
+
 GdkDragAction
 thunar_file_drop_copy_or_move (ThunarFile *file,
                                GList      *file_list);

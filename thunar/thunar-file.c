@@ -2014,18 +2014,30 @@ thunar_file_rename (ThunarFile   *file,
 
 
 
-/**
- * thunar_file_drop_copy_or_move:
- * @file      : the target directory as a #ThunarFile.
- * @file_list : the list of #GFile<!---->s that will be dropped on @file.
- *
- * Decides whether dropping @file_list on @file with no modifier key
- * moves or copies the files: move when every file sits in a writable
- * folder on the same filesystem as @file, or comes from the trash,
- * else copy.
- *
- * Return value: %GDK_ACTION_MOVE or %GDK_ACTION_COPY.
- **/
+gboolean
+thunar_file_drop_refused (ThunarFile *file,
+                          GList      *file_list)
+{
+  GList *lp;
+
+  _thunar_return_val_if_fail (THUNAR_IS_FILE (file), TRUE);
+
+  for (lp = file_list; lp != NULL; lp = lp->next)
+    {
+      /* we cannot drop a file on itself */
+      if (G_UNLIKELY (g_file_equal (file->gfile, lp->data)))
+        return TRUE;
+
+      /* copy/move/link within the trash not possible */
+      if (G_UNLIKELY (thunar_g_file_is_trashed (lp->data) && thunar_file_is_trashed (file)))
+        return TRUE;
+    }
+
+  return FALSE;
+}
+
+
+
 GdkDragAction
 thunar_file_drop_copy_or_move (ThunarFile *file,
                                GList      *file_list)
@@ -2100,7 +2112,6 @@ thunar_file_accepts_drop (ThunarFile     *file,
 {
   GdkDragAction suggested_action;
   GdkDragAction actions;
-  GList        *lp;
 
   _thunar_return_val_if_fail (THUNAR_IS_FILE (file), 0);
   _thunar_return_val_if_fail (GDK_IS_DRAG_CONTEXT (context), 0);
@@ -2129,16 +2140,8 @@ thunar_file_accepts_drop (ThunarFile     *file,
       if (thunar_file_is_trash (file))
         actions &= ~(GDK_ACTION_COPY | GDK_ACTION_LINK);
 
-      for (lp = file_list; lp != NULL; lp = lp->next)
-        {
-          /* we cannot drop a file on itself */
-          if (G_UNLIKELY (g_file_equal (file->gfile, lp->data)))
-            return 0;
-
-          /* copy/move/link within the trash not possible */
-          if (G_UNLIKELY (thunar_g_file_is_trashed (lp->data) && thunar_file_is_trashed (file)))
-            return 0;
-        }
+      if (thunar_file_drop_refused (file, file_list))
+        return 0;
 
       /* if the source offers both copy and move and the GTK+ suggested action is copy, try to be smart telling whether
        * we should copy or move by default by checking whether the source and target are on the same disk.
