@@ -98,3 +98,19 @@ sleep 2
 shot "$MAIN" after-script "Still on folder sub, with run-me.sh selected and no dialog asking to run it; the script did not run"
 pair script "Typed the path to the executable sub/run-me.sh and pressed Enter, then waited 2 s" "Enter on an executable selects it and never runs it or asks to" "on sub, path to run-me.sh typed" "run-me.sh selected, not run" "$O"
 selected_is run-me.sh
+
+# The buttons bar's temporary entry (Ctrl+L) selects the file too
+xfconf-query -c thunar -p /last-location-bar -n -t string -s ThunarLocationButtons
+open_thunar "$WORK/sub"
+MAIN=$WID
+xdotool windowsize --sync "$MAIN" "$W" "$H"
+wait_title "$MAIN" sub
+sleep 1
+type_path "$WORK/many/file-07.txt"
+shot "$MAIN" before-buttons "Location bar in buttons style, on folder sub, with the path to many/file-07.txt typed in the temporary entry Ctrl+L opened"
+xdotool key Return
+wait_title "$MAIN" many
+sleep 1.5
+shot "$MAIN" after-buttons "The buttons bar now ends in many, and file-07.txt is selected in folder many"
+pair buttons "In buttons style, pressed Ctrl+L, typed the path to many/file-07.txt and pressed Enter" "The buttons bar's temporary entry also opens the folder and selects the file" "buttons bar, path to file-07.txt typed" "on many, file-07.txt selected" "$F"
+selected_is file-07.txt
