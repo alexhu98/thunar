@@ -35,7 +35,7 @@ Start from `template.html` in this folder: copy it to `explainers/<n>-<slug>.htm
 **Part 2: How it was built and verified** (`section.part#verified`)
 - The reference it was checked against: the known-good thing(s) the work was compared with or derived from (cards).
 - "What was checked": a table with Check | How | Result. "How" names the exact command or method and what it ran against. "Result" is what was measured (`1 of 1 pass`, `same`, `+local2`), not "OK".
-- "Code review": the local fresh-agent review: after the last code change, a `general-purpose` agent given only the diff (`git diff origin/main...HEAD`) and the issue. Give its level, how many findings, how many were fixed, and the findings grouped in plain words. Then link the code review PR comment for CI's own review (see "CI review" below).
+- "Code review": the local fresh-agent review before the first push: a fresh `general-purpose` agent that ran `/code-review high --fix` on `git diff origin/main...HEAD` (see `CLAUDE.md`'s "Context"). Give its level, how many findings, how many were fixed, and the findings grouped in plain words. Then link the code review PR comment for CI's own review (see "CI review" below).
 - "Checked only after the merge": what can't run before the merge, why, and when it first runs (`td.open`).
 - "See it yourself": links to the PR, the CI runs and any outputs.
 
