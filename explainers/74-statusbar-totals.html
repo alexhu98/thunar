@@ -331,7 +331,7 @@ explainers/74-statusbar-totals.narration.json  # its narration</pre>
         <li><b>R23:</b> a 1270 px window plus its frame borders only just fits the screen.</li>
         <li><b>R24:</b> the window moves to 0,0 only before the trash shot.</li>
       </ul></li>
-    <li data-k="ci6"><b>After main (#91), then main (#92), was merged in:</b> CI's reviews found R25 to R34.
+    <li data-k="ci6"><b>After main (#91), then main (#92), was merged in, then main (#98):</b> CI's reviews found R25 to R38.
       <ul class="tight">
         <li><b>R25 (medium), fixed by CI's commit 61b8566b:</b> a running status bar job held the view, so closing a tab didn't cancel its folder scan.</li>
         <li><b>R26 (low), fixed in 61b8566b:</b> a doc comment was missing <code>@cancellable</code>.</li>
@@ -339,6 +339,7 @@ explainers/74-statusbar-totals.narration.json  # its narration</pre>
         <li><b>R28 to R31, accepted as unconfirmed lows:</b> the search size walk, hidden files in Total matching the nothing-selected text, an unreachable no-file guard, and a size helper still used by dialogs.</li>
         <li><b>R32 (medium, plausible), accepted by you:</b> a view closed without being destroyed stays in memory until its status bar job finishes. Upstream Thunar keeps the view alive the same way, releasing its reference when the job finishes.</li>
         <li><b>R33 and R34 (low, plausible), accepted under the later-review rule:</b> dispose leaves the selection-changed timeout pending, and finalize repeats dispose's cleanup.</li>
+        <li><b>R35 to R38 (low, plausible), accepted under the later-review rule:</b> the search size walk on the window's thread, as the issue asks; the search total counts only visible rows; a hand-rolled string join; the folder's file list copied on the window's thread, as in R12.</li>
       </ul></li>
   </ul>
   </section>

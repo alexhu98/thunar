@@ -1,7 +1,7 @@
 {
   "title": "PR #94 · Status totals",
   "voice": "af_heart",
-  "page_sha256": "d2b10feb7239b62318d92352fc7aa82d8f8e7c53e9807bf6c872aacf14713991",
+  "page_sha256": "520e670536b9a4c7bd4ef5c945646754362190abdff27b20591e0ac93c0119e9",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 94, which keeps free space and folder totals in the status bar and drops the byte counts.", "from": ["title", "lead"], "say": "This is a tour of pull request ninety-four, which keeps free space and folder totals in the status bar and drops the byte counts.", "src": "a32768e28c07"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "747a355361fc"},
@@ -55,7 +55,7 @@
     {"screen": "review", "keys": ["ci3"], "caption": "Later reviews found three more, all fixed, including a trash shot that could run off the screen.", "src": "5d820bafb120"},
     {"screen": "review", "keys": ["ci4"], "caption": "You accepted five, one by one, such as the search's own free space lookup, which the issue asks for.", "src": "687e77e07703"},
     {"screen": "review", "keys": ["ci5"], "caption": "The rest were unconfirmed low findings from later reviews, accepted under the review rules.", "src": "9bea1a092582"},
-    {"screen": "review", "keys": ["ci6"], "caption": "After main was merged in twice, CI's reviews found ten more: two fixed, and eight accepted, two of them by you.", "src": "b6fcce08e585"},
+    {"screen": "review", "keys": ["ci6"], "caption": "After main was merged in again, CI's reviews found fourteen more: two fixed, and twelve accepted, two of them by you.", "src": "dda51d008f89"},
     {"screen": "aftermerge", "keys": ["a3"], "caption": "Your own folders and drives can only be checked on your machine, after the merge.", "src": "cbffd032b634"},
     {"screen": "see", "keys": ["l1", "l2", "l3"], "caption": "The links lead to the issue, the PR and its checks, and the shots.", "src": "1b8124a73ee5"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later: nothing depends on 74.", "say": "Part 3. What comes later: nothing depends on seventy-four.", "src": "1df94d6361e6"},
@@ -127,7 +127,7 @@
     "review/ci3": "5d820bafb120",
     "review/ci4": "687e77e07703",
     "review/ci5": "9bea1a092582",
-    "review/ci6": "b6fcce08e585",
+    "review/ci6": "dda51d008f89",
     "aftermerge/a3": "cbffd032b634",
     "see/l1": "1ff60cf02ccf",
     "see/l2": "10c0d574e356",
