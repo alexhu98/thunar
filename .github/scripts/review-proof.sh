@@ -326,17 +326,18 @@ agent_log() {
     | [$pre[] | select(.type == "assistant" and .parent_tool_use_id == null) | .message.content[]?
         | select(.type == "tool_use" and (.name == "Agent" or .name == "Task"))] as $calls
     | [$pre[] | select(.type == "user" and .parent_tool_use_id == null) | .message.content | arrays | .[]
-        | select(.type == "tool_result") | {id: .tool_use_id, t: (.content | txt)}] as $res
+        | select(.type == "tool_result") | {id: .tool_use_id, t: (.content | txt), e: (.is_error == true)}] as $res
     | ([$pre[] | select(.type == "user") | .message.content | txt | split("<task-notification>")[1:][]]
        + [$pre[] | select(.type == "system" and .subtype == "task_notification" and .status == "completed")
           | "<task-id>\(.task_id)</task-id><status>completed</status>"]) as $notes
-    | [$calls[] | .id as $id | ([$res[] | select(.id == $id) | .t] | first) as $t
-        | if $t == null then $id
+    | [$calls[] | .id as $id | ([$res[] | select(.id == $id)] | first) as $r | $r.t as $t
+        | if $r == null or $r.e then $id
           elif ($t | startswith("Async agent launched")) then
             (($t | capture("agentId: *(?<a>[A-Za-z0-9_-]+)").a) // "") as $a
             | if $a != "" and any($notes[]; contains("<task-id>\($a)</task-id>") and contains("<status>completed</status>")) then empty else $id end
           else empty end] as $late
-    | "\($calls | length) \([$calls[] | .id as $id | $res[] | select(.id == $id and (.t | startswith("Async agent launched")))] | length) \($late | length)"' "$1"
+    | [$calls[] | .id as $id | [$res[] | select(.id == $id)] | first | select(. != null and (.t | startswith("Async agent launched")))] as $bg
+    | "\($calls | length) \($bg | length) \($late | length)"' "$1"
 }
 
 collect() {
@@ -352,7 +353,7 @@ collect() {
     | length' "$OUT/findings.json")
   [[ -z $missing ]] || err="it returned no result for open finding(s) $missing"
   (( unchecked == 0 )) || err+="${err:+, and }it returned before the checking agents of $unchecked finding(s) reported"
-  local log=${EXEC_LOG:-${RUNNER_TEMP:-}/claude-execution-output.json} counts calls background late
+  local log=${EXEC_LOG:-${RUNNER_TEMP:-}/claude-execution-output.json} counts calls background late needed
   if [[ ! -s $log ]]; then
     err+="${err:+, and }it left no execution log at $log to check its agents against"
   elif ! counts=$(agent_log "$log"); then
@@ -361,8 +362,8 @@ collect() {
     read -r calls background late <<< "$counts"
     echo "execution log: $calls agent calls, $background in the background, $late not reported before the result" >&2
     (( late == 0 )) || err+="${err:+, and }the execution log shows $late of its $calls agents not reported before it returned"
-    (( calls > 0 )) || [[ $(jq --slurpfile o "$OUT/open.json" '(.findings // [] | length) + ($o[0] | length)' "$OUT/findings.json") == 0 ]] \
-      || err+="${err:+, and }the execution log shows no checking agents for its findings"
+    needed=$(jq --slurpfile o "$OUT/open.json" '(.findings // [] | length) + ($o[0] | length)' "$OUT/findings.json")
+    (( calls >= needed )) || err+="${err:+, and }the execution log shows $calls agents for its $needed findings to check"
   fi
   if [[ -n $err ]]; then
     printf '%s\n' "$err" > "$OUT/collect-error.txt"

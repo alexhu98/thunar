@@ -365,6 +365,7 @@ jobs:
         if: steps.plan.outputs.skip == '0'
         env:
           FINDINGS: ${{ steps.review.outputs.structured_output }}
+          EXEC_LOG: ${{ steps.review.outputs.execution_file }}
           MODE: ${{ steps.plan.outputs.mode }}
         run: |
           .github/scripts/review-proof.sh collect
