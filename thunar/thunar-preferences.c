@@ -1161,8 +1161,7 @@ thunar_preferences_class_init (ThunarPreferencesClass *klass)
                      "MiscStatusBarActiveInfo",
                      NULL,
                      0, G_MAXUINT,
-                     THUNAR_STATUS_BAR_INFO_DISPLAY_NAME | THUNAR_STATUS_BAR_INFO_FILETYPE | THUNAR_STATUS_BAR_INFO_SIZE
-                     | THUNAR_STATUS_BAR_INFO_SIZE_IN_BYTES,
+                     THUNAR_STATUS_BAR_INFO_DISPLAY_NAME | THUNAR_STATUS_BAR_INFO_FILETYPE | THUNAR_STATUS_BAR_INFO_SIZE,
                      EXO_PARAM_READWRITE);
 
   /**
