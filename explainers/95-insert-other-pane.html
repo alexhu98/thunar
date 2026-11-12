@@ -249,7 +249,7 @@
 ├── thunar-file.h     # their declarations
 ├── thunar-window.c   # Drop on Other Pane action, Insert key, Edit menu item
 └── thunar-window.h   # the action's id
-verify/95.sh          # the test: Insert, a text field, split view off
+verify/95.sh          # the test: Insert, the side pane, a text field, split view off
 explainers/
 ├── 95-insert-other-pane.html            # this page
 └── 95-insert-other-pane.narration.json  # its narration</pre>
@@ -261,7 +261,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested in the cloud container in this session, reviewed three times by a fresh agent and twice by CI, whose last fix CI builds and tests itself.</p>
+  <p class="intro" data-k="intro">Built and tested in the cloud container in this session, reviewed three times by a fresh agent and three times by CI, whose last fix CI builds and tests itself.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -285,8 +285,9 @@ explainers/
     <tr data-k="c6"><td>Drag and drop still works</td><td>the existing <code>verify/19.sh</code>, a drop on a tab label, after the refactor</td><td class="ok">pass</td></tr>
     <tr data-k="c7"><td>All tests</td><td><code>verify-proof.sh install</code> and <code>run</code> on this branch's build after the review fixes, up to commit ada247b, perhaps without its last edit</td><td class="ok">12 of 12 pass, #95 in 24 s</td></tr>
     <tr data-k="c8"><td>The copy branch</td><td>Needs a read-only source folder or a second filesystem; the container runs as root, which can write everywhere</td><td class="no">not run</td></tr>
-    <tr data-k="c9"><td>Moving into the Trash, the refusals, the focus rule and skipped files</td><td><code>verify/95.sh</code> doesn't cover them; accepted in the second review round</td><td class="no">not run</td></tr>
-    <tr data-k="c10"><td>CI's fix commit 41dde5f</td><td>Not built or tested in this container; CI builds and tests the final head</td><td class="no">not run here</td></tr>
+    <tr data-k="c9"><td>Moving into the Trash, the refusals and skipped files</td><td><code>verify/95.sh</code> doesn't cover them; accepted in the second review round</td><td class="no">not run</td></tr>
+    <tr data-k="c10"><td>All tests, by CI</td><td>CI's verify job on head 41dde5f, its second fix commit, before <code>main</code> was merged in</td><td class="ok">13 of 13 pass</td></tr>
+    <tr data-k="c11"><td>Insert with focus in the side pane</td><td>pair <code>side-pane</code>, added by CI's fix a9e7965: b.txt selected in the right pane, a click on the side pane, Insert</td><td class="no">not run here; CI runs it on that head</td></tr>
   </table>
   </div>
   </section>
@@ -306,11 +307,13 @@ explainers/
 
   <section class="sub" id="ci-review">
   <h3 class="sec">CI's code review</h3>
-  <p data-k="ci-summary">CI reviewed two pushes at level high and reports in this PR's <a href="https://github.com/alexhu98/thunar/pull/101#issuecomment-6812720439">code review comment</a>: 14 findings, R1 to R14; 10 fixed, 4 accepted.</p>
+  <p data-k="ci-summary">CI reviewed three pushes at level high and reports in this PR's <a href="https://github.com/alexhu98/thunar/pull/101#issuecomment-6812720439">code review comment</a>: 22 findings, R1 to R22; 12 fixed, 10 accepted.</p>
   <ul class="tight">
     <li data-k="ci1"><b>Round 1, on 9c80da1:</b> R1 to R8, none confirmed. Fixed: Insert acted whatever had focus (R1, medium), one refused file cancelled all (R2), the key was swallowed silently (R3), the menu item was active too often (R4), the refusal rules were duplicated (R5), the transfer duplicated <code>thunar_dnd_perform</code> (R6), and a new doc comment was removed (R7).</li>
     <li data-k="ci2"><b>Round 2, on ada247b:</b> R9 to R14. CI's own commit 41dde5f fixed three confirmed ones: the focus rule blocked the menu opened from the keyboard (R9, medium), the same folder in both panes refused everything (R10), and the menu item's state (R11).</li>
+    <li data-k="ci3"><b>Round 3, on 013825f:</b> R15 to R22, after <code>main</code> (#94) was merged in with no conflicts. CI's own commit a9e7965 fixed two confirmed ones: no test pressed Insert with focus outside the file view (R15, medium), now the side-pane step in <code>verify/95.sh</code>, and a hand-made parent-folder check, now GLib's <code>g_file_has_parent</code> (R17).</li>
   </ul>
+  <p data-k="ci-rule">R18 to R22 are low and unconfirmed, from a review after the first fix round, so they are accepted under the repo's rule for such findings.</p>
   <div class="table-wrap">
   <table>
     <tr><th>Accepted</th><th>Why</th></tr>
@@ -318,6 +321,12 @@ explainers/
     <tr data-k="x12"><td>R12, low, confirmed: Insert acts while typing in the file list's type-ahead search</td><td>Accepted by you: Delete and Backspace behave the same, and GTK 3 can't tell when that popup is open.</td></tr>
     <tr data-k="x13"><td>R13, low: the "inside a selected folder" refusal isn't in the shared check</td><td>Moving it there would change drag and drop, which must stay exactly as it was.</td></tr>
     <tr data-k="x14"><td>R14, low: the new public functions have no gtk-doc comments</td><td>The repo's rules forbid new explanatory comments.</td></tr>
+    <tr data-k="x16"><td>R16, low, confirmed: the "inside a selected folder" check compares path text, so a target reached through a symlink slips past it</td><td>Accepted by you: the move job then fails safely with its error dialog, as a drop does, which has no such check.</td></tr>
+    <tr data-k="x18"><td>R18, low: the focus rule tells a key from the menu by the current event</td><td>No realistic input gives a wrong answer.</td></tr>
+    <tr data-k="x19"><td>R19, low: Insert does nothing outside the file view while the menu item stays enabled</td><td>On purpose: the focus rule is for the key, the menu works from anywhere.</td></tr>
+    <tr data-k="x20"><td>R20, low: moved files aren't selected in the other pane</td><td>Selecting them would move focus there, against the issue; other non-drop transfers don't select either.</td></tr>
+    <tr data-k="x21"><td>R21, low: the menu item is always there, greyed out without split view</td><td>The issue asks for a disabled item; the separators around it are upstream's.</td></tr>
+    <tr data-k="x22"><td>R22, low: opening the Edit menu builds a list of the selected files</td><td>Negligible cost.</td></tr>
   </table>
   </div>
   </section>
@@ -410,6 +419,7 @@ explainers/
     <div data-k="typeahead"><dt>Type-ahead search</dt><dd>Typing in the file list to jump to a name; GTK shows a small search popup.</dd></div>
     <div data-k="dnd"><dt>thunar_dnd_perform</dt><dd>The function that carries out a drop: it starts the move, copy or link job.</dd></div>
     <div data-k="rid"><dt>R1, R2 …</dt><dd>The IDs CI's code review gives its findings, kept across rounds.</dd></div>
+    <div data-k="symlink"><dt>Symlink</dt><dd>A file that points to another file or folder, so one folder can have two paths.</dd></div>
     <div data-k="pair"><dt>Pair</dt><dd>A before and after screenshot around one action in a test.</dd></div>
   </dl>
   </section>
