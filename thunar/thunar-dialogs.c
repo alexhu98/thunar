@@ -437,16 +437,11 @@ thunar_dialogs_rename_start (ThunarFile                 *file,
                              ThunarDialogsRenameCallback callback,
                              gpointer                    user_data)
 {
-  ThunarJob *job;
-
   /* check if we have a new name here */
   if (text == NULL || g_strcmp0 (filename, text) == 0)
     return;
 
-  /* try to rename the file */
-  job = thunar_io_jobs_rename_file (file, text, log_mode);
-  exo_job_launch (EXO_JOB (job));
-  callback (job, file, screen, user_data);
+  callback (file, text, screen, log_mode, user_data);
 }
 
 
@@ -639,8 +634,7 @@ thunar_dialogs_rename_popover_is_open (gpointer parent)
  *              which case the default #GdkScreen will be used.
  * @file      : the #ThunarFile we're going to rename.
  * @log_mode  : a #ThunarOperationLogMode to control logging of the operation.
- * @callback  : called with the #ThunarJob when a rename starts; it takes the job's
- *              reference.
+ * @callback  : called with the new name to rename @file to.
  * @user_data : data passed to @callback.
  *
  * Asks the user for a new name for a single file. A rename dialog returns once it

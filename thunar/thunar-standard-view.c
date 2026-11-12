@@ -135,6 +135,8 @@ thunar_standard_view_rename_edited (GtkCellRenderer    *renderer,
 static void
 thunar_standard_view_rename_canceled (GtkCellRenderer    *renderer,
                                       ThunarStandardView *standard_view);
+static gboolean
+thunar_standard_view_rename_idle (gpointer user_data);
 static void
 thunar_standard_view_get_property (GObject    *object,
                                    guint       prop_id,
@@ -416,6 +418,8 @@ struct _ThunarStandardViewPrivate
 
   ThunarFile  *rename_file;
   GtkEntry    *rename_entry;
+  gchar       *rename_text;
+  gboolean     rename_escaped;
   guint        rename_idle_id;
 
   /* statusbar text is mutex protected, since filled by a dedicated ThunarJob */
@@ -1211,6 +1215,7 @@ thunar_standard_view_finalize (GObject *object)
   g_clear_handle_id (&standard_view->priv->rename_idle_id, g_source_remove);
   g_clear_object (&standard_view->priv->rename_file);
   g_clear_object (&standard_view->priv->rename_entry);
+  g_free (standard_view->priv->rename_text);
 
   /* release the reference on the name renderer */
   g_signal_handlers_disconnect_by_data (standard_view->name_renderer, standard_view);
@@ -5295,6 +5300,7 @@ thunar_standard_view_rename_finish (ThunarStandardView *standard_view,
   if (standard_view->priv->rename_entry != NULL)
     g_signal_handlers_disconnect_by_data (standard_view->priv->rename_entry, standard_view);
   g_clear_object (&standard_view->priv->rename_entry);
+  g_clear_pointer (&standard_view->priv->rename_text, g_free);
   if (file == NULL)
     return;
 
@@ -5341,6 +5347,18 @@ thunar_standard_view_rename_activate (GtkEntry           *entry,
 
 
 
+static gboolean
+thunar_standard_view_rename_key_pressed (GtkWidget          *entry,
+                                         GdkEventKey        *event,
+                                         ThunarStandardView *standard_view)
+{
+  if (event->keyval == GDK_KEY_Escape)
+    standard_view->priv->rename_escaped = TRUE;
+  return FALSE;
+}
+
+
+
 static void
 thunar_standard_view_rename_changed (GtkEntry           *entry,
                                      ThunarStandardView *standard_view)
@@ -5363,7 +5381,11 @@ thunar_standard_view_rename_started (GtkCellRenderer    *renderer,
 
   g_clear_object (&standard_view->priv->rename_entry);
   standard_view->priv->rename_entry = GTK_ENTRY (g_object_ref (editable));
+  standard_view->priv->rename_escaped = FALSE;
+  if (standard_view->priv->rename_text != NULL)
+    gtk_entry_set_text (standard_view->priv->rename_entry, standard_view->priv->rename_text);
 
+  g_signal_connect (editable, "key-press-event", G_CALLBACK (thunar_standard_view_rename_key_pressed), standard_view);
   g_signal_connect (editable, "activate", G_CALLBACK (thunar_standard_view_rename_activate), standard_view);
   g_signal_connect (editable, "changed", G_CALLBACK (thunar_standard_view_rename_changed), standard_view);
   g_signal_connect_data (editable, "grab-focus", G_CALLBACK (thunar_standard_view_rename_select), standard_view, NULL, G_CONNECT_SWAPPED | G_CONNECT_AFTER);
@@ -5387,11 +5409,29 @@ static void
 thunar_standard_view_rename_canceled (GtkCellRenderer    *renderer,
                                       ThunarStandardView *standard_view)
 {
-  gchar *text = NULL;
+  GtkEntry  *entry = standard_view->priv->rename_entry;
+  GtkWidget *toplevel;
+  gchar     *text = NULL;
 
-  if (standard_view->priv->rename_entry != NULL
-      && !gtk_widget_has_focus (GTK_WIDGET (standard_view->priv->rename_entry)))
-    text = g_strdup (gtk_entry_get_text (standard_view->priv->rename_entry));
+  toplevel = gtk_widget_get_toplevel (GTK_WIDGET (standard_view));
+  if (entry != NULL
+      && !standard_view->priv->rename_escaped
+      && !gtk_widget_in_destruction (GTK_WIDGET (standard_view))
+      && GTK_IS_WINDOW (toplevel)
+      && gtk_window_is_active (GTK_WINDOW (toplevel)))
+    {
+      text = g_strdup (gtk_entry_get_text (entry));
+      if (gtk_widget_has_focus (GTK_WIDGET (entry)))
+        {
+          g_signal_handlers_disconnect_by_data (entry, standard_view);
+          g_clear_object (&standard_view->priv->rename_entry);
+          g_free (standard_view->priv->rename_text);
+          standard_view->priv->rename_text = text;
+          if (standard_view->priv->rename_idle_id == 0)
+            standard_view->priv->rename_idle_id = g_idle_add_full (G_PRIORITY_LOW, thunar_standard_view_rename_idle, standard_view, NULL);
+          return;
+        }
+    }
   thunar_standard_view_rename_finish (standard_view, text);
   g_free (text);
 }
@@ -5438,13 +5478,19 @@ thunar_standard_view_rename_idle (gpointer user_data)
   if (standard_view->priv->rename_entry == NULL)
     {
       file = g_steal_pointer (&standard_view->priv->rename_file);
-      if (file != NULL)
+      if (file != NULL
+          && standard_view->priv->rename_text == NULL
+          && gtk_widget_get_mapped (GTK_WIDGET (standard_view))
+          && standard_view->priv->current_directory != NULL
+          && thunar_file_is_parent (standard_view->priv->current_directory, file))
         {
           application = thunar_application_get ();
           thunar_application_rename_file (application, file, standard_view, NULL, THUNAR_OPERATION_LOG_OPERATIONS);
           g_object_unref (application);
-          g_object_unref (file);
         }
+      g_clear_pointer (&standard_view->priv->rename_text, g_free);
+      if (file != NULL)
+        g_object_unref (file);
     }
 
   return G_SOURCE_REMOVE;
@@ -5465,8 +5511,7 @@ thunar_standard_view_rename_idle (gpointer user_data)
  *
  * Return value: %TRUE if editing was queued or is in progress,
  *               %FALSE if @file is not shown in this view, or the view is
- *               not a #ThunarDetailsView: #ExoIconView places the entry
- *               wrongly once the view is scrolled.
+ *               not a #ThunarDetailsView.
  **/
 gboolean
 thunar_standard_view_rename_in_place (ThunarStandardView *standard_view,
