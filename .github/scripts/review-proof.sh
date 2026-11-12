@@ -7,7 +7,11 @@
 #            top of the last reviewed one, or only explainers/ changed since the last reviewed commit, and writes the diff (for a release merge, only the fork's side), the issue, the open
 #            findings with the commits since each was found, the accepted findings and the prompt to $OUT. Prints its decisions as key=value lines for $GITHUB_OUTPUT.
 #   collect  after the review: saves the findings ($FINDINGS, the action's structured_output) and the working-tree
-#            fix as a patch, for the report job.
+#            fix as a patch, for the report job. Fails, saying why in collect-error.txt, when an open finding got no
+#            entry in previous, a finding or entry is not marked checked, or the execution log ($EXEC_LOG, default
+#            $RUNNER_TEMP/claude-execution-output.json) is missing or unreadable, shows an Agent call whose report came
+#            after the reviewer's last StructuredOutput call (or the result, without one), or shows fewer Agent calls than
+#            findings and open findings to check.
 #   report   as the review job's last step, without the push token, when the review left no fix to push. Otherwise, or when
 #            that step didn't write the review comment, in the separate review-report job holding the push token, which
 #            commits and pushes the fix (if any) as claude[bot]. Either way posts the other
@@ -38,7 +42,7 @@ print(m.group(1) if m else "{}")'
 
 schema() {
   cat <<'EOF'
-{"type":"object","required":["findings","previous"],"properties":{"findings":{"type":"array","items":{"type":"object","required":["file","line","severity","summary","failure_scenario","verdict","fixed"],"properties":{"file":{"type":"string","description":"repo-relative path"},"line":{"type":"integer","description":"line in the file at HEAD; the last line of the range when start_line is set"},"start_line":{"type":"integer","description":"first line of a multi-line range, if any"},"files":{"type":"array","items":{"type":"string"},"description":"every repo-relative file the fix changed, when it changed more than file"},"severity":{"type":"string","enum":["high","medium","low"]},"summary":{"type":"string","description":"one sentence"},"failure_scenario":{"type":"string","description":"concrete inputs or state -> wrong output or crash"},"verdict":{"type":"string","enum":["CONFIRMED","PLAUSIBLE"],"description":"CONFIRMED only if a verify pass confirmed it"},"fixed":{"type":"boolean","description":"true only if the fix is in the working tree now"},"suggestion":{"type":"string","description":"the exact replacement text for lines start_line..line (or line), without code fences; omit when the fix is not confined to those lines"},"reason":{"type":"string","description":"why it was not fixed, when fixed is false"}}}},"previous":{"type":"array","items":{"type":"object","required":["id","resolved"],"properties":{"id":{"type":"string"},"resolved":{"type":"boolean"},"fixed":{"type":"boolean","description":"auto-fix only: true if you fixed it in the working tree in this review"},"file":{"type":"string","description":"its file, when fixed"},"files":{"type":"array","items":{"type":"string"},"description":"every file its fix changed, when more than file"},"line":{"type":"integer","description":"when fixed, its line at HEAD; the last line of the range when start_line is set"},"start_line":{"type":"integer","description":"first line of a multi-line range, if any"},"suggestion":{"type":"string","description":"when fixed, the exact replacement text for lines start_line..line (or line), without code fences; omit when the fix is not confined to those lines"},"note":{"type":"string"}}}}}}
+{"type":"object","required":["findings","previous"],"properties":{"findings":{"type":"array","items":{"type":"object","required":["file","line","severity","summary","failure_scenario","verdict","fixed","checked"],"properties":{"file":{"type":"string","description":"repo-relative path"},"line":{"type":"integer","description":"line in the file at HEAD; the last line of the range when start_line is set"},"start_line":{"type":"integer","description":"first line of a multi-line range, if any"},"files":{"type":"array","items":{"type":"string"},"description":"every repo-relative file the fix changed, when it changed more than file"},"severity":{"type":"string","enum":["high","medium","low"]},"summary":{"type":"string","description":"one sentence"},"failure_scenario":{"type":"string","description":"concrete inputs or state -> wrong output or crash"},"verdict":{"type":"string","enum":["CONFIRMED","PLAUSIBLE"],"description":"CONFIRMED only if a verify pass confirmed it"},"fixed":{"type":"boolean","description":"true only if the fix is in the working tree now"},"checked":{"type":"boolean","description":"true only if its step 2 agent reported before you returned"},"suggestion":{"type":"string","description":"the exact replacement text for lines start_line..line (or line), without code fences; omit when the fix is not confined to those lines"},"reason":{"type":"string","description":"why it was not fixed, when fixed is false"}}}},"previous":{"type":"array","items":{"type":"object","required":["id","resolved","checked"],"properties":{"id":{"type":"string"},"checked":{"type":"boolean","description":"true only if its step 4 agent reported before you returned"},"resolved":{"type":"boolean"},"fixed":{"type":"boolean","description":"auto-fix only: true if you fixed it in the working tree in this review"},"file":{"type":"string","description":"its file, when fixed"},"files":{"type":"array","items":{"type":"string"},"description":"every file its fix changed, when more than file"},"line":{"type":"integer","description":"when fixed, its line at HEAD; the last line of the range when start_line is set"},"start_line":{"type":"integer","description":"first line of a multi-line range, if any"},"suggestion":{"type":"string","description":"when fixed, the exact replacement text for lines start_line..line (or line), without code fences; omit when the fix is not confined to those lines"},"note":{"type":"string"}}}}}}
 EOF
 }
 
@@ -272,9 +276,12 @@ history from the session that wrote it.
 
 1. Use the Skill tool to run the code-review skill with args "$LEVEL $target".
 2. Verify every finding it reports: give each, with its file, line, claim and failure scenario, to a fresh
-   general-purpose Agent (all at once, in parallel) that tries to disprove it against the code at HEAD, read with
+   general-purpose Agent that tries to disprove it against the code at HEAD, read with
    \`git show HEAD:<path>\` because the working tree's CLAUDE.md and .claude/ are the base branch's, and that changes
-   no files. The verdict is CONFIRMED only if that agent confirms the failure scenario; otherwise PLAUSIBLE.
+   no files. Start these agents and the step 4 agents all at once, in parallel, in one message, each with
+   run_in_background: false, so that their results come back before you go on. Don't go on to step 3 until every
+   one of them has reported. The verdict is CONFIRMED only if that agent confirms the failure scenario; otherwise
+   PLAUSIBLE.
 EOF
   if [[ $1 == auto-fix ]]; then
     cat <<EOF
@@ -296,25 +303,71 @@ EOF
   cat <<EOF
 4. $OUT/open.json lists findings from earlier reviews that are still open, each with commits_since: the branch's own
    commits since it was found, without merges, or null when its commit is no longer in the history. This step is not
-   limited to the diff under review: give each open finding to one fresh general-purpose Agent (all at once, in
-   parallel), as in step 2, that reads with \`git show HEAD:<path>\` the finding's file and the code its claim
+   limited to the diff under review: give each open finding to one fresh general-purpose Agent, started in step 2
+   together with the step 2 agents. Each reads with \`git show HEAD:<path>\` the finding's file and the code its claim
    depends on, looks at the commits in commits_since, which may have fixed it in another file, and decides from the
    code at HEAD alone whether it is resolved. "Not changed in this diff" is never a reason to keep a finding open.
    Report in previous whether each is resolved, by its id, with a note naming the code at HEAD that resolves it or
    still shows it. If you fixed it in step 3, set fixed to true, resolved to false, and give its file, files if the
    fix changed more, and its line, start_line and suggestion as in step 3.
-5. Return the findings and previous in the output schema. Report every finding the skill reported, except one
+5. Return the findings and previous in the output schema only after every step 2 and step 4 agent has reported,
+   with an entry in previous for every id in open.json. Set checked to true on each finding and previous entry
+   whose agent reported, and to false on any whose agent didn't. Report every finding the skill reported, except one
    already listed in open.json: report that one only in previous. Leave out any finding that matches one in
    $OUT/accepted.json: the PR's author kept those on purpose.
 EOF
 }
 
+agent_log() {
+  jq -r 'def txt: if type == "string" then . elif type == "array" then map(.text? // "") | join("\n") else "" end;
+    . as $m
+    | ([range(length) | select($m[.].type == "result")] | last) as $result
+    | if $result == null then error("no result message") else . end
+    | ([range($result) | select($m[.].type == "assistant" and $m[.].parent_tool_use_id == null
+        and any($m[.].message.content[]?; .type == "tool_use" and .name == "StructuredOutput"))] | last // $result) as $end
+    | $m[:$end + 1] as $pre
+    | [$pre[] | select(.type == "assistant" and .parent_tool_use_id == null) | .message.content[]?
+        | select(.type == "tool_use" and (.name == "Agent" or .name == "Task"))] as $calls
+    | [$pre[] | select(.type == "user" and .parent_tool_use_id == null) | .message.content | arrays | .[]
+        | select(.type == "tool_result") | {id: .tool_use_id, t: (.content | txt)}] as $res
+    | [$pre[] | select(.type == "user") | .message.content | txt | split("<task-notification>")[1:][]] as $notes
+    | [$calls[] | .id as $id | ([$res[] | select(.id == $id)] | first) as $r
+        | {id: $id, r: $r, bg: ($r != null and ($r.t | startswith("Async agent launched")))}] as $per
+    | [$per[] | select(.r == null or (.bg and ((.r.t | capture("agentId: *(?<a>[A-Za-z0-9_-]+)").a // "") as $a
+        | $a == "" or (any($notes[]; contains("<task-id>\($a)</task-id>") and contains("<status>completed</status>")) | not))))] as $late
+    | "\($calls | length) \([$per[] | select(.bg)] | length) \($late | length)"' "$1"
+}
+
 collect() {
   printf '%s' "${FINDINGS:-}" | jq -e 'has("findings")' > /dev/null || { echo "::error::the review returned no findings object" >&2; exit 1; }
-  printf '%s' "$FINDINGS" | jq . > "$OUT/findings.json"
+  printf '%s' "$FINDINGS" | jq '.previous[]?.id |= (if type == "string" then ascii_upcase | gsub("\\s"; "") else . end)' > "$OUT/findings.json"
   git add -A
   git diff --cached --binary HEAD -- . "${NOT_IN_FIX[@]}" > "$OUT/fix.patch"
   git reset -q
+  local missing unchecked err=
+  missing=$(jq -r --slurpfile f "$OUT/findings.json" '[.[].id] - [$f[0].previous[]?.id] | join(", ")' "$OUT/open.json")
+  unchecked=$(jq -r --slurpfile o "$OUT/open.json" '[(.findings // [])[], ((.previous // [])[] | select(IN(.id; $o[0][].id)))
+    | select(.checked != true)]
+    | length' "$OUT/findings.json")
+  [[ -z $missing ]] || err="it returned no result for open finding(s) $missing"
+  (( unchecked == 0 )) || err+="${err:+, and }it returned before the checking agents of $unchecked finding(s) reported"
+  local log=${EXEC_LOG:-${RUNNER_TEMP:-}/claude-execution-output.json} counts calls background late needed
+  if [[ ! -s $log ]]; then
+    err+="${err:+, and }it left no execution log at $log to check its agents against"
+  elif ! counts=$(agent_log "$log"); then
+    err+="${err:+, and }its execution log at $log could not be read"
+  else
+    read -r calls background late <<< "$counts"
+    echo "execution log: $calls agent calls, $background in the background, $late not reported before its output" >&2
+    (( late == 0 )) || err+="${err:+, and }the execution log shows $late of its $calls agents not reported before it returned"
+    needed=$(jq --slurpfile o "$OUT/open.json" '(.findings // [] | length) + ($o[0] | length)' "$OUT/findings.json")
+    (( calls >= needed )) || err+="${err:+, and }the execution log shows $calls agents for its $needed findings to check"
+  fi
+  if [[ -n $err ]]; then
+    printf '%s\n' "$err" > "$OUT/collect-error.txt"
+    echo "::error::the review is not recorded: $err; re-run the review job" >&2
+    exit 1
+  fi
   echo "$(jq '.findings | length' "$OUT/findings.json") findings; fix patch: $([[ -s $OUT/fix.patch ]] && git apply --numstat "$OUT/fix.patch" | wc -l || echo 0) files" >&2
 }
 
@@ -374,7 +427,11 @@ report() {
       result=unreviewed
     fi
   elif [[ $result != success ]]; then
-    note="The review job for \`${HEAD_SHA::12}\` did not finish ($result); its findings are not recorded."
+    if [[ -s $IN/collect-error.txt ]]; then
+      note="The review of \`${HEAD_SHA::12}\` is not recorded: $(< "$IN/collect-error.txt"). Re-run the review job${RUN_URL:+ ([run]($RUN_URL))}."
+    else
+      note="The review job for \`${HEAD_SHA::12}\` did not finish ($result); its findings are not recorded."
+    fi
     result=failure
   elif [[ ! -s $IN/findings.json ]]; then
     note="The review of \`${HEAD_SHA::12}\` returned no findings object, so its findings are not recorded."
