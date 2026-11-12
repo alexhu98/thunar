@@ -203,7 +203,7 @@
     <li data-k="1"><b>F2 or Rename….</b> In <code>thunar-action-manager.c</code>, a rename of one file first checks the <code>misc-rename-in-place</code> preference, that the file isn't a <code>.desktop</code> launcher, and that the current view is the details view; then it calls the new <code>thunar_standard_view_rename_in_place</code>.</li>
     <li data-k="2"><b>Scroll into view.</b> If the file's row isn't on screen, the view scrolls to it at once, as #15's popover does. Editing then starts in a low-priority idle callback, after the scroll has been drawn, so the entry lands on the row and not where it used to be.</li>
     <li data-k="3"><b>Entry in Name.</b> The name cell is made editable just for this call and GTK opens a text entry in it. The entry goes in the Name column wherever it is, not in the first column. The name is selected without its extension (all of it for a folder), with the same function as the dialog.</li>
-    <li data-k="4"><b>Enter renames.</b> Enter, or a click elsewhere in the window, renames through <code>thunar_application_rename_file_start</code>: the one function the dialog, the popover and the in-place rename now share, so Ctrl+Z, the operation log and the "Failed to rename" error dialog work as before. Escape, closing the tab or switching to another window cancels. An empty name, one with <code>/</code>, or one longer than 255 bytes keeps the entry open with an error icon.</li>
+    <li data-k="4"><b>Enter renames.</b> Enter, or a click elsewhere in the window, renames through <code>thunar_application_rename_file_start</code>: the one function the dialog, the popover and the in-place rename now share, so Ctrl+Z, the operation log and the "Failed to rename" error dialog work as before. Escape or closing the tab cancels; switching to another window leaves the entry open with the typed text. An empty name, one with <code>/</code>, or one longer than 255 bytes keeps the entry open with an error icon.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Everything else — as before</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
@@ -219,12 +219,13 @@
   <table>
     <tr><th>You do</th><th>What happens</th></tr>
     <tr data-k="k1"><td>Type a new name, press Enter</td><td>The file is renamed; Ctrl+Z renames it back.</td></tr>
-    <tr data-k="k2"><td>Click elsewhere in the window</td><td>Renames too, like Enter.</td></tr>
+    <tr data-k="k2"><td>Click elsewhere in the window</td><td>Renames too, like Enter. With an invalid name, the entry stays open with the error instead.</td></tr>
     <tr data-k="k3"><td>Press Escape</td><td>Nothing is renamed; the old name comes back.</td></tr>
     <tr data-k="k4"><td>Enter on an empty name, one with <code>/</code>, or one longer than 255 bytes</td><td>The entry stays open with a red error icon; nothing is renamed.</td></tr>
     <tr data-k="k5"><td>Enter on a name that's taken</td><td>Thunar's "Failed to rename" dialog; the old name stays.</td></tr>
-    <tr data-k="k6"><td>GTK closes the entry itself (the row changes or is re-sorted)</td><td>Editing starts again on that row, with what you typed kept.</td></tr>
-    <tr data-k="k7"><td>Switch window (Alt+Tab) or close the tab</td><td>Treated like Escape: a half-typed name is never saved.</td></tr>
+    <tr data-k="k6"><td>GTK closes the entry itself (the row changes or is re-sorted)</td><td>Editing starts again on that row, with what you typed and its selection kept.</td></tr>
+    <tr data-k="k7"><td>Switch window (Alt+Tab), or a progress or error dialog opens</td><td>The entry stays open with what you typed; nothing is renamed until you confirm.</td></tr>
+    <tr data-k="k8"><td>Close the tab</td><td>Treated like Escape: a half-typed name is never saved.</td></tr>
   </table>
   </div>
   </section>
@@ -262,7 +263,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container, before CI's review. CI's first review found 8 findings; all are fixed, the last two pending CI's next run.</p>
+  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container, before CI's review. CI's two reviews found 17 findings: 13 are fixed and 4 low ones accepted; the newest fixes wait for CI's next run.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good pieces</h3>
@@ -288,7 +289,7 @@ explainers/
     <tr data-k="c7"><td>#15 and #96 still pass</td><td><code>verify/15.sh</code> (now with the preference off) and <code>verify/96.sh</code> (F2 on a new folder) at 2f43ed4</td><td class="ok">2 of 2 pass</td></tr>
     <tr data-k="c8"><td>The other tests</td><td>All 17 tests at the first commit, 67cb170; only 16.sh failed, because it selected the wrong row, fixed by clicking the first row. Not re-run after the later fixes</td><td class="no">16 of 17, first commit only</td></tr>
     <tr data-k="c9"><td>Screenshots look right</td><td>The shot-auditor read the second run's shots and found two problems, both fixed: the entry drawn at a stale spot after a scroll, and ExoIconView's misplaced, clipped entry</td><td class="open">final run: audited after CI's run</td></tr>
-    <tr data-k="c10"><td>CI's review fixes</td><td>R1–R6 (CI's commit d9fa615) and R7–R8 (the building session's next push): not built or tested locally</td><td class="no">not run here; pending the next CI run</td></tr>
+    <tr data-k="c10"><td>CI's review fixes</td><td>R1–R6 (CI's d9fa615), R7–R8 (3c577ce), R9–R11 and R13 (CI's 35198ee) and R12 (55f91a2): not built or tested locally</td><td class="no">not run here; R12 and 35198ee wait for the next CI run</td></tr>
   </table>
   </div>
   </section>
@@ -304,7 +305,7 @@ explainers/
     <li data-k="b5"><b>Left as is:</b> Ctrl+Z while typing runs Thunar's file undo, as it does in #15's popover; that's outside this issue.</li>
     <li data-k="b6"><b>Answered:</b> the missing explainer is this page.</li>
   </ul>
-  <p data-k="ci">Then CI reviewed the first push, head 60d59c5, in run 43293478571 (Opus at high, 12 minutes): 8 findings. CI fixed R1–R6 in its own commit, d9fa615; the building session fixed R7 and R8 in the next push, which CI hasn't built or run yet.</p>
+  <p data-k="ci">Then CI reviewed the first push, head 60d59c5, in run 43293478571 (Opus at high, 12 minutes): 8 findings. CI fixed R1–R6 in its own commit, d9fa615; the building session fixed R7 and R8 in 3c577ce.</p>
   <ul class="tight">
     <li data-k="R1"><b>R1, medium, fixed by CI:</b> switching window (Alt+Tab) or closing the tab mid-edit saved a half-typed name. Now only a click elsewhere in the active window renames; Escape, closing the tab and leaving the window don't.</li>
     <li data-k="R2"><b>R2, medium, fixed by CI:</b> when GTK cancelled the edit itself, because the row changed or was re-sorted, the typed name was silently dropped. Editing now restarts on the row with the typed text kept.</li>
@@ -312,8 +313,27 @@ explainers/
     <li data-k="R4"><b>R4, low, fixed by CI:</b> the details view's scroll still used the first column; now the Name column.</li>
     <li data-k="R5"><b>R5, low, fixed by CI:</b> the rename job's create-and-launch steps were written twice; the dialog, the popover and the in-place rename now share <code>thunar_application_rename_file_start</code>.</li>
     <li data-k="R6"><b>R6, low, fixed by CI:</b> an explanatory reason in a doc comment, removed.</li>
-    <li data-k="R7"><b>R7, low, fixed in the next push:</b> the pending rename idle is now removed when the view is disposed, beside the drag timers.</li>
-    <li data-k="R8"><b>R8, low, fixed in the next push:</b> a name longer than 255 bytes now keeps the entry open with an error, like an empty name; the dialog's filename box refuses it too. This replaces the local review's "left as is" on length.</li>
+    <li data-k="R7"><b>R7, low, fixed in 3c577ce:</b> the pending rename idle is now removed when the view is disposed, beside the drag timers.</li>
+    <li data-k="R8"><b>R8, low, fixed in 3c577ce:</b> a name longer than 255 bytes now keeps the entry open with an error, like an empty name; the dialog's filename box refuses it too. This replaces the local review's "left as is" on length.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="review2">
+  <h3 class="sec">CI's second review</h3>
+  <p data-k="ci2">CI reviewed head 386f308, with the R7 and R8 fixes, in run 43295943834 (Opus at high, 10 minutes): 9 new findings, R9–R17. CI fixed four in its commit 35198ee and the building session fixed R12 in 55f91a2. Neither has been built or run locally; they wait for CI's next run.</p>
+  <ul class="tight">
+    <li data-k="R9"><b>R9, medium, fixed by CI:</b> closing a tab mid-edit could still save a half-typed name.</li>
+    <li data-k="R10"><b>R10, medium, fixed by CI:</b> when editing restarted after GTK cancelled it, the restored text was all selected, so the next key replaced it. The selection is now restored too.</li>
+    <li data-k="R11"><b>R11, low, fixed by CI:</b> the popover fallback skipped files in expanded subfolders.</li>
+    <li data-k="R12"><b>R12, medium, fixed in 55f91a2:</b> requiring an active window threw the typed name away whenever the window deactivated, on Alt+Tab or when a progress or error dialog opened. Now, if the entry still has the window's focus, editing restarts with the typed text kept, and nothing is renamed until you confirm. So Alt+Tab neither saves the name (R1) nor drops it (R12).</li>
+    <li data-k="R13"><b>R13, medium, fixed by CI:</b> a click elsewhere silently dropped an invalid name. Editing now restarts so the inline error can show.</li>
+  </ul>
+  <p data-k="acc">Four low findings, not confirmed and from a later review, are accepted rather than fixed, as this repo's CI review rules allow:</p>
+  <ul class="tight">
+    <li data-k="R14"><b>R14, accepted:</b> typed text could be dropped if editing can't restart. The verifier found this can't happen: a reload never marks the details view as loading.</li>
+    <li data-k="R15"><b>R15, accepted:</b> the view now scrolls to the Name column for every caller. The old code scrolled to the first column, which is Name unless you moved another column first, and Name is the right target.</li>
+    <li data-k="R16"><b>R16, accepted:</b> the entry's name check repeats the dialog's filename box check. libxfce4ui has no public way to check a name on its own.</li>
+    <li data-k="R17"><b>R17, accepted:</b> the rename idle repeats a "still on screen" check. Disproved: the two checks guard different branches.</li>
   </ul>
   </section>
 
@@ -322,8 +342,8 @@ explainers/
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI's build, smoke test and all verify scripts with R1–R8 fixed</td><td>The R7 and R8 fixes are in a push CI hasn't run yet</td><td class="open">next CI run</td></tr>
-    <tr data-k="a2"><td>CI's review of the R7 and R8 fixes</td><td>Runs on each code push to the PR</td><td class="open">next CI run</td></tr>
+    <tr data-k="a1"><td>CI's build, smoke test and all verify scripts with R12 and the 35198ee fixes</td><td>Those fixes are in pushes CI hasn't run yet</td><td class="open">next CI run</td></tr>
+    <tr data-k="a2"><td>CI's review of the R12 fix</td><td>Runs on each code push to the PR</td><td class="open">next CI run</td></tr>
     <tr data-k="a3"><td>Audit of CI's screenshots (<code>/visual-verify</code>)</td><td>Needs CI's shots on the shots branch</td><td class="open">after CI's run</td></tr>
     <tr data-k="a4"><td>Daily use on your desktop</td><td>The package reaches your machine only after the merge</td><td class="open">after the merge</td></tr>
   </table>
@@ -336,6 +356,7 @@ explainers/
     <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/16">#16 Rename files in place (inline), like Nemo</a></li>
     <li data-k="l2">The PR: <a href="https://github.com/alexhu98/thunar/pull/114">#114</a>. Its verify comment shows every screenshot from <code>verify/16.sh</code>, before and after.</li>
     <li data-k="l4">CI's first run, with its code review: <a href="https://github.com/alexhu98/thunar/actions/runs/43293478571">run 43293478571</a></li>
+    <li data-k="l5">CI's second run, with its second review: <a href="https://github.com/alexhu98/thunar/actions/runs/43295943834">run 43295943834</a></li>
     <li data-k="l3">After the merge: select a file in the details view and press F2.</li>
   </ul>
   </section>
