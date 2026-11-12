@@ -383,6 +383,7 @@ jobs:
             ${{ runner.temp }}/review/plan.json
             ${{ runner.temp }}/review/findings.json
             ${{ runner.temp }}/review/fix.patch
+            ${{ runner.temp }}/review/collect-error.txt
             ${{ runner.temp }}/claude-execution-output.json
           if-no-files-found: ignore
           overwrite: true
