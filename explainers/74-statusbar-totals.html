@@ -294,13 +294,13 @@ explainers/74-statusbar-totals.narration.json  # its narration</pre>
     <tr data-k="c4"><td>Test 74's shot names</td><td>An earlier run named the four single shots after-…, so the job looked for their before shots; renamed to status-search, status-bytes-on, status-trash and status-rapid</td><td class="no">failed, then fixed</td></tr>
     <tr data-k="c7"><td>Test 74 selects the right rows</td><td>A second run passed, but its shot audit found the rows selected one off: keyboard selection depended on where the cursor was. Fixed with Ctrl+A, Home, Down</td><td class="no">audit failed, then fixed</td></tr>
     <tr data-k="c9"><td>CI builds the final code</td><td>CI's build job on 61b8566b, after main (#91) was merged in (b55bd798, no conflicts). It failed twice on CI's own infrastructure (the Zorin PPA step, then the artifact upload) and passed on re-run</td><td class="ok">built on re-run</td></tr>
-    <tr data-k="c10"><td>CI's tests on the final code</td><td>CI's verify job on 61b8566b: smoke test and every verify script, each under its own Xvfb</td><td class="ok">10 of 10 pass</td></tr>
+    <tr data-k="c10"><td>CI's tests on the latest code</td><td>CI's verify job on 8997f2d1, before main (#92) was merged in: smoke test and every verify script, each under its own Xvfb</td><td class="ok">11 of 11 pass</td></tr>
     <tr data-k="c8"><td>CI's shots show what they claim</td><td><code>/visual-verify pr:94</code> on CI's shots of 61b8566b, including shot 64, the trash, with the whole status text visible. An earlier audit, on efbb06d, failed on that shot (text cut off at the window edge); ec7e26c7 fixed it</td><td class="ok">PASS: 111 shots OK</td></tr>
     <tr data-k="c5"><td>The status bar text in each shot</td><td>The test doesn't read the text; the shot-auditor agent read it from that run's screenshots, e.g. <code>"a.bin" | 1.0 MiB | Unknown | Total: 1 folder, 3 files: 6.0 MiB | Free space: 29.5 GiB</code>, the search <code>3 files found: 6.0 MiB | Free space: 29.5 GiB</code>, and no Free space part in the trash</td><td class="ok">PASS: 10 of 10 shots, 3 pairs OK</td></tr>
     <tr data-k="c6"><td>Your own session</td><td>Needs your machine and your settings</td><td class="no">not run</td></tr>
   </table>
   </div>
-  <div class="note" data-k="code-after">The local rows above ran on earlier code and an earlier verify/74.sh. The CI rows ran on 61b8566b, the code after every review fix.</div>
+  <div class="note" data-k="code-after">The local rows above ran on earlier code and an earlier verify/74.sh. The CI build and shot audit ran on 61b8566b, and CI's latest verify on 8997f2d1.</div>
   </section>
 
   <section class="sub" id="review">
@@ -331,12 +331,14 @@ explainers/74-statusbar-totals.narration.json  # its narration</pre>
         <li><b>R23:</b> a 1270 px window plus its frame borders only just fits the screen.</li>
         <li><b>R24:</b> the window moves to 0,0 only before the trash shot.</li>
       </ul></li>
-    <li data-k="ci6"><b>After main (#91) was merged in:</b> CI's review of the merge found R25 to R31.
+    <li data-k="ci6"><b>After main (#91), then main (#92), was merged in:</b> CI's reviews found R25 to R34.
       <ul class="tight">
         <li><b>R25 (medium), fixed by CI's commit 61b8566b:</b> a running status bar job held the view, so closing a tab didn't cancel its folder scan.</li>
         <li><b>R26 (low), fixed in 61b8566b:</b> a doc comment was missing <code>@cancellable</code>.</li>
         <li><b>R27 (low, confirmed), accepted by you:</b> with one file selected, its text shows at once and Total and Free space follow, so it changes twice. The issue offered exactly this; the alternative leaves the previous file's text up meanwhile.</li>
         <li><b>R28 to R31, accepted as unconfirmed lows:</b> the search size walk, hidden files in Total matching the nothing-selected text, an unreachable no-file guard, and a size helper still used by dialogs.</li>
+        <li><b>R32 (medium, plausible), accepted by you:</b> a view closed without being destroyed stays in memory until its status bar job finishes. Upstream Thunar keeps the view alive the same way, releasing its reference when the job finishes.</li>
+        <li><b>R33 and R34 (low, plausible), accepted under the later-review rule:</b> dispose leaves the selection-changed timeout pending, and finalize repeats dispose's cleanup.</li>
       </ul></li>
   </ul>
   </section>
