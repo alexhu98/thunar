@@ -64,8 +64,18 @@ keys() {
   sleep 0.5
 }
 
+click_first_row() {
+  focus "$MAIN"
+  xdotool mousemove --window "$MAIN" "$NAME_X" "$ROW0"
+  sleep 0.3
+  xdotool click 1
+  sleep 0.5
+  xdotool mousemove --window "$MAIN" 500 560
+}
+
 second_row() {
-  keys Home Down
+  click_first_row
+  keys Down
 }
 
 f2() {
@@ -166,23 +176,23 @@ xdotool type --delay 20 moved.pdf
 xdotool key Return
 exists "$DIR/moved.pdf" "renaming with the Name column second"
 xfconf-query -c thunar -p /last-details-view-column-order -r
+sleep 0.5
+click_first_row
 
 keys ctrl+1
 sleep 0.5
-keys Home
 f2
 no_window '^Rename ' "F2 in the icon view"
-shot "$MAIN" icon-view "In the icon view, F2 turned alpha.txt's label into an entry under its icon, with 'alpha' selected"
+shot "$MAIN" icon-view "In the icon view, with alpha.txt still selected from the details view, F2 turned alpha.txt's label into an entry under its icon, with 'alpha' selected"
 xdotool type --delay 20 icon-renamed
 xdotool key Return
 exists "$DIR/icon-renamed.txt" "renaming alpha.txt in the icon view"
 
 keys ctrl+3
 sleep 0.5
-keys Home
 f2
 no_window '^Rename ' "F2 in the compact view"
-shot "$MAIN" compact-view "In the compact view, F2 turned icon-renamed.txt's label into an entry beside its icon, with 'icon-renamed' selected"
+shot "$MAIN" compact-view "In the compact view, with icon-renamed.txt still selected, F2 turned icon-renamed.txt's label into an entry beside its icon, with 'icon-renamed' selected"
 xdotool type --delay 20 compact-renamed
 xdotool key Return
 exists "$DIR/compact-renamed.txt" "renaming icon-renamed.txt in the compact view"
@@ -207,7 +217,7 @@ xdotool type --delay 5 "$APPS"
 xdotool key Return
 wait_title "$MAIN" apps
 sleep 0.5
-keys Home
+click_first_row
 f2
 Q=$(find_window '^Rename Launcher Options$') || fail "F2 on launcher.desktop did not ask whether to rename the launcher or the file"
 shot root launcher-question "F2 on launcher.desktop still asks Rename Launcher Options in a dialog instead of editing in place"
