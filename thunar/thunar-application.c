@@ -800,6 +800,7 @@ thunar_application_tabs_done (ThunarApplicationTabs *tabs)
     {
       window = thunar_application_open_window_full (tabs->application, left->data, NULL, NULL, TRUE, tabs->window_options);
       thunar_window_open_pane_tabs (THUNAR_WINDOW (window), left, right);
+      gtk_widget_show (window);
     }
 
   thunar_g_list_free_full (left);
@@ -2107,9 +2108,8 @@ thunar_application_open_window_full (ThunarApplication              *application
 
   if (window_options != NULL)
     thunar_application_apply_window_options (window_options, GTK_WINDOW (window));
-
-  /* show the new window */
-  gtk_widget_show (window);
+  else
+    gtk_widget_show (window);
 
   /* change the directory */
   if (directory != NULL)
@@ -2329,7 +2329,9 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
         }
       else if (thunar_file_is_directory (file))
         {
-          thunar_application_open_window_full (application, file, screen, startup_id, application->force_new_window, window_options);
+          GtkWidget *window = thunar_application_open_window_full (application, file, screen, startup_id, application->force_new_window, window_options);
+
+          gtk_widget_show (window);
         }
       else
         {
@@ -2348,6 +2350,7 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
               files = g_list_append (files, thunar_file_get_file (file));
               thunar_window_show_and_select_files (THUNAR_WINDOW (window), files);
               g_list_free (files);
+              gtk_widget_show (window);
             }
         }
 

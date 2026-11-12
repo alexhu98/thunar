@@ -74,6 +74,12 @@ geom "$WID"
 near "$FX" 18 22 "thunar -g +20+30: the frame's x"
 near "$FY" 28 32 "thunar -g +20+30: the frame's y"
 
+open_thunar -g 500x400+60+60 -t "$WORK/alpha" -T "$WORK/beta"
+wait_title "$WID" alpha
+sleep 1
+geom "$WID"
+(( GW >= 500 && GH >= 400 )) || fail "thunar -g 500x400 -t alpha -T beta opened a ${GW}x${GH} window"
+
 sleep 2
 [[ $(remembered) == "$WIDTH_BEFORE" ]] || fail "/last-window-width changed from $WIDTH_BEFORE to $(remembered) after --geometry"
 
