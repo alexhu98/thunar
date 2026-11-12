@@ -2119,6 +2119,8 @@ thunar_shortcuts_model_iter_for_file (ThunarShortcutsModel *model,
   for (lp = model->shortcuts; lp != NULL; lp = lp->next)
     {
       shortcut = lp->data;
+      if (shortcut->hidden)
+        continue;
 
       /* check if we have a location that matches */
       if (shortcut->file == file)
