@@ -8,7 +8,8 @@
 #            findings with the commits since each was found, the accepted findings and the prompt to $OUT. Prints its decisions as key=value lines for $GITHUB_OUTPUT.
 #   collect  after the review: saves the findings ($FINDINGS, the action's structured_output) and the working-tree
 #            fix as a patch, for the report job. Fails, saying why in collect-error.txt, when an open finding got no
-#            entry in previous, or a finding or entry is not marked checked.
+#            entry in previous, a finding or entry is not marked checked, or the execution log ($EXEC_LOG, default
+#            $RUNNER_TEMP/claude-execution-output.json) shows an Agent call whose report came after the result.
 #   report   as the review job's last step, without the push token, when the review left no fix to push. Otherwise, or when
 #            that step didn't write the review comment, in the separate review-report job holding the push token, which
 #            commits and pushes the fix (if any) as claude[bot]. Either way posts the other
@@ -315,6 +316,28 @@ EOF
 EOF
 }
 
+agent_log() {  # the review's execution log -> "<agent calls> <in the background> <not reported before the result>"
+  jq -r 'def txt: if type == "string" then . elif type == "array" then map(.text? // "") | join("\n") else "" end;
+    . as $m
+    | ([range(length) | select($m[.].type == "result")] | last) as $end
+    | if $end == null then error("no result message") else . end
+    | $m[:$end] as $pre
+    | [$pre[] | select(.type == "assistant" and .parent_tool_use_id == null) | .message.content[]?
+        | select(.type == "tool_use" and (.name == "Agent" or .name == "Task"))] as $calls
+    | [$pre[] | select(.type == "user" and .parent_tool_use_id == null) | .message.content | arrays | .[]
+        | select(.type == "tool_result") | {id: .tool_use_id, t: (.content | txt)}] as $res
+    | ([$pre[] | select(.type == "user") | .message.content | txt | split("<task-notification>")[1:][]]
+       + [$pre[] | select(.type == "system" and .subtype == "task_notification" and .status == "completed")
+          | "<task-id>\(.task_id)</task-id><status>completed</status>"]) as $notes
+    | [$calls[] | .id as $id | ([$res[] | select(.id == $id) | .t] | first) as $t
+        | if $t == null then $id
+          elif .input.run_in_background == true then
+            (($t | capture("agentId: *(?<a>[A-Za-z0-9_-]+)").a) // "") as $a
+            | if $a != "" and any($notes[]; contains("<task-id>\($a)</task-id>") and contains("<status>completed</status>")) then empty else $id end
+          else empty end] as $late
+    | "\($calls | length) \([$calls[] | select(.input.run_in_background == true)] | length) \($late | length)"' "$1"
+}
+
 collect() {
   printf '%s' "${FINDINGS:-}" | jq -e 'has("findings")' > /dev/null || { echo "::error::the review returned no findings object" >&2; exit 1; }
   printf '%s' "$FINDINGS" | jq '.previous[]?.id |= (if type == "string" then ascii_upcase | gsub("\\s"; "") else . end)' > "$OUT/findings.json"
@@ -328,6 +351,14 @@ collect() {
     | length' "$OUT/findings.json")
   [[ -z $missing ]] || err="it returned no result for open finding(s) $missing"
   (( unchecked == 0 )) || err+="${err:+, and }it returned before the checking agents of $unchecked finding(s) reported"
+  local log=${EXEC_LOG:-${RUNNER_TEMP:-}/claude-execution-output.json} counts calls background late
+  if [[ -s $log ]] && counts=$(agent_log "$log" 2> /dev/null); then
+    read -r calls background late <<< "$counts"
+    echo "execution log: $calls agent calls, $background in the background, $late not reported before the result" >&2
+    (( late == 0 )) || err+="${err:+, and }the execution log shows $late of its $calls agents not reported before it returned"
+  else
+    echo "::warning::no readable execution log at $log, so the agents' reports were not checked against it" >&2
+  fi
   if [[ -n $err ]]; then
     printf '%s\n' "$err" > "$OUT/collect-error.txt"
     echo "::error::the review is not recorded: $err; re-run the review job" >&2
