@@ -362,8 +362,12 @@ thunar_shortcuts_model_finalize (GObject *object)
     g_source_remove (model->bookmarks_idle_id);
 
   /* free all shortcuts */
-  g_list_foreach (model->shortcuts, (GFunc) (void (*) (void)) thunar_shortcut_free, model);
-  g_list_free (model->shortcuts);
+  while (model->shortcuts != NULL)
+    {
+      ThunarShortcut *shortcut = model->shortcuts->data;
+      model->shortcuts = g_list_delete_link (model->shortcuts, model->shortcuts);
+      thunar_shortcut_free (shortcut, model);
+    }
 
   /* disconnect from the preferences */
   g_object_unref (model->preferences);
@@ -1102,7 +1106,7 @@ thunar_shortcuts_model_shortcut_places (ThunarShortcutsModel *model)
   GFile          *location;
   ThunarFile     *file;
   const gchar    *path;
-  guint           n;
+  guint           n, m;
   const GUserDirectory special_dirs[] = {
     G_USER_DIRECTORY_DOCUMENTS,
     G_USER_DIRECTORY_DOWNLOAD,
@@ -1151,10 +1155,17 @@ thunar_shortcuts_model_shortcut_places (ThunarShortcutsModel *model)
         }
     }
 
+  g_reload_user_special_dirs_cache ();
   for (n = 0; n < G_N_ELEMENTS (special_dirs); n++)
     {
       path = g_get_user_special_dir (special_dirs[n]);
       if (path == NULL)
+        continue;
+
+      for (m = 0; m < n; m++)
+        if (g_strcmp0 (g_get_user_special_dir (special_dirs[m]), path) == 0)
+          break;
+      if (m < n)
         continue;
 
       location = g_file_new_for_path (path);
@@ -1306,6 +1317,21 @@ thunar_shortcuts_model_sort_func (gconstpointer shortcut_a,
 
 
 
+static gboolean
+thunar_shortcuts_model_file_in_use (ThunarShortcutsModel *model,
+                                    ThunarFile           *file)
+{
+  GList *lp;
+
+  for (lp = model->shortcuts; lp != NULL; lp = lp->next)
+    if (THUNAR_SHORTCUT (lp->data)->file == file)
+      return TRUE;
+
+  return FALSE;
+}
+
+
+
 static void
 thunar_shortcuts_model_add_shortcut_with_path (ThunarShortcutsModel *model,
                                                ThunarShortcut       *shortcut,
@@ -1323,8 +1349,11 @@ thunar_shortcuts_model_add_shortcut_with_path (ThunarShortcutsModel *model,
       thunar_file_watch (shortcut->file);
 
       /* subscribe to relevant signals */
-      g_signal_connect (G_OBJECT (shortcut->file), "destroy", G_CALLBACK (thunar_shortcuts_model_file_destroyed), model);
-      g_signal_connect (G_OBJECT (shortcut->file), "changed", G_CALLBACK (thunar_shortcuts_model_file_changed), model);
+      if (!thunar_shortcuts_model_file_in_use (model, shortcut->file))
+        {
+          g_signal_connect (G_OBJECT (shortcut->file), "destroy", G_CALLBACK (thunar_shortcuts_model_file_destroyed), model);
+          g_signal_connect (G_OBJECT (shortcut->file), "changed", G_CALLBACK (thunar_shortcuts_model_file_changed), model);
+        }
     }
 
   if (path == NULL)
@@ -1888,7 +1917,8 @@ thunar_shortcut_free (ThunarShortcut       *shortcut,
     {
       /* disable monitoring for the file */
       thunar_file_unwatch (shortcut->file);
-      g_signal_handlers_disconnect_by_data (shortcut->file, model);
+      if (!thunar_shortcuts_model_file_in_use (model, shortcut->file))
+        g_signal_handlers_disconnect_by_data (shortcut->file, model);
       g_object_unref (shortcut->file);
       shortcut->file = NULL;
     }
