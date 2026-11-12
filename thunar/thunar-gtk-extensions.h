@@ -63,6 +63,8 @@ gboolean
 thunar_gtk_editable_can_paste (GtkEditable *editable);
 gint
 thunar_gtk_orientable_get_center_pos (GtkOrientable *orientable);
+gint
+thunar_gtk_orientable_get_size (GtkOrientable *orientable);
 
 G_END_DECLS;
 

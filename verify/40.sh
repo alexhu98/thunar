@@ -164,7 +164,8 @@ for v in 5 95 abc; do
   (( $(windows) == N )) || fail "thunar --split $v opened a window"
 done
 
-thunar --help | grep -q -- '--split=PERCENT' || fail "thunar --help doesn't list --split"
+help=$(thunar --help)
+grep -q -- '--split=PERCENT' <<<"$help" || fail "thunar --help doesn't list --split"
 
 open_thunar -t "$WORK/alpha" "$WORK/bravo" "$WORK/charlie" -T "$WORK/delta" --split 60
 wait_title "$WID" alpha

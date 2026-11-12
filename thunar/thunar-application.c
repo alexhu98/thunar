@@ -1170,8 +1170,6 @@ thunar_application_command_line (GApplication            *gapp,
       split_failed = TRUE;
       goto out;
     }
-  if (split_percent > 0)
-    application->force_new_window = TRUE;
 
   window_list = thunar_application_get_windows (application);
   if (window_list != NULL)
@@ -1217,7 +1215,7 @@ thunar_application_command_line (GApplication            *gapp,
     }
 
   g_object_get (G_OBJECT (application->preferences), "misc-open-new-window-as-tab", &open_new_window_as_tab, NULL);
-  if (window_options != NULL && !open_first_window && !application->force_new_window && open_new_window_as_tab)
+  if (window_options != NULL && !open_first_window && !application->force_new_window && split_percent == 0 && open_new_window_as_tab)
     g_application_command_line_printerr (command_line, "Thunar: --geometry and --workspace ignored: the location opens as a tab in an existing window\n");
 
   /* if no filenames are provided, open current directory as default */

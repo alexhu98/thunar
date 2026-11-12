@@ -4485,6 +4485,8 @@ thunar_window_action_toggle_split_view (ThunarWindow *window)
         window->notebook_left = NULL;
       gtk_notebook_set_show_border (GTK_NOTEBOOK (window->notebook_selected), FALSE);
 
+      window->split_percent = 0;
+      g_signal_handlers_disconnect_by_func (window->paned_notebooks, thunar_window_paned_notebooks_apply_split, window);
       g_signal_handlers_disconnect_by_func (window->paned_notebooks, thunar_window_save_paned_notebooks, window);
       g_signal_handlers_disconnect_by_func (window->paned_notebooks, thunar_window_paned_notebooks_button_press_event, NULL);
     }
@@ -4532,11 +4534,8 @@ thunar_window_split_view_add (ThunarWindow *window,
   /* keep focus on the first notebook */
   thunar_window_paned_notebooks_switch (window);
 
-  if (remember_split_position)
-    {
-      g_signal_connect_swapped (window->paned_notebooks, "accept-position", G_CALLBACK (thunar_window_save_paned_notebooks), window);
-      g_signal_connect_swapped (window->paned_notebooks, "button-release-event", G_CALLBACK (thunar_window_save_paned_notebooks), window);
-    }
+  g_signal_connect_swapped (window->paned_notebooks, "accept-position", G_CALLBACK (thunar_window_save_paned_notebooks), window);
+  g_signal_connect_swapped (window->paned_notebooks, "button-release-event", G_CALLBACK (thunar_window_save_paned_notebooks), window);
   g_signal_connect (window->paned_notebooks, "button-press-event", G_CALLBACK (thunar_window_paned_notebooks_button_press_event), NULL);
 }
 
@@ -5856,7 +5855,13 @@ thunar_window_save_paned (ThunarWindow *window)
 static gboolean
 thunar_window_save_paned_notebooks (ThunarWindow *window)
 {
+  gboolean remember_split_position;
+
   _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);
+
+  g_object_get (G_OBJECT (window->preferences), "misc-remember-split-position", &remember_split_position, NULL);
+  if (!remember_split_position)
+    return FALSE;
 
   /* save the separator position, use -1 (= unset) for 'center position' */
   g_object_set (G_OBJECT (window->preferences),
@@ -5875,14 +5880,8 @@ thunar_window_save_paned_notebooks (ThunarWindow *window)
 static void
 thunar_window_paned_notebooks_apply_split (ThunarWindow *window)
 {
-  GtkAllocation allocation;
-  gint          size;
+  gint size = thunar_gtk_orientable_get_size (GTK_ORIENTABLE (window->paned_notebooks));
 
-  gtk_widget_get_allocation (window->paned_notebooks, &allocation);
-  if (gtk_orientable_get_orientation (GTK_ORIENTABLE (window->paned_notebooks)) == GTK_ORIENTATION_HORIZONTAL)
-    size = allocation.width;
-  else
-    size = allocation.height;
   if (size <= 1)
     return;
 

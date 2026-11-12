@@ -213,7 +213,7 @@
     <li data-k="1"><b>Split turns on.</b> F3, the toolbar button, a window that opens with split view already on, and restored tabs all go through <code>thunar_window_split_view_add</code> in <code>thunar-window.c</code>.</li>
     <li data-k="2"><b>Pick the start.</b> It reads the new hidden setting <code>misc-remember-split-position</code>, off by default. Off, it queues a 50/50 split. On, it uses the saved <code>last-splitview-separator-position</code> in pixels, as upstream Thunar does.</li>
     <li data-k="3"><b>Apply on resize.</b> <code>thunar_window_paned_notebooks_queue_split</code> waits for the split pane's next <code>size-allocate</code>; then <code>_apply_split</code> sets the divider to the pane's width times the percentage, or its height in vertical split, and stops listening.</li>
-    <li data-k="4"><b>You drag it.</b> The divider stays where you put it for that window's life, also after you add or close tabs. It's saved only with the setting on. Double-clicking the divider still centers it.</li>
+    <li data-k="4"><b>You drag it.</b> The divider stays where you put it for that window's life, also after you add or close tabs. It's saved only with the setting on, checked at each drag, so turning the setting on or off takes effect with a split already open. Closing split view drops any ratio still waiting. Double-clicking the divider still centers it.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② #41 thunar --split PERCENT</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
@@ -249,9 +249,12 @@
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">thunar/
 ├── thunar-window.c       # 50/50 or saved start, ratio applied on next size-allocate,
-│                         #   save handlers only with the setting on, open_split
+│                         #   drag saved only if the setting is on, open_split,
+│                         #   closing split clears a waiting ratio
+├── thunar-gtk-extensions.c  # new thunar_gtk_orientable_get_size (pane width or height)
+├── thunar-gtk-extensions.h  # declares it
 ├── thunar-window.h       # declares thunar_window_open_split
-├── thunar-application.c  # --split option, parse 10–90, new window, launch/tabs field,
+├── thunar-application.c  # --split option, parse 10–90, new window per launch/tabs request,
 │                         #   skip restored tabs, --split VALUE in the early pass
 └── thunar-preferences.c  # hidden misc-remember-split-position, default false
 verify/40.sh              # the test: the cases above, 6 shots
@@ -264,7 +267,7 @@ explainers/40-split-ratio.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested in this session's cloud container on the final code (commit <code>b49ff69</code>); CI's checks come after the push, and a real desktop check after the merge.</p>
+  <p class="intro" data-k="intro">Built and tested in this session's cloud container on commit <code>b49ff69</code>, before the fixes for CI's review; those fixes were compiled here and CI checks them after the push. A real desktop check comes after the merge.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -277,7 +280,7 @@ explainers/40-split-ratio.narration.json  # its narration</pre>
 
   <section class="sub" id="checks">
   <h3 class="sec">What was checked</h3>
-  <p data-k="how">Every row is from this session, local build-verify. <code>verify/40.sh</code> measures each pane from a window screenshot, finding the two empty file views along a row or column.</p>
+  <p data-k="how">Rows 1 to 12 are from this session's local build-verify on <code>b49ff69</code>, before this round's review fixes; the last three say their source. <code>verify/40.sh</code> measures each pane from a window screenshot, finding the two empty file views along a row or column.</p>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
@@ -293,7 +296,9 @@ explainers/40-split-ratio.narration.json  # its narration</pre>
     <tr data-k="c10"><td>With -t and -T</td><td><code>-t alpha bravo charlie -T delta --split 60</code>; <code>-t alpha bravo --split 30</code></td><td class="ok">60%; 30%, alpha right</td></tr>
     <tr data-k="c11"><td>Vertical split</td><td><code>misc-vertical-split-pane</code> on: F3, then <code>--split 60</code></td><td class="ok">50%; 60% by height</td></tr>
     <tr data-k="c12"><td>Saved value untouched</td><td><code>xfconf-query</code> for <code>last-splitview-separator-position</code> at the end</td><td class="ok">300</td></tr>
-    <tr data-k="c13"><td>CI build, verify and review</td><td>Run by CI on PR #107 after the push</td><td class="no">not run yet</td></tr>
+    <tr data-k="c13"><td>CI on <code>b23213f</code></td><td>CI run 43195797679: build, explainer, code review at high</td><td class="ok">build pass, explainer pass, review 10 low findings</td></tr>
+    <tr data-k="c14"><td>Review fixes compile</td><td><code>make -C thunar</code> in this session, on the fixes for R1, R2, R4, R7, R8, R10</td><td class="ok">compiled; tests not re-run here</td></tr>
+    <tr data-k="c15"><td>CI build, verify and review of the fixes</td><td>Run by CI on PR #107 after this push; verify on <code>b23213f</code> was still running</td><td class="no">not run yet</td></tr>
   </table>
   </div>
   <p data-k="shots" style="margin-top:12px">The test takes six shots: <code>split-60-cold</code>; the pair <code>split-centered</code> (before: setting on, 300 px; after: default, 50/50); <code>drag-kept-with-tab</code>; the pair <code>split-60</code> (before: window charlie at 50/50; after: new window delta at 60/40); <code>split-30-tabs</code>; and <code>split-60-vertical</code>.</p>
@@ -308,7 +313,14 @@ explainers/40-split-ratio.narration.json  # its narration</pre>
     <li data-k="b3"><b>Fixed, restored tabs:</b> on a cold start, restoring tabs turned a <code>--split</code> window's split off; it's now skipped with <code>--split</code>.</li>
     <li data-k="b4"><b>Not changed, two test notes:</b> a vertical-split skew from tab bars (no vertical check has tab bars), and a title check that could pass without the click (the left pane is switched to bravo first, so the click must change the title to alpha).</li>
   </ul>
-  <p data-k="ci-review">CI's own review runs after the push and reports in the code review PR comment on <a href="https://github.com/alexhu98/thunar/pull/107">PR #107</a>.</p>
+  <p data-k="ci-review">CI's own review of <code>b23213f</code> (run 43195797679, high effort, 6 minutes) found 10 low findings and pushed no fix; see the <a href="https://github.com/alexhu98/thunar/pull/107#issuecomment-6820455380">code review PR comment</a>. This round fixes six and leaves four for you to decide.</p>
+  <ul class="tight">
+    <li data-k="f1"><b>Fixed R1, setting flipped with a split open:</b> the drag-save handlers are now always connected, and the save returns early unless <code>misc-remember-split-position</code> is on.</li>
+    <li data-k="f2"><b>Fixed R2, duplicated size code:</b> a new <code>thunar_gtk_orientable_get_size</code> serves both the centering and the ratio.</li>
+    <li data-k="f3"><b>Fixed R4, a ratio left waiting:</b> closing split view clears the percentage and the pending size-allocate handler.</li>
+    <li data-k="f4"><b>Fixed R7, R8 and R10:</b> the test saves <code>thunar --help</code> before grepping it; <code>--split</code> no longer sets the application's new-window flag; the new doc comment is gone.</li>
+    <li data-k="f5"><b>Not changed, R3, R5, R6 and R9:</b> two folders give two windows, one frame at the old position, the handle width ignored as upstream centering does, and the stored percentage. The review didn't confirm them; they await your decision.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -325,7 +337,7 @@ explainers/40-split-ratio.narration.json  # its narration</pre>
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/107">PR #107</a> → “Files changed”</li>
-    <li data-k="l2">CI's summary, code review, verify and explainer comments, with the shots, on PR #107 once CI has run</li>
+    <li data-k="l2">CI's summary, <a href="https://github.com/alexhu98/thunar/pull/107#issuecomment-6820455380">code review</a>, verify and explainer comments, with the shots, on PR #107</li>
     <li data-k="l3">The issues: <a href="https://github.com/alexhu98/thunar/issues/40">#40</a> and <a href="https://github.com/alexhu98/thunar/issues/41">#41</a></li>
   </ul>
   </section>

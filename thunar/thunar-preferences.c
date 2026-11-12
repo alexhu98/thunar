@@ -907,13 +907,6 @@ thunar_preferences_class_init (ThunarPreferencesClass *klass)
                         TRUE,
                         EXO_PARAM_READWRITE);
 
-  /**
-   * ThunarPreferences:misc-remember-split-position:
-   *
-   * Whether new split views open at the separator position saved in
-   * "last-splitview-separator-position", and dragging the separator
-   * saves it. If %FALSE, every new split view opens centered.
-   **/
   preferences_props[PROP_MISC_REMEMBER_SPLIT_POSITION] =
   g_param_spec_boolean ("misc-remember-split-position",
                         "MiscRememberSplitPosition",
