@@ -138,7 +138,7 @@ wait_title "$WID" delta
 (( $(windows) == N + 1 )) || fail "thunar --split 60 opened $(( $(windows) - N )) windows, expected 1"
 grab split-60
 ratio_is 60 "thunar --split 60 with Thunar running and Open new windows as tabs on"
-shot "$WID" after-split-60 "thunar --split 60 delta opened a new window, d in both panes, the left pane 60% wide, with Open new windows as tabs on"
+shot "$WID" after-split-60 "thunar --split 60 delta opened a new window, delta in both panes, the left pane 60% wide, with Open new windows as tabs on"
 pair split-60 "Ran thunar --split 60 delta with Thunar running and Open new windows as tabs on" \
   "--split opens a new window split at the given percentage" "window charlie, split 50/50" "new window delta, split 60/40" "$G2"
 [[ $(saved) == 300 ]] || fail "thunar --split 60 changed last-splitview-separator-position to $(saved)"
