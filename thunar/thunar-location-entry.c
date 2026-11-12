@@ -391,7 +391,10 @@ static void
 thunar_location_entry_open_or_launch (ThunarLocationEntry *location_entry,
                                       ThunarFile          *file)
 {
-  GError *error = NULL;
+  GError     *error = NULL;
+  ThunarFile *parent;
+  GtkWidget  *window;
+  GList      *files;
 
   _thunar_return_if_fail (THUNAR_IS_LOCATION_ENTRY (location_entry));
   _thunar_return_if_fail (THUNAR_IS_FILE (file));
@@ -407,14 +410,20 @@ thunar_location_entry_open_or_launch (ThunarLocationEntry *location_entry,
         }
       else
         {
-          /* try to launch the selected file */
-          thunar_file_launch (file, location_entry->path_entry, NULL, &error);
-
-          /* be sure to reset the current file of the path entry */
-          if (G_LIKELY (location_entry->current_directory != NULL))
+          /* open the file's folder and select the file */
+          parent = thunar_file_get_parent (file, &error);
+          if (parent != NULL)
             {
-              thunar_path_entry_set_current_file (THUNAR_PATH_ENTRY (location_entry->path_entry),
-                                                  location_entry->current_directory);
+              thunar_navigator_change_directory (THUNAR_NAVIGATOR (location_entry), parent);
+              g_object_unref (parent);
+
+              window = gtk_widget_get_toplevel (GTK_WIDGET (location_entry));
+              if (THUNAR_IS_WINDOW (window))
+                {
+                  files = g_list_prepend (NULL, thunar_file_get_file (file));
+                  thunar_window_show_and_select_files (THUNAR_WINDOW (window), files);
+                  g_list_free (files);
+                }
             }
         }
     }
