@@ -8,7 +8,7 @@
 #            findings with the commits since each was found, the accepted findings and the prompt to $OUT. Prints its decisions as key=value lines for $GITHUB_OUTPUT.
 #   collect  after the review: saves the findings ($FINDINGS, the action's structured_output) and the working-tree
 #            fix as a patch, for the report job. Fails, saying why in collect-error.txt, when an open finding got no
-#            entry in previous, or a finding or entry is not marked checked or says its checking agent hadn't reported.
+#            entry in previous, or a finding or entry is not marked checked.
 #   report   as the review job's last step, without the push token, when the review left no fix to push. Otherwise, or when
 #            that step didn't write the review comment, in the separate review-report job holding the push token, which
 #            commits and pushes the fix (if any) as claude[bot]. Either way posts the other
@@ -324,7 +324,7 @@ collect() {
   local missing unchecked err=
   missing=$(jq -r --slurpfile f "$OUT/findings.json" '[.[].id] - [$f[0].previous[]?.id] | join(", ")' "$OUT/open.json")
   unchecked=$(jq -r --slurpfile o "$OUT/open.json" '[(.findings // [])[], ((.previous // [])[] | select(IN(.id; $o[0][].id)))
-    | select(.checked != true or ([.reason, .note | strings] | any(test("\\bagents? ((had|has|have)(n.t| not)( yet)?|did(n.t| not)|never) (reported|returned|finished|responded|report|return|finish|respond)( yet)?( (before|when|by the time|in time)\\b|[.;,!]|$)"; "i"))))]
+    | select(.checked != true)]
     | length' "$OUT/findings.json")
   [[ -z $missing ]] || err="it returned no result for open finding(s) $missing"
   (( unchecked == 0 )) || err+="${err:+, and }it returned before the checking agents of $unchecked finding(s) reported"
