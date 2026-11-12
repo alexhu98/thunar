@@ -106,8 +106,11 @@ exists "$DIR/report.final.pdf" "Escape in the entry"
 
 keys alt+Up
 wait_title "$MAIN" "$(basename "$WORK")"
-keys alt+Left
+keys ctrl+l
+xdotool type --delay 5 "$DIR"
+xdotool key Return
 wait_title "$MAIN" files
+sleep 0.5
 second_row
 f2
 xdotool key ctrl+a BackSpace Return

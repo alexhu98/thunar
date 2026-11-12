@@ -5556,8 +5556,15 @@ thunar_standard_view_rename_idle (gpointer user_data)
   ThunarFile         *file;
   GList              *paths;
   gchar              *text;
+  gboolean            in_folder;
 
   standard_view->priv->rename_idle_id = 0;
+
+  if (standard_view->priv->rename_text != NULL && thunar_view_get_loading (THUNAR_VIEW (standard_view)))
+    {
+      standard_view->priv->rename_idle_id = g_timeout_add_full (G_PRIORITY_LOW, 100, thunar_standard_view_rename_idle, standard_view, NULL);
+      return G_SOURCE_REMOVE;
+    }
 
   paths = thunar_standard_view_rename_paths (standard_view);
   if (paths != NULL)
@@ -5571,7 +5578,9 @@ thunar_standard_view_rename_idle (gpointer user_data)
   if (standard_view->priv->rename_entry == NULL)
     {
       if (standard_view->priv->rename_text != NULL
-          && thunar_standard_view_rename_check (standard_view->priv->rename_text) == NULL)
+          && thunar_standard_view_rename_check (standard_view->priv->rename_text) == NULL
+          && standard_view->priv->rename_file != NULL
+          && thunar_file_exists (standard_view->priv->rename_file))
         {
           text = g_steal_pointer (&standard_view->priv->rename_text);
           thunar_standard_view_rename_finish (standard_view, text);
@@ -5580,15 +5589,17 @@ thunar_standard_view_rename_idle (gpointer user_data)
         }
 
       file = g_steal_pointer (&standard_view->priv->rename_file);
+      in_folder = file != NULL
+                  && standard_view->priv->current_directory != NULL
+                  && thunar_file_is_ancestor (file, standard_view->priv->current_directory);
       if (file != NULL
           && gtk_widget_get_mapped (GTK_WIDGET (standard_view))
-          && (standard_view->priv->rename_text != NULL
-                ? thunar_file_exists (file)
-                : standard_view->priv->current_directory != NULL
-                    && thunar_file_is_ancestor (file, standard_view->priv->current_directory)))
+          && (standard_view->priv->rename_text != NULL ? thunar_file_exists (file) : in_folder))
         {
           application = thunar_application_get ();
-          thunar_application_rename_file (application, file, standard_view, NULL, THUNAR_OPERATION_LOG_OPERATIONS);
+          thunar_application_rename_file (application, file,
+                                          in_folder ? (gpointer) standard_view : (gpointer) gtk_widget_get_toplevel (GTK_WIDGET (standard_view)),
+                                          NULL, THUNAR_OPERATION_LOG_OPERATIONS);
           g_object_unref (application);
         }
       g_clear_pointer (&standard_view->priv->rename_text, g_free);
