@@ -22,8 +22,10 @@ import re
 import subprocess
 import sys
 import time
+from importlib import import_module
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
 ICON = {'pass': '✅', 'fail': '❌', 'running': '⏳', 'wait': '⏳', 'skip': '⏭️'}
 TRUSTED = ('OWNER', 'MEMBER', 'COLLABORATOR')
 JOBS = {'verify': ('verify',), 'review': ('review', 'review-report'), 'explainer': ('explainer',)}
@@ -174,16 +176,16 @@ def summary(runs):
     vsha = (status['verify'] or {}).get('sha', '')
     if v[1] == NO_CODE:
         note = 'No key result or shots: verify did not run, because the PR changes no code, packaging or CI files.'
-    elif vsha and vsha != head:
-        note = f"The key result and the shots table in the {link('verify', 'Verify comment')} are from `{vsha[:12]}`, not the head."
-    elif vsha:
-        note = f"The key result and the shots table are in the {link('verify', 'Verify comment')}."
-    else:
+    elif not vsha or (status['verify'] or {}).get('text') == 'did not run':
         note = 'No key result or shots yet: verify has not published shots for this head.'
+    elif vsha != head:
+        note = f"The key result and the shots table in the {link('verify', 'Verify comment')} are from `{vsha[:12]}`, not the head."
+    else:
+        note = f"The key result and the shots table are in the {link('verify', 'Verify comment')}."
     out += ['', note]
     results = [2, [[n, s, t, w] for n, s, t, w in checks if s != 'running'], note, run_url]
     digest = hashlib.sha256(json.dumps(results, ensure_ascii=False).encode()).hexdigest()[:16]
-    marker = '<!-- pr-proof:results ' + json.dumps({'sha': head, 'hash': digest}, separators=(',', ':')) + ' -->'
+    marker = import_module('verify-shots').hidden('results', {'sha': head, 'hash': digest})
     return marker + '\n' + '\n'.join(out) + '\n', mine.get('summary', {}).get('body')
 
 
