@@ -42,6 +42,7 @@ never fix anything you find.
      check's state, its text and the SHA it covers. A status whose `sha` isn't the head is stale; say so.
    - `<!-- review:state {...} -->` in the review comment: `sha` (the last head a review ran on), `reason`, and
      `findings`, each with `id`, `sha` (the head it was found on), `severity`, `verdict`, `status`, `file`, `line`, `summary`, `detail`, `commit`.
+     Closed findings from earlier reviews keep at most 80 characters of `summary` and `detail`.
      CI writes each `>` inside the JSON as the six characters `\u003e`, which any JSON parser reads back. Findings whose text
      was cut to fit the comment keep only `id` and `status`; report them by ID. Apply step 7 to a trimmed one with what is
      left: its status, `Fixes` lines and owner comments need no severity. When step 7 needs its severity or verdict,

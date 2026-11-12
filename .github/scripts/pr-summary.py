@@ -5,20 +5,24 @@ Reads the status each of the review, verify and explainer comments carries (<!--
 build job of this run (or BUILD_RESULT, when the build job calls it), and the latest /visual-verify verdict posted
 for the PR's head by the owner, a collaborator or claude[bot] (a comment holding <!-- visual-verify <sha> --> and a
 VERDICT: line; the latest posted wins). Without RUN_ID it uses the latest build run of the head. Writes the heading
-(ready for review, or the first failing, running or awaited check), the checks table, the key result and the shots
-table from the verify comment's data, through pr-comment.sh. Does nothing when HEAD_SHA is no longer the PR's head, so
-an older run can't overwrite a newer summary. Every job that writes a comment calls it and the summary job calls it
-last; when an audit comment is posted or edited, the pr-summary workflow calls it too, once the head's build run has
-finished. After writing it reads everything again and writes again, up to twice, if anything changed meanwhile;
-pr-comment.sh leaves the comment alone when the new body is the same.
+(ready for review, or the first failing, running or awaited check), the checks table and a link to the verify
+comment, which holds the key result and the shots table, through pr-comment.sh. Does nothing when HEAD_SHA is no
+longer the PR's head, so an older run can't overwrite a newer summary, and leaves the comment alone when it already
+covers the head and no check's result changed (<!-- pr-proof:results {...} -->: the head and a hash of every check
+that isn't running with its link, the verify note and the run), so a run posts "running" once and then edits only on
+a result. Every job that writes a comment calls it and the summary job calls it last; when an audit comment is
+posted or edited, the pr-summary workflow calls it too, once the head's build run has finished. After writing it
+reads everything again and writes again, up to twice, if a result changed meanwhile.
 Env: PR, GH_REPO, HEAD_SHA, RUN_ID, RUN_URL, BUILD_RESULT, OUT. DRY_RUN=1 prints the comment instead of writing it.
 """
+import hashlib
 import json
 import os
 import re
 import subprocess
 import sys
 import time
+from importlib import import_module
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ICON = {'pass': '✅', 'fail': '❌', 'running': '⏳', 'wait': '⏳', 'skip': '⏭️'}
@@ -43,7 +47,7 @@ def lines_json(*args):
     return [json.loads(ln) for ln in gh(*args).splitlines() if ln.strip()]
 
 
-def hidden(body, kind):
+def read_hidden(body, kind):
     m = re.search(r'^<!-- pr-proof:' + kind + r' (\{.*?\}) -->$', body or '', re.M)
     return json.loads(m.group(1)) if m else None
 
@@ -142,7 +146,7 @@ def summary(runs):
                  {'pass': 'passed', 'fail': 'failed', 'running': 'running', 'skip': 'skipped', 'nocode': NO_CODE}.get(b[0], b[0]),
                  f'[build job]({b[1]})' if b[1] else '')
     checks.append(('Build', build[0], build[1], build[2]))
-    status = {n: hidden(mine.get(n, {}).get('body'), 'status') for n in JOBS}
+    status = {n: read_hidden(mine.get(n, {}).get('body'), 'status') for n in JOBS}
     v = section_state('verify', status['verify'], head, jobs)
     checks.append(('Verify', v[0], v[1], link('verify', 'Verify comment')))
     a = ('skip', 'not needed: verify took no shots', '') if v[1] == NO_CODE else audit(comments, head)
@@ -168,21 +172,21 @@ def summary(runs):
     out = [f'## PR proof: {title}', '', f"Head `{head[:12]}`" + (f' · [workflow run]({run_url})' if run_url else ''), '',
            '| Check | Result | Where |', '|---|---|---|']
     out += [f'| {n} | {ICON.get(s, "⚠️")} {cell(t)} | {w} |' for n, s, t, w in checks]
-    data = hidden(mine.get('verify', {}).get('body'), 'data') or {}
-    vsha = (status['verify'] or {}).get('sha', '')
-    stale = f' (as of `{vsha[:12]}`, not the head)' if data and vsha and vsha != head and v[1] != NO_CODE else ''
-    out += ['', '### The key result' + stale, '']
+    vst = status['verify'] or {}
+    vsha = vst.get('sha', '')
     if v[1] == NO_CODE:
-        out.append('No key result: verify did not run, because the PR changes no code, packaging or CI files.')
-    elif data.get('key'):
-        out.append(data['key'])
-    elif data and vsha == head:
-        out.append("No key result: the PR's issue has no verify script with a before/after pair.")
+        note = 'No key result or shots: verify did not run, because the PR changes no code, packaging or CI files.'
+    elif not vsha or not vst.get('shots', vst.get('text') != 'did not run' and 'could not be numbered' not in vst.get('text', '')):
+        note = 'No key result or shots yet: verify has not published shots for this head.'
+    elif vsha != head:
+        note = f"The key result and the shots table in the {link('verify', 'Verify comment')} are from `{vsha[:12]}`, not the head."
     else:
-        out.append('No key result yet: verify has not published shots for this head.')
-    out += ['', '### Shots' + stale, '']
-    out.append('No screenshots: verify did not run.' if v[1] == NO_CODE else data.get('shots') or 'No screenshots yet.')
-    return '\n'.join(out) + '\n'
+        note = f"The key result and the shots table are in the {link('verify', 'Verify comment')}."
+    out += ['', note]
+    results = [2, [[n, s, t, w] for n, s, t, w in checks if s != 'running'], note, run_url]
+    digest = hashlib.sha256(json.dumps(results, ensure_ascii=False).encode()).hexdigest()[:16]
+    marker = import_module('verify-shots').hidden('results', {'sha': head, 'hash': digest})
+    return marker + '\n' + '\n'.join(out) + '\n', mine.get('summary', {}).get('body')
 
 
 def main():
@@ -190,17 +194,21 @@ def main():
     os.makedirs(d, exist_ok=True)
     path = os.path.join(d, 'summary.md')
     env = dict(os.environ, OUT=os.path.join(d, 'comment'))
-    written = None
     runs = {}
     for _ in range(3):
-        body = summary(runs)
-        if body is None or body == written:
+        got = summary(runs)
+        if got is None:
+            return
+        body, old = got
+        if old and read_hidden(body, 'results') == read_hidden(old, 'results'):
+            print("the summary is unchanged: it covers the head and no check's result changed")
+            if os.environ.get('DRY_RUN') == '1':
+                print(body)
             return
         open(path, 'w').write(body)
         subprocess.run([os.path.join(HERE, 'pr-comment.sh'), 'put', 'summary', path], check=True, env=env)
         if os.environ.get('DRY_RUN') == '1':
             return
-        written = body
 
 
 if __name__ == '__main__':

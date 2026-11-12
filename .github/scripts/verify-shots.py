@@ -11,8 +11,10 @@ verify-shots.py build OUT
 verify-shots.py manifest OUT
     Prints the manifest with each file named as on the shots branch; a file whose upload failed ($OUT/urls.tsv) is -.
 verify-shots.py comment OUT
-    Prints the verify comment's body from $OUT/numbered.json, $OUT/results.tsv, the logs and $OUT/urls.tsv
+    Prints the verify comment's body (the results, the key result, the shots table, then every other shot) from $OUT/numbered.json, $OUT/results.tsv, the logs and $OUT/urls.tsv
     ("<local file><tab><url or ->"). Env: HEAD_SHA, HEAD_REF, RUN_URL.
+verify-shots.py status SHA STATE TEXT
+    Prints the <!-- pr-proof:status {...} --> marker of a comment with that head, state and text.
 """
 import json
 import os
@@ -221,10 +223,9 @@ def comment(out):
     lost = [k for k, v in u.items() if v == '-'] + [e['num'] for e in entries if not e['image']]
     lines = []
     if not res:
-        status = {'sha': sha, 'state': 'fail', 'text': 'did not run'}
+        status = {'sha': sha, 'state': 'fail', 'text': 'did not run', 'shots': False}
         lines += ['### Verify: did not run', '', f'The job stopped before the tests, as of `{sha[:12]}`. See [the run]({run_url}).']
-        data = {'key': '', 'shots': ''}
-        return status, data, lines
+        return status, lines
     total = len(res)
     passed = sum(1 for r in res if r[1] == 'pass')
     complete = os.path.exists(os.path.join(out, 'complete'))
@@ -232,7 +233,8 @@ def comment(out):
     unnumbered = not os.path.exists(numbered)
     ok = complete and passed == total and not lost and not unnumbered
     text = head + (f'; {len(lost)} image(s) missing' if lost else '')
-    status = {'sha': sha, 'state': 'pass' if ok else 'fail', 'text': text}
+    status = {'sha': sha, 'state': 'pass' if ok else 'fail', 'text': text,
+              'shots': any(e['image'] and u.get(e['image'], '-') != '-' for e in entries)}
     theme = open(os.path.join(out, 'theme')).read().strip() if os.path.exists(os.path.join(out, 'theme')) else 'default'
     lines += [f'### Verify: {head}', '']
     if not complete:
@@ -247,6 +249,13 @@ def comment(out):
     for name, st, secs in res:
         lines.append(f"| {label(name)} | {'✅ pass' if st == 'pass' else '❌ ' + cell(st)} | {secs} s |")
     key = key_entry(entries)
+    if entries:
+        lines += ['', '#### The key result', '']
+        lines.append(block(key, u, True) if key else "No key result: the PR's issue has no verify script with a before/after pair.")
+        lines += ['', '#### Shots', '', '| # | Shots | Proves |', '|---|---|---|']
+        for e in entries:
+            what = names(e) + (' (smoke test)' if e['test'] == 'smoke' else '')
+            lines.append(f"| [{e['num']}](#shot-{e['num']}) | {cell(what)} | {cell(e['proves'])} |")
     for name, st, _ in res:
         lines += ['', f'#### {label(name)}']
         if st != 'pass':
@@ -264,19 +273,18 @@ def comment(out):
             group = e['group']
             lines.append('')
             if e is key:
-                lines.append(f"[Shot #{e['num']}](#shot-{e['num']}) ({cell(names(e))}) is the key result, shown in the summary.")
+                lines.append(f"[Shot #{e['num']}](#shot-{e['num']}) ({cell(names(e))}) is the key result, shown above.")
             else:
                 lines.append(block(e, u, True))
-    table = ['| # | Shots | Proves |', '|---|---|---|']
-    for e in entries:
-        what = names(e) + (' (smoke test)' if e['test'] == 'smoke' else '')
-        table.append(f"| [{e['num']}](#shot-{e['num']}) | {cell(what)} | {cell(e['proves'])} |")
-    data = {'key': block(key, u, True) if key else '', 'shots': '\n'.join(table) if entries else ''}
-    return status, data, lines
+    return status, lines
+
+
+def marker(name, obj):
+    return f'<!-- {name} ' + json.dumps(obj, ensure_ascii=False, separators=(',', ':')).replace('>', '\\u003e') + ' -->'
 
 
 def hidden(kind, obj):
-    return f'<!-- pr-proof:{kind} ' + json.dumps(obj, ensure_ascii=False, separators=(',', ':')).replace('>', '\\u003e') + ' -->'
+    return marker(f'pr-proof:{kind}', obj)
 
 
 if __name__ == '__main__':
@@ -289,8 +297,12 @@ if __name__ == '__main__':
         out = args[0]
         entries = json.load(open(os.path.join(out, 'numbered.json')))
         sys.stdout.write(manifest(out, entries, 'shots', {k for k, v in urls(out).items() if v == '-'}))
+    elif cmd == 'status':
+        if len(args) != 3:
+            sys.exit(__doc__)
+        print(hidden('status', {'sha': args[0], 'state': args[1], 'text': args[2]}))
     elif cmd == 'comment':
-        status, data, lines = comment(args[0])
-        print('\n'.join([hidden('status', status), hidden('data', data), *lines]))
+        status, lines = comment(args[0])
+        print('\n'.join([hidden('status', status), *lines]))
     else:
         sys.exit(__doc__)
