@@ -123,6 +123,8 @@ pair hide-bookmarks "Unticked projects, then notes, in the Bookmarks header's ri
 DL=$(($(index_of Downloads) + 1))
 printf 'file://%s\n' "$HOME/Downloads" >> "$CONF/gtk-3.0/bookmarks"
 sleep 2
+scan
+[[ $(printf '%s\n' "${NAMES[@]}" | grep -cxF Downloads) -eq 2 ]] || fail "the Downloads bookmark didn't appear next to the Places row: ${NAMES[*]}"
 xdotool mousemove --window "$WID" $((W - 100)) $((H - 100))
 shot "$WID" before-hide-downloads "Downloads is listed twice: in Places between Documents and Music, and under the Bookmarks header that came back for the new Downloads bookmark"
 toggle "${YS[0]}" 1 "$DL"

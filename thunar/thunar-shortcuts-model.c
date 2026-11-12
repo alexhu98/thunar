@@ -1105,10 +1105,8 @@ thunar_shortcuts_model_shortcut_places (ThunarShortcutsModel *model)
   GFile          *trash;
   GFile          *location;
   ThunarFile     *file;
-  GFile          *other_location;
+  GFile          *locations[5] = { NULL, };
   const gchar    *path;
-  const gchar    *other;
-  gboolean        equal;
   guint           n, m;
   const GUserDirectory special_dirs[] = {
     G_USER_DIRECTORY_DOCUMENTS,
@@ -1167,28 +1165,16 @@ thunar_shortcuts_model_shortcut_places (ThunarShortcutsModel *model)
         continue;
 
       location = g_file_new_for_path (path);
+      locations[n] = location;
       for (m = 0; m < n; m++)
-        {
-          other = g_get_user_special_dir (special_dirs[m]);
-          if (other != NULL)
-            {
-              other_location = g_file_new_for_path (other);
-              equal = g_file_equal (other_location, location);
-              g_object_unref (other_location);
-              if (equal)
-                break;
-            }
-        }
+        if (locations[m] != NULL && g_file_equal (locations[m], location))
+          break;
       if (m < n)
-        {
-          g_object_unref (location);
-          continue;
-        }
+        continue;
 
       file = NULL;
       if (!g_file_equal (location, home) && !g_file_equal (location, desktop))
         file = thunar_file_get (location, NULL);
-      g_object_unref (location);
 
       if (file != NULL && thunar_file_is_directory (file))
         {
@@ -1365,6 +1351,21 @@ thunar_shortcuts_model_file_in_use (ThunarShortcutsModel *model,
 
 
 static void
+thunar_shortcuts_model_watch_file (ThunarShortcutsModel *model,
+                                   ThunarFile           *file)
+{
+  thunar_file_watch (file);
+
+  if (!thunar_shortcuts_model_file_in_use (model, file))
+    {
+      g_signal_connect (G_OBJECT (file), "destroy", G_CALLBACK (thunar_shortcuts_model_file_destroyed), model);
+      g_signal_connect (G_OBJECT (file), "changed", G_CALLBACK (thunar_shortcuts_model_file_changed), model);
+    }
+}
+
+
+
+static void
 thunar_shortcuts_model_add_shortcut_with_path (ThunarShortcutsModel *model,
                                                ThunarShortcut       *shortcut,
                                                GtkTreePath          *path)
@@ -1377,15 +1378,7 @@ thunar_shortcuts_model_add_shortcut_with_path (ThunarShortcutsModel *model,
 
   if (G_LIKELY (shortcut->file != NULL))
     {
-      /* enable monitoring for the file */
-      thunar_file_watch (shortcut->file);
-
-      /* subscribe to relevant signals */
-      if (!thunar_shortcuts_model_file_in_use (model, shortcut->file))
-        {
-          g_signal_connect (G_OBJECT (shortcut->file), "destroy", G_CALLBACK (thunar_shortcuts_model_file_destroyed), model);
-          g_signal_connect (G_OBJECT (shortcut->file), "changed", G_CALLBACK (thunar_shortcuts_model_file_changed), model);
-        }
+      thunar_shortcuts_model_watch_file (model, shortcut->file);
     }
 
   if (path == NULL)
@@ -1822,14 +1815,7 @@ thunar_shortcuts_model_device_changed (ThunarDeviceMonitor  *device_monitor,
 
               /* enable monitoring for the file */
               if (file != NULL)
-                {
-                  thunar_file_watch (file);
-                  if (!thunar_shortcuts_model_file_in_use (model, file))
-                    {
-                      g_signal_connect (G_OBJECT (file), "destroy", G_CALLBACK (thunar_shortcuts_model_file_destroyed), model);
-                      g_signal_connect (G_OBJECT (file), "changed", G_CALLBACK (thunar_shortcuts_model_file_changed), model);
-                    }
-                }
+                thunar_shortcuts_model_watch_file (model, file);
               shortcut->file = file;
 
               g_object_unref (mount_point);
