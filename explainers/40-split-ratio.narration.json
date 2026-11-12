@@ -6,7 +6,7 @@
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 107, which opens every new split view at 50/50 and adds a --split option.", "say": "This is a tour of pull request one oh seven, which opens every new split view at fifty-fifty and adds a dash dash split option.", "src": "a7fd80cc139b"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "fde0fc287988"},
     {"screen": "adds", "keys": [], "caption": "Part 1. What this PR adds.", "src": "7eccee8400d4"},
-    {"screen": "flow", "keys": ["1"], "caption": "A split turns on: F3, the toolbar button, or a window that opens with split view already on.", "src": "fd4ced1ffe4b"},
+    {"screen": "flow", "keys": ["1"], "caption": "A split turns on: F3, the toolbar button, or a window that opens with split view already on.", "say": "A split turns on: F three, the toolbar button, or a window that opens with split view already on.", "src": "fd4ced1ffe4b"},
     {"screen": "flow", "keys": ["2"], "caption": "By default it queues a 50/50 split; a hidden setting brings back the saved pixel position.", "say": "By default it queues a fifty-fifty split; a hidden setting brings back the saved pixel position.", "src": "4f5b605a164f"},
     {"screen": "flow", "keys": ["3"], "caption": "When the split pane gets its size, the divider is set to that size times the percentage.", "src": "836feef971a0"},
     {"screen": "flow", "keys": ["4"], "caption": "When you drag the divider, it stays in that window and isn't saved, unless the setting is on.", "src": "6eb69de70ab8"},
