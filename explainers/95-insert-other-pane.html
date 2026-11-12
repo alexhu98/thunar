@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Insert to other pane</title>
+<title>PR #101 Insert to pane</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -100,7 +100,7 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">Insert drops the selection on the other pane</h1>
+  <h1 data-k="title">PR #101: Insert drops the selection on the other pane</h1>
   <p class="lead" data-k="lead">Branch <code>95-insert-other-pane</code> → <code>main</code>, refs #95. In split view, pressing Insert moves or copies the selected files into the other pane's folder, exactly as dragging them there would.</p>
 
   <nav class="parts" aria-label="Parts of this page">
@@ -114,7 +114,7 @@
   <section class="part" id="adds">
   <p class="part-label" data-k="label">Part 1</p>
   <h2 data-k="heading">What this PR adds</h2>
-  <p class="intro" data-k="intro">One new window action, Drop on Other Pane, bound to Insert and listed in the Edit menu. The move-or-copy rule it uses is shared with drag and drop.</p>
+  <p class="intro" data-k="intro">One new window action, Drop on Other Pane, bound to Insert and listed in the Edit menu. Its move-or-copy rule and its refusal check are shared with drag and drop, and it hands the files over the way a drop does.</p>
 
   <section class="sub" id="flow">
   <div class="diagram" role="img" aria-label="You press Insert, the window checks split view and the selection, the drop rule picks move or copy, and the files go to the other pane; drag and drop and the Edit menu use the same pieces">
@@ -129,17 +129,17 @@
     <g data-k="1">
       <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
       <text x="36" y="90" class="t">You press Insert</text>
-      <text x="36" y="114" class="b">in split view, with</text>
-      <text x="36" y="134" class="b">files selected in</text>
-      <text x="36" y="154" class="b">the active pane</text>
+      <text x="36" y="114" class="b">with focus in the</text>
+      <text x="36" y="134" class="b">file view, in split</text>
+      <text x="36" y="154" class="b">view, files selected</text>
       <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
     </g>
     <g data-k="2">
       <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
       <text x="286" y="90" class="t">Window checks</text>
       <text x="286" y="114" class="m">drop-on-other-pane</text>
-      <text x="286" y="134" class="b">split view, selection,</text>
-      <text x="286" y="154" class="b">target folder</text>
+      <text x="286" y="134" class="b">skips files already</text>
+      <text x="286" y="154" class="b">there; drop refusals</text>
       <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
     </g>
     <g data-k="3">
@@ -153,8 +153,8 @@
     <g data-k="4">
       <rect class="box-merge" x="770" y="60" width="210" height="120" rx="10"/>
       <text x="786" y="90" class="t">Transfer</text>
-      <text x="786" y="114" class="m">move_into/copy_into</text>
-      <text x="786" y="134" class="b">into the other pane;</text>
+      <text x="786" y="114" class="m">thunar_dnd_perform</text>
+      <text x="786" y="134" class="b">as a real drop does;</text>
       <text x="786" y="154" class="b">focus stays put</text>
       <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
     </g>
@@ -167,15 +167,15 @@
       <rect class="box-pr" x="20" y="260" width="210" height="120" rx="10"/>
       <text x="36" y="290" class="t">Edit menu item</text>
       <text x="36" y="314" class="b">Drop on Other Pane,</text>
-      <text x="36" y="334" class="b">greyed out without</text>
-      <text x="36" y="354" class="b">split view or files</text>
+      <text x="36" y="334" class="b">greyed out unless</text>
+      <text x="36" y="354" class="b">it would transfer</text>
       <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">5</text>
     </g>
     <g data-k="6">
       <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
       <text x="536" y="290" class="t">Drag and drop</text>
       <text x="536" y="314" class="m">accepts_drop</text>
-      <text x="536" y="334" class="b">calls the same rule;</text>
+      <text x="536" y="334" class="b">shares both rules;</text>
       <text x="536" y="354" class="b">decisions unchanged</text>
       <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
     </g>
@@ -202,15 +202,15 @@
   <div class="panel">
   <div class="lane-h" style="color:var(--accent)">① Insert key</div>
   <ol class="steps">
-    <li data-k="1"><b>You press Insert.</b> Split view is on and files are selected in the active pane. If a text field has focus, such as the location bar, rename or search, the window gives the field the key first, so Insert stays a text key there.</li>
-    <li data-k="2"><b>Window checks.</b> The new action in <code>thunar/thunar-window.c</code> lets the key through when split view is off or nothing is selected. It finds the other pane's current folder and does nothing when that folder isn't writable, already holds the files, is one of them or inside one, or when both are in the Trash.</li>
+    <li data-k="1"><b>You press Insert.</b> Split view is on, files are selected in the active pane, and keyboard focus is in its file view. Pressed anywhere else, such as the side pane, Insert does nothing and the key goes on. If a text field has focus, such as the location bar, rename or search, the window gives the field the key first, so Insert stays a text key there.</li>
+    <li data-k="2"><b>Window checks.</b> The new action in <code>thunar/thunar-window.c</code> finds the other pane's current folder, which must be writable. Selected files already in that folder are skipped, and the rest go. It refuses them all when the folder is inside one of the files, or when it is one of them or both are in the Trash, the same check a drop makes (<code>thunar_file_drop_refused</code>). If nothing would transfer, the key goes on.</li>
     <li data-k="3"><b>Move or copy?</b> <code>thunar_file_drop_copy_or_move</code> in <code>thunar/thunar-file.c</code> moves when every file is on the same filesystem as the target and in a writable folder, or comes from the Trash. Otherwise it copies. A drop on the Trash itself always moves.</li>
-    <li data-k="4"><b>Transfer.</b> The files go through Thunar's usual move or copy job, with progress and undo, into the other pane's folder. Focus stays in the pane you started from.</li>
+    <li data-k="4"><b>Transfer.</b> The files go to <code>thunar_dnd_perform</code>, the function a real drop calls, so they take Thunar's usual move or copy job, with progress and undo, into the other pane's folder. Focus stays in the pane you started from.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Same pieces, other ways in</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>Edit menu item.</b> Drop on Other Pane sits in the Edit menu below Delete, greyed out when split view is off or nothing is selected. It has no underlined letter, because every letter of its name is already taken in that menu.</li>
-    <li data-k="6"><b>Drag and drop.</b> <code>thunar_file_accepts_drop</code> now calls the new function instead of its own copy of the rule, so its decisions are the same as before. The move also fixes a small memory leak on the copy path.</li>
+    <li data-k="5"><b>Edit menu item.</b> Drop on Other Pane sits in the Edit menu below Delete, greyed out unless it would really transfer something: split view on, files selected, and a folder that takes them. It works from anywhere, also when the menu is opened from the keyboard. It has no underlined letter, because every letter of its name is already taken in that menu.</li>
+    <li data-k="6"><b>Drag and drop.</b> <code>thunar_file_accepts_drop</code> now calls the two shared functions, the move-or-copy rule and the refusal check, instead of its own copies, so its decisions are the same as before. The move also fixes a small memory leak on the copy path.</li>
   </ol>
   </div>
   </section>
@@ -220,9 +220,10 @@
   <div class="table-wrap">
   <table>
     <tr><th>When you press Insert and …</th><th>It does</th></tr>
-    <tr data-k="k1"><td>split view is off, or nothing is selected</td><td>nothing; the key passes on</td></tr>
+    <tr data-k="k1"><td>split view is off, nothing is selected, or focus is outside the file view, such as the side pane</td><td>nothing; the key passes on</td></tr>
     <tr data-k="k2"><td>a text field has focus</td><td>what the text field does with Insert</td></tr>
-    <tr data-k="k3"><td>the other folder is read-only, already holds the files, is one of them or inside one, or both are in the Trash</td><td>nothing</td></tr>
+    <tr data-k="k3"><td>the other folder is read-only, is one of the files or inside one, or both are in the Trash</td><td>nothing; the key passes on</td></tr>
+    <tr data-k="k7"><td>some files are already in the other folder</td><td>skips those and sends the rest; nothing if all are there</td></tr>
     <tr data-k="k4"><td>the files are on the same disk in a writable folder, or come from the Trash</td><td>moves them</td></tr>
     <tr data-k="k5"><td>a file is on another disk or in a read-only folder</td><td>copies them</td></tr>
     <tr data-k="k6"><td>the other pane shows the Trash</td><td>moves them to the Trash</td></tr>
@@ -234,15 +235,18 @@
   <h3 class="sec">The drag-and-drop change</h3>
 <pre data-k="diff">if ((actions &amp; (GDK_ACTION_COPY | GDK_ACTION_MOVE)) != 0
     &amp;&amp; (suggested_action == GDK_ACTION_COPY))
-<span class="add">  suggested_action = thunar_file_drop_copy_or_move (file, file_list);</span></pre>
-  <p data-k="diff-note">About 40 lines of loop moved out of <code>thunar_file_accepts_drop</code> into the new function, unchanged except that it now releases its file reference on the copy path too.</p>
+<span class="add">  suggested_action = thunar_file_drop_copy_or_move (file, file_list);</span>
+…
+<span class="add">if (thunar_file_drop_refused (file, file_list))
+  return 0;</span></pre>
+  <p data-k="diff-note">About 40 lines of loop moved out of <code>thunar_file_accepts_drop</code> into the new function, unchanged except that it now releases its file reference on the copy path too. Its self-drop and Trash checks moved into <code>thunar_file_drop_refused</code>, which Insert calls too.</p>
   </section>
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">thunar/
-├── thunar-file.c     # new thunar_file_drop_copy_or_move; accepts_drop calls it
-├── thunar-file.h     # its declaration
+├── thunar-file.c     # new drop_copy_or_move and drop_refused; accepts_drop calls them
+├── thunar-file.h     # their declarations
 ├── thunar-window.c   # Drop on Other Pane action, Insert key, Edit menu item
 └── thunar-window.h   # the action's id
 verify/95.sh          # the test: Insert, a text field, split view off
@@ -257,14 +261,14 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested in the cloud container in this session, reviewed twice by a fresh agent. CI's own run comes after the push.</p>
+  <p class="intro" data-k="intro">Built and tested in the cloud container in this session, reviewed three times by a fresh agent and twice by CI, whose last fix CI builds and tests itself.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
   <div class="grid">
-    <div class="card" data-k="r1"><h3>The drop rule</h3><p><code>thunar_file_accepts_drop</code>'s move-or-copy loop, moved into its own function rather than copied.</p></div>
+    <div class="card" data-k="r1"><h3>The drop rule</h3><p><code>thunar_file_accepts_drop</code>'s move-or-copy loop and its refusal checks, moved into their own functions rather than copied.</p></div>
     <div class="card" data-k="r2"><h3>Split-view code</h3><p>The other pane is found the way Switch Focused Split View Pane finds it, from the window's two notebooks.</p></div>
-    <div class="card" data-k="r3"><h3>A real drop</h3><p>The transfer calls <code>thunar_application_move_into</code> or <code>copy_into</code>, as <code>thunar_dnd_perform</code> does for a drop.</p></div>
+    <div class="card" data-k="r3"><h3>A real drop</h3><p>The transfer calls <code>thunar_dnd_perform</code>, the same function a real drop calls.</p></div>
   </div>
   </section>
 
@@ -273,30 +277,49 @@ explainers/
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage</code> in the cloud container, by the build-verify agent in this session</td><td class="ok">built, 0 gcc warnings</td></tr>
-    <tr data-k="c2"><td>Doc comments</td><td>gtk-doc warnings in <code>thunar-file.c</code> and <code>.h</code> from the same build</td><td class="ok">27, none on new code</td></tr>
+    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage</code> in the cloud container, by the build-verify agent in this session, first build and again after the review fixes</td><td class="ok">built both times; 0 gcc warnings the first time</td></tr>
+    <tr data-k="c2"><td>Doc comments</td><td>gtk-doc warnings in <code>thunar-file.c</code> and <code>.h</code> from the first build</td><td class="ok">27, none on new code</td></tr>
     <tr data-k="c3"><td>Insert moves a file</td><td><code>verify/95.sh</code>, pair <code>insert</code>: a.txt selected in the right pane, Insert</td><td class="ok">moved to left, focus on right</td></tr>
     <tr data-k="c4"><td>Text fields keep Insert</td><td>pair <code>entry</code>: Insert twice in the location bar, then Return</td><td class="ok">0 files moved, zz opened</td></tr>
     <tr data-k="c5"><td>No split view, no action</td><td>pair <code>no-split</code>: split view off, Insert, wait 2 s</td><td class="ok">nothing moved</td></tr>
     <tr data-k="c6"><td>Drag and drop still works</td><td>the existing <code>verify/19.sh</code>, a drop on a tab label, after the refactor</td><td class="ok">pass</td></tr>
-    <tr data-k="c7"><td>All tests</td><td><code>verify-proof.sh install</code> and <code>run</code> on this branch's build</td><td class="ok">12 of 12 pass, #95 in 24 s</td></tr>
+    <tr data-k="c7"><td>All tests</td><td><code>verify-proof.sh install</code> and <code>run</code> on this branch's build after the review fixes, up to commit ada247b, perhaps without its last edit</td><td class="ok">12 of 12 pass, #95 in 24 s</td></tr>
     <tr data-k="c8"><td>The copy branch</td><td>Needs a read-only source folder or a second filesystem; the container runs as root, which can write everywhere</td><td class="no">not run</td></tr>
-    <tr data-k="c9"><td>Moving into the Trash, and the refusals</td><td><code>verify/95.sh</code> doesn't cover them; accepted in the second review round</td><td class="no">not run</td></tr>
+    <tr data-k="c9"><td>Moving into the Trash, the refusals, the focus rule and skipped files</td><td><code>verify/95.sh</code> doesn't cover them; accepted in the second review round</td><td class="no">not run</td></tr>
+    <tr data-k="c10"><td>CI's fix commit 41dde5f</td><td>Not built or tested in this container; CI builds and tests the final head</td><td class="no">not run here</td></tr>
   </table>
   </div>
   </section>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">A fresh general-purpose agent, given only the diff and the issue, reviewed it twice. Round 1, on the three-key version, found 7 problems: 1 high, 1 medium, 5 low. Round 2, on Insert only, found 4 low: 1 fixed, 3 accepted.</p>
+  <p data-k="summary">A fresh general-purpose agent, given only the diff and the issue, reviewed it three times. Round 1, on the three-key version, found 7 problems: 1 high, 1 medium, 5 low. Round 2, on Insert only, found 4 low: 1 fixed, 3 accepted. Round 3, after CI's first review was fixed, found 2 low, both now fixed.</p>
   <ul class="tight">
     <li data-k="b1"><b>High, round 1:</b> Shift+Insert and Ctrl+Insert would have taken over Thunar's existing Paste and Copy keys. That led to the scope change: only Insert remains.</li>
     <li data-k="b2"><b>Medium, round 1:</b> folders inside the Trash and read-only folders were accepted where a drop refuses. Fixed: the target must be writable, and only the Trash itself forces a move.</li>
     <li data-k="b3"><b>Low, round 1:</b> files already in the target, as in search results, would be copied onto themselves. Fixed with a parent-folder check. Also noted: the leak fix, and test coverage.</li>
     <li data-k="b4"><b>Low, round 2:</b> the underlined O clashed with Redo. Fixed: no underlined letter.</li>
-    <li data-k="b5"><b>Accepted, round 2:</b> Insert acts on the main view's selection even when the side pane has focus, like other window actions; the menu item stays active when the target would refuse; the copy, Trash and same-folder cases aren't tested.</li>
+    <li data-k="b5"><b>Accepted, round 2:</b> Insert acts on the main view's selection even when the side pane has focus, like other window actions; the menu item stays active when the target would refuse; the copy, Trash and same-folder cases aren't tested. CI's review later raised the first two again, and both are now fixed.</li>
+    <li data-k="b6"><b>Low, round 3:</b> the focus rule also blocked the Edit menu item; fixed in ada247b. The menu item could stay active where the action refuses; left here, and CI's R11 fixed it.</li>
   </ul>
-  <p data-k="ci-review">CI's own review runs on the first push and reports in this PR's code review comment.</p>
+  </section>
+
+  <section class="sub" id="ci-review">
+  <h3 class="sec">CI's code review</h3>
+  <p data-k="ci-summary">CI reviewed two pushes at level high and reports in this PR's <a href="https://github.com/alexhu98/thunar/pull/101#issuecomment-6812720439">code review comment</a>: 14 findings, R1 to R14; 10 fixed, 4 accepted.</p>
+  <ul class="tight">
+    <li data-k="ci1"><b>Round 1, on 9c80da1:</b> R1 to R8, none confirmed. Fixed: Insert acted whatever had focus (R1, medium), one refused file cancelled all (R2), the key was swallowed silently (R3), the menu item was active too often (R4), the refusal rules were duplicated (R5), the transfer duplicated <code>thunar_dnd_perform</code> (R6), and a new doc comment was removed (R7).</li>
+    <li data-k="ci2"><b>Round 2, on ada247b:</b> R9 to R14. CI's own commit 41dde5f fixed three confirmed ones: the focus rule blocked the menu opened from the keyboard (R9, medium), the same folder in both panes refused everything (R10), and the menu item's state (R11).</li>
+  </ul>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Accepted</th><th>Why</th></tr>
+    <tr data-k="x8"><td>R8: a slow, uncached file lookup on a key press</td><td>Accepted by you: the selected files are always in Thunar's file cache, so the slow path never runs.</td></tr>
+    <tr data-k="x12"><td>R12, low, confirmed: Insert acts while typing in the file list's type-ahead search</td><td>Accepted by you: Delete and Backspace behave the same, and GTK 3 can't tell when that popup is open.</td></tr>
+    <tr data-k="x13"><td>R13, low: the "inside a selected folder" refusal isn't in the shared check</td><td>Moving it there would change drag and drop, which must stay exactly as it was.</td></tr>
+    <tr data-k="x14"><td>R14, low: the new public functions have no gtk-doc comments</td><td>The repo's rules forbid new explanatory comments.</td></tr>
+  </table>
+  </div>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -304,7 +327,7 @@ explainers/
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI's build, tests, screenshots and review</td><td>They run on GitHub once the branch is pushed</td><td class="open">first push</td></tr>
+    <tr data-k="a1"><td>CI's build, tests and screenshots of the final head, with its fix commit</td><td>That commit came from CI and was not built here; CI runs on GitHub</td><td class="open">on that push</td></tr>
     <tr data-k="a2"><td>Insert copying across disks</td><td>Needs a second disk, such as a USB stick, on a real desktop</td><td class="open">after the merge</td></tr>
   </table>
   </div>
@@ -313,8 +336,8 @@ explainers/
   <section class="sub" id="see">
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
-    <li data-k="l1">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...95-insert-other-pane">main…95-insert-other-pane</a>, and this PR's “Files changed”</li>
-    <li data-k="l2">CI's summary, code review, verify and explainer comments on this PR, with the screenshots of <code>verify/95.sh</code></li>
+    <li data-k="l1">The PR: <a href="https://github.com/alexhu98/thunar/pull/101">#101</a>, and its “Files changed”</li>
+    <li data-k="l2">CI's summary, <a href="https://github.com/alexhu98/thunar/pull/101#issuecomment-6812720439">code review</a>, verify and explainer comments on this PR, with the screenshots of <code>verify/95.sh</code></li>
     <li data-k="l3">The issue: <a href="https://github.com/alexhu98/thunar/issues/95">#95</a></li>
   </ul>
   </section>
@@ -383,6 +406,10 @@ explainers/
     <div data-k="paste2"><dt>paste-2, copy-2</dt><dd>Thunar's second shortcuts for Paste (Shift+Insert) and Copy (Ctrl+Insert).</dd></div>
     <div data-k="leak"><dt>Reference leak</dt><dd>An object never released, so its memory is never freed.</dd></div>
     <div data-k="verify"><dt>verify/95.sh</dt><dd>The test script CI runs: it drives Thunar with xdotool and takes screenshots.</dd></div>
+    <div data-k="focus"><dt>Keyboard focus</dt><dd>The one widget that gets key presses, such as the file view or the side pane.</dd></div>
+    <div data-k="typeahead"><dt>Type-ahead search</dt><dd>Typing in the file list to jump to a name; GTK shows a small search popup.</dd></div>
+    <div data-k="dnd"><dt>thunar_dnd_perform</dt><dd>The function that carries out a drop: it starts the move, copy or link job.</dd></div>
+    <div data-k="rid"><dt>R1, R2 …</dt><dd>The IDs CI's code review gives its findings, kept across rounds.</dd></div>
     <div data-k="pair"><dt>Pair</dt><dd>A before and after screenshot around one action in a test.</dd></div>
   </dl>
   </section>
