@@ -419,6 +419,8 @@ struct _ThunarStandardViewPrivate
   ThunarFile  *rename_file;
   GtkEntry    *rename_entry;
   gchar       *rename_text;
+  gint         rename_start;
+  gint         rename_end;
   gboolean     rename_escaped;
   guint        rename_idle_id;
 
@@ -1149,6 +1151,10 @@ thunar_standard_view_dispose (GObject *object)
     g_source_remove (standard_view->priv->drag_timer_id);
 
   g_clear_handle_id (&standard_view->priv->rename_idle_id, g_source_remove);
+  if (standard_view->priv->rename_entry != NULL)
+    g_signal_handlers_disconnect_by_data (standard_view->priv->rename_entry, standard_view);
+  g_clear_object (&standard_view->priv->rename_entry);
+  g_clear_object (&standard_view->priv->rename_file);
 
   /* disconnect from file */
   if (standard_view->priv->current_directory != NULL)
@@ -5325,8 +5331,31 @@ thunar_standard_view_rename_finish (ThunarStandardView *standard_view,
 static void
 thunar_standard_view_rename_select (ThunarStandardView *standard_view)
 {
-  if (standard_view->priv->rename_entry != NULL && standard_view->priv->rename_file != NULL)
+  if (standard_view->priv->rename_entry == NULL || standard_view->priv->rename_file == NULL)
+    return;
+
+  if (standard_view->priv->rename_text != NULL)
+    gtk_editable_select_region (GTK_EDITABLE (standard_view->priv->rename_entry), standard_view->priv->rename_start, standard_view->priv->rename_end);
+  else
     thunar_dialogs_select_rename_text (standard_view->priv->rename_entry, standard_view->priv->rename_file);
+}
+
+
+
+static gboolean
+thunar_standard_view_rename_show_error (GtkEntry *entry)
+{
+  const gchar *error;
+
+  error = thunar_standard_view_rename_check (gtk_entry_get_text (entry));
+  if (error == NULL)
+    return FALSE;
+
+  gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (entry)), GTK_STYLE_CLASS_ERROR);
+  gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, "dialog-error");
+  gtk_entry_set_icon_tooltip_text (entry, GTK_ENTRY_ICON_SECONDARY, error);
+  gtk_widget_set_tooltip_text (GTK_WIDGET (entry), error);
+  return TRUE;
 }
 
 
@@ -5335,17 +5364,8 @@ static void
 thunar_standard_view_rename_activate (GtkEntry           *entry,
                                       ThunarStandardView *standard_view)
 {
-  const gchar *error;
-
-  error = thunar_standard_view_rename_check (gtk_entry_get_text (entry));
-  if (error == NULL)
-    return;
-
-  g_signal_stop_emission_by_name (entry, "activate");
-  gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (entry)), GTK_STYLE_CLASS_ERROR);
-  gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, "dialog-error");
-  gtk_entry_set_icon_tooltip_text (entry, GTK_ENTRY_ICON_SECONDARY, error);
-  gtk_widget_set_tooltip_text (GTK_WIDGET (entry), error);
+  if (thunar_standard_view_rename_show_error (entry))
+    g_signal_stop_emission_by_name (entry, "activate");
 }
 
 
@@ -5386,7 +5406,10 @@ thunar_standard_view_rename_started (GtkCellRenderer    *renderer,
   standard_view->priv->rename_entry = GTK_ENTRY (g_object_ref (editable));
   standard_view->priv->rename_escaped = FALSE;
   if (standard_view->priv->rename_text != NULL)
-    gtk_entry_set_text (standard_view->priv->rename_entry, standard_view->priv->rename_text);
+    {
+      gtk_entry_set_text (standard_view->priv->rename_entry, standard_view->priv->rename_text);
+      thunar_standard_view_rename_show_error (standard_view->priv->rename_entry);
+    }
 
   g_signal_connect (editable, "key-press-event", G_CALLBACK (thunar_standard_view_rename_key_pressed), standard_view);
   g_signal_connect (editable, "activate", G_CALLBACK (thunar_standard_view_rename_activate), standard_view);
@@ -5424,8 +5447,10 @@ thunar_standard_view_rename_canceled (GtkCellRenderer    *renderer,
       && gtk_window_is_active (GTK_WINDOW (toplevel)))
     {
       text = g_strdup (gtk_entry_get_text (entry));
-      if (gtk_widget_has_focus (GTK_WIDGET (entry)))
+      if (gtk_widget_has_focus (GTK_WIDGET (entry))
+          || thunar_standard_view_rename_check (text) != NULL)
         {
+          gtk_editable_get_selection_bounds (GTK_EDITABLE (entry), &standard_view->priv->rename_start, &standard_view->priv->rename_end);
           g_signal_handlers_disconnect_by_data (entry, standard_view);
           g_clear_object (&standard_view->priv->rename_entry);
           g_free (standard_view->priv->rename_text);
@@ -5485,7 +5510,7 @@ thunar_standard_view_rename_idle (gpointer user_data)
           && standard_view->priv->rename_text == NULL
           && gtk_widget_get_mapped (GTK_WIDGET (standard_view))
           && standard_view->priv->current_directory != NULL
-          && thunar_file_is_parent (standard_view->priv->current_directory, file))
+          && thunar_file_is_ancestor (file, standard_view->priv->current_directory))
         {
           application = thunar_application_get ();
           thunar_application_rename_file (application, file, standard_view, NULL, THUNAR_OPERATION_LOG_OPERATIONS);
