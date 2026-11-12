@@ -207,7 +207,7 @@
   </ol>
   <div class="lane-h" style="color:var(--text)">② You use it</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>Hide from header.</b> Right-clicking the Bookmarks header now lists its bookmarks with show/hide boxes, like the other headers; <code>thunar-shortcuts-view.c</code> gained the Bookmarks branch for that menu. The standard folders are hidden from the Places header's menu. Hidden entries are stored by address in Thunar's settings, so they stay hidden after a restart.</li>
+    <li data-k="5"><b>Hide from header.</b> Right-clicking the Bookmarks header now lists its bookmarks with show/hide boxes, like the other headers; <code>thunar-shortcuts-view.c</code> gained the Bookmarks branch for that menu. The standard folders are hidden from the Places header's menu. Hidden entries are stored in Thunar's settings, so they stay hidden after a restart: a bookmark by its address, a standard folder as <code>places:</code> plus its address, so hiding one doesn't hide the other.</li>
     <li data-k="6"><b>Edit bookmarks.</b> Dropping a folder on the Bookmarks section, dragging to reorder, rename and remove work as before and still write the same bookmarks file. Only the group's name changed in the code.</li>
   </ol>
   </div>
@@ -223,8 +223,8 @@ DEVICES     File System, drives
 NETWORK     Browse Network</pre>
   <div class="grid" style="margin-top:14px">
     <div class="card" data-k="c1"><h3>When a folder shows</h3><p>Only when it is set in <code>user-dirs.dirs</code>, exists as a folder, and is not your home or Desktop folder. The list is read when Thunar starts, so a change shows after a restart.</p></div>
-    <div class="card" data-k="c2"><h3>Same folder twice</h3><p>A bookmark of a standard folder, such as Documents, also shows in Bookmarks, as in Nemo. Hiding is by address, so hiding one copy hides both.</p></div>
-    <div class="card" data-k="c3"><h3>Hidden stays hidden</h3><p>Bookmarks you hid before this change stay hidden: the hidden list holds addresses, not sections.</p></div>
+    <div class="card" data-k="c2"><h3>Same folder twice</h3><p>A bookmark of a standard folder, such as Documents, also shows in Bookmarks, as in Nemo. Each copy hides on its own. Home and Desktop still share hiding with a bookmark of the same folder, as upstream does.</p></div>
+    <div class="card" data-k="c3"><h3>Hidden stays hidden</h3><p>Bookmarks you hid before this change stay hidden. A hidden bookmark of a standard folder no longer hides that folder's new Places row.</p></div>
   </div>
   </section>
 
@@ -233,12 +233,14 @@ NETWORK     Browse Network</pre>
 <pre data-k="tree">thunar/
 ├── thunar-shortcuts-model.h   # Bookmarks header and entries groups; Devices and Network bits moved up
 ├── thunar-shortcuts-model.c   # standard folders, Bookmarks header, group renames,
-│                              # every shortcut of a renamed or deleted folder updated
+│                              # every shortcut of a renamed or deleted folder updated,
+│                              # a hidden standard folder stored as places:&lt;address&gt;
 └── thunar-shortcuts-view.c    # Bookmarks branch in the header menu
-verify/17.sh                   # new test: side pane order, Downloads symlink, hiding, restart
+verify/17.sh                   # new test: side pane order, Downloads symlink, Pictures set to home,
+                               # hiding, Places hidden apart from a bookmark, restart
 explainers/17-bookmarks-section.html            # this page
 explainers/17-bookmarks-section.narration.json  # its narration</pre>
-  <div class="note" data-k="undo">To undo it, revert the PR. The bookmarks file and the hidden list keep their format, so the old Thunar reads them as before and nothing needs recovering.</div>
+  <div class="note" data-k="undo">To undo it, revert the PR. The bookmarks file and the hidden list keep their format, so the old Thunar reads them as before, skipping the <code>places:</code> entries it has no rows for, and nothing needs recovering.</div>
   </section>
   </section>
 
@@ -246,7 +248,7 @@ explainers/17-bookmarks-section.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The building session built and tested the first commit in the cloud container, then a local review fixed six findings. Those fixes were not rebuilt there: CI's build and verify on PR #112 is the first run against them.</p>
+  <p class="intro" data-k="intro">The building session built and tested the first commit in the cloud container. After the local review and CI's review rounds, it tested a rebuilt Thunar of commit <code>1eaa173</code> there, and CI's verify passed on <code>2e9f1b8</code>. CI's run on the latest commit, <code>e81d7e4</code>, was still going when this page was written.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -272,7 +274,12 @@ explainers/17-bookmarks-section.narration.json  # its narration</pre>
     <tr data-k="c8"><td>Other tests</td><td>The other <code>verify/</code> scripts in the same local run</td><td class="ok">14 pass</td></tr>
     <tr data-k="c9"><td>Tests 95 and 96</td><td>The local run passed its 15-minute budget before reaching them</td><td class="no">not run</td></tr>
     <tr data-k="c10"><td>Recent in Places</td><td>Not listed under Xvfb, which has no recent files support, so the test skips its place in the order</td><td class="no">not shown</td></tr>
-    <tr data-k="c11"><td>The review fixes</td><td>Not rebuilt or tested in the building session; CI's build and verify on PR #112 is the first run against them</td><td class="open">CI on PR #112</td></tr>
+    <tr data-k="c14"><td>The test after the fixes</td><td><code>verify/17.sh</code> in the cloud container against a locally rebuilt Thunar of <code>1eaa173</code> (this session)</td><td class="ok">pass, 42 s</td></tr>
+<tr data-k="c15"><td>A standard folder set to home</td><td>Same run: Pictures is set to the home folder; the test checks Pictures is left out and home is listed once</td><td class="ok">Pictures not listed, home once</td></tr>
+<tr data-k="c16"><td>Hiding Downloads in Places only</td><td>Same run: adds a Downloads bookmark, hides Downloads in Places, then reads the hidden list</td><td class="ok"><code>places:</code> address only</td></tr>
+<tr data-k="c17"><td>After a restart</td><td>Same run's log: Computer, home, Desktop, Documents, Music, Videos, Trash, Downloads, File System</td><td class="ok">Downloads once, as a bookmark</td></tr>
+<tr data-k="c11"><td>CI on the fixes</td><td>CI's build and verify on <code>2e9f1b8</code>, and <code>/visual-verify pr:112</code> auditing its shots</td><td class="ok">pass; PASS, 151 shots OK</td></tr>
+<tr data-k="c18"><td>CI on the latest commit</td><td>CI's build and verify on <code>e81d7e4</code></td><td class="open">still running when written</td></tr>
     <tr data-k="c12"><td>Drop, reorder, rename, remove a bookmark</td><td>Not in <code>verify/17.sh</code></td><td class="no">not run</td></tr>
     <tr data-k="c13"><td>Reacting to edits of <code>user-dirs.dirs</code></td><td>Not built: the folders are read at startup, which the issue allows</td><td class="no">not built</td></tr>
   </table>
@@ -287,10 +294,18 @@ explainers/17-bookmarks-section.narration.json  # its narration</pre>
     <li data-k="b2"><b>Fixed, shared folders:</b> a bookmark of Documents and the Documents place now both update when the folder is renamed or deleted, not just the first one found.</li>
     <li data-k="b3"><b>Fixed, standard folders:</b> a standard folder that is the same as Desktop is skipped, and the folder check reuses Thunar's file cache instead of an extra disk lookup.</li>
     <li data-k="b4"><b>Fixed, comments:</b> a new code comment was removed.</li>
-    <li data-k="b5"><b>Kept, S1:</b> a standard folder you have bookmarked also shows in Bookmarks. The issue asks for this, and hiding one copy hides both.</li>
+    <li data-k="b5"><b>Skipped, S1:</b> a standard folder you have bookmarked also shows in Bookmarks, as the issue asks. Hiding it later changed: see R2 below.</li>
     <li data-k="b6"><b>Kept, S2:</b> the short comments on the new groups match the style of the list they are in.</li>
   </ul>
-  <p data-k="ci-review">CI reviews every code push itself and lists its findings in the code review comment on PR #112.</p>
+  <p data-k="ci-review">CI then reviewed each code push at high. All its findings, R1 to R23, are in the <a href="https://github.com/alexhu98/thunar/pull/112#issuecomment-6833674903">code review comment</a> on PR #112.</p>
+<ul class="tight">
+<li data-k="ci1"><b>First review, of <code>b7e59c0</code>:</b> R1 to R10. This session fixed R1, R3 to R7 and R9: one set of file handlers per model while another row uses the file, the user folder list reloaded, repeated standard folders skipped, and the test sets Pictures to home.</li>
+<li data-k="ci2"><b>CI's fix commit <code>2e9f1b8</code>:</b> R11 to R16. Device rows connect their handlers the same way, the folder list reloads before Desktop is read, repeats are found by comparing folders, and the test checks are tighter.</li>
+<li data-k="ci3"><b>R2, the owner's choice:</b> a standard folder is now hidden apart from a bookmark of it, stored as <code>places:</code> plus its address (<code>1eaa173</code>).</li>
+<li data-k="ci4"><b>CI's fix commit <code>e81d7e4</code>:</b> R18 to R20. The test waits for the Downloads bookmark row, the watch-and-connect code is shared, and the repeat check is simpler.</li>
+<li data-k="ci5"><b>Accepted by the owner:</b> R8, five more folder lookups at startup, like Home and Desktop; R10, the folder list repeats part of Thunar's icon table for a different job; R17, Home and Desktop still share hiding with a bookmark.</li>
+<li data-k="ci6"><b>Accepted as low:</b> R21, a device row gets a folder icon after unmount, older than this PR; R22, standard folders found by sort order, maintainability only; R23, the test's menu position, right while no Places row is hidden.</li>
+</ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -369,7 +384,7 @@ explainers/17-bookmarks-section.narration.json  # its narration</pre>
     <div data-k="bookmarks"><dt>Bookmarks file</dt><dd><code>~/.config/gtk-3.0/bookmarks</code>: one folder address per line, shared with GTK file choosers.</dd></div>
     <div data-k="userdirs"><dt>user-dirs.dirs</dt><dd><code>~/.config/user-dirs.dirs</code>: where your Documents, Downloads, Music, Pictures and Videos folders are.</dd></div>
     <div data-k="group"><dt>Shortcut group</dt><dd>Each side pane row's kind, such as Places header or bookmark; rows are sorted by it.</dd></div>
-    <div data-k="hidden"><dt>Hidden list</dt><dd>The <code>hidden-bookmarks</code> setting in Thunar's xfconf settings: addresses of rows you hid.</dd></div>
+    <div data-k="hidden"><dt>Hidden list</dt><dd>The <code>hidden-bookmarks</code> setting in Thunar's xfconf settings: addresses of rows you hid; a standard folder's starts with <code>places:</code>.</dd></div>
     <div data-k="nemo"><dt>Nemo</dt><dd>Linux Mint's file manager, whose side pane layout this follows.</dd></div>
     <div data-k="symlink"><dt>Symlink</dt><dd>A file that points to another folder, like <code>~/Downloads</code> pointing to <code>/mnt/data/Downloads</code>.</dd></div>
     <div data-k="verify"><dt>verify/17.sh</dt><dd>This PR's test script; CI runs it on a virtual screen (Xvfb) and keeps its screenshots.</dd></div>
