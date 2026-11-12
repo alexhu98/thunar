@@ -301,7 +301,7 @@ explainers/
     <tr><th>Review of</th><th>Findings</th><th>What happened</th></tr>
     <tr data-k="ci1"><td><code>750ebf1</code></td><td>R1–R7</td><td>CI fixed R1–R3 itself (test asserts, a double read, a stale comment). R4–R7 fixed in <code>2915d9c</code>: weak pointer, decide once, PR text, test row offsets.</td></tr>
     <tr data-k="ci2"><td><code>2915d9c</code></td><td>R8 (medium), R9–R15 (low)</td><td>R8: the drop-time decision could go stale. R8, R9, R10, R12, R13 fixed in <code>7d0c022</code> by the active-view check. Accepted: R11 (the weak pointer is removed in finalize, so safe), R14 (wants back a row offset R7 removed), R15 (the next Ctrl+A and Insert step proves where focus is).</td></tr>
-    <tr data-k="ci3"><td><code>7d0c022</code></td><td>R16 (medium), R17–R19 (low)</td><td>R16: focus is now decided at the job's end, not at the drop. Waiting on the owner; the agent recommends keeping it. Accepted: R17, R18 (comment wording), R19 (no test that a drop within one pane still grabs focus).</td></tr>
+    <tr data-k="ci3"><td><code>7d0c022</code></td><td>R16 (medium), R17–R19 (low)</td><td>R16: focus is now decided at the job's end, not at the drop. The owner chose to keep it, so R16 is accepted. Accepted: R17, R18 (comment wording), R19 (no test that a drop within one pane still grabs focus).</td></tr>
   </table>
   </div>
   <div class="note" data-k="r16">Why keep the job-end check (R16): if you switch panes or tabs during a long copy, the finished copy then doesn't pull focus away from where you are now.</div>

@@ -1,7 +1,7 @@
 {
   "title": "PR #106 · Drop focus",
   "voice": "af_heart",
-  "page_sha256": "4d80b893fc0d7261d5e4baa21244838ec6dcecd20eb884ae46e341ca66d1b997",
+  "page_sha256": "2a4a8c1f0c4f3f023d9af69b2aabced358aa65fdc1ccd93ba6bfc4d99a32aced",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 106, for issue 96: keyboard focus stays in the pane you dragged from.", "say": "This is a tour of pull request one oh six, for issue ninety-six: keyboard focus stays in the pane you dragged from.", "src": "e07c206a41df"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "0bf657c42371"},
@@ -38,7 +38,7 @@
     {"screen": "review", "keys": ["ci"], "caption": "CI then reviewed every code push, and reports in this PR's code review comment.", "src": "6bd494e34d48"},
     {"screen": "review", "keys": ["ci1"], "caption": "The first CI review found seven problems, and all were fixed, three of them by CI itself.", "src": "621e3c3a17e1"},
     {"screen": "review", "keys": ["ci2"], "caption": "The second found that a decision made at drop time could go stale, so focus now follows the active pane.", "src": "48d252187dee"},
-    {"screen": "review", "keys": ["ci3"], "caption": "The third asks whether focus should be decided when the job ends. That waits on the owner.", "src": "aac7d2fc5612"},
+    {"screen": "review", "keys": ["ci3"], "caption": "The third asks whether focus should be decided when the job ends. The owner chose to keep that.", "src": "d18dbbdf9b91"},
     {"screen": "review", "keys": ["r16"], "caption": "Keeping it means a pane or tab switch during a long copy doesn't get its focus stolen.", "src": "a53b5c7dae11"},
     {"screen": "aftermerge", "keys": ["a1"], "caption": "A real mouse drag on the owner's desktop only happens once the owner installs the next build.", "src": "2d1d4b9d2f69"},
     {"screen": "see", "keys": [], "caption": "The PR, its code review comment, the changes, CI's comments with the screenshots, and the issue are all linked here.", "src": "ba1e097dc20c", "from": ["l0", "l1", "l2", "l3"]},
@@ -102,7 +102,7 @@
     "review/ci": "6bd494e34d48",
     "review/ci1": "621e3c3a17e1",
     "review/ci2": "48d252187dee",
-    "review/ci3": "aac7d2fc5612",
+    "review/ci3": "d18dbbdf9b91",
     "review/r16": "a53b5c7dae11",
     "aftermerge/a1": "2d1d4b9d2f69",
     "see/l0": "13f1e9a96b4d",
