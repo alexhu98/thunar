@@ -5447,14 +5447,13 @@ thunar_standard_view_rename_canceled (GtkCellRenderer    *renderer,
       && !gtk_widget_in_destruction (GTK_WIDGET (standard_view))
       && GTK_IS_WINDOW (toplevel))
     {
-      text = g_strdup (gtk_entry_get_text (entry));
       active = gtk_window_is_active (GTK_WINDOW (toplevel));
       if (active)
-        resume = gtk_widget_has_focus (GTK_WIDGET (entry)) || thunar_standard_view_rename_check (text) != NULL;
+        resume = gtk_widget_has_focus (GTK_WIDGET (entry)) || thunar_standard_view_rename_check (gtk_entry_get_text (entry)) != NULL;
       else
         resume = gtk_window_get_focus (GTK_WINDOW (toplevel)) == GTK_WIDGET (entry);
-      if (!active && !resume)
-        g_clear_pointer (&text, g_free);
+      if (active || resume)
+        text = g_strdup (gtk_entry_get_text (entry));
       if (resume)
         {
           gtk_editable_get_selection_bounds (GTK_EDITABLE (entry), &standard_view->priv->rename_start, &standard_view->priv->rename_end);
