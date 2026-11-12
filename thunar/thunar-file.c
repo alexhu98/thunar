@@ -2015,6 +2015,66 @@ thunar_file_rename (ThunarFile   *file,
 
 
 /**
+ * thunar_file_drop_copy_or_move:
+ * @file      : the target directory as a #ThunarFile.
+ * @file_list : the list of #GFile<!---->s that will be dropped on @file.
+ *
+ * Decides whether dropping @file_list on @file with no modifier key
+ * moves or copies the files: move when every file sits in a writable
+ * folder on the same filesystem as @file, or comes from the trash,
+ * else copy.
+ *
+ * Return value: %GDK_ACTION_MOVE or %GDK_ACTION_COPY.
+ **/
+GdkDragAction
+thunar_file_drop_copy_or_move (ThunarFile *file,
+                               GList      *file_list)
+{
+  GdkDragAction suggested_action = GDK_ACTION_MOVE;
+  ThunarFile   *ofile;
+  ThunarFile   *parent_thunar_file;
+  GList        *lp;
+
+  _thunar_return_val_if_fail (THUNAR_IS_FILE (file), GDK_ACTION_COPY);
+
+  for (lp = file_list; lp != NULL; lp = lp->next)
+    {
+      /* dropping from the trash always suggests move */
+      if (G_UNLIKELY (thunar_g_file_is_trashed (lp->data)))
+        break;
+
+      /* determine the cached version of the source file */
+      ofile = thunar_file_cache_lookup (lp->data);
+
+      /* fallback to non-cached version */
+      if (ofile == NULL)
+        ofile = thunar_file_get (lp->data, NULL);
+
+      /* we only can 'move' if we know the source folder is writable (i.e. the file can be deleted)
+       * and both the source and the target are on the same disk.
+       */
+      if (ofile == NULL)
+        {
+          suggested_action = GDK_ACTION_COPY;
+          break;
+        }
+      parent_thunar_file = thunar_file_get_parent (ofile, NULL);
+      if (parent_thunar_file == NULL || !thunar_file_is_writable (parent_thunar_file) || !thunar_file_same_filesystem (file, ofile))
+        suggested_action = GDK_ACTION_COPY;
+      if (parent_thunar_file != NULL)
+        g_object_unref (parent_thunar_file);
+      g_object_unref (ofile);
+
+      if (suggested_action == GDK_ACTION_COPY)
+        break;
+    }
+
+  return suggested_action;
+}
+
+
+
+/**
  * thunar_file_accepts_drop:
  * @file                    : a #ThunarFile instance.
  * @file_list               : the list of #GFile<!---->s that will be dropped.
@@ -2040,8 +2100,6 @@ thunar_file_accepts_drop (ThunarFile     *file,
 {
   GdkDragAction suggested_action;
   GdkDragAction actions;
-  ThunarFile   *ofile;
-  ThunarFile   *parent_thunar_file;
   GList        *lp;
 
   _thunar_return_val_if_fail (THUNAR_IS_FILE (file), 0);
@@ -2087,47 +2145,7 @@ thunar_file_accepts_drop (ThunarFile     *file,
        */
       if ((actions & (GDK_ACTION_COPY | GDK_ACTION_MOVE)) != 0
           && (suggested_action == GDK_ACTION_COPY))
-        {
-          /* default to move as suggested action */
-          suggested_action = GDK_ACTION_MOVE;
-
-          for (lp = file_list; lp != NULL; lp = lp->next)
-            {
-              /* dropping from the trash always suggests move */
-              if (G_UNLIKELY (thunar_g_file_is_trashed (lp->data)))
-                break;
-
-              /* determine the cached version of the source file */
-              ofile = thunar_file_cache_lookup (lp->data);
-
-              /* fallback to non-cached version */
-              if (ofile == NULL)
-                ofile = thunar_file_get (lp->data, NULL);
-
-              /* we only can 'move' if we know the source folder is writable (i.e. the file can be deleted)
-               * and both the source and the target are on the same disk.
-               */
-              if (ofile == NULL)
-                {
-                  suggested_action = GDK_ACTION_COPY;
-                  break;
-                }
-              parent_thunar_file = thunar_file_get_parent (ofile, NULL);
-              if (parent_thunar_file == NULL || !thunar_file_is_writable (parent_thunar_file) || !thunar_file_same_filesystem (file, ofile))
-                {
-                  /* default to copy and get outta here */
-                  suggested_action = GDK_ACTION_COPY;
-                  if (parent_thunar_file != NULL)
-                    g_object_unref (parent_thunar_file);
-                  break;
-                }
-              if (parent_thunar_file != NULL)
-                g_object_unref (parent_thunar_file);
-
-              if (ofile != NULL)
-                g_object_unref (ofile);
-            }
-        }
+        suggested_action = thunar_file_drop_copy_or_move (file, file_list);
     }
   else if (thunar_file_can_execute (file, NULL))
     {

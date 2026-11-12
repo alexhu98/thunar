@@ -191,6 +191,10 @@ thunar_file_rename (ThunarFile   *file,
                     GError      **error);
 
 GdkDragAction
+thunar_file_drop_copy_or_move (ThunarFile *file,
+                               GList      *file_list);
+
+GdkDragAction
 thunar_file_accepts_drop (ThunarFile     *file,
                           GList          *path_list,
                           GdkDragContext *context,
