@@ -63,14 +63,16 @@ typedef enum
 #define THUNAR_SHORTCUT_GROUP_PLACES (THUNAR_SHORTCUT_GROUP_PLACES_HEADER \
                                       | THUNAR_SHORTCUT_GROUP_PLACES_DEFAULT \
                                       | THUNAR_SHORTCUT_GROUP_PLACES_TRASH \
-                                      | THUNAR_SHORTCUT_GROUP_PLACES_BOOKMARKS \
                                       | THUNAR_SHORTCUT_GROUP_PLACES_COMPUTER \
                                       | THUNAR_SHORTCUT_GROUP_PLACES_RECENT)
+#define THUNAR_SHORTCUT_GROUP_BOOKMARKS (THUNAR_SHORTCUT_GROUP_BOOKMARKS_HEADER \
+                                         | THUNAR_SHORTCUT_GROUP_BOOKMARKS_ENTRIES)
 #define THUNAR_SHORTCUT_GROUP_NETWORK (THUNAR_SHORTCUT_GROUP_NETWORK_HEADER \
                                        | THUNAR_SHORTCUT_GROUP_NETWORK_DEFAULT \
                                        | THUNAR_SHORTCUT_GROUP_NETWORK_MOUNTS)
 #define THUNAR_SHORTCUT_GROUP_HEADER (THUNAR_SHORTCUT_GROUP_DEVICES_HEADER \
                                       | THUNAR_SHORTCUT_GROUP_PLACES_HEADER \
+                                      | THUNAR_SHORTCUT_GROUP_BOOKMARKS_HEADER \
                                       | THUNAR_SHORTCUT_GROUP_NETWORK_HEADER)
 
 enum _ThunarShortcutGroup
@@ -78,21 +80,24 @@ enum _ThunarShortcutGroup
   /* THUNAR_SHORTCUT_GROUP_PLACES */
   THUNAR_SHORTCUT_GROUP_PLACES_HEADER = (1 << 0),    /* places header */
   THUNAR_SHORTCUT_GROUP_PLACES_COMPUTER = (1 << 1),  /* computer */
-  THUNAR_SHORTCUT_GROUP_PLACES_DEFAULT = (1 << 2),   /* home and desktop */
+  THUNAR_SHORTCUT_GROUP_PLACES_DEFAULT = (1 << 2),   /* home, desktop and standard folders */
   THUNAR_SHORTCUT_GROUP_PLACES_RECENT = (1 << 3),    /* recent */
   THUNAR_SHORTCUT_GROUP_PLACES_TRASH = (1 << 4),     /* trash */
-  THUNAR_SHORTCUT_GROUP_PLACES_BOOKMARKS = (1 << 5), /* gtk-bookmarks */
+
+  /* THUNAR_SHORTCUT_GROUP_BOOKMARKS */
+  THUNAR_SHORTCUT_GROUP_BOOKMARKS_HEADER = (1 << 5),  /* bookmarks header */
+  THUNAR_SHORTCUT_GROUP_BOOKMARKS_ENTRIES = (1 << 6), /* gtk-bookmarks */
 
   /* THUNAR_SHORTCUT_GROUP_DEVICES */
-  THUNAR_SHORTCUT_GROUP_DEVICES_HEADER = (1 << 6),     /* devices header */
-  THUNAR_SHORTCUT_GROUP_DEVICES_FILESYSTEM = (1 << 7), /* local filesystem */
-  THUNAR_SHORTCUT_GROUP_DEVICES_VOLUMES = (1 << 8),    /* local ThunarDevices */
-  THUNAR_SHORTCUT_GROUP_DEVICES_MOUNTS = (1 << 9),     /* local mounts, like cameras and archives */
+  THUNAR_SHORTCUT_GROUP_DEVICES_HEADER = (1 << 7),     /* devices header */
+  THUNAR_SHORTCUT_GROUP_DEVICES_FILESYSTEM = (1 << 8), /* local filesystem */
+  THUNAR_SHORTCUT_GROUP_DEVICES_VOLUMES = (1 << 9),    /* local ThunarDevices */
+  THUNAR_SHORTCUT_GROUP_DEVICES_MOUNTS = (1 << 10),    /* local mounts, like cameras and archives */
 
   /* THUNAR_SHORTCUT_GROUP_NETWORK */
-  THUNAR_SHORTCUT_GROUP_NETWORK_HEADER = (1 << 10),  /* network header */
-  THUNAR_SHORTCUT_GROUP_NETWORK_DEFAULT = (1 << 11), /* browse network */
-  THUNAR_SHORTCUT_GROUP_NETWORK_MOUNTS = (1 << 12),  /* remote ThunarDevices */
+  THUNAR_SHORTCUT_GROUP_NETWORK_HEADER = (1 << 11),  /* network header */
+  THUNAR_SHORTCUT_GROUP_NETWORK_DEFAULT = (1 << 12), /* browse network */
+  THUNAR_SHORTCUT_GROUP_NETWORK_MOUNTS = (1 << 13),  /* remote ThunarDevices */
 };
 
 

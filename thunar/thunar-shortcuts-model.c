@@ -362,8 +362,12 @@ thunar_shortcuts_model_finalize (GObject *object)
     g_source_remove (model->bookmarks_idle_id);
 
   /* free all shortcuts */
-  g_list_foreach (model->shortcuts, (GFunc) (void (*) (void)) thunar_shortcut_free, model);
-  g_list_free (model->shortcuts);
+  while (model->shortcuts != NULL)
+    {
+      ThunarShortcut *shortcut = model->shortcuts->data;
+      model->shortcuts = g_list_delete_link (model->shortcuts, model->shortcuts);
+      thunar_shortcut_free (shortcut, model);
+    }
 
   /* disconnect from the preferences */
   g_object_unref (model->preferences);
@@ -789,7 +793,7 @@ thunar_shortcuts_model_get_value (GtkTreeModel *tree_model,
     case THUNAR_SHORTCUTS_MODEL_COLUMN_MUTABLE:
       g_value_init (value, G_TYPE_BOOLEAN);
       g_value_set_boolean (value,
-                           shortcut->group == THUNAR_SHORTCUT_GROUP_PLACES_BOOKMARKS);
+                           shortcut->group == THUNAR_SHORTCUT_GROUP_BOOKMARKS_ENTRIES);
       break;
 
     case THUNAR_SHORTCUTS_MODEL_COLUMN_CAN_EJECT:
@@ -929,7 +933,7 @@ thunar_shortcuts_model_row_draggable (GtkTreeDragSource *source,
   shortcut = g_list_nth_data (model->shortcuts, gtk_tree_path_get_indices (path)[0]);
 
   /* special shortcuts cannot be reordered */
-  return (shortcut != NULL && shortcut->group == THUNAR_SHORTCUT_GROUP_PLACES_BOOKMARKS);
+  return (shortcut != NULL && shortcut->group == THUNAR_SHORTCUT_GROUP_BOOKMARKS_ENTRIES);
 }
 
 
@@ -1099,7 +1103,18 @@ thunar_shortcuts_model_shortcut_places (ThunarShortcutsModel *model)
   GFile          *home;
   GFile          *desktop;
   GFile          *trash;
+  GFile          *location;
   ThunarFile     *file;
+  const gchar    *path;
+  guint           n, m;
+  const GUserDirectory special_dirs[] = {
+    G_USER_DIRECTORY_DOCUMENTS,
+    G_USER_DIRECTORY_DOWNLOAD,
+    G_USER_DIRECTORY_MUSIC,
+    G_USER_DIRECTORY_PICTURES,
+    G_USER_DIRECTORY_VIDEOS,
+  };
+  GFile *locations[G_N_ELEMENTS (special_dirs)] = { NULL, };
 
   /* add the places heading */
   shortcut = g_slice_new0 (ThunarShortcut);
@@ -1124,6 +1139,8 @@ thunar_shortcuts_model_shortcut_places (ThunarShortcutsModel *model)
       thunar_shortcuts_model_add_shortcut (model, shortcut);
     }
 
+  g_reload_user_special_dirs_cache ();
+
   /* add desktop entry */
   desktop = thunar_g_file_new_for_desktop ();
   if (!g_file_equal (desktop, home))
@@ -1140,8 +1157,47 @@ thunar_shortcuts_model_shortcut_places (ThunarShortcutsModel *model)
           thunar_shortcuts_model_add_shortcut (model, shortcut);
         }
     }
+
+  for (n = 0; n < G_N_ELEMENTS (special_dirs); n++)
+    {
+      path = g_get_user_special_dir (special_dirs[n]);
+      if (path == NULL)
+        continue;
+
+      location = g_file_new_for_path (path);
+      locations[n] = location;
+      for (m = 0; m < n; m++)
+        if (locations[m] != NULL && g_file_equal (locations[m], location))
+          break;
+      if (m < n)
+        continue;
+
+      file = NULL;
+      if (!g_file_equal (location, home) && !g_file_equal (location, desktop))
+        file = thunar_file_get (location, NULL);
+
+      if (file != NULL && thunar_file_is_directory (file))
+        {
+          shortcut = g_slice_new0 (ThunarShortcut);
+          shortcut->group = THUNAR_SHORTCUT_GROUP_PLACES_DEFAULT;
+          shortcut->file = file;
+          shortcut->sort_id = 2 + n;
+          shortcut->hidden = thunar_shortcuts_model_get_hidden (model, shortcut);
+          thunar_shortcuts_model_add_shortcut (model, shortcut);
+        }
+      else if (file != NULL)
+        g_object_unref (file);
+    }
+  for (n = 0; n < G_N_ELEMENTS (locations); n++)
+    if (locations[n] != NULL)
+      g_object_unref (locations[n]);
   g_object_unref (desktop);
   g_object_unref (home);
+
+  shortcut = g_slice_new0 (ThunarShortcut);
+  shortcut->group = THUNAR_SHORTCUT_GROUP_BOOKMARKS_HEADER;
+  shortcut->name = g_strdup (_("Bookmarks"));
+  thunar_shortcuts_model_add_shortcut (model, shortcut);
 
   /* append the trash icon if the trash is supported */
   if (thunar_g_vfs_is_uri_scheme_supported ("trash"))
@@ -1205,6 +1261,32 @@ thunar_shortcuts_model_shortcut_places (ThunarShortcutsModel *model)
 
 
 
+static gchar *
+thunar_shortcuts_model_hidden_key (ThunarShortcut *shortcut)
+{
+  gchar *uri;
+  gchar *key;
+
+  if (shortcut->file != NULL)
+    uri = thunar_file_dup_uri (shortcut->file);
+  else if (shortcut->location != NULL)
+    uri = g_file_get_uri (shortcut->location);
+  else
+    {
+      g_warn_if_reached ();
+      return NULL;
+    }
+
+  if (uri == NULL || shortcut->group != THUNAR_SHORTCUT_GROUP_PLACES_DEFAULT || shortcut->sort_id < 2)
+    return uri;
+
+  key = g_strconcat ("places:", uri, NULL);
+  g_free (uri);
+  return key;
+}
+
+
+
 static gboolean
 thunar_shortcuts_model_get_hidden (ThunarShortcutsModel *model,
                                    ThunarShortcut       *shortcut)
@@ -1219,17 +1301,7 @@ thunar_shortcuts_model_get_hidden (ThunarShortcutsModel *model,
   if (model->hidden_bookmarks == NULL)
     return FALSE;
 
-  /* get the uri */
-  if (shortcut->file != NULL)
-    uri = thunar_file_dup_uri (shortcut->file);
-  else if (shortcut->location != NULL)
-    uri = g_file_get_uri (shortcut->location);
-  else
-    {
-      g_warn_if_reached ();
-      return FALSE;
-    }
-
+  uri = thunar_shortcuts_model_hidden_key (shortcut);
   if (uri == NULL)
     return FALSE;
 
@@ -1266,6 +1338,36 @@ thunar_shortcuts_model_sort_func (gconstpointer shortcut_a,
 
 
 
+static gboolean
+thunar_shortcuts_model_file_in_use (ThunarShortcutsModel *model,
+                                    ThunarFile           *file)
+{
+  GList *lp;
+
+  for (lp = model->shortcuts; lp != NULL; lp = lp->next)
+    if (THUNAR_SHORTCUT (lp->data)->file == file)
+      return TRUE;
+
+  return FALSE;
+}
+
+
+
+static void
+thunar_shortcuts_model_watch_file (ThunarShortcutsModel *model,
+                                   ThunarFile           *file)
+{
+  thunar_file_watch (file);
+
+  if (!thunar_shortcuts_model_file_in_use (model, file))
+    {
+      g_signal_connect (G_OBJECT (file), "destroy", G_CALLBACK (thunar_shortcuts_model_file_destroyed), model);
+      g_signal_connect (G_OBJECT (file), "changed", G_CALLBACK (thunar_shortcuts_model_file_changed), model);
+    }
+}
+
+
+
 static void
 thunar_shortcuts_model_add_shortcut_with_path (ThunarShortcutsModel *model,
                                                ThunarShortcut       *shortcut,
@@ -1278,14 +1380,7 @@ thunar_shortcuts_model_add_shortcut_with_path (ThunarShortcutsModel *model,
   _thunar_return_if_fail (shortcut->file == NULL || THUNAR_IS_FILE (shortcut->file));
 
   if (G_LIKELY (shortcut->file != NULL))
-    {
-      /* enable monitoring for the file */
-      thunar_file_watch (shortcut->file);
-
-      /* subscribe to relevant signals */
-      g_signal_connect (G_OBJECT (shortcut->file), "destroy", G_CALLBACK (thunar_shortcuts_model_file_destroyed), model);
-      g_signal_connect (G_OBJECT (shortcut->file), "changed", G_CALLBACK (thunar_shortcuts_model_file_changed), model);
-    }
+    thunar_shortcuts_model_watch_file (model, shortcut->file);
 
   if (path == NULL)
     {
@@ -1381,7 +1476,7 @@ thunar_shortcuts_model_load_line (GFile       *file_path,
   _thunar_return_if_fail (name == NULL || g_utf8_validate (name, -1, NULL));
 
   shortcut = g_slice_new0 (ThunarShortcut);
-  shortcut->group = THUNAR_SHORTCUT_GROUP_PLACES_BOOKMARKS;
+  shortcut->group = THUNAR_SHORTCUT_GROUP_BOOKMARKS_ENTRIES;
   shortcut->location = g_object_ref (file_path);
 
   /* handle local and remote files differently */
@@ -1445,7 +1540,7 @@ thunar_shortcuts_model_reload_bookmarks (gpointer data)
   for (lp = model->shortcuts; lp != NULL; lp = lp->next)
     {
       ThunarShortcut *shortcut = THUNAR_SHORTCUT (lp->data);
-      if (shortcut->group == THUNAR_SHORTCUT_GROUP_PLACES_BOOKMARKS)
+      if (shortcut->group == THUNAR_SHORTCUT_GROUP_BOOKMARKS_ENTRIES)
         places_bookmarks = g_list_append (places_bookmarks, shortcut);
     }
 
@@ -1505,7 +1600,7 @@ thunar_shortcuts_model_save_bookmarks (ThunarShortcutsModel *model)
   for (lp = model->shortcuts; lp != NULL; lp = lp->next)
     {
       shortcut = THUNAR_SHORTCUT (lp->data);
-      if (shortcut->group == THUNAR_SHORTCUT_GROUP_PLACES_BOOKMARKS)
+      if (shortcut->group == THUNAR_SHORTCUT_GROUP_BOOKMARKS_ENTRIES)
         {
           if (shortcut->file != NULL)
             uri = thunar_file_dup_uri (shortcut->file);
@@ -1717,11 +1812,12 @@ thunar_shortcuts_model_device_changed (ThunarDeviceMonitor  *device_monitor,
           mount_point = thunar_device_get_root (device);
           if (mount_point != NULL)
             {
-              shortcut->file = thunar_file_get (mount_point, NULL);
+              ThunarFile *file = thunar_file_get (mount_point, NULL);
 
               /* enable monitoring for the file */
-              if (shortcut->file != NULL)
-                thunar_file_watch (shortcut->file);
+              if (file != NULL)
+                thunar_shortcuts_model_watch_file (model, file);
+              shortcut->file = file;
 
               g_object_unref (mount_point);
             }
@@ -1792,8 +1888,6 @@ thunar_shortcuts_model_file_destroyed (ThunarFile           *file,
           path = gtk_tree_path_new_from_indices (idx, -1);
           gtk_tree_model_row_changed (GTK_TREE_MODEL (model), path, &iter);
           gtk_tree_path_free (path);
-
-          break;
         }
     }
 }
@@ -1834,10 +1928,9 @@ thunar_shortcuts_model_file_changed (ThunarFile           *file,
           gtk_tree_path_free (path);
 
           /* If the changed shortcut is a bookmark, save the changes */
-          if (shortcut->group == THUNAR_SHORTCUT_GROUP_PLACES_BOOKMARKS)
+          if (shortcut->group == THUNAR_SHORTCUT_GROUP_BOOKMARKS_ENTRIES)
             thunar_shortcuts_model_save_bookmarks (model);
         }
-      break;
     }
 }
 
@@ -1851,7 +1944,8 @@ thunar_shortcut_free (ThunarShortcut       *shortcut,
     {
       /* disable monitoring for the file */
       thunar_file_unwatch (shortcut->file);
-      g_signal_handlers_disconnect_by_data (shortcut->file, model);
+      if (!thunar_shortcuts_model_file_in_use (model, shortcut->file))
+        g_signal_handlers_disconnect_by_data (shortcut->file, model);
       g_object_unref (shortcut->file);
       shortcut->file = NULL;
     }
@@ -1979,7 +2073,7 @@ thunar_shortcuts_model_has_bookmark (ThunarShortcutsModel *model,
       shortcut = lp->data;
 
       /* only check bookmarks */
-      if (shortcut->group != THUNAR_SHORTCUT_GROUP_PLACES_BOOKMARKS)
+      if (shortcut->group != THUNAR_SHORTCUT_GROUP_BOOKMARKS_ENTRIES)
         continue;
 
       if (shortcut->file != NULL
@@ -2025,6 +2119,8 @@ thunar_shortcuts_model_iter_for_file (ThunarShortcutsModel *model,
   for (lp = model->shortcuts; lp != NULL; lp = lp->next)
     {
       shortcut = lp->data;
+      if (shortcut->hidden)
+        continue;
 
       /* check if we have a location that matches */
       if (shortcut->file == file)
@@ -2093,7 +2189,7 @@ thunar_shortcuts_model_drop_possible (ThunarShortcutsModel *model,
     return FALSE;
 
   /* cannot drop before special shortcuts! */
-  if (shortcut->group == THUNAR_SHORTCUT_GROUP_PLACES_BOOKMARKS)
+  if (shortcut->group == THUNAR_SHORTCUT_GROUP_BOOKMARKS_ENTRIES)
     return TRUE;
 
   /* we can drop at the end of the bookmarks (before devices header) */
@@ -2138,7 +2234,7 @@ thunar_shortcuts_model_add (ThunarShortcutsModel *model,
 
   /* create the new shortcut that will be inserted */
   shortcut = g_slice_new0 (ThunarShortcut);
-  shortcut->group = THUNAR_SHORTCUT_GROUP_PLACES_BOOKMARKS;
+  shortcut->group = THUNAR_SHORTCUT_GROUP_BOOKMARKS_ENTRIES;
   shortcut->location = G_FILE (g_object_ref (G_OBJECT (location)));
 
   if (thunar_shortcuts_model_local_file (location))
@@ -2150,7 +2246,7 @@ thunar_shortcuts_model_add (ThunarShortcutsModel *model,
   if (dst_path == NULL)
     {
       for (lp = model->shortcuts; lp != NULL; lp = lp->next)
-        if (THUNAR_SHORTCUT (lp->data)->group == THUNAR_SHORTCUT_GROUP_PLACES_BOOKMARKS)
+        if (THUNAR_SHORTCUT (lp->data)->group == THUNAR_SHORTCUT_GROUP_BOOKMARKS_ENTRIES)
           position++;
 
       shortcut->sort_id = ++position;
@@ -2158,6 +2254,7 @@ thunar_shortcuts_model_add (ThunarShortcutsModel *model,
 
   /* add the shortcut to the list at the given position */
   thunar_shortcuts_model_add_shortcut_with_path (model, shortcut, dst_path);
+  thunar_shortcuts_model_header_visibility (model);
 
   /* the shortcuts list was changed, so write the gtk bookmarks file */
   thunar_shortcuts_model_save_bookmarks (model);
@@ -2284,7 +2381,7 @@ thunar_shortcuts_model_remove (ThunarShortcutsModel *model,
   shortcut = g_list_nth_data (model->shortcuts, gtk_tree_path_get_indices (path)[0]);
 
   /* verify that the shortcut is removable */
-  _thunar_assert (shortcut->group == THUNAR_SHORTCUT_GROUP_PLACES_BOOKMARKS);
+  _thunar_assert (shortcut->group == THUNAR_SHORTCUT_GROUP_BOOKMARKS_ENTRIES);
 
   /* remove the shortcut (using the file destroy handler) */
   thunar_shortcuts_model_remove_shortcut (shortcut, model);
@@ -2325,7 +2422,7 @@ thunar_shortcuts_model_rename (ThunarShortcutsModel *model,
   shortcut = THUNAR_SHORTCUT (((GList *) iter->user_data)->data);
 
   /* verify the shortcut */
-  _thunar_assert (shortcut->group == THUNAR_SHORTCUT_GROUP_PLACES_BOOKMARKS);
+  _thunar_assert (shortcut->group == THUNAR_SHORTCUT_GROUP_BOOKMARKS_ENTRIES);
 
   /* perform the rename */
   if (G_UNLIKELY (shortcut->name != NULL))
@@ -2427,16 +2524,9 @@ thunar_shortcuts_model_set_hidden (ThunarShortcutsModel *model,
       return;
     }
 
-  /* get the uri */
-  if (shortcut->file != NULL)
-    uri = thunar_file_dup_uri (shortcut->file);
-  else if (shortcut->location != NULL)
-    uri = g_file_get_uri (shortcut->location);
-  else
-    {
-      g_warn_if_reached ();
-      return;
-    }
+  uri = thunar_shortcuts_model_hidden_key (shortcut);
+  if (uri == NULL)
+    return;
 
   /* prepare array */
   length = model->hidden_bookmarks != NULL ? g_strv_length (model->hidden_bookmarks) : 0;
