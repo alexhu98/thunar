@@ -280,7 +280,7 @@ explainers/40-split-ratio.narration.json  # its narration</pre>
 
   <section class="sub" id="checks">
   <h3 class="sec">What was checked</h3>
-  <p data-k="how">Rows 1 to 12 are from this session's local build-verify on <code>b49ff69</code>, before the review fixes; the last six say their source. <code>verify/40.sh</code> measures each pane from a window screenshot, finding the two empty file views along a row or column.</p>
+  <p data-k="how">Rows 1 to 12 are from this session's local build-verify on <code>b49ff69</code>, before the review fixes; the last seven say their source. <code>verify/40.sh</code> measures each pane from a window screenshot, finding the two empty file views along a row or column.</p>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
@@ -301,10 +301,11 @@ explainers/40-split-ratio.narration.json  # its narration</pre>
     <tr data-k="c15"><td>CI on <code>9dc5400</code></td><td>CI's second run, on the first round of fixes: build, verify, code review at high</td><td class="ok">build pass, review pass with R11 to R14; verify still running</td></tr>
     <tr data-k="c16"><td>CI review of <code>0b8ba0f</code></td><td>CI's third review at high, after the R11 fix</td><td class="ok">R15 to R19: R15 medium, accepted by you; 4 low, accepted</td></tr>
     <tr data-k="c17"><td>CI review of <code>651f0e8</code></td><td>CI's fourth review at high, forced by an empty commit</td><td class="ok">R15 reported again, then accepted by you; R20 to R26: 3 fixed, 4 low accepted</td></tr>
-    <tr data-k="c18"><td>CI on the latest push</td><td>Run by CI on PR #107 after this push</td><td class="no">not run yet</td></tr>
+    <tr data-k="c18"><td>CI on <code>0e452b6</code></td><td>CI run 43200917195: build, verify, code review at high, explainer; then <code>/visual-verify pr:107</code> on CI's shots</td><td class="ok">build pass; verify 16 of 16; review pass; explainer pass; visual-verify PASS on 146 shots</td></tr>
+    <tr data-k="c19"><td>CI after updating with <code>main</code></td><td>The branch is being updated with <code>main</code> (#104 merged there); CI runs once more on it</td><td class="no">not run yet</td></tr>
   </table>
   </div>
-  <p data-k="shots" style="margin-top:12px">The test takes six shots: <code>split-60-cold</code>; the pair <code>split-centered</code> (before: setting on, 300 px; after: default, 50/50); <code>drag-kept-with-tab</code>; the pair <code>split-60</code> (before: window charlie at 50/50; after: new window delta at 60/40); <code>split-30-tabs</code>; and <code>split-60-vertical</code>.</p>
+  <p data-k="shots" style="margin-top:12px">The test takes six shots: <code>split-60-cold</code>; the pair <code>split-centered</code> (before: setting on, 300 px; after: default, 50/50); <code>drag-kept-with-tab</code>; the pair <code>split-60</code> (before: window charlie at 50/50; after: new window delta at 60/40); <code>split-30-tabs</code>; and <code>split-60-vertical</code>. In CI run 43200917195 they are shots #54 to #59, and <code>/visual-verify</code> passed them with the rest (<a href="https://github.com/alexhu98/thunar/pull/107#issuecomment-6821685924">its PR comment</a>).</p>
   </section>
 
   <section class="sub" id="review">
@@ -316,7 +317,7 @@ explainers/40-split-ratio.narration.json  # its narration</pre>
     <li data-k="b3"><b>Fixed, restored tabs:</b> on a cold start, restoring tabs turned a <code>--split</code> window's split off; it's now skipped with <code>--split</code>.</li>
     <li data-k="b4"><b>Not changed, two test notes:</b> a vertical-split skew from tab bars (no vertical check has tab bars), and a title check that could pass without the click (the left pane is switched to bravo first, so the click must change the title to alpha).</li>
   </ul>
-  <p data-k="ci-review">CI's own review of <code>b23213f</code> (run 43195797679, high effort, 6 minutes) found 10 low findings and pushed no fix. Its second review, of <code>9dc5400</code>, resolved R1 and R2 and found R11 to R14; its third, of <code>0b8ba0f</code>, found R15 to R19; a forced fourth, of <code>651f0e8</code>, still reported R15 open and found R20 to R26; see the <a href="https://github.com/alexhu98/thunar/pull/107#issuecomment-6820455380">code review PR comment</a>. Of the 26 findings, 10 were fixed (R1, R2, R4, R7, R8, R10, R11, R20, R22 and R25), 16 accepted unchanged, R15 among them after you accepted it.</p>
+  <p data-k="ci-review">CI's own review of <code>b23213f</code> (run 43195797679, high effort, 6 minutes) found 10 low findings and pushed no fix. Its second review, of <code>9dc5400</code>, resolved R1 and R2 and found R11 to R14; its third, of <code>0b8ba0f</code>, found R15 to R19; a forced fourth, of <code>651f0e8</code>, still reported R15 open and found R20 to R26; later reviews found R27 to R33, and the review of <code>0e452b6</code> passed; see the <a href="https://github.com/alexhu98/thunar/pull/107#issuecomment-6820455380">code review PR comment</a>. Of the 33 findings, 11 were fixed (R1, R2, R4, R7, R8, R10, R11, R20, R22, R25 and R27), 22 accepted unchanged, R15 among them after you accepted it.</p>
   <ul class="tight">
     <li data-k="f1"><b>Fixed R1, setting flipped with a split open:</b> the drag-save handlers are now always connected, and the save returns early unless <code>misc-remember-split-position</code> is on.</li>
     <li data-k="f2"><b>Fixed R2, duplicated size code:</b> a new <code>thunar_gtk_orientable_get_size</code> serves both the centering and the ratio.</li>
@@ -329,6 +330,8 @@ explainers/40-split-ratio.narration.json  # its narration</pre>
     <li data-k="f9"><b>Accepted R16 to R19:</b> a touchscreen drag starting beside the handle may not save; a plain click on the handle saves the current position; the release handler doesn't check which button; and the sidebar's upstream save on any release, outside this issue. All are low and unconfirmed from a later review, and matter only with the hidden <code>misc-remember-split-position</code> on.</li>
     <li data-k="f10"><b>Fixed R20, R22 and R25:</b> if the toggle doesn't open a split, <code>thunar_window_open_split</code> clears the percentage (R20, medium); an invalid <code>--split</code> is rejected before <code>--quit</code>, <code>--daemon</code> and <code>--bulk-rename</code> are handled (R22); a stale comment on <code>save_paned_notebooks</code> is updated (R25).</li>
     <li data-k="f11"><b>Accepted R21, R23, R24 and R26:</b> setting the position inside size-allocate needs a second layout pass; the percentage is a parameter and a window field rather than a window option (a design choice); and the test's comments follow the other verify scripts. All are low and unconfirmed from a later review.</li>
+    <li data-k="f12"><b>Fixed R27, an untested order:</b> no test ran <code>--quit</code> with a bad <code>--split</code>. In <code>0e452b6</code>, <code>verify/40.sh</code> checks that <code>thunar --quit --split 5</code> fails with the error and Thunar keeps running.</li>
+    <li data-k="f13"><b>Accepted R28 to R33:</b> <code>--split</code> is checked before <code>--quit</code>, unlike <code>--geometry</code> (the deliberate R22 fix); the percentage is cleared only when the toggle fails; the <code>--quit</code> check's 1 s sleep; no test of the <code>--daemon</code> and <code>--bulk-rename</code> order; a copied loop body; and no timeout on the <code>--quit</code> call. All are low and unconfirmed from a later review.</li>
   </ul>
   </section>
 
