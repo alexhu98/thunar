@@ -7,7 +7,7 @@ W=1000
 H=760
 PANE_X=70
 TOP_Y=84
-STEP=10
+STEP=14
 
 CONF=${XDG_CONFIG_HOME:-$HOME/.config}
 mkdir -p "$CONF/gtk-3.0" "$HOME/Desktop" "$HOME/Documents" "$HOME/Music" \
@@ -34,7 +34,7 @@ scan() {
   NAMES=() YS=()
   focus "$WID"
   prev=$(title)
-  for ((y = TOP_Y; y < H - 10; y += STEP)); do
+  for ((y = ${1:-$TOP_Y}; y < H - 10; y += STEP)); do
     xdotool mousemove --window "$WID" "$PANE_X" "$y" click 1
     sleep 0.25
     t=$(title)
@@ -121,13 +121,14 @@ pair hide-bookmarks "Unticked projects, then notes, in the Bookmarks header's ri
 [[ $(cat "$CONF/gtk-3.0/bookmarks") == "$BOOKMARKS_BEFORE" ]] || fail "hiding bookmarks changed the bookmarks file"
 
 DL=$(($(index_of Downloads) + 1))
+PLACES_Y=${YS[0]}
 printf 'file://%s\n' "$HOME/Downloads" >> "$CONF/gtk-3.0/bookmarks"
 sleep 2
-scan
-[[ $(printf '%s\n' "${NAMES[@]}" | grep -cxF Downloads) -eq 2 ]] || fail "the Downloads bookmark didn't appear next to the Places row: ${NAMES[*]}"
+scan "$(y_of Videos)"
+before Videos Downloads
 xdotool mousemove --window "$WID" $((W - 100)) $((H - 100))
 shot "$WID" before-hide-downloads "Downloads is listed twice: in Places between Documents and Music, and under the Bookmarks header that came back for the new Downloads bookmark"
-toggle "${YS[0]}" 1 "$DL"
+toggle "$PLACES_Y" 1 "$DL"
 hidden_has "places:file://$HOME/Downloads"
 hidden_lacks "file://$HOME/Downloads"
 
