@@ -298,7 +298,10 @@ if __name__ == '__main__':
         entries = json.load(open(os.path.join(out, 'numbered.json')))
         sys.stdout.write(manifest(out, entries, 'shots', {k for k, v in urls(out).items() if v == '-'}))
     elif cmd == 'marker':
-        print(marker(f'pr-proof:{args[0]}', dict(kv.split('=', 1) for kv in args[1:])))
+        bad = [kv for kv in args[1:] if '=' not in kv]
+        if bad:
+            sys.exit(f'marker: {bad[0]!r} is not KEY=VALUE\n\n{__doc__}')
+        print(hidden(args[0], dict(kv.split('=', 1) for kv in args[1:])))
     elif cmd == 'comment':
         status, lines = comment(args[0])
         print('\n'.join([hidden('status', status), *lines]))
