@@ -124,6 +124,12 @@ typedef struct
 
 typedef struct
 {
+  ThunarFile                     *file;
+  ThunarApplicationWindowOptions *window_options;
+} ThunarApplicationLaunch;
+
+typedef struct
+{
   ThunarApplication *application;
   gchar             *working_directory;
   GList             *tabs[2];
@@ -199,6 +205,8 @@ thunar_application_handle_local_options (GApplication *application,
                                          GVariantDict *options);
 static void
 thunar_application_tabs_done (ThunarApplicationTabs *tabs);
+static void
+thunar_application_launch_free (gpointer data);
 static GtkWidget *
 thunar_application_open_window_full (ThunarApplication              *application,
                                      ThunarFile                     *directory,
@@ -309,7 +317,6 @@ struct _ThunarApplication
   gboolean daemon;
   gboolean force_new_window;
 
-
   guint        accel_map_save_id;
   GtkAccelMap *accel_map;
 
@@ -325,7 +332,6 @@ struct _ThunarApplication
 #endif
 
   GList                         *files_to_launch;
-  GList                         *window_options_to_launch;
   ThunarApplicationProcessAction process_file_action;
 
   guint dbus_owner_id_xfce;
@@ -512,8 +518,7 @@ thunar_application_shutdown (GApplication *gapp)
   ThunarApplication *application = THUNAR_APPLICATION (gapp);
 
   /* unqueue all files waiting to be processed */
-  thunar_g_list_free_full (application->files_to_launch);
-  g_list_free_full (application->window_options_to_launch, g_free);
+  g_list_free_full (application->files_to_launch, thunar_application_launch_free);
 
   /* save the current accel map */
   if (G_UNLIKELY (application->accel_map_save_id != 0))
@@ -910,6 +915,18 @@ thunar_application_handle_local_options (GApplication *gapp,
 
 
 
+static void
+thunar_application_launch_free (gpointer data)
+{
+  ThunarApplicationLaunch *launch = data;
+
+  g_object_unref (launch->file);
+  g_free (launch->window_options);
+  g_free (launch);
+}
+
+
+
 static gboolean
 thunar_application_parse_geometry_number (const gchar **string,
                                           gint         *value)
@@ -1031,11 +1048,11 @@ thunar_application_apply_window_options (ThunarApplicationWindowOptions *options
       gtk_window_unmaximize (window);
       if (geometry->has_size)
         gtk_window_set_default_size (window, geometry->width, geometry->height);
-      gtk_window_get_default_size (window, &width, &height);
-      thunar_window_keep_size_unsaved (THUNAR_WINDOW (window), width, height);
+      thunar_window_keep_size_unsaved (THUNAR_WINDOW (window));
 
       if (geometry->has_position)
         {
+          gtk_window_get_default_size (window, &width, &height);
           root = gdk_screen_get_root_window (gtk_window_get_screen (window));
           if (geometry->x_negative)
             gravity = geometry->y_negative ? GDK_GRAVITY_SOUTH_EAST : GDK_GRAVITY_NORTH_EAST;
@@ -1156,7 +1173,6 @@ thunar_application_command_line (GApplication            *gapp,
       /* we failed to process the filenames or the bulk rename failed */
       g_application_command_line_printerr (command_line, "Thunar: %s\n", error->message);
     }
-
 
   /* reopen tabs if desired and this is the first thunar window we open */
   g_object_get (G_OBJECT (application->preferences), "last-restore-tabs", &restore_tabs, NULL);
@@ -2050,6 +2066,9 @@ thunar_application_open_window_full (ThunarApplication              *application
           if (directory != NULL)
             thunar_window_notebook_add_new_tab (THUNAR_WINDOW (data), directory, THUNAR_NEW_TAB_BEHAVIOR_SWITCH);
 
+          if (window_options != NULL)
+            g_message ("--geometry and --workspace ignored: the location opened as a tab in an existing window");
+
           /* bring the window to front */
           gtk_window_present (GTK_WINDOW (data));
 
@@ -2292,15 +2311,14 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
 
       /* unset the startup ids and stop processing any files */
       for (GList *lp = application->files_to_launch; lp != NULL; lp = lp->next)
-        g_object_set_qdata (G_OBJECT (lp->data), thunar_application_startup_id_quark, NULL);
-      thunar_g_list_free_full (application->files_to_launch);
+        g_object_set_qdata (G_OBJECT (((ThunarApplicationLaunch *) lp->data)->file), thunar_application_startup_id_quark, NULL);
+      g_list_free_full (application->files_to_launch, thunar_application_launch_free);
       application->files_to_launch = NULL;
-      g_list_free_full (application->window_options_to_launch, g_free);
-      application->window_options_to_launch = NULL;
     }
   else
     {
-      ThunarApplicationWindowOptions *window_options = application->window_options_to_launch->data;
+      ThunarApplicationLaunch        *launch = application->files_to_launch->data;
+      ThunarApplicationWindowOptions *window_options = launch->window_options;
 
       if (application->process_file_action == THUNAR_APPLICATION_LAUNCH_FILES)
         {
@@ -2332,12 +2350,11 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
         }
 
       g_free (window_options);
+      g_free (launch);
 
       /* remove the file from the list */
       application->files_to_launch = g_list_delete_link (application->files_to_launch,
                                                          application->files_to_launch);
-      application->window_options_to_launch = g_list_delete_link (application->window_options_to_launch,
-                                                                  application->window_options_to_launch);
 
       /* check if we have more files to process */
       if (application->files_to_launch != NULL)
@@ -2375,7 +2392,7 @@ thunar_application_process_files (ThunarApplication *application)
     return;
 
   /* take the next file from the queue */
-  file = THUNAR_FILE (application->files_to_launch->data);
+  file = ((ThunarApplicationLaunch *) application->files_to_launch->data)->file;
 
   /* retrieve the screen we need to launch the file on */
   screen = g_object_get_qdata (G_OBJECT (file), thunar_application_screen_quark);
@@ -2401,11 +2418,12 @@ thunar_application_process_filenames_full (ThunarApplication              *appli
                                            ThunarApplicationProcessAction  action,
                                            ThunarApplicationWindowOptions *window_options)
 {
-  ThunarFile *file;
-  GError     *derror = NULL;
-  GList      *file_list = NULL;
-  GList      *lp;
-  gint        n;
+  ThunarApplicationLaunch *launch;
+  ThunarFile              *file;
+  GError                  *derror = NULL;
+  GList                   *file_list = NULL;
+  GList                   *lp;
+  gint                     n;
 
   _thunar_return_val_if_fail (THUNAR_IS_APPLICATION (application), FALSE);
   _thunar_return_val_if_fail (working_directory != NULL, FALSE);
@@ -2452,12 +2470,12 @@ thunar_application_process_filenames_full (ThunarApplication              *appli
         g_object_set_qdata_full (G_OBJECT (lp->data), thunar_application_startup_id_quark,
                                  g_strdup (startup_id), (GDestroyNotify) g_free);
 
-      application->window_options_to_launch = g_list_append (application->window_options_to_launch,
-                                                             g_steal_pointer (&window_options));
+      launch = g_new0 (ThunarApplicationLaunch, 1);
+      launch->file = lp->data;
+      launch->window_options = g_steal_pointer (&window_options);
 
       /* append the file to the list of files we need to launch */
-      application->files_to_launch = g_list_append (application->files_to_launch,
-                                                    lp->data);
+      application->files_to_launch = g_list_append (application->files_to_launch, launch);
     }
 
   /* start processing files if we have any to launch */

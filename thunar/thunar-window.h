@@ -156,9 +156,7 @@ thunar_window_open_pane_tabs (ThunarWindow *window,
                               GList        *left,
                               GList        *right);
 void
-thunar_window_keep_size_unsaved (ThunarWindow *window,
-                                 gint          width,
-                                 gint          height);
+thunar_window_keep_size_unsaved (ThunarWindow *window);
 gboolean
 thunar_window_has_shortcut_sidepane (ThunarWindow *window);
 gboolean

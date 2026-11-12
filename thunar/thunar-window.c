@@ -416,8 +416,6 @@ thunar_window_save_paned_notebooks (ThunarWindow *window);
 static gboolean
 thunar_window_paned_notebooks_button_press_event (GtkWidget      *paned,
                                                   GdkEventButton *event);
-static gboolean
-thunar_window_save_geometry_timer (gpointer user_data);
 static void
 thunar_window_save_geometry_timer_destroy (gpointer user_data);
 static void
@@ -685,10 +683,9 @@ struct _ThunarWindow
 
   /* support to remember window geometry */
   guint save_geometry_timer_id;
-  gint   unsaved_width;
-  gint   unsaved_height;
-  gint64   unsaved_since;
-  gboolean unsaved_settled;
+  gboolean keep_size_unsaved;
+  gint     unsaved_width;
+  gint     unsaved_height;
 
   /* type of the sidepane */
   ThunarSidepaneType sidepane_type;
@@ -2423,6 +2420,21 @@ thunar_window_configure_event (GtkWidget         *widget,
 
   gtk_widget_get_allocation (widget, &widget_allocation);
 
+  if (window->keep_size_unsaved)
+    {
+      GdkWindow *gdk_window = gtk_widget_get_window (widget);
+
+      if (gdk_window == NULL || (gdk_window_get_state (gdk_window) & GDK_WINDOW_STATE_WITHDRAWN) != 0
+          || (event->width == window->unsaved_width && event->height == window->unsaved_height))
+        {
+          window->unsaved_width = event->width;
+          window->unsaved_height = event->height;
+          return (*GTK_WIDGET_CLASS (thunar_window_parent_class)->configure_event) (widget, event);
+        }
+
+      window->keep_size_unsaved = FALSE;
+    }
+
   /* check if we have a new dimension here */
   if (widget_allocation.width != event->width || widget_allocation.height != event->height)
     {
@@ -2434,7 +2446,7 @@ thunar_window_configure_event (GtkWidget         *widget,
       if (gtk_widget_get_visible (widget))
         {
           /* save the geometry one second after the last configure event */
-          window->save_geometry_timer_id = g_timeout_add_seconds_full (G_PRIORITY_LOW, 1, thunar_window_save_geometry_timer,
+          window->save_geometry_timer_id = g_timeout_add_seconds_full (G_PRIORITY_LOW, 1, thunar_util_save_geometry_timer,
                                                                        window, thunar_window_save_geometry_timer_destroy);
         }
     }
@@ -5874,46 +5886,12 @@ thunar_window_paned_notebooks_button_press_event (GtkWidget      *paned,
 
 
 
-static gboolean
-thunar_window_save_geometry_timer (gpointer user_data)
-{
-  ThunarWindow *window = THUNAR_WINDOW (user_data);
-  gint          width;
-  gint          height;
-
-  if (window->unsaved_width > 0)
-    {
-      gtk_window_get_size (GTK_WINDOW (window), &width, &height);
-      if ((gdk_window_get_state (gtk_widget_get_window (GTK_WIDGET (window))) & (GDK_WINDOW_STATE_MAXIMIZED | GDK_WINDOW_STATE_FULLSCREEN)) == 0
-          && ((width == window->unsaved_width && height == window->unsaved_height)
-              || (!window->unsaved_settled && g_get_monotonic_time () - window->unsaved_since < 5 * G_USEC_PER_SEC)))
-        {
-          window->unsaved_width = width;
-          window->unsaved_height = height;
-          window->unsaved_settled = TRUE;
-          return G_SOURCE_REMOVE;
-        }
-
-      window->unsaved_width = 0;
-      window->unsaved_height = 0;
-    }
-
-  return thunar_util_save_geometry_timer (user_data);
-}
-
-
-
 void
-thunar_window_keep_size_unsaved (ThunarWindow *window,
-                                 gint          width,
-                                 gint          height)
+thunar_window_keep_size_unsaved (ThunarWindow *window)
 {
   _thunar_return_if_fail (THUNAR_IS_WINDOW (window));
 
-  window->unsaved_width = width;
-  window->unsaved_height = height;
-  window->unsaved_since = g_get_monotonic_time ();
-  window->unsaved_settled = FALSE;
+  window->keep_size_unsaved = TRUE;
 }
 
 
