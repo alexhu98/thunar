@@ -96,17 +96,13 @@ DESKTOPS=$(xdotool get_num_desktops)
 (( DESKTOPS >= 2 )) || { xdotool set_num_desktops 2; sleep 1; }
 xdotool set_desktop 0
 sleep 1
-for w in $(xdotool search --all --onlyvisible --pid "$THUNAR_PID" --class Thunar); do
-  xdotool windowminimize "$w"
-done
-sleep 1
 
 thunar -w -s 2 -g 800x500+100+100 "$WORK/epsilon" &
 find_window epsilon
 sleep 2
 [[ $(xdotool get_desktop_for_window "$WID") == 1 ]] || fail "thunar -s 2 put the window on workspace index $(xdotool get_desktop_for_window "$WID"), expected 1"
 [[ $(xdotool get_desktop) == 0 ]] || fail "thunar -s 2 switched to workspace index $(xdotool get_desktop)"
-shot root before-workspace "After thunar -s 2 -g 800x500+100+100 epsilon the user is still on workspace 1, where no epsilon window appeared (the other windows are minimized)"
+shot root before-workspace "After thunar -s 2 -g 800x500+100+100 epsilon the user is still on workspace 1, which still shows the earlier Thunar windows and none titled epsilon"
 xdotool set_desktop 1
 sleep 1
 geom "$WID"
