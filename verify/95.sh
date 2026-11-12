@@ -84,7 +84,6 @@ starts right || fail "after Insert the active pane is '$(title)', expected focus
 shot "$WID" after-insert "a.txt is now in the left pane and gone from the right pane, which stays active (the script asserts both folders)"
 pair insert "Selected a.txt in the right pane and pressed Insert" "Insert drops the selection on the other pane: same filesystem, so it moves" "right has a.txt, left empty" "left has a.txt, right empty" "$G"
 
-# In the location bar Insert is a text key: it moves no file
 echo b > "$WORK/right/b.txt"
 sleep 1.5
 select_right
@@ -98,7 +97,9 @@ xdotool key Insert
 sleep 1.5
 [[ -e $WORK/right/b.txt && ! -e $WORK/left/b.txt ]] || fail "Insert with focus in the side pane transferred b.txt"
 shot "$WID" after-side-pane "1.5 s after Insert with focus in the side pane, b.txt is still in right and not in left (the script asserts it)"
-pair side-pane "Selected b.txt in the right pane, clicked the side pane's empty area and pressed Insert" "Insert acts only when focus is in the file view" "side pane focused, b.txt in right" "b.txt still in right, left empty" "$G"
+pair side-pane "Selected b.txt in the right pane, clicked the side pane's empty area and pressed Insert" "Insert acts only when focus is in the file view" "side pane focused, b.txt in right" "b.txt still in right, not in left" "$G"
+
+# In the location bar Insert is a text key: it moves no file
 xdotool key F9
 sleep 0.5
 select_right
