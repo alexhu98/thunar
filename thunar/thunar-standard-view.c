@@ -3754,10 +3754,10 @@ thunar_standard_view_receive_text_uri_list (GdkDragContext     *context,
 
           /* move the focus to the target widget */
           window = gtk_widget_get_toplevel (GTK_WIDGET (standard_view));
-          if (GTK_IS_WINDOW (window) && !thunar_standard_view_is_other_pane (standard_view, source_view))
+          if (GTK_IS_WINDOW (window))
             {
-              /* if split view is active, give focus to the pane containing the view */
-              thunar_window_focus_view (THUNAR_WINDOW (window), GTK_WIDGET (standard_view));
+              /* if split view is active, give focus to the pane containing the view, or keep it on the drag's source pane */
+              thunar_window_focus_view (THUNAR_WINDOW (window), thunar_standard_view_is_other_pane (standard_view, source_view) ? source_view : GTK_WIDGET (standard_view));
             }
 
           succeed = thunar_dnd_perform (GTK_WIDGET (standard_view), file, standard_view->priv->drop_file_list,

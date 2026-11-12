@@ -66,11 +66,12 @@ xdotool key F3
 sleep 1
 goto $((W * 3 / 4)) right
 
-# Drag a.txt from the right pane and drop it on the left pane's empty area. The row's height isn't known,
-# so try from the middle of the pane upward: the first row hit is a.txt, the only file in right.
+# Drag a.txt, the only file in right, from its row and drop it on the left pane's empty area.
+# Try around the first row's position, as verify/15.sh finds it.
+ROW0=$((103 + (EUID == 0 ? 34 : 0)))
 SX=$((W / 2 + 50))
 dropped=''
-for ((ry = H / 2; ry > 60; ry -= 6)); do
+for ry in $ROW0 $((ROW0 + 8)) $((ROW0 - 8)) $((ROW0 + 16)) $((ROW0 + 24)) $((ROW0 - 16)) $((ROW0 + 32)) $((ROW0 + 40)); do
   focus "$WID"
   xdotool mousemove --window "$WID" "$SX" "$ry"
   sleep 0.3
