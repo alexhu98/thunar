@@ -912,7 +912,7 @@ thunar_application_parse_geometry_number (const gchar **string,
     return FALSE;
 
   number = g_ascii_strtoull (*string, &end, 10);
-  if (number > 100000)
+  if (number > G_MAXINT16)
     return FALSE;
 
   *value = number;
@@ -967,15 +967,17 @@ thunar_application_parse_workspace (const gchar *string,
 {
 #ifdef GDK_WINDOWING_X11
   GdkScreen *screen = gdk_screen_get_default ();
+  guint32    n_desktops;
   guint64    number;
 
-  if (screen == NULL || !GDK_IS_X11_SCREEN (screen))
+  if (screen == NULL || !GDK_IS_X11_SCREEN (screen)
+      || (n_desktops = gdk_x11_screen_get_number_of_desktops (screen)) == 0)
     {
       *workspace = -1;
       return TRUE;
     }
 
-  if (!g_ascii_string_to_unsigned (string, 10, 1, gdk_x11_screen_get_number_of_desktops (screen), &number, NULL))
+  if (!g_ascii_string_to_unsigned (string, 10, 1, n_desktops, &number, NULL))
     return FALSE;
 
   *workspace = number - 1;
@@ -1016,16 +1018,14 @@ thunar_application_apply_window_options (ThunarApplicationWindowOptions *options
 
   if (options->has_geometry)
     {
+      gtk_window_unmaximize (window);
       if (geometry->has_size)
-        {
-          gtk_window_unmaximize (window);
-          gtk_window_set_default_size (window, geometry->width, geometry->height);
-          thunar_window_keep_size_unsaved (THUNAR_WINDOW (window), geometry->width, geometry->height);
-        }
+        gtk_window_set_default_size (window, geometry->width, geometry->height);
+      gtk_window_get_default_size (window, &width, &height);
+      thunar_window_keep_size_unsaved (THUNAR_WINDOW (window), width, height);
 
       if (geometry->has_position)
         {
-          gtk_window_get_default_size (window, &width, &height);
           root = gdk_screen_get_root_window (gtk_window_get_screen (window));
           if (geometry->x_negative)
             gravity = geometry->y_negative ? GDK_GRAVITY_SOUTH_EAST : GDK_GRAVITY_NORTH_EAST;

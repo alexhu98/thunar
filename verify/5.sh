@@ -10,7 +10,7 @@ done
 SCREEN_W=$(xdotool getdisplaygeometry | cut -d' ' -f1)
 SCREEN_H=$(xdotool getdisplaygeometry | cut -d' ' -f2)
 
-geom() {  # wid -> sets FX FY FW FH, the frame's position and size, and GW GH, the client size
+geom() {
   local info X Y WIDTH HEIGHT left right top bottom
   info=$(xwininfo -id "$1")
   X=$(sed -n 's/.*Absolute upper-left X: *//p' <<<"$info")
@@ -23,13 +23,13 @@ geom() {  # wid -> sets FX FY FW FH, the frame's position and size, and GW GH, t
   FX=$((X - left)) FY=$((Y - top)) FW=$((WIDTH + left + right)) FH=$((HEIGHT + top + bottom))
 }
 
-near() {  # value low high what
+near() {
   (( $1 >= $2 && $1 <= $3 )) || fail "$4 is $1, expected $2..$3"
 }
 
 remembered() { xfconf-query -c thunar -p /last-window-width 2>/dev/null || echo unset; }
 
-find_window() {  # title prefix -> sets WID, without requiring the window to be visible
+find_window() {
   local i w
   for ((i = 0; i < 75; i++)); do
     w=$(xdotool search --all --pid "$THUNAR_PID" --name "^$1( |$)" 2>/dev/null | head -1) || true
@@ -69,6 +69,7 @@ BETA=$WID
 
 open_thunar -w -g +20+30 "$WORK/gamma"
 wait_title "$WID" gamma
+sleep 1
 geom "$WID"
 near "$FX" 18 22 "thunar -g +20+30: the frame's x"
 near "$FY" 28 32 "thunar -g +20+30: the frame's y"
