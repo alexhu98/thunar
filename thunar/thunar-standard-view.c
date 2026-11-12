@@ -414,10 +414,9 @@ struct _ThunarStandardViewPrivate
   /* scroll_to_file support */
   GHashTable *scroll_to_files;
 
-  /* rename in place */
   ThunarFile  *rename_file;
   GtkEntry    *rename_entry;
-  gboolean     rename_escape;
+  guint        rename_idle_id;
 
   /* statusbar text is mutex protected, since filled by a dedicated ThunarJob */
   gchar     *statusbar_text;
@@ -1209,6 +1208,7 @@ thunar_standard_view_finalize (GObject *object)
   /* release the history */
   g_object_unref (standard_view->priv->history);
 
+  g_clear_handle_id (&standard_view->priv->rename_idle_id, g_source_remove);
   g_clear_object (&standard_view->priv->rename_file);
   g_clear_object (&standard_view->priv->rename_entry);
 
@@ -5352,18 +5352,6 @@ thunar_standard_view_rename_changed (GtkEntry           *entry,
 
 
 
-static gboolean
-thunar_standard_view_rename_key_press (GtkWidget          *entry,
-                                       GdkEventKey        *event,
-                                       ThunarStandardView *standard_view)
-{
-  if (event->keyval == GDK_KEY_Escape)
-    standard_view->priv->rename_escape = TRUE;
-  return FALSE;
-}
-
-
-
 static void
 thunar_standard_view_rename_started (GtkCellRenderer    *renderer,
                                      GtkCellEditable    *editable,
@@ -5375,11 +5363,9 @@ thunar_standard_view_rename_started (GtkCellRenderer    *renderer,
 
   g_clear_object (&standard_view->priv->rename_entry);
   standard_view->priv->rename_entry = GTK_ENTRY (g_object_ref (editable));
-  standard_view->priv->rename_escape = FALSE;
 
   g_signal_connect (editable, "activate", G_CALLBACK (thunar_standard_view_rename_activate), standard_view);
   g_signal_connect (editable, "changed", G_CALLBACK (thunar_standard_view_rename_changed), standard_view);
-  g_signal_connect (editable, "key-press-event", G_CALLBACK (thunar_standard_view_rename_key_press), standard_view);
   g_signal_connect_data (editable, "grab-focus", G_CALLBACK (thunar_standard_view_rename_select), standard_view, NULL, G_CONNECT_SWAPPED | G_CONNECT_AFTER);
   thunar_standard_view_rename_select (standard_view);
 }
@@ -5403,10 +5389,65 @@ thunar_standard_view_rename_canceled (GtkCellRenderer    *renderer,
 {
   gchar *text = NULL;
 
-  if (!standard_view->priv->rename_escape && standard_view->priv->rename_entry != NULL)
+  if (standard_view->priv->rename_entry != NULL
+      && !gtk_widget_has_focus (GTK_WIDGET (standard_view->priv->rename_entry)))
     text = g_strdup (gtk_entry_get_text (standard_view->priv->rename_entry));
   thunar_standard_view_rename_finish (standard_view, text);
   g_free (text);
+}
+
+
+
+static GList *
+thunar_standard_view_rename_paths (ThunarStandardView *standard_view)
+{
+  GList files;
+
+  if (standard_view->priv->rename_file == NULL
+      || !gtk_widget_get_mapped (GTK_WIDGET (standard_view))
+      || thunar_view_get_loading (THUNAR_VIEW (standard_view)))
+    return NULL;
+
+  files.data = standard_view->priv->rename_file;
+  files.next = NULL;
+  files.prev = NULL;
+  return thunar_standard_view_model_get_paths_for_files (standard_view->model, &files);
+}
+
+
+
+static gboolean
+thunar_standard_view_rename_idle (gpointer user_data)
+{
+  ThunarStandardView *standard_view = THUNAR_STANDARD_VIEW (user_data);
+  ThunarApplication  *application;
+  ThunarFile         *file;
+  GList              *paths;
+
+  standard_view->priv->rename_idle_id = 0;
+
+  paths = thunar_standard_view_rename_paths (standard_view);
+  if (paths != NULL)
+    {
+      g_object_set (standard_view->name_renderer, "editable", TRUE, NULL);
+      (*THUNAR_STANDARD_VIEW_GET_CLASS (standard_view)->set_cursor) (standard_view, paths->data, TRUE);
+      g_object_set (standard_view->name_renderer, "editable", FALSE, NULL);
+      g_list_free_full (paths, (GDestroyNotify) gtk_tree_path_free);
+    }
+
+  if (standard_view->priv->rename_entry == NULL)
+    {
+      file = g_steal_pointer (&standard_view->priv->rename_file);
+      if (file != NULL)
+        {
+          application = thunar_application_get ();
+          thunar_application_rename_file (application, file, standard_view, NULL, THUNAR_OPERATION_LOG_OPERATIONS);
+          g_object_unref (application);
+          g_object_unref (file);
+        }
+    }
+
+  return G_SOURCE_REMOVE;
 }
 
 
@@ -5419,45 +5460,42 @@ thunar_standard_view_rename_canceled (GtkCellRenderer    *renderer,
  * Turns the name of @file into a text entry, and renames @file when the
  * entry is confirmed.
  *
- * Return value: %TRUE if editing started or was already in progress,
- *               %FALSE if @file can't be edited in this view.
+ * Editing starts once the view has scrolled @file into view; if it can't
+ * start then, @file is renamed in the popover or dialog instead.
+ *
+ * Return value: %TRUE if editing was queued or is in progress,
+ *               %FALSE if @file is not shown in this view.
  **/
 gboolean
 thunar_standard_view_rename_in_place (ThunarStandardView *standard_view,
                                       ThunarFile         *file)
 {
   ThunarStandardViewClass *klass;
-  GList                    files;
+  GdkRectangle             rect;
   GList                   *paths;
 
   _thunar_return_val_if_fail (THUNAR_IS_STANDARD_VIEW (standard_view), FALSE);
   _thunar_return_val_if_fail (THUNAR_IS_FILE (file), FALSE);
 
-  if (standard_view->priv->rename_entry != NULL)
+  if (standard_view->priv->rename_entry != NULL || standard_view->priv->rename_idle_id != 0)
     return TRUE;
 
   klass = THUNAR_STANDARD_VIEW_GET_CLASS (standard_view);
-  if (klass->set_cursor == NULL || klass->scroll_to_path == NULL
-      || !gtk_widget_get_mapped (GTK_WIDGET (standard_view))
-      || thunar_view_get_loading (THUNAR_VIEW (standard_view)))
-    return FALSE;
-
-  files.data = file;
-  files.next = NULL;
-  files.prev = NULL;
-  paths = thunar_standard_view_model_get_paths_for_files (standard_view->model, &files);
-  if (paths == NULL)
+  if (klass->set_cursor == NULL || klass->scroll_to_path == NULL)
     return FALSE;
 
   g_set_object (&standard_view->priv->rename_file, file);
-  (*klass->scroll_to_path) (standard_view, paths->data, FALSE, 0.0f, 0.0f);
-  g_object_set (standard_view->name_renderer, "editable", TRUE, NULL);
-  (*klass->set_cursor) (standard_view, paths->data, TRUE);
-  g_object_set (standard_view->name_renderer, "editable", FALSE, NULL);
+  paths = thunar_standard_view_rename_paths (standard_view);
+  if (paths == NULL)
+    {
+      g_clear_object (&standard_view->priv->rename_file);
+      return FALSE;
+    }
+
+  if (klass->get_path_rect == NULL || !(*klass->get_path_rect) (standard_view, paths->data, &rect))
+    (*klass->scroll_to_path) (standard_view, paths->data, FALSE, 0.0f, 0.0f);
   g_list_free_full (paths, (GDestroyNotify) gtk_tree_path_free);
 
-  if (standard_view->priv->rename_entry == NULL)
-    g_clear_object (&standard_view->priv->rename_file);
-
-  return standard_view->priv->rename_entry != NULL;
+  standard_view->priv->rename_idle_id = g_idle_add_full (G_PRIORITY_LOW, thunar_standard_view_rename_idle, standard_view, NULL);
+  return TRUE;
 }

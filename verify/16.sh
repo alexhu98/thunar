@@ -65,7 +65,11 @@ keys() {
 }
 
 click_first_row() {
+  local i
   focus "$MAIN"
+  xdotool mousemove --window "$MAIN" 500 400
+  for ((i = 0; i < 12; i++)); do xdotool click 4; done
+  sleep 0.5
   xdotool mousemove --window "$MAIN" "$NAME_X" "$ROW0"
   sleep 0.3
   xdotool click 1
@@ -177,6 +181,18 @@ xdotool key Return
 exists "$DIR/moved.pdf" "renaming with the Name column second"
 xfconf-query -c thunar -p /last-details-view-column-order -r
 sleep 0.5
+
+second_row
+xdotool key Menu
+sleep 0.8
+xdotool key r
+sleep 1
+no_window '^Rename ' "Rename... in the context menu"
+shot "$MAIN" context-menu "Rename... in moved.pdf's context menu turned its Name cell into an entry with 'moved' selected, like F2"
+xdotool type --delay 20 from-menu
+xdotool key Return
+exists "$DIR/from-menu.pdf" "Rename... from the context menu, typing from-menu and Enter"
+sleep 0.5
 click_first_row
 
 keys ctrl+1
@@ -197,15 +213,24 @@ xdotool type --delay 20 compact-renamed
 xdotool key Return
 exists "$DIR/compact-renamed.txt" "renaming icon-renamed.txt in the compact view"
 
+keys ctrl+1
+sleep 0.5
+keys End
+f2
+shot "$MAIN" icon-view-scrolled "End selected zz-30.txt, the last item, and scrolled the icon view to the bottom; F2 turned zz-30.txt's own label into an entry, with 'zz-30' selected"
+xdotool key Escape
+sleep 0.5
+absent "$DIR/zz-30" "Escape in the icon view"
+
 keys ctrl+2
 sleep 0.5
 xfconf-query -c thunar -p /misc-rename-in-place -n -t bool -s false
 sleep 0.5
 second_row
-shot "$MAIN" before-preference-off "With Rename files in place turned off, moved.pdf is selected in the details view"
+shot "$MAIN" before-preference-off "With Rename files in place turned off, from-menu.pdf is selected in the details view"
 f2
-shot "$MAIN" after-preference-off "F2 opened the rename popover from #15 below moved.pdf instead of an entry in its row"
-pair preference-off "Turned misc-rename-in-place off, selected moved.pdf, pressed F2" "With the preference off, F2 opens the rename popover as before" "preference off, moved.pdf selected" "rename popover below moved.pdf" "$V"
+shot "$MAIN" after-preference-off "F2 opened the rename popover added by issue 15 below from-menu.pdf instead of an entry in its row"
+pair preference-off "Turned misc-rename-in-place off, selected from-menu.pdf, pressed F2" "With the preference off, F2 opens the rename popover as before" "preference off, from-menu.pdf selected" "rename popover below from-menu.pdf" "$V"
 xdotool key Escape
 sleep 0.5
 xfconf-query -c thunar -p /misc-rename-in-place -s true
