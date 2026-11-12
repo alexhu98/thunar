@@ -413,6 +413,10 @@ static gboolean
 thunar_window_save_paned (ThunarWindow *window);
 static gboolean
 thunar_window_save_paned_notebooks (ThunarWindow *window);
+static gboolean
+thunar_window_paned_notebooks_button_release_event (GtkWidget      *paned,
+                                                    GdkEventButton *event,
+                                                    ThunarWindow   *window);
 static void
 thunar_window_paned_notebooks_apply_split (ThunarWindow *window);
 static void
@@ -4488,6 +4492,7 @@ thunar_window_action_toggle_split_view (ThunarWindow *window)
       window->split_percent = 0;
       g_signal_handlers_disconnect_by_func (window->paned_notebooks, thunar_window_paned_notebooks_apply_split, window);
       g_signal_handlers_disconnect_by_func (window->paned_notebooks, thunar_window_save_paned_notebooks, window);
+      g_signal_handlers_disconnect_by_func (window->paned_notebooks, thunar_window_paned_notebooks_button_release_event, window);
       g_signal_handlers_disconnect_by_func (window->paned_notebooks, thunar_window_paned_notebooks_button_press_event, NULL);
     }
   else
@@ -4535,7 +4540,7 @@ thunar_window_split_view_add (ThunarWindow *window,
   thunar_window_paned_notebooks_switch (window);
 
   g_signal_connect_swapped (window->paned_notebooks, "accept-position", G_CALLBACK (thunar_window_save_paned_notebooks), window);
-  g_signal_connect_swapped (window->paned_notebooks, "button-release-event", G_CALLBACK (thunar_window_save_paned_notebooks), window);
+  g_signal_connect (window->paned_notebooks, "button-release-event", G_CALLBACK (thunar_window_paned_notebooks_button_release_event), window);
   g_signal_connect (window->paned_notebooks, "button-press-event", G_CALLBACK (thunar_window_paned_notebooks_button_press_event), NULL);
 }
 
@@ -5872,6 +5877,19 @@ thunar_window_save_paned_notebooks (ThunarWindow *window)
                 NULL);
 
   /* for button release event */
+  return FALSE;
+}
+
+
+
+static gboolean
+thunar_window_paned_notebooks_button_release_event (GtkWidget      *paned,
+                                                    GdkEventButton *event,
+                                                    ThunarWindow   *window)
+{
+  if (event->window == gtk_paned_get_handle_window (GTK_PANED (paned)))
+    thunar_window_save_paned_notebooks (window);
+
   return FALSE;
 }
 
