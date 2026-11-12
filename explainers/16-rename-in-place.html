@@ -203,7 +203,7 @@
     <li data-k="1"><b>F2 or Rename….</b> In <code>thunar-action-manager.c</code>, a rename of one file first checks the <code>misc-rename-in-place</code> preference, that the file isn't a <code>.desktop</code> launcher, and that the current view is the details view; then it calls the new <code>thunar_standard_view_rename_in_place</code>.</li>
     <li data-k="2"><b>Scroll into view.</b> If the file's row isn't on screen, the view scrolls to it at once, as #15's popover does. Editing then starts in a low-priority idle callback, after the scroll has been drawn, so the entry lands on the row and not where it used to be.</li>
     <li data-k="3"><b>Entry in Name.</b> The name cell is made editable just for this call and GTK opens a text entry in it. The entry goes in the Name column wherever it is, not in the first column. The name is selected without its extension (all of it for a folder), with the same function as the dialog.</li>
-    <li data-k="4"><b>Enter renames.</b> Enter, or a mouse click or touchscreen tap anywhere else in the active window, renames through <code>thunar_application_rename_file_start</code>: the one function the dialog, the popover and the in-place rename now share, so Ctrl+Z, the operation log and the "Failed to rename" error dialog work as before. Escape, keys that move away (Ctrl+L, a view switch, Ctrl+W, Ctrl+Q) and closing the window cancel. Switching to another window leaves the entry open with the typed text. An empty name, one with <code>/</code>, or one longer than 255 bytes keeps the entry open with an error icon, and a click or tap elsewhere then shows the error instead of renaming. The window's own title-bar buttons still work meanwhile.</li>
+    <li data-k="4"><b>Enter renames.</b> Enter, or a mouse click or touchscreen tap anywhere else in the active window, renames through <code>thunar_application_rename_file_start</code>: the one function the dialog, the popover and the in-place rename now share, so Ctrl+Z, the operation log and the "Failed to rename" error dialog work as before. Escape, keys that move away (Ctrl+L, a view switch, Ctrl+W, Ctrl+Q) and closing the window cancel. Switching to another window leaves the entry open with the typed text. An empty name, one with <code>/</code>, or one longer than 255 bytes keeps the entry open with an error icon, and a click or tap elsewhere then shows the error instead of renaming. Only presses on the window itself get through: its close, minimize and maximize buttons, dragging it by an empty spot and resizing it. Every other click, including the header bar's toolbar buttons, the location bar and the menus, is held back.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Everything else — as before</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
@@ -219,7 +219,7 @@
   <table>
     <tr><th>You do</th><th>What happens</th></tr>
     <tr data-k="k1"><td>Type a new name, press Enter</td><td>The file is renamed; Ctrl+Z renames it back.</td></tr>
-    <tr data-k="k2"><td>Click or tap anywhere else in the window, left or right button</td><td>Renames too, like Enter. With an invalid name, the click is held back and the entry stays open with the error; the title-bar buttons still work.</td></tr>
+    <tr data-k="k2"><td>Click or tap anywhere else in the window, left or right button</td><td>Renames too, like Enter. With an invalid name, the click is held back and the entry stays open with the error. The close, minimize and maximize buttons, dragging and resizing still work; toolbar and menu clicks are held back.</td></tr>
     <tr data-k="k3"><td>Press Escape</td><td>Nothing is renamed; the old name comes back.</td></tr>
     <tr data-k="k4"><td>Enter on an empty name, one with <code>/</code>, or one longer than 255 bytes</td><td>The entry stays open with a red error icon; nothing is renamed.</td></tr>
     <tr data-k="k5"><td>Enter on a name that's taken</td><td>Thunar's "Failed to rename" dialog; the old name stays.</td></tr>
@@ -264,7 +264,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container. CI's four reviews found 31 findings: 21 are fixed and 10 low ones accepted. CI's last fixes, in 1be3de5, wait for CI's run on them.</p>
+  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container. CI's five reviews found 40 findings: 27 are fixed and 13 low ones accepted. CI's last fixes, in e7902df, were not run locally; CI's run on them is pending.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good pieces</h3>
@@ -277,7 +277,7 @@ explainers/
 
   <section class="sub" id="checks">
   <h3 class="sec">What was checked</h3>
-  <p data-k="before">Most local results below ran at 2f43ed4, before CI's review fixes. fc3ec64, with the third review's fixes, was built and run locally too; CI's 1be3de5 was not.</p>
+  <p data-k="before">Most local results below ran at 2f43ed4, before CI's review fixes. fc3ec64, with the third review's fixes, was built and run locally too; CI's 1be3de5 and e7902df were not.</p>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
@@ -292,7 +292,8 @@ explainers/
     <tr data-k="c9"><td>Screenshots look right</td><td>The shot-auditor read the second run's shots and found two problems, both fixed: the entry drawn at a stale spot after a scroll, and ExoIconView's misplaced, clipped entry</td><td class="open">final run: audited after CI's run</td></tr>
     <tr data-k="c10"><td>CI's review fixes</td><td>R1–R6 (CI's d9fa615), R7–R8 (3c577ce), R9–R11 and R13 (CI's 35198ee) and R12 (55f91a2): not built or tested locally</td><td class="no">not run here; CI's third review found R12 resolved</td></tr>
     <tr data-k="c11"><td>The third review's fixes</td><td>fc3ec64 (R18–R20, on top of CI's e991468 for R24), built by the build-verify agent before its push; smoke test, <code>verify/15.sh</code>, <code>16.sh</code> and <code>96.sh</code> against it</td><td class="ok">built, no gcc warnings; 4 of 4 pass</td></tr>
-    <tr data-k="c12"><td>The fourth review's fixes</td><td>CI's 1be3de5 (R19's finish, R25–R28): not built or run locally</td><td class="no">not run here; CI's run on it is pending</td></tr>
+    <tr data-k="c12"><td>The fourth review's fixes</td><td>CI's 1be3de5 (R19's finish, R25–R28): not built or run locally</td><td class="no">not run here; CI's fifth review read it</td></tr>
+    <tr data-k="c13"><td>The fifth review's fixes</td><td>CI's e7902df (R32–R36): not built or run locally</td><td class="no">not run here; CI's run on it is pending</td></tr>
   </table>
   </div>
   </section>
@@ -376,13 +377,32 @@ explainers/
   </ul>
   </section>
 
+  <section class="sub" id="review5">
+  <h3 class="sec">CI's fifth review</h3>
+  <p data-k="ci5">CI reviewed head f7ee140 in run 43303011464 (Opus at high, 7 minutes): 9 new findings, R32–R40. CI fixed five in its commit e7902df, which was not built or run locally.</p>
+  <ul class="tight">
+    <li data-k="R32"><b>R32, medium, fixed by CI in e7902df:</b> the title-bar exemption let header-bar presses through, such as the location bar, so it and the entry fought over focus.</li>
+    <li data-k="R33"><b>R33, medium, fixed by CI in e7902df:</b> GTK's own title bar wasn't found, so close, minimize, maximize and resizing were blocked.</li>
+    <li data-k="R34"><b>R34, medium, fixed by CI in e7902df:</b> menu bar and toolbar clicks were blocked or not depending on the client-side decorations setting.</li>
+    <li data-k="R35"><b>R35, low, fixed by CI in e7902df:</b> the click-blocking's scope was made consistent: only the window itself and its title buttons are let through.</li>
+    <li data-k="R36"><b>R36, medium, fixed by CI in e7902df:</b> a click restarted the edit based only on whether the name was valid, so focus was pulled back.</li>
+    <li data-k="R37"><b>R37, low, fixed in this commit:</b> this page described the old click rule; Part 1 now says exactly which clicks get through.</li>
+  </ul>
+  <p data-k="acc5">Three low findings, not confirmed and from a later review, are accepted rather than fixed, as this repo's CI review rules allow:</p>
+  <ul class="tight">
+    <li data-k="R38"><b>R38, accepted:</b> the click-blocking could stay on an old window after a tab moves. Not confirmed: moving the tab cancels the edit, which clears the blocking.</li>
+    <li data-k="R39"><b>R39, accepted:</b> a tap commits a valid name. That is intended: taps act like clicks.</li>
+    <li data-k="R40"><b>R40, accepted:</b> a repeated two-line test of a widget's parents. Not confirmed: there is no helper to reuse.</li>
+  </ul>
+  </section>
+
   <section class="sub" id="aftermerge">
   <h3 class="sec">Checked only after the merge</h3>
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI's build, smoke test and all verify scripts with CI's 1be3de5</td><td>CI's run on that commit hasn't finished yet</td><td class="open">next CI run</td></tr>
-    <tr data-k="a2"><td>A review of CI's 1be3de5</td><td>CI skips its own fix commit; a later code push's review covers it</td><td class="open">next code push</td></tr>
+    <tr data-k="a1"><td>CI's build, smoke test and all verify scripts with CI's e7902df</td><td>CI's run on that commit hasn't finished yet</td><td class="open">next CI run</td></tr>
+    <tr data-k="a2"><td>A review of CI's e7902df</td><td>CI skips its own fix commit; a later code push's review covers it</td><td class="open">next code push</td></tr>
     <tr data-k="a3"><td>Audit of CI's screenshots (<code>/visual-verify</code>)</td><td>Needs CI's shots on the shots branch</td><td class="open">after CI's run</td></tr>
     <tr data-k="a4"><td>Daily use on your desktop</td><td>The package reaches your machine only after the merge</td><td class="open">after the merge</td></tr>
   </table>
@@ -398,6 +418,7 @@ explainers/
     <li data-k="l5">CI's second run, with its second review: <a href="https://github.com/alexhu98/thunar/actions/runs/43295943834">run 43295943834</a></li>
     <li data-k="l6">CI's third run, with its third review: <a href="https://github.com/alexhu98/thunar/actions/runs/43298128125">run 43298128125</a></li>
     <li data-k="l7">CI's fourth run, with its fourth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43300811144">run 43300811144</a></li>
+    <li data-k="l8">CI's fifth run, with its fifth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43303011464">run 43303011464</a></li>
     <li data-k="l3">After the merge: select a file in the details view and press F2.</li>
   </ul>
   </section>
