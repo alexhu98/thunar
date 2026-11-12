@@ -11,9 +11,9 @@ SCREEN_W=$(xdotool getdisplaygeometry | cut -d' ' -f1)
 SCREEN_H=$(xdotool getdisplaygeometry | cut -d' ' -f2)
 
 geom() {  # wid -> sets X Y GW GH (client area, root coordinates)
-  local WINDOW SCREEN POSITION WIDTH HEIGHT
+  local WINDOW SCREEN WIDTH HEIGHT
   eval "$(xdotool getwindowgeometry --shell "$1")"
-  X=$POSITION_X Y=$POSITION_Y GW=$WIDTH GH=$HEIGHT
+  GW=$WIDTH GH=$HEIGHT
 }
 
 near() {  # value low high what
