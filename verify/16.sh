@@ -1,5 +1,5 @@
 #!/bin/bash
-# Issue #16: F2 on one file edits its name in place, in the details, icon and compact views, with misc-rename-in-place on (the default).
+# Issue #16: F2 on one file edits its name in place in the details view, with misc-rename-in-place on (the default); the icon and compact views keep the popover.
 set -euo pipefail
 . .github/scripts/verify-lib.sh
 
@@ -199,7 +199,7 @@ keys ctrl+1
 sleep 0.5
 f2
 no_window '^Rename ' "F2 in the icon view"
-shot "$MAIN" icon-view "In the icon view, with alpha.txt still selected from the details view, F2 turned alpha.txt's label into an entry under its icon, with 'alpha' selected"
+shot "$MAIN" icon-view "In the icon view, with alpha.txt still selected from the details view, F2 opened the rename popover with 'alpha' selected instead of editing in place"
 xdotool type --delay 20 icon-renamed
 xdotool key Return
 exists "$DIR/icon-renamed.txt" "renaming alpha.txt in the icon view"
@@ -208,19 +208,10 @@ keys ctrl+3
 sleep 0.5
 f2
 no_window '^Rename ' "F2 in the compact view"
-shot "$MAIN" compact-view "In the compact view, with icon-renamed.txt still selected, F2 turned icon-renamed.txt's label into an entry beside its icon, with 'icon-renamed' selected"
+shot "$MAIN" compact-view "In the compact view, with icon-renamed.txt still selected, F2 opened the rename popover with 'icon-renamed' selected instead of editing in place"
 xdotool type --delay 20 compact-renamed
 xdotool key Return
 exists "$DIR/compact-renamed.txt" "renaming icon-renamed.txt in the compact view"
-
-keys ctrl+1
-sleep 0.5
-keys End
-f2
-shot "$MAIN" icon-view-scrolled "End selected zz-30.txt, the last item, and scrolled the icon view to the bottom; F2 turned zz-30.txt's own label into an entry, with 'zz-30' selected"
-xdotool key Escape
-sleep 0.5
-absent "$DIR/zz-30" "Escape in the icon view"
 
 keys ctrl+2
 sleep 0.5

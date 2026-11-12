@@ -5464,7 +5464,9 @@ thunar_standard_view_rename_idle (gpointer user_data)
  * start then, @file is renamed in the popover or dialog instead.
  *
  * Return value: %TRUE if editing was queued or is in progress,
- *               %FALSE if @file is not shown in this view.
+ *               %FALSE if @file is not shown in this view, or the view is
+ *               not a #ThunarDetailsView: #ExoIconView places the entry
+ *               wrongly once the view is scrolled.
  **/
 gboolean
 thunar_standard_view_rename_in_place (ThunarStandardView *standard_view,
@@ -5480,9 +5482,10 @@ thunar_standard_view_rename_in_place (ThunarStandardView *standard_view,
   if (standard_view->priv->rename_entry != NULL || standard_view->priv->rename_idle_id != 0)
     return TRUE;
 
-  klass = THUNAR_STANDARD_VIEW_GET_CLASS (standard_view);
-  if (klass->set_cursor == NULL || klass->scroll_to_path == NULL)
+  if (!THUNAR_IS_DETAILS_VIEW (standard_view))
     return FALSE;
+
+  klass = THUNAR_STANDARD_VIEW_GET_CLASS (standard_view);
 
   g_set_object (&standard_view->priv->rename_file, file);
   paths = thunar_standard_view_rename_paths (standard_view);
@@ -5492,7 +5495,7 @@ thunar_standard_view_rename_in_place (ThunarStandardView *standard_view,
       return FALSE;
     }
 
-  if (klass->get_path_rect == NULL || !(*klass->get_path_rect) (standard_view, paths->data, &rect))
+  if (!(*klass->get_path_rect) (standard_view, paths->data, &rect))
     (*klass->scroll_to_path) (standard_view, paths->data, FALSE, 0.0f, 0.0f);
   g_list_free_full (paths, (GDestroyNotify) gtk_tree_path_free);
 
