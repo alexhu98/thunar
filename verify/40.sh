@@ -22,7 +22,7 @@ saved() { xfconf-query -c thunar -p /last-splitview-separator-position 2>/dev/nu
 
 windows() { xdotool search --all --onlyvisible --pid "$THUNAR_PID" --class Thunar 2>/dev/null | wc -l; }
 
-# Finds the two empty (white) file views along a row at 3/4 of the window's height (h) or the column at its middle
+# Finds the two empty file views (runs of one colour at least 80 px long) along a row at 3/4 of the window's height (h) or the column at its middle
 # (v), and sets POS (the divider, from the first view's start) and SIZE (from the first view's start to the second's end).
 measure() {  # png h|v
   local w h crop out
@@ -32,12 +32,10 @@ measure() {  # png h|v
     NR == 1 { next }
     {
       i = (dir == "h") ? $1 : $2
-      white = ($3 >= 250 && $4 >= 250 && $5 >= 250)
-      if (white && start < 0) start = i
-      if (!white && start >= 0) { if (i - start >= 80) runs = runs " " start " " (i - 1); start = -1 }
+      c = $3 "," $4 "," $5
+      if (c != colour) { if (i - start >= 80) runs = runs " " start " " (i - 1); start = i; colour = c }
     }
-    BEGIN { start = -1 }
-    END { if (start >= 0 && i + 1 - start >= 80) runs = runs " " start " " i; print runs }')
+    END { if (i + 1 - start >= 80) runs = runs " " start " " i; print runs }')
   read -r S1 E1 S2 E2 EXTRA <<<"$out"
   [[ -n ${E2:-} && -z ${EXTRA:-} ]] || fail "expected two empty file views along the $2 line of $1, found runs:$out"
   POS=$(((E1 + S2) / 2 - S1))

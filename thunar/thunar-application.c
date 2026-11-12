@@ -1231,7 +1231,7 @@ thunar_application_command_line (GApplication            *gapp,
   g_object_get (G_OBJECT (application->preferences), "last-restore-tabs", &restore_tabs, NULL);
 
   window_list = thunar_application_get_windows (application);
-  if (restore_tabs && open_first_window && window_list != NULL)
+  if (restore_tabs && open_first_window && split_percent == 0 && window_list != NULL)
     {
       ThunarWindow *window;
       gchar       **tabs_left;
