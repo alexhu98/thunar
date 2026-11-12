@@ -221,7 +221,7 @@ def comment(out):
     lost = [k for k, v in u.items() if v == '-'] + [e['num'] for e in entries if not e['image']]
     lines = []
     if not res:
-        status = {'sha': sha, 'state': 'fail', 'text': 'did not run'}
+        status = {'sha': sha, 'state': 'fail', 'text': 'did not run', 'shots': False}
         lines += ['### Verify: did not run', '', f'The job stopped before the tests, as of `{sha[:12]}`. See [the run]({run_url}).']
         return status, lines
     total = len(res)
@@ -231,7 +231,7 @@ def comment(out):
     unnumbered = not os.path.exists(numbered)
     ok = complete and passed == total and not lost and not unnumbered
     text = head + (f'; {len(lost)} image(s) missing' if lost else '')
-    status = {'sha': sha, 'state': 'pass' if ok else 'fail', 'text': text}
+    status = {'sha': sha, 'state': 'pass' if ok else 'fail', 'text': text, 'shots': bool(entries)}
     theme = open(os.path.join(out, 'theme')).read().strip() if os.path.exists(os.path.join(out, 'theme')) else 'default'
     lines += [f'### Verify: {head}', '']
     if not complete:
@@ -276,8 +276,12 @@ def comment(out):
     return status, lines
 
 
+def marker(name, obj):
+    return f'<!-- {name} ' + json.dumps(obj, ensure_ascii=False, separators=(',', ':')).replace('>', '\\u003e') + ' -->'
+
+
 def hidden(kind, obj):
-    return f'<!-- pr-proof:{kind} ' + json.dumps(obj, ensure_ascii=False, separators=(',', ':')).replace('>', '\\u003e') + ' -->'
+    return marker(f'pr-proof:{kind}', obj)
 
 
 if __name__ == '__main__':

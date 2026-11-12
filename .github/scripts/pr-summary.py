@@ -175,7 +175,7 @@ def summary(runs):
     vsha = (status['verify'] or {}).get('sha', '')
     if v[1] == NO_CODE:
         note = 'No key result or shots: verify did not run, because the PR changes no code, packaging or CI files.'
-    elif not vsha or (t := (status['verify'] or {}).get('text', '')) == 'did not run' or 'could not be numbered' in t:
+    elif not vsha or not (status['verify'] or {}).get('shots'):
         note = 'No key result or shots yet: verify has not published shots for this head.'
     elif vsha != head:
         note = f"The key result and the shots table in the {link('verify', 'Verify comment')} are from `{vsha[:12]}`, not the head."

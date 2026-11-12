@@ -230,8 +230,8 @@ def render(out, repo, sha, result, note, failed):
 def body(state, status, ids, open_, repo, note, rows):
     findings = state.get('findings', [])
     shown = [f for f in findings if f['id'] in ids]
-    lines = [import_module('verify-shots').hidden('status', status),
-             '<!-- review:state ' + json.dumps(state, separators=(',', ':')).replace('>', '\\u003e') + ' -->',
+    shots = import_module('verify-shots')
+    lines = [shots.hidden('status', status), shots.marker('review:state', state),
              '### Code review', '']
     if state.get('sha'):
         model = {'claude-opus-5-5': 'Opus 5.5'}.get(state['model'], state['model'])
