@@ -114,10 +114,10 @@
   <section class="part" id="adds">
   <p class="part-label" data-k="label">Part 1</p>
   <h2 data-k="heading">What this PR adds</h2>
-  <p class="intro" data-k="intro">The reviewer's prompt now says to start all its checking agents at once and wait for every one, and to mark each answer <code>checked</code>. The review job fails, saying why, when the answer shows it didn't wait. Both live in <code>.github/scripts/review-proof.sh</code>.</p>
+  <p class="intro" data-k="intro">The reviewer's prompt now says to start all its checking agents at once and wait for every one, and to mark each answer <code>checked</code>. The review job fails, saying why, when the answer or the job's execution log shows it didn't wait. All of it lives in <code>.github/scripts/review-proof.sh</code>.</p>
 
   <section class="sub" id="flow">
-  <div class="diagram" role="img" aria-label="The reviewer finds issues, checks new and open findings with agents it starts together and waits for, returns its output marked checked, and collect fails the job when an open finding has no answer or a finding is not checked">
+  <div class="diagram" role="img" aria-label="The reviewer finds issues, checks new and open findings with agents it starts together and waits for, returns its output marked checked, and collect fails the job when an open finding has no answer, a finding is not checked, or the execution log shows an agent that reported after the result">
   <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -180,15 +180,24 @@
       <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
     </g>
     <g data-k="7">
-      <rect class="box-you" x="270" y="260" width="210" height="120" rx="10"/>
-      <text x="286" y="290" class="t">Re-run the review</text>
-      <text x="286" y="314" class="b">the comment says why;</text>
-      <text x="286" y="334" class="b">nothing is recorded;</text>
-      <text x="286" y="354" class="b">a re-run retries</text>
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Log agrees</text>
+      <text x="286" y="314" class="b">each Agent call's</text>
+      <text x="286" y="334" class="b">report before result;</text>
+      <text x="286" y="354" class="b">a missing log warns</text>
       <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <g data-k="8">
+      <rect class="box-you" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Re-run review</text>
+      <text x="36" y="314" class="b">the comment says why;</text>
+      <text x="36" y="334" class="b">nothing is recorded;</text>
+      <text x="36" y="354" class="b">a re-run retries</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">8</text>
     </g>
     <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
     <path class="arrow" d="M520,320 H484" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M270,320 H234" marker-end="url(#ah-flow)"/>
   </svg>
   </div>
   <div class="legend">
@@ -217,14 +226,15 @@
   <div class="lane-h" style="color:var(--merge)">② collect — checks the output</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
     <li data-k="5"><b>Every id answered.</b> <code>collect</code> fails the job with an <code>::error::</code> when an id in <code>open.json</code> has no entry in <code>previous</code>, naming the ids. String ids are upper-cased and stripped of spaces first, so <code>r21 </code> still matches R21.</li>
-    <li data-k="6"><b>All checked.</b> It also fails when any new finding, or the entry for an id in <code>open.json</code>, has <code>checked</code> missing or false. That flag is the only signal: collect doesn't read the wording of reasons or notes.</li>
-    <li data-k="7"><b>Re-run the review.</b> <code>collect</code> still saves <code>findings.json</code> and <code>fix.patch</code> for the run's artifact, and writes the reason to <code>collect-error.txt</code>. The code review comment then says "The review of &lt;sha&gt; is not recorded: &lt;reason&gt;. Re-run the review job (run)." Nothing shows as an unchecked "not fixed", and re-running the review job retries.</li>
+    <li data-k="6"><b>All checked.</b> It also fails when any new finding, or the entry for an id in <code>open.json</code>, has <code>checked</code> missing or false. collect doesn't read the wording of reasons or notes.</li>
+    <li data-k="7"><b>Log agrees.</b> collect then reads the job's execution log, <code>claude-execution-output.json</code>, written by the Claude action and uploaded with the review artifact. It fails the job when a top-level Agent call's report didn't arrive before the reviewer's result: a foreground call's tool result, or for a background launch its completed task notification. A missing or unreadable log only warns. Each run prints "execution log: N agent calls, B in the background, L not reported before the result" to the job log.</li>
+    <li data-k="8"><b>Re-run review.</b> <code>collect</code> still saves <code>findings.json</code> and <code>fix.patch</code> for the run's artifact, and writes the reason to <code>collect-error.txt</code>: an open finding with no result, answers returned before their checking agents reported, or the execution log showing agents not reported before the review returned. The code review comment then says "The review of &lt;sha&gt; is not recorded: &lt;reason&gt;. Re-run the review job (run)." Nothing shows as an unchecked "not fixed", and re-running the review job retries.</li>
   </ol>
   </div>
   </section>
 
   <section class="sub" id="parts">
-  <h3 class="sec">The two new checks in collect</h3>
+  <h3 class="sec">The three new checks in collect</h3>
 <pre data-k="diff"><span class="add">  local missing unchecked err=</span>
 <span class="add">  missing=$(jq … '[.[].id] - [$f[0].previous[]?.id] | join(", ")' "$OUT/open.json")</span>
 <span class="add">  unchecked=$(jq … '[every new finding, previous entries for open.json ids</span>
@@ -232,14 +242,19 @@
 <span class="add">    | length' "$OUT/findings.json")</span>
 <span class="add">  [[ -z $missing ]] || err="it returned no result for open finding(s) $missing"</span>
 <span class="add">  (( unchecked == 0 )) || err+="${err:+, and }it returned before the checking agents of $unchecked finding(s) reported"</span>
+<span class="add">  if [[ -s $log ]] &amp;&amp; counts=$(agent_log "$log"); then          # $RUNNER_TEMP/claude-execution-output.json</span>
+<span class="add">    read -r calls background late &lt;&lt;&lt; "$counts"</span>
+<span class="add">    echo "execution log: $calls agent calls, $background in the background, $late not reported before the result"</span>
+<span class="add">    (( late == 0 )) || err+="${err:+, and }the execution log shows $late of its $calls agents not reported before it returned"</span>
+<span class="add">  else echo "::warning::no readable execution log at $log, …"; fi</span>
 <span class="add">  if [[ -n $err ]]; then printf '%s\n' "$err" &gt; "$OUT/collect-error.txt"; echo "::error::the review is not recorded: $err; …"; exit 1; fi</span></pre>
-  <div class="note" data-k="regex">The <code>checked</code> field is the only check. A note that quotes an agent not reporting, such as "the step 2 agent hadn't reported.", passes as long as its answer is checked.</div>
+  <div class="note" data-k="regex">collect never reads the wording. A note that quotes an agent not reporting, such as "the step 2 agent hadn't reported.", passes as long as its answer is checked and the execution log shows its agent reported in time.</div>
   </section>
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">.github/scripts/
-└── review-proof.sh                       # prompt steps 2, 4, 5 and checked; collect's checks; the report's reason
+└── review-proof.sh                       # prompt steps 2, 4, 5 and checked; collect's checks, the execution log's among them; the report's reason
 .github/workflows/
 └── build.yml                             # uploads collect-error.txt with the review artifact
 explainers/103-review-wait-agents.html    # this page
@@ -252,13 +267,14 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The checks were tried with fake review output in a scratch repo, after the last fix. CI's first review found R1–R9 and its second R10–R16. Its third failed on R17, and the wording check was dropped. A real review run at #102's head was not done.</p>
+  <p class="intro" data-k="intro">The checks were tried with fake review output and hand-made execution logs in dry runs. CI's first review found R1–R9 and its second R10–R16. Its third failed on R17, and the wording check was dropped. Its fourth passed and found R23, which added the execution-log check. A real review run at #102's head was not done.</p>
 
   <section class="sub" id="refs">
-  <h3 class="sec">Built on 2 known-good references</h3>
+  <h3 class="sec">Built on 3 known-good references</h3>
   <div class="grid">
     <div class="card" data-k="r1"><h3>PR #102's six review rounds</h3><p>The failure itself: R21's step 4 note and the step 2 reasons ("the verification agents had not reported before output was required") show answers handed in before their agents reported, which <code>checked</code> now records.</p></div>
     <div class="card" data-k="r2"><h3>The existing prompt</h3><p>Steps 2 and 4 already said "all at once, in parallel". The PR keeps that, starts both batches together, and adds the wait, so the review still checks findings side by side.</p></div>
+    <div class="card" data-k="r3"><h3>The Claude action's stream-json output</h3><p>The documented format of <code>claude-execution-output.json</code>: assistant tool calls, user tool results and system task notifications, in order, ending in a result message. The log check reads only that.</p></div>
   </div>
   </section>
 
@@ -267,14 +283,19 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr data-k="c1"><td>An open finding with no answer fails</td><td><code>collect</code> dry run in a scratch git repo after the last fix, <code>65e0a80</code>, fake findings with no previous entry for R22 (this session)</td><td class="ok">exit 1</td></tr>
+    <tr data-k="c1"><td>An open finding with no answer fails</td><td><code>collect</code> dry run in a scratch git repo after the wording check was dropped, <code>65e0a80</code>, fake findings with no previous entry for R22 (this session)</td><td class="ok">exit 1</td></tr>
     <tr data-k="c7"><td>An unchecked new finding fails</td><td>Same dry runs, a new finding with <code>checked</code> false, then one with no <code>checked</code> field</td><td class="ok">2 of 2 exit 1</td></tr>
     <tr data-k="c13"><td>An unchecked open finding fails</td><td>Same dry runs, the entry for open finding R21 with <code>checked</code> false</td><td class="ok">exit 1</td></tr>
     <tr data-k="c2"><td>A checked answer quoting #102's wording passes</td><td>Same dry runs, a checked finding whose reason quotes "the step 2 agent hadn't reported."</td><td class="ok">exit 0</td></tr>
     <tr data-k="c9"><td>Stray ids are ignored, ids match loosely</td><td>Same dry runs, a previous id not in <code>open.json</code> with <code>checked</code> false; and, before the wording check was dropped, id <code>r21 </code> for R21</td><td class="ok">2 of 2 exit 0</td></tr>
     <tr data-k="c12"><td>A null previous id doesn't stop collect</td><td>Same dry runs, a previous entry whose id is null</td><td class="ok">exit 0</td></tr>
     <tr data-k="c5"><td>A review with nothing open passes</td><td>Dry run before the first fix round, no open findings and an empty previous; not re-run after it</td><td class="ok">exit 0</td></tr>
-    <tr data-k="c14"><td>Fresh-agent review of the final diff</td><td>A <code>general-purpose</code> agent, run on the final diff in this session</td><td class="open">see PR description</td></tr>
+    <tr data-k="c15"><td>Agents not reported before the result fail</td><td><code>collect</code> dry runs on the R23 commit with hand-made execution logs: a background agent that never reported, a report that came after the result, and a completion for a different agent id (<code>a12</code> vs <code>a1</code>) (this session)</td><td class="ok">3 of 3 exit 1</td></tr>
+    <tr data-k="c16"><td>A log where every agent reported passes</td><td>Same dry runs, a foreground report plus a background one completed by a system task notification, with a subagent's own nested call ignored</td><td class="ok">exit 0</td></tr>
+    <tr data-k="c17"><td>A bad log only warns</td><td>Same dry runs, a missing log, an unreadable one, and one with no result message</td><td class="ok">3 of 3 warn, exit 0</td></tr>
+    <tr data-k="c18"><td>The log check on CI's real log</td><td>The real log couldn't be downloaded here: the network proxy blocks GitHub's artifact storage (<code>*.blob.core.windows.net</code>) with a 403, so the format comes from the action's documented output</td><td class="no">not run</td></tr>
+    <tr data-k="c19"><td>Screenshot audit</td><td><code>/visual-verify pr:104</code> on <code>b673bce</code>'s 128 shots: main's existing verify scripts and the smoke test on this PR's build, since it changes no Thunar code (<a href="https://github.com/alexhu98/thunar/pull/104#issuecomment-6817332557">comment</a>)</td><td class="ok">PASS</td></tr>
+    <tr data-k="c14"><td>Fresh-agent review of the R23 commit</td><td>A <code>general-purpose</code> agent, run on the R23 commit in this session</td><td class="open">see PR description</td></tr>
     <tr data-k="c6"><td>Re-running the review at #102's head</td><td>The issue's test. #102 belongs to another session, and a real review needs CI's Claude action, so the dry runs stand in</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -282,7 +303,7 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">A fresh general-purpose agent reviewed the diff with the issue in this session. It found 1 problem, which was fixed. After the fixes for CI's first review, a second fresh agent found no correctness bugs and 3 low notes, all fixed. After the R10–R12 fixes, a third found no bugs and 3 low gaps, 2 of them fixed. A fourth ran on the final diff, after the wording check was dropped.</p>
+  <p data-k="summary">A fresh general-purpose agent reviewed the diff with the issue in this session. It found 1 problem, which was fixed. After the fixes for CI's first review, a second fresh agent found no correctness bugs and 3 low notes, all fixed. After the R10–R12 fixes, a third found no bugs and 3 low gaps, 2 of them fixed. A fourth ran after the wording check was dropped, and a fifth on the R23 commit; its result is in the PR description.</p>
   <ul class="tight">
     <li data-k="b1"><b>Wording check too broad:</b> the first pattern also matched ordinary sentences and would have failed good reviews. It was narrowed, then dropped after CI's third review.</li>
     <li data-k="b2"><b>Checked and fine:</b> the jq expressions, the script's strict mode, <code>open.json</code> always existing when collect runs, and the report after a failed collect.</li>
@@ -339,8 +360,22 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
     <tr data-k="t22"><td>R22</td><td>A non-object previous element aborts the id normalisation</td><td>Accepted: the schema rules it out</td></tr>
   </table>
   </div>
-  <p data-k="accept3">R20–R22 are low, unconfirmed and from a later review, so CLAUDE.md's rules accept them. A <code>Review-accept</code> trailer on this explainer commit closes all five, R3 and R9 by your decision.</p>
-  <p data-k="b3">The R17–R19 fix push gets its own CI review: see the <a href="https://github.com/alexhu98/thunar/pull/104#issuecomment-6816365778">code review comment</a> on PR #104.</p>
+  <p data-k="accept3">R20–R22 are low, unconfirmed and from a later review, so CLAUDE.md's rules accept them. A <code>Review-accept</code> trailer on that round's explainer commit closed all five, R3 and R9 by your decision.</p>
+  </section>
+
+  <section class="sub" id="ci4">
+  <h3 class="sec">CI's fourth review</h3>
+  <p data-k="ci4">CI's fourth review, of <code>b673bce918d9</code> in CI run 43170995107, passed. R17–R19 came back resolved, and R3, R9 and R20–R22 accepted. It found R23–R25, all low:</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Finding</th><th>What it found</th><th>How it was handled</th></tr>
+    <tr data-k="u23"><td>R23</td><td>CONFIRMED: collect trusted only the reviewer's own <code>checked</code> flag, though the execution log records every Agent call</td><td>Fixed in <code>e32ac6a</code> by your decision: collect checks the log (step 7)</td></tr>
+    <tr data-k="u24"><td>R24</td><td>Plausible: <code>checked</code> true with a note saying the agent never reported passes</td><td>Accepted: the execution log now catches an agent that never reported</td></tr>
+    <tr data-k="u25"><td>R25</td><td>Plausible: dropping #103's wording check departs from the issue</td><td>Accepted: you decided it in the third round</td></tr>
+  </table>
+  </div>
+  <p data-k="accept4">R24 and R25 are low and from a later review, so a <code>Review-accept</code> trailer on this explainer commit closes them.</p>
+  <p data-k="b3">The R23 fix push gets its own CI review: see the <a href="https://github.com/alexhu98/thunar/pull/104#issuecomment-6816365778">code review comment</a> on PR #104.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -350,6 +385,7 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
     <tr data-k="a1"><td>An open finding fixed in another file comes back resolved</td><td>Needs a real review with an open finding and its fix elsewhere</td><td class="open">next such PR</td></tr>
     <tr data-k="a2"><td>Reviews stay well inside the 30-minute limit</td><td>Waiting makes each review longer; only real reviews show by how much</td><td class="open">first reviews after the merge</td></tr>
+    <tr data-k="a3"><td>The log check reads CI's real execution log</td><td>The log couldn't be downloaded in this session; the counts line in the review job's log shows whether its format matched</td><td class="open">next CI review of this PR, not yet seen</td></tr>
   </table>
   </div>
   </section>
@@ -419,6 +455,7 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
     <div data-k="verdict"><dt>CONFIRMED / PLAUSIBLE</dt><dd>A finding's verdict: confirmed by its checking agent, or not (yet) confirmed.</dd></div>
     <div data-k="collect"><dt>collect</dt><dd>The step of <code>review-proof.sh</code> that saves the review's output and fix after the review.</dd></div>
     <div data-k="checked"><dt>checked</dt><dd>A new field on each finding and previous entry: true only if its checking agent reported.</dd></div>
+    <div data-k="log"><dt>Execution log</dt><dd><code>claude-execution-output.json</code>: every message and tool call of the review, written by the Claude action.</dd></div>
     <div data-k="err"><dt>::error::</dt><dd>A GitHub Actions log line that shows as an error on the failed job.</dd></div>
   </dl>
   </section>
