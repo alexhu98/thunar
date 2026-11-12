@@ -300,7 +300,7 @@ if __name__ == '__main__':
     elif cmd == 'status':
         if len(args) != 3:
             sys.exit(__doc__)
-        print(hidden('status', dict(zip(('sha', 'state', 'text'), args))))
+        print(hidden('status', {'sha': args[0], 'state': args[1], 'text': args[2]}))
     elif cmd == 'comment':
         status, lines = comment(args[0])
         print('\n'.join([hidden('status', status), *lines]))
