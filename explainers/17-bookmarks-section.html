@@ -248,7 +248,7 @@ explainers/17-bookmarks-section.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The building session built and tested the first commit in the cloud container. After the local review and CI's review rounds, it tested a rebuilt Thunar of commit <code>1eaa173</code> there, and CI's verify passed on <code>2e9f1b8</code>. Later fixes free the folder addresses and shorten the test. CI's run on the latest commit, <code>0ad4499</code>, was still going when this page was written.</p>
+  <p class="intro" data-k="intro">The building session built and tested the first commit in the cloud container. After the local review and CI's review rounds, it tested a rebuilt Thunar of commit <code>1eaa173</code> there, and CI's verify passed on <code>2e9f1b8</code>. Later fixes free the folder addresses and shorten the test, last run here on <code>f1e1f7b</code>. Then <code>main</code>, with #113, was merged into the branch; no CI result for that head is claimed here.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -282,7 +282,8 @@ explainers/17-bookmarks-section.narration.json  # its narration</pre>
 <tr data-k="c18"><td>The test after the leak fix</td><td><code>verify/17.sh</code> in the cloud container against a rebuilt Thunar of <code>79f47e5</code> (this session)</td><td class="ok">pass, 55 s</td></tr>
 <tr data-k="c19"><td>CI on the leak fix</td><td>CI's build and verify on <code>79f47e5</code>; the tests run one after another in a 15-minute budget</td><td class="no">16 of 17; <code>verify/96.sh</code> not run, out of time</td></tr>
 <tr data-k="c20"><td>The shorter test</td><td><code>verify/17.sh</code> on <code>43452a9</code>, which scans only below Videos for the new bookmark, in larger steps, same local build</td><td class="ok">pass, 39 s</td></tr>
-<tr data-k="c21"><td>CI on the latest commit</td><td>CI's build and verify on <code>0ad4499</code>, CI's own fix commit</td><td class="open">still running when written</td></tr>
+<tr data-k="c22"><td>Both Downloads rows in place</td><td><code>verify/17.sh</code> on <code>f1e1f7b</code>, which checks where both Downloads rows are and starts the scan after the restart at Documents, same local build (this session)</td><td class="ok">pass, 41 s</td></tr>
+<tr data-k="c21"><td>CI on the latest head</td><td>CI's build and verify on <code>e7ed4b4</code>, the merge of <code>main</code> with #113 and its <code>verify/93.sh</code></td><td class="open">not known when written</td></tr>
     <tr data-k="c12"><td>Drop, reorder, rename, remove a bookmark</td><td>Not in <code>verify/17.sh</code></td><td class="no">not run</td></tr>
     <tr data-k="c13"><td>Reacting to edits of <code>user-dirs.dirs</code></td><td>Not built: the folders are read at startup, which the issue allows</td><td class="no">not built</td></tr>
   </table>
@@ -300,7 +301,7 @@ explainers/17-bookmarks-section.narration.json  # its narration</pre>
     <li data-k="b5"><b>Skipped, S1:</b> a standard folder you have bookmarked also shows in Bookmarks, as the issue asks. Hiding it later changed: see R2 below.</li>
     <li data-k="b6"><b>Kept, S2:</b> the short comments on the new groups match the style of the list they are in.</li>
   </ul>
-  <p data-k="ci-review">CI then reviewed each code push at high. All its findings, R1 to R32, are in the <a href="https://github.com/alexhu98/thunar/pull/112#issuecomment-6833674903">code review comment</a> on PR #112.</p>
+  <p data-k="ci-review">CI then reviewed each code push at high. All its findings, R1 to R42, are in the <a href="https://github.com/alexhu98/thunar/pull/112#issuecomment-6833674903">code review comment</a> on PR #112.</p>
 <ul class="tight">
 <li data-k="ci1"><b>First review, of <code>b7e59c0</code>:</b> R1 to R10. This session fixed R1, R3 to R7 and R9: one set of file handlers per model while another row uses the file, the user folder list reloaded, repeated standard folders skipped, and the test sets Pictures to home.</li>
 <li data-k="ci2"><b>CI's fix commit <code>2e9f1b8</code>:</b> R11 to R16. Device rows connect their handlers the same way, the folder list reloads before Desktop is read, repeats are found by comparing folders, and the test checks are tighter.</li>
@@ -311,6 +312,8 @@ explainers/17-bookmarks-section.narration.json  # its narration</pre>
 <li data-k="ci7"><b>Review of <code>52d7559</code>:</b> R24 to R27. This session fixed R24, the folder addresses were never freed; R25, the list size is now counted; R27, brace style (<code>79f47e5</code>). R26, an extra full scan in the test, was accepted as low.</li>
 <li data-k="ci8"><b>Review of <code>43452a9</code>:</b> R28 to R32. CI's fix commit <code>0ad4499</code> fixed R29, a right-click that could land inside a row, and R30, the shorter scan now checks Downloads is listed twice.</li>
 <li data-k="ci9"><b>Accepted as low:</b> R28, comparing paths as text instead of folders is not the same check; R31, nothing between the two scans moves Places rows; R32, a test failure that can't happen.</li>
+<li data-k="ci10"><b>Review of <code>8b0ad75</code>:</b> R33 to R37. This session fixed R33, the test's restart scan had lost its time saving; R34, both Downloads rows' places are checked; R35, a wrong failure message; R36, the right-click offset now follows the scan step (<code>f1e1f7b</code>). R37 was accepted as low.</li>
+<li data-k="ci11"><b>Review of <code>f1e1f7b</code>:</b> R38 to R42, all low and not confirmed. CI's fix commit <code>928ecbf</code> fixed R38, a value computed twice. R39 to R42, small test-script points such as a scan that skips rows above Documents, were accepted.</li>
 </ul>
 <p data-k="decisions">The owner's decisions on R2, R8, R10 and R17 are in the <a href="https://github.com/alexhu98/thunar/pull/112#issuecomment-6835750621">Review decisions comment</a>.</p>
   </section>
@@ -324,7 +327,7 @@ explainers/17-bookmarks-section.narration.json  # its narration</pre>
     <tr data-k="a2"><td>Dragging, reordering, renaming and removing bookmarks</td><td>No test covers them; they need your hands in your session</td><td class="open">your first edit after updating</td></tr>
   </table>
   </div>
-  <div class="note" data-k="budget">CI's verify budget is nearly used up: all tests together take about 13 of their 15 minutes. Making room is outside this PR.</div>
+  <div class="note" data-k="budget">CI's verify budget is likely too small now: the tests run one after another in 15 minutes, and #113 added <code>verify/93.sh</code>, so tests 95 and 96 may be reported as not run. The owner is being asked what to do. Making room is outside this PR.</div>
   </section>
 
   <section class="sub" id="see">
