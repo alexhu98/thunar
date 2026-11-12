@@ -1,7 +1,7 @@
 {
   "title": "PR #108 · Cheap PR comments",
   "voice": "af_heart",
-  "page_sha256": "c47be0652c438bed4784d65de6b386816e8499b08dbc6d572a1db0b5419b675b",
+  "page_sha256": "d0fd957193c9507d9def0dc87761cf8a1df33a0b918449c33518e9a06a314ec2",
   "lines": [
     {"screen": "title", "keys": ["title", "lead"], "caption": "This is a tour of pull request 108, which makes CI edit its PR comments only when a result changes.", "say": "This is a tour of pull request one oh eight, which makes CI edit its pull request comments only when a result changes.", "src": "5a5f02a3d40b"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what the PR adds, how it was built and verified, and what comes later.", "src": "fde0fc287988"},
@@ -34,6 +34,7 @@
     {"screen": "review", "keys": ["b1", "b2", "b3"], "caption": "They were about stale links, unmarked old shots, and a dry run that printed nothing.", "src": "662972c1b77c"},
     {"screen": "review", "keys": ["ci"], "caption": "CI's first review found one medium and six low findings, and all seven were fixed.", "src": "ef20a8cacbc3"},
     {"screen": "review", "keys": ["ci2"], "caption": "Later reviews found twelve more; the confirmed ones were fixed, and the rest were accepted as harmless.", "src": "6c1e6f54cbf8"},
+    {"screen": "review", "keys": ["ci3"], "caption": "The next review found six more: two confirmed ones were fixed, and four unconfirmed ones were accepted.", "src": "6746c0e08ddd"},
     {"screen": "aftermerge", "keys": ["a1", "a2"], "caption": "The issue's real test, counting edits and their size, runs on this PR's CI and is reported in a comment.", "src": "fe0c8d65af46"},
     {"screen": "aftermerge", "keys": ["a3"], "caption": "Other PRs get the quieter comments once this is on main.", "src": "463c4f5695bb"},
     {"screen": "see", "keys": ["l1", "l2", "l3"], "caption": "Links to the PR, the issue and CI's comments are here.", "src": "c7704ec985e2"},
@@ -86,6 +87,7 @@
     "review/b3": "c00716f1645f",
     "review/ci": "ef20a8cacbc3",
     "review/ci2": "6c1e6f54cbf8",
+    "review/ci3": "6746c0e08ddd",
     "aftermerge/a1": "62eace18e62f",
     "aftermerge/a2": "f620e2be6fa4",
     "aftermerge/a3": "463c4f5695bb",
