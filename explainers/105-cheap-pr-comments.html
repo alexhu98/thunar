@@ -279,6 +279,7 @@ explainers/105-cheap-pr-comments.narration.json  # its narration</pre>
   <p data-k="ci5">The sixth review found R31 to R36. R31 (low, confirmed) was fixed: <code>explainer-proof.sh</code> passes the status fields straight to the shared writer instead of building JSON with jq first. R32 to R36 (low, plausible) are accepted: they concern verify statuses written before this PR, a pair whose combined image failed, the writer failing (which would already break every CI comment), and main's copy of CLAUDE.md, which this PR updates.</p>
   <p data-k="ci6">The seventh review found R37 and R38 (low, confirmed), both fixed: the <code>marker</code> command calls the same <code>hidden()</code> as the rest of the script, and names a field written without <code>=</code> instead of failing with a bare traceback.</p>
   <p data-k="ci7">The eighth review found R39 to R43, all about that general <code>marker</code> command accepting odd input. It was replaced by a fixed <code>status SHA STATE TEXT</code> command, which fixes R39 (low, confirmed) and leaves nothing for R40 to R43 (low, plausible), which are accepted.</p>
+  <p data-k="ci8">The ninth review found R44 (low, confirmed: build the status fields as a plain dict), fixed, and R45 (low, plausible: a clearer message for a wrong argument count, which no caller can hit), accepted.</p>
   </section>
 
   <section class="sub" id="aftermerge">
