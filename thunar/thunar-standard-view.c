@@ -5406,7 +5406,7 @@ thunar_standard_view_rename_pressed (GtkGesture         *gesture,
   const GdkEvent *event;
   GtkWidget      *widget;
   GtkWidget      *toplevel;
-  GtkWidget      *titlebar;
+  GtkWidget      *button;
   GtkEntry       *entry = standard_view->priv->rename_entry;
 
   if (entry == NULL)
@@ -5418,9 +5418,11 @@ thunar_standard_view_rename_pressed (GtkGesture         *gesture,
     return;
 
   toplevel = gtk_event_controller_get_widget (GTK_EVENT_CONTROLLER (gesture));
-  titlebar = GTK_IS_WINDOW (toplevel) ? gtk_window_get_titlebar (GTK_WINDOW (toplevel)) : NULL;
-  if (titlebar != NULL && widget != NULL && (widget == titlebar || gtk_widget_is_ancestor (widget, titlebar)))
+  if (widget == toplevel)
     return;
+  for (button = widget; button != NULL; button = gtk_widget_get_parent (button))
+    if (gtk_style_context_has_class (gtk_widget_get_style_context (button), GTK_STYLE_CLASS_TITLEBUTTON))
+      return;
 
   if (thunar_standard_view_rename_show_error (entry))
     gtk_gesture_set_state (gesture, GTK_EVENT_SEQUENCE_CLAIMED);
