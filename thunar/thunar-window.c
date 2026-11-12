@@ -3438,7 +3438,7 @@ thunar_window_split_view_is_active (ThunarWindow *window)
 
 
 
-static void
+static gboolean
 thunar_window_transfer_to_other_pane (ThunarWindow *window,
                                       GdkDragAction action)
 {
@@ -3447,57 +3447,62 @@ thunar_window_transfer_to_other_pane (ThunarWindow *window,
   GtkWidget         *other_view;
   ThunarFile        *target;
   GFile             *target_file;
+  GFile             *parent;
   GList             *selected_files;
   GList             *file_list;
   GList             *lp;
+  gboolean           refused = FALSE;
 
   if (!thunar_window_split_view_is_active (window) || window->view == NULL)
-    return;
+    return FALSE;
 
   selected_files = thunar_view_get_selected_files (THUNAR_VIEW (window->view));
   if (selected_files == NULL)
-    return;
+    return FALSE;
 
   other_notebook = (window->notebook_selected == window->notebook_left) ? window->notebook_right : window->notebook_left;
   other_view = gtk_notebook_get_nth_page (GTK_NOTEBOOK (other_notebook), gtk_notebook_get_current_page (GTK_NOTEBOOK (other_notebook)));
   if (other_view == NULL)
-    return;
+    return TRUE;
 
   target = thunar_navigator_get_current_directory (THUNAR_NAVIGATOR (other_view));
-  if (target == NULL || !thunar_file_is_directory (target)
-      || target == window->current_directory)
-    return;
+  if (target == NULL || !thunar_file_is_directory (target) || !thunar_file_is_writable (target))
+    return TRUE;
 
-  if (thunar_file_is_trashed (target))
+  if (thunar_file_is_trash (target))
     {
       if (action == GDK_ACTION_COPY)
-        return;
+        return TRUE;
       action = GDK_ACTION_MOVE;
     }
 
   target_file = thunar_file_get_file (target);
   file_list = thunar_file_list_to_thunar_g_file_list (selected_files);
-  for (lp = file_list; lp != NULL; lp = lp->next)
+  for (lp = file_list; lp != NULL && !refused; lp = lp->next)
     {
-      if (g_file_equal (target_file, lp->data) || g_file_has_prefix (target_file, lp->data)
-          || (thunar_g_file_is_trashed (lp->data) && thunar_file_is_trashed (target)))
-        {
-          thunar_g_list_free_full (file_list);
-          return;
-        }
+      parent = g_file_get_parent (lp->data);
+      refused = g_file_equal (target_file, lp->data) || g_file_has_prefix (target_file, lp->data)
+                || (parent != NULL && g_file_equal (target_file, parent))
+                || (thunar_g_file_is_trashed (lp->data) && thunar_file_is_trashed (target));
+      if (parent != NULL)
+        g_object_unref (parent);
     }
 
-  if (action == 0)
-    action = thunar_file_drop_copy_or_move (target, file_list);
+  if (!refused)
+    {
+      if (action == 0)
+        action = thunar_file_drop_copy_or_move (target, file_list);
 
-  application = thunar_application_get ();
-  if (action == GDK_ACTION_COPY)
-    thunar_application_copy_into (application, window, file_list, target_file, THUNAR_OPERATION_LOG_OPERATIONS, NULL);
-  else
-    thunar_application_move_into (application, window, file_list, target_file, THUNAR_OPERATION_LOG_OPERATIONS, NULL);
-  g_object_unref (application);
+      application = thunar_application_get ();
+      if (action == GDK_ACTION_COPY)
+        thunar_application_copy_into (application, window, file_list, target_file, THUNAR_OPERATION_LOG_OPERATIONS, NULL);
+      else
+        thunar_application_move_into (application, window, file_list, target_file, THUNAR_OPERATION_LOG_OPERATIONS, NULL);
+      g_object_unref (application);
+    }
 
   thunar_g_list_free_full (file_list);
+  return TRUE;
 }
 
 
@@ -3507,8 +3512,7 @@ thunar_window_action_drop_on_other_pane (ThunarWindow *window)
 {
   _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);
 
-  thunar_window_transfer_to_other_pane (window, 0);
-  return TRUE;
+  return thunar_window_transfer_to_other_pane (window, 0);
 }
 
 
@@ -3518,8 +3522,7 @@ thunar_window_action_copy_to_other_pane (ThunarWindow *window)
 {
   _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);
 
-  thunar_window_transfer_to_other_pane (window, GDK_ACTION_COPY);
-  return TRUE;
+  return thunar_window_transfer_to_other_pane (window, GDK_ACTION_COPY);
 }
 
 
@@ -3529,8 +3532,7 @@ thunar_window_action_move_to_other_pane (ThunarWindow *window)
 {
   _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);
 
-  thunar_window_transfer_to_other_pane (window, GDK_ACTION_MOVE);
-  return TRUE;
+  return thunar_window_transfer_to_other_pane (window, GDK_ACTION_MOVE);
 }
 
 

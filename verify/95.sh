@@ -129,3 +129,24 @@ wait_start zz
 [[ -e $WORK/right/c.txt ]] || fail "Ctrl+Insert or Shift+Insert in the location bar moved c.txt"
 [[ ! -e $WORK/other/c.txt ]] || fail "Ctrl+Insert or Shift+Insert in the location bar transferred c.txt to other"
 pair entry-paste "In the location bar, copied zz with Ctrl+Insert, typed $WORK/ and pressed Shift+Insert" "In a text field the keys still copy and paste text and move no file" "location bar: the work folder/" "location bar: the work folder/zz" "$G"
+
+# With split view off the actions let the keys through, so Ctrl+Insert and Shift+Insert still copy and paste files
+xdotool key Escape
+sleep 0.3
+xdotool key F3
+sleep 1
+goto $((W / 2)) right
+click_at $((W / 2)) $((H - 80))
+xdotool key ctrl+a
+sleep 0.5
+xdotool key ctrl+Insert
+sleep 0.5
+goto $((W / 2)) zz
+click_at $((W / 2)) $((H - 80))
+shot "$WID" before-no-split "Split view off: the window shows zz (empty) after Ctrl+Insert copied c.txt from right to the clipboard"
+xdotool key shift+Insert
+wait_file "$WORK/zz/c.txt" present
+sleep 1
+[[ -e $WORK/right/c.txt ]] || fail "Ctrl+Insert then Shift+Insert with split view off moved c.txt instead of copying it"
+shot "$WID" after-no-split "Shift+Insert pasted c.txt into zz; right still has it (the script asserts both folders)"
+pair no-split "With split view off, pressed Ctrl+Insert on c.txt in right, opened zz and pressed Shift+Insert" "Without split view the keys keep their clipboard copy and paste" "zz empty, c.txt copied" "zz has c.txt, right still has it" "$G"
