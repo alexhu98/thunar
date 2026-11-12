@@ -164,6 +164,13 @@ for v in 5 95 abc; do
   (( $(windows) == N )) || fail "thunar --split $v opened a window"
 done
 
+if thunar --quit --split 5 2> "$WORK/err.txt"; then
+  fail "thunar --quit --split 5 succeeded"
+fi
+grep -qF 'Thunar: --split takes a percentage from 10 to 90' "$WORK/err.txt" || fail "thunar --quit --split 5 printed '$(cat "$WORK/err.txt")'"
+sleep 1
+kill -0 "$THUNAR_PID" 2>/dev/null || fail "thunar --quit --split 5 quit Thunar"
+
 help=$(thunar --help)
 grep -q -- '--split=PERCENT' <<<"$help" || fail "thunar --help doesn't list --split"
 
