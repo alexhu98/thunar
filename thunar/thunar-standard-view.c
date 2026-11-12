@@ -422,6 +422,7 @@ struct _ThunarStandardViewPrivate
   gint         rename_start;
   gint         rename_end;
   gboolean     rename_escaped;
+  GtkGesture  *rename_gesture;
   guint        rename_idle_id;
 
   /* statusbar text is mutex protected, since filled by a dedicated ThunarJob */
@@ -1155,6 +1156,7 @@ thunar_standard_view_dispose (GObject *object)
     g_signal_handlers_disconnect_by_data (standard_view->priv->rename_entry, standard_view);
   g_clear_object (&standard_view->priv->rename_entry);
   g_clear_object (&standard_view->priv->rename_file);
+  g_clear_object (&standard_view->priv->rename_gesture);
 
   /* disconnect from file */
   if (standard_view->priv->current_directory != NULL)
@@ -5310,6 +5312,7 @@ thunar_standard_view_rename_finish (ThunarStandardView *standard_view,
     g_signal_handlers_disconnect_by_data (standard_view->priv->rename_entry, standard_view);
   g_clear_object (&standard_view->priv->rename_entry);
   g_clear_pointer (&standard_view->priv->rename_text, g_free);
+  g_clear_object (&standard_view->priv->rename_gesture);
   if (file == NULL)
     return;
 
@@ -5394,6 +5397,31 @@ thunar_standard_view_rename_changed (GtkEntry           *entry,
 
 
 static void
+thunar_standard_view_rename_pressed (GtkGesture         *gesture,
+                                     gint                n_press,
+                                     gdouble             x,
+                                     gdouble             y,
+                                     ThunarStandardView *standard_view)
+{
+  const GdkEvent *event;
+  GtkWidget      *widget;
+  GtkEntry       *entry = standard_view->priv->rename_entry;
+
+  if (entry == NULL)
+    return;
+
+  event = gtk_gesture_get_last_event (gesture, gtk_gesture_get_last_updated_sequence (gesture));
+  widget = event != NULL ? gtk_get_event_widget ((GdkEvent *) event) : NULL;
+  if (widget == GTK_WIDGET (entry) || (widget != NULL && gtk_widget_is_ancestor (widget, GTK_WIDGET (entry))))
+    return;
+
+  if (thunar_standard_view_rename_show_error (entry))
+    gtk_gesture_set_state (gesture, GTK_EVENT_SEQUENCE_CLAIMED);
+}
+
+
+
+static void
 thunar_standard_view_rename_started (GtkCellRenderer    *renderer,
                                      GtkCellEditable    *editable,
                                      const gchar        *path,
@@ -5409,6 +5437,14 @@ thunar_standard_view_rename_started (GtkCellRenderer    *renderer,
     {
       gtk_entry_set_text (standard_view->priv->rename_entry, standard_view->priv->rename_text);
       thunar_standard_view_rename_show_error (standard_view->priv->rename_entry);
+    }
+
+  if (standard_view->priv->rename_gesture == NULL)
+    {
+      standard_view->priv->rename_gesture = gtk_gesture_multi_press_new (gtk_widget_get_toplevel (GTK_WIDGET (standard_view)));
+      gtk_gesture_single_set_button (GTK_GESTURE_SINGLE (standard_view->priv->rename_gesture), 0);
+      gtk_event_controller_set_propagation_phase (GTK_EVENT_CONTROLLER (standard_view->priv->rename_gesture), GTK_PHASE_CAPTURE);
+      g_signal_connect (standard_view->priv->rename_gesture, "pressed", G_CALLBACK (thunar_standard_view_rename_pressed), standard_view);
     }
 
   g_signal_connect (editable, "key-press-event", G_CALLBACK (thunar_standard_view_rename_key_pressed), standard_view);
@@ -5437,9 +5473,11 @@ thunar_standard_view_rename_canceled (GtkCellRenderer    *renderer,
 {
   GtkEntry  *entry = standard_view->priv->rename_entry;
   GtkWidget *toplevel;
+  GdkEvent  *event;
   gchar     *text = NULL;
   gboolean   active;
   gboolean   resume;
+  gboolean   clicked;
 
   toplevel = gtk_widget_get_toplevel (GTK_WIDGET (standard_view));
   if (entry != NULL
@@ -5449,10 +5487,14 @@ thunar_standard_view_rename_canceled (GtkCellRenderer    *renderer,
     {
       active = gtk_window_is_active (GTK_WINDOW (toplevel));
       if (active)
-        resume = gtk_widget_has_focus (GTK_WIDGET (entry)) || thunar_standard_view_rename_check (gtk_entry_get_text (entry)) != NULL;
+        resume = gtk_widget_has_focus (GTK_WIDGET (entry));
       else
         resume = gtk_window_get_focus (GTK_WINDOW (toplevel)) == GTK_WIDGET (entry);
-      if (active || resume)
+      event = gtk_get_current_event ();
+      clicked = active && event != NULL && event->type == GDK_BUTTON_PRESS;
+      if (event != NULL)
+        gdk_event_free (event);
+      if (clicked || resume)
         text = g_strdup (gtk_entry_get_text (entry));
       if (resume)
         {
