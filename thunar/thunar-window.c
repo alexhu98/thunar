@@ -683,6 +683,9 @@ struct _ThunarWindow
 
   /* support to remember window geometry */
   guint save_geometry_timer_id;
+  gboolean keep_size_unsaved;
+  gint     unsaved_width;
+  gint     unsaved_height;
 
   /* type of the sidepane */
   ThunarSidepaneType sidepane_type;
@@ -2416,6 +2419,21 @@ thunar_window_configure_event (GtkWidget         *widget,
   GtkAllocation widget_allocation;
 
   gtk_widget_get_allocation (widget, &widget_allocation);
+
+  if (window->keep_size_unsaved)
+    {
+      GdkWindow *gdk_window = gtk_widget_get_window (widget);
+
+      if (gdk_window == NULL || (gdk_window_get_state (gdk_window) & GDK_WINDOW_STATE_WITHDRAWN) != 0
+          || (event->width == window->unsaved_width && event->height == window->unsaved_height))
+        {
+          window->unsaved_width = event->width;
+          window->unsaved_height = event->height;
+          return (*GTK_WIDGET_CLASS (thunar_window_parent_class)->configure_event) (widget, event);
+        }
+
+      window->keep_size_unsaved = FALSE;
+    }
 
   /* check if we have a new dimension here */
   if (widget_allocation.width != event->width || widget_allocation.height != event->height)
@@ -5864,6 +5882,17 @@ thunar_window_paned_notebooks_button_press_event (GtkWidget      *paned,
     }
 
   return FALSE;
+}
+
+
+
+void
+thunar_window_keep_size_unsaved (ThunarWindow *window)
+{
+  _thunar_return_if_fail (THUNAR_IS_WINDOW (window));
+
+  window->keep_size_unsaved = TRUE;
+  gtk_window_get_default_size (GTK_WINDOW (window), &window->unsaved_width, &window->unsaved_height);
 }
 
 
