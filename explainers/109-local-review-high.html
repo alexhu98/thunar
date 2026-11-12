@@ -274,7 +274,7 @@ explainers/
     <tr data-k="c5"><td>Thunar build and verify</td><td>The PR changes only <code>.claude/</code>, <code>*.md</code> and <code>explainers/</code>, so CI's build and verify run <code>No code changed</code>, with no screenshots to audit</td><td class="no">not run</td></tr>
     <tr data-k="c6"><td>Explainer page and narration</td><td>The explainer subagent: <code>explainer-proof.sh render</code> of this page, then <code>make-video.py stamp 109</code> and <code>status 109</code></td><td class="ok">narration matches</td></tr>
     <tr data-k="c7"><td>CI's review of the first push</td><td>CI run <a href="https://github.com/alexhu98/thunar/actions/runs/43260845692">43260845692</a> on <code>a5e7d5b</code>, at <code>high</code>, 4 minutes</td><td class="ok">7 findings</td></tr>
-    <tr data-k="c8"><td>CI's review of the fix push</td><td>The push with the fixes for R1 to R7 wasn't made when this page was updated</td><td class="open">not yet run</td></tr>
+    <tr data-k="c8"><td>CI's review of the fix push</td><td>CI run <a href="https://github.com/alexhu98/thunar/actions/runs/43262046869">43262046869</a> on <code>9da4827</code>, the push with the fixes for R1 to R7, at <code>high</code>, 4 minutes</td><td class="ok">passed, 6 lows</td></tr>
   </table>
   </div>
   </section>
@@ -294,7 +294,16 @@ explainers/
     <li data-k="r3"><b>The skipped findings (R3):</b> the rule didn't say what happens to S1, S2, … The main session now fixes the ones it can confirm and lists the rest for the owner.</li>
     <li data-k="r4"><b>Smaller gaps (R4 to R7):</b> the rule now says CI reviews every later push (R4); the prompt says <code>CLAUDE.md</code>'s rules apply to every fix, while the issue stays out on purpose (R5); “at the level CI reviews at” is gone, since CI's level can be configured (R6); and the explainer skill's “Code review” line only points to <code>CLAUDE.md</code>'s Context instead of repeating the rule (R7).</li>
   </ul>
-  <p data-k="link">Every finding is in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/110">PR #110</a>.</p>
+  <p data-k="ci2">CI's second review (run <a href="https://github.com/alexhu98/thunar/actions/runs/43262046869">43262046869</a>, at <code>high</code>, 4 minutes) of <code>9da4827</code> passed: it marked R1 to R3 resolved, closed R4 to R7 as unconfirmed, and found 6 new lows, all plausible. All 6 are accepted, not fixed, under <code>CLAUDE.md</code>'s rule for lows from a later review:</p>
+  <ul class="tight">
+    <li data-k="x1"><b>Accepted (R8):</b> <code>explainers/</code> is kept out of the local fixes but not out of the review itself. Reading the page costs little, and the fixes still leave it alone.</li>
+    <li data-k="x2"><b>Accepted (R9):</b> nothing in the prompt itself makes the fixes leave out <code>explainers/</code>. The agent loads <code>CLAUDE.md</code>, and the main session reads <code>git diff</code> before it commits.</li>
+    <li data-k="x3"><b>Accepted (R10):</b> the rule also applies to upstream-merge PRs. The old rule did too, and the upstream-merge skill pushes by its own procedure.</li>
+    <li data-k="x4"><b>Accepted (R11):</b> the rule doesn't say whether S1, S2, … block the push or the merge. <code>CLAUDE.md</code>'s merge rule already covers findings that need a decision.</li>
+    <li data-k="x5"><b>Accepted (R12):</b> the rule names <code>high</code> outright. CI's level is <code>high</code> today, and <code>CLAUDE.md</code>'s CI review section says so too.</li>
+    <li data-k="x6"><b>Accepted (R13):</b> “CI reviews every later push” could read as CI skipping the first. The CI review section says every push is reviewed.</li>
+  </ul>
+  <p data-k="link">That makes 13 findings over two reviews: R1 to R7 fixed, R8 to R13 accepted. Every one is in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/110">PR #110</a>.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -314,7 +323,7 @@ explainers/
     <li data-k="l1">The issue, with the #108 numbers and the nesting risk: <a href="https://github.com/alexhu98/thunar/issues/109">#109</a></li>
     <li data-k="l2">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/110">PR #110</a> → “Files changed”</li>
     <li data-k="l3">The PR that prompted it, with its 10 CI review rounds: <a href="https://github.com/alexhu98/thunar/pull/108">PR #108</a></li>
-    <li data-k="l4">CI's first review of this PR: <a href="https://github.com/alexhu98/thunar/actions/runs/43260845692">run 43260845692</a></li>
+    <li data-k="l4">CI's reviews of this PR: <a href="https://github.com/alexhu98/thunar/actions/runs/43260845692">run 43260845692</a> and <a href="https://github.com/alexhu98/thunar/actions/runs/43262046869">run 43262046869</a></li>
   </ul>
   </section>
   </section>
