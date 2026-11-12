@@ -10,10 +10,17 @@ done
 SCREEN_W=$(xdotool getdisplaygeometry | cut -d' ' -f1)
 SCREEN_H=$(xdotool getdisplaygeometry | cut -d' ' -f2)
 
-geom() {  # wid -> sets X Y GW GH (client area, root coordinates)
-  local WINDOW SCREEN WIDTH HEIGHT
-  eval "$(xdotool getwindowgeometry --shell "$1")"
+geom() {  # wid -> sets FX FY FW FH, the frame's position and size, and GW GH, the client size
+  local info X Y WIDTH HEIGHT left right top bottom
+  info=$(xwininfo -id "$1")
+  X=$(sed -n 's/.*Absolute upper-left X: *//p' <<<"$info")
+  Y=$(sed -n 's/.*Absolute upper-left Y: *//p' <<<"$info")
+  WIDTH=$(sed -n 's/.*Width: *//p' <<<"$info")
+  HEIGHT=$(sed -n 's/.*Height: *//p' <<<"$info")
+  IFS=', ' read -r left right top bottom < <(xprop -id "$1" _NET_FRAME_EXTENTS | sed 's/.*= //')
+  [[ $bottom =~ ^[0-9]+$ ]] || fail "window $1 has no _NET_FRAME_EXTENTS"
   GW=$WIDTH GH=$HEIGHT
+  FX=$((X - left)) FY=$((Y - top)) FW=$((WIDTH + left + right)) FH=$((HEIGHT + top + bottom))
 }
 
 near() {  # value low high what
@@ -44,8 +51,8 @@ wait_title "$WID" alpha
 sleep 1
 geom "$WID"
 (( GW == 1000 && GH == 560 )) || fail "thunar -g 1000x560+200+120 opened a ${GW}x${GH} window"
-near "$X" 200 215 "the window's x"
-near "$Y" 120 170 "the window's y"
+near "$FX" 198 202 "the frame's x"
+near "$FY" 118 122 "the frame's y"
 shot root geometry-cold "With no Thunar running, thunar -g 1000x560+200+120 alpha opened alpha as a 1000x560 window whose frame starts at (200, 120)"
 
 shot root before-negative "One Thunar window, alpha, before thunar -w -g 600x400-40-40 beta"
@@ -54,8 +61,8 @@ wait_title "$WID" beta
 sleep 1
 geom "$WID"
 (( GW == 600 && GH == 400 )) || fail "thunar -g 600x400-40-40 opened a ${GW}x${GH} window"
-near $((SCREEN_W - X - GW)) 40 50 "the gap to the screen's right edge"
-near $((SCREEN_H - Y - GH)) 40 50 "the gap to the screen's bottom edge"
+near $((SCREEN_W - FX - FW)) 38 42 "the gap to the screen's right edge"
+near $((SCREEN_H - FY - FH)) 38 42 "the gap to the screen's bottom edge"
 shot root after-negative "With Thunar running, a second window, beta, 600x400, sits 40 px from the screen's right and bottom edges"
 pair negative "Ran thunar -w -g 600x400-40-40 beta with Thunar running" "Negative offsets measure from the right and bottom edges" "one window, alpha" "beta 600x400, 40 px from bottom-right" "$G1"
 BETA=$WID
@@ -63,8 +70,8 @@ BETA=$WID
 open_thunar -w -g +20+30 "$WORK/gamma"
 wait_title "$WID" gamma
 geom "$WID"
-near "$X" 20 35 "thunar -g +20+30: the window's x"
-near "$Y" 30 80 "thunar -g +20+30: the window's y"
+near "$FX" 18 22 "thunar -g +20+30: the frame's x"
+near "$FY" 28 32 "thunar -g +20+30: the frame's y"
 
 sleep 2
 [[ $(remembered) == "$WIDTH_BEFORE" ]] || fail "/last-window-width changed from $WIDTH_BEFORE to $(remembered) after --geometry"
