@@ -274,7 +274,7 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The checks were tried with fake review output and hand-made execution logs in dry runs. CI's first review found R1–R9 and its second R10–R16. Its third failed on R17, and the wording check was dropped. Its fourth passed and found R23, which added the execution-log check. Its fifth ran that check on a real log, which matched, and failed on R26 and R27. Its sixth failed on R34, now fixed, and R35, accepted by your decision. Its seventh failed on R40: agents reporting with or after the output still counted. R40–R42 and R38 are fixed. Its eighth found R43–R49, all accepted: you chose to merge as is. A real review run at #102's head was not done.</p>
+  <p class="intro" data-k="intro">The checks were tried with fake review output and hand-made execution logs in dry runs. CI's first review found R1–R9 and its second R10–R16. Its third failed on R17, and the wording check was dropped. Its fourth passed and found R23, which added the execution-log check. Its fifth ran that check on a real log, which matched, and failed on R26 and R27. Its sixth failed on R34, now fixed, and R35, accepted by your decision. Its seventh failed on R40: agents reporting with or after the output still counted. R40–R42 and R38 are fixed. Its eighth found R43–R49, all accepted. Its ninth, a full re-review after main was merged in, found R50–R54, all accepted by your decision: you chose to merge once verify and the screenshot audit pass. A real review run at #102's head was not done.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -464,7 +464,23 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
     <tr data-k="y49"><td>R49</td><td>Low: the <code>$late</code> filter is hard to read</td><td>Accepted: later-review low, not confirmed, style only</td></tr>
   </table>
   </div>
-  <p data-k="accept8">A <code>Review-accept</code> trailer on this explainer commit closes all seven, R43 and R44 by your decision. Then <code>origin/main</code>, which merged #106, is merged into the branch, so CI runs on top of current main.</p>
+  <p data-k="accept8">A <code>Review-accept</code> trailer on that round's explainer commit closed all seven, R43 and R44 by your decision. Then <code>origin/main</code>, which merged #106, was merged into the branch, so CI ran on top of current main.</p>
+  </section>
+
+  <section class="sub" id="ci9">
+  <h3 class="sec">CI's ninth review</h3>
+  <p data-k="ci9">CI's ninth review, of <code>c0b7cef30090</code>, the merge of main with #106, in CI run 43189927701, re-reviewed the whole PR. It recorded R43–R49 as accepted and found R50–R54. You chose to accept all five and merge once verify and the screenshot audit pass:</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Finding</th><th>What it found</th><th>How it was handled</th></tr>
+    <tr data-k="z50"><td>R50</td><td>Medium, CONFIRMED: the <code>calls &gt;= needed</code> count includes every top-level Agent call, such as the code-review skill's own agents, not just the checking agents</td><td>Accepted by your decision: the weak count check you already accepted</td></tr>
+    <tr data-k="z51"><td>R51</td><td>Low, CONFIRMED: when collect fails, the review comment says both "re-run the review job" and "don't re-run this job alone"</td><td>Accepted by your decision</td></tr>
+    <tr data-k="z52"><td>R52</td><td>Low, CONFIRMED: step 2 checks findings that step 5 then drops as already accepted, which adds to the count</td><td>Accepted by your decision</td></tr>
+    <tr data-k="z53"><td>R53</td><td>Low, plausible: <code>EXEC_LOG</code> repeats collect's default path</td><td>Accepted by your decision</td></tr>
+    <tr data-k="z54"><td>R54</td><td>Low, plausible: the <code>checked</code> flag is reported by the reviewer itself</td><td>Accepted by your decision</td></tr>
+  </table>
+  </div>
+  <p data-k="accept9">A <code>Review-accept</code> trailer on this explainer commit closes R50–R54.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -484,6 +500,7 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
   <ul class="tight">
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/104">PR #104</a> → “Files changed”</li>
     <li data-k="l2">The issue with #102's evidence: <a href="https://github.com/alexhu98/thunar/issues/103">issue #103</a></li>
+    <li data-k="l3">Your decisions on findings R3, R9, R17, R23, R30, R35, R40–R42, R43, R44 and R50–R54: <a href="https://github.com/alexhu98/thunar/pull/104#issuecomment-6819621072">PR comment</a></li>
   </ul>
   </section>
   </section>
