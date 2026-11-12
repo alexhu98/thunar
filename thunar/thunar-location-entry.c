@@ -426,7 +426,7 @@ thunar_location_entry_open_or_launch (ThunarLocationEntry *location_entry,
                                                       location_entry->current_directory);
                 }
 
-              if (window != NULL && thunar_window_get_current_directory (THUNAR_WINDOW (window)) != NULL)
+              if (window != NULL)
                 {
                   files = g_list_prepend (NULL, thunar_file_get_file (file));
                   thunar_window_show_and_select_files (THUNAR_WINDOW (window), files);
@@ -462,6 +462,12 @@ thunar_location_entry_poke_file_finish (ThunarBrowser *browser,
 {
   _thunar_return_if_fail (THUNAR_IS_LOCATION_ENTRY (browser));
   _thunar_return_if_fail (THUNAR_IS_FILE (file));
+
+  if (window != NULL && thunar_window_get_current_directory (THUNAR_WINDOW (window)) == NULL)
+    {
+      g_object_unref (window);
+      return;
+    }
 
   if (error == NULL)
     {
