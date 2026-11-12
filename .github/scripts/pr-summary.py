@@ -172,10 +172,11 @@ def summary(runs):
     out = [f'## PR proof: {title}', '', f"Head `{head[:12]}`" + (f' · [workflow run]({run_url})' if run_url else ''), '',
            '| Check | Result | Where |', '|---|---|---|']
     out += [f'| {n} | {ICON.get(s, "⚠️")} {cell(t)} | {w} |' for n, s, t, w in checks]
-    vsha = (status['verify'] or {}).get('sha', '')
+    vst = status['verify'] or {}
+    vsha = vst.get('sha', '')
     if v[1] == NO_CODE:
         note = 'No key result or shots: verify did not run, because the PR changes no code, packaging or CI files.'
-    elif not vsha or not (status['verify'] or {}).get('shots'):
+    elif not vsha or not vst.get('shots', vst.get('text') != 'did not run' and 'could not be numbered' not in vst.get('text', '')):
         note = 'No key result or shots yet: verify has not published shots for this head.'
     elif vsha != head:
         note = f"The key result and the shots table in the {link('verify', 'Verify comment')} are from `{vsha[:12]}`, not the head."

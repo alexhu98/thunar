@@ -119,7 +119,7 @@ section() {  # the explainer comment, for each image URL in $OUT/urls; $1 is pas
   fi
   [[ ${NARRATION:-success} != failure ]] || text+="; narration fails"
   jq -cn --arg sha "$sha" --arg state "$1" --arg text "$text" '{sha: $sha, state: $state, text: $text}' \
-    | sed 's/>/\\u003e/g; s/^/<!-- pr-proof:status /; s/$/ -->/'
+    | python3 "$(dirname "$0")/verify-shots.py" marker status
   if [[ ${CHECK:-success} == failure ]]; then
     printf '### Explainer: missing\n\nBranch `%s` must add or change `explainers/%s-<slug>.html` and its narration, as of `%s` (see `.claude/skills/explainer/SKILL.md`).\n\n' \
       "$branch" "${branch%%-*}" "${sha::12}"
