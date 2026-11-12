@@ -273,6 +273,7 @@ explainers/105-cheap-pr-comments.narration.json  # its narration</pre>
     <li data-k="b3"><b>A silent dry run:</b> <code>DRY_RUN</code> printed nothing on a skip; it now prints the message and the body.</li>
   </ul>
   <p data-k="ci">CI's own review of this PR reports in the <a href="https://github.com/alexhu98/thunar/pull/108#issuecomment-6821320093">code review comment</a> on PR #108. Its first review (of <code>5d4b409ab44a</code>) found R1 to R7, one medium and six low, all fixed: unconfirmed findings now stay whole (R1), the compiled files are gone and ignored (R2), the summary says when verify published no shots (R3, R4), closed findings keep a short reason (R5), the explainer was added (R6), and the marker uses the shared writer (R7).</p>
+  <p data-k="ci2">The later reviews found R8 to R19. R13 to R16 (low, confirmed) were fixed: the no-shots check also covers shots that could not be numbered, every writer of a hidden marker uses the one in <code>verify-shots.py</code>, and the reader got its own name. R8 (medium, never confirmed) pointed at an old copy of CLAUDE.md; this PR already updates it. R9 to R12 were never confirmed and count as accepted. R17 to R19 (low, plausible) are accepted: they describe trimming limits that only matter for PRs with dozens of findings, which the digest agent already handles.</p>
   </section>
 
   <section class="sub" id="aftermerge">
