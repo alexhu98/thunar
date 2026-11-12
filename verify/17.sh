@@ -125,7 +125,7 @@ PLACES_Y=${YS[0]}
 DOCS_Y=$(y_of Documents)
 printf 'file://%s\n' "$HOME/Downloads" >> "$CONF/gtk-3.0/bookmarks"
 sleep 2
-scan "$(y_of Documents)"
+scan "$DOCS_Y"
 DLS=()
 for i in "${!NAMES[@]}"; do [[ ${NAMES[$i]} == Downloads ]] && DLS+=("$i"); done
 ((${#DLS[@]} == 2 && DLS[0] > $(index_of Documents) && DLS[0] < $(index_of Music) && DLS[1] > $(index_of Videos))) \
