@@ -199,6 +199,22 @@ thunar_application_handle_local_options (GApplication *application,
                                          GVariantDict *options);
 static void
 thunar_application_tabs_done (ThunarApplicationTabs *tabs);
+static GtkWidget *
+thunar_application_open_window_full (ThunarApplication              *application,
+                                     ThunarFile                     *directory,
+                                     GdkScreen                      *screen,
+                                     const gchar                    *startup_id,
+                                     gboolean                        force_new_window,
+                                     ThunarApplicationWindowOptions *window_options);
+static gboolean
+thunar_application_process_filenames_full (ThunarApplication              *application,
+                                           const gchar                    *working_directory,
+                                           gchar                         **filenames,
+                                           GdkScreen                      *screen,
+                                           const gchar                    *startup_id,
+                                           GError                        **error,
+                                           ThunarApplicationProcessAction  action,
+                                           ThunarApplicationWindowOptions *window_options);
 
 static void
 thunar_application_tabs_poke_queued (ThunarApplicationTabs *tabs);
@@ -293,8 +309,6 @@ struct _ThunarApplication
   gboolean daemon;
   gboolean force_new_window;
 
-  ThunarApplicationWindowOptions *window_options;
-  ThunarApplicationWindowOptions *pending_window_options;
 
   guint        accel_map_save_id;
   GtkAccelMap *accel_map;
@@ -311,6 +325,7 @@ struct _ThunarApplication
 #endif
 
   GList                         *files_to_launch;
+  GList                         *window_options_to_launch;
   ThunarApplicationProcessAction process_file_action;
 
   guint dbus_owner_id_xfce;
@@ -325,7 +340,6 @@ struct _ThunarApplication
 static GQuark thunar_application_screen_quark;
 static GQuark thunar_application_startup_id_quark;
 static GQuark thunar_application_file_quark;
-static GQuark thunar_application_window_options_quark;
 
 
 
@@ -347,8 +361,6 @@ thunar_application_class_init (ThunarApplicationClass *klass)
   g_quark_from_static_string ("thunar-application-startup-id");
   thunar_application_file_quark =
   g_quark_from_static_string ("thunar-application-file");
-  thunar_application_window_options_quark =
-  g_quark_from_static_string ("thunar-application-window-options");
 
   gobject_class->finalize = thunar_application_finalize;
   gobject_class->get_property = thunar_application_get_property;
@@ -388,8 +400,6 @@ thunar_application_init (ThunarApplication *application)
    * in the primary instance anyways */
 
   application->force_new_window = FALSE;
-  application->window_options = NULL;
-  application->pending_window_options = NULL;
   application->files_to_launch = NULL;
   application->process_file_action = THUNAR_APPLICATION_SELECT_FILES;
   application->progress_dialog = NULL;
@@ -503,6 +513,7 @@ thunar_application_shutdown (GApplication *gapp)
 
   /* unqueue all files waiting to be processed */
   thunar_g_list_free_full (application->files_to_launch);
+  g_list_free_full (application->window_options_to_launch, g_free);
 
   /* save the current accel map */
   if (G_UNLIKELY (application->accel_map_save_id != 0))
@@ -782,9 +793,7 @@ thunar_application_tabs_done (ThunarApplicationTabs *tabs)
 
   if (left != NULL)
     {
-      tabs->application->window_options = tabs->window_options;
-      window = thunar_application_open_window (tabs->application, left->data, NULL, NULL, TRUE);
-      tabs->application->window_options = NULL;
+      window = thunar_application_open_window_full (tabs->application, left->data, NULL, NULL, TRUE, tabs->window_options);
       thunar_window_open_pane_tabs (THUNAR_WINDOW (window), left, right);
     }
 
@@ -1001,6 +1010,7 @@ thunar_application_window_map_to_workspace (GtkWidget *window,
                        gdk_atom_intern_static_string ("_NET_WM_DESKTOP"),
                        gdk_atom_intern_static_string ("CARDINAL"),
                        32, GDK_PROP_MODE_REPLACE, (const guchar *) &desktop, 1);
+  gdk_x11_window_move_to_desktop (gtk_widget_get_window (window), desktop);
 }
 #endif
 
@@ -1140,15 +1150,13 @@ thunar_application_command_line (GApplication            *gapp,
       goto out;
     }
 
-  application->pending_window_options = g_steal_pointer (&window_options);
-
   /* if no filenames are provided, open current directory as default */
-  if (!thunar_application_process_filenames (application, cwd, filenames == NULL ? current_directory : filenames, NULL, NULL, &error, THUNAR_APPLICATION_SELECT_FILES))
+  if (!thunar_application_process_filenames_full (application, cwd, filenames == NULL ? current_directory : filenames, NULL, NULL, &error, THUNAR_APPLICATION_SELECT_FILES, g_steal_pointer (&window_options)))
     {
       /* we failed to process the filenames or the bulk rename failed */
       g_application_command_line_printerr (command_line, "Thunar: %s\n", error->message);
     }
-  g_clear_pointer (&application->pending_window_options, g_free);
+
 
   /* reopen tabs if desired and this is the first thunar window we open */
   g_object_get (G_OBJECT (application->preferences), "last-restore-tabs", &restore_tabs, NULL);
@@ -2003,27 +2011,13 @@ thunar_application_take_window (ThunarApplication *application,
 
 
 
-/**
- * thunar_application_open_window:
- * @application      : a #ThunarApplication.
- * @directory        : the directory to open.
- * @screen           : the #GdkScreen on which to open the window or %NULL
- *                     to open on the default screen.
- * @startup_id       : startup id from startup notification passed along
- *                     with dbus to make focus stealing work properly.
- * @force_new_window : set this flag to force a new window, even if misc-open-new-window-as-tab is set
- *
- * Opens a new #ThunarWindow (or tab if preferred) for @application, displaying the
- * given @directory.
- *
- * Return value: the newly allocated #ThunarWindow.
- **/
-GtkWidget *
-thunar_application_open_window (ThunarApplication *application,
-                                ThunarFile        *directory,
-                                GdkScreen         *screen,
-                                const gchar       *startup_id,
-                                gboolean           force_new_window)
+static GtkWidget *
+thunar_application_open_window_full (ThunarApplication              *application,
+                                     ThunarFile                     *directory,
+                                     GdkScreen                      *screen,
+                                     const gchar                    *startup_id,
+                                     gboolean                        force_new_window,
+                                     ThunarApplicationWindowOptions *window_options)
 {
   GList     *window_list;
   GtkWidget *window;
@@ -2090,11 +2084,8 @@ thunar_application_open_window (ThunarApplication *application,
   /* hook up the window */
   thunar_application_take_window (application, GTK_WINDOW (window));
 
-  if (application->window_options != NULL)
-    {
-      thunar_application_apply_window_options (application->window_options, GTK_WINDOW (window));
-      application->window_options = NULL;
-    }
+  if (window_options != NULL)
+    thunar_application_apply_window_options (window_options, GTK_WINDOW (window));
 
   /* show the new window */
   gtk_widget_show (window);
@@ -2125,6 +2116,33 @@ thunar_application_open_window (ThunarApplication *application,
   g_list_free (window_list);
 
   return window;
+}
+
+
+
+/**
+ * thunar_application_open_window:
+ * @application      : a #ThunarApplication.
+ * @directory        : the directory to open.
+ * @screen           : the #GdkScreen on which to open the window or %NULL
+ *                     to open on the default screen.
+ * @startup_id       : startup id from startup notification passed along
+ *                     with dbus to make focus stealing work properly.
+ * @force_new_window : set this flag to force a new window, even if misc-open-new-window-as-tab is set
+ *
+ * Opens a new #ThunarWindow (or tab if preferred) for @application, displaying the
+ * given @directory.
+ *
+ * Return value: the newly allocated #ThunarWindow.
+ **/
+GtkWidget *
+thunar_application_open_window (ThunarApplication *application,
+                                ThunarFile        *directory,
+                                GdkScreen         *screen,
+                                const gchar       *startup_id,
+                                gboolean           force_new_window)
+{
+  return thunar_application_open_window_full (application, directory, screen, startup_id, force_new_window, NULL);
 }
 
 
@@ -2275,16 +2293,14 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
       /* unset the startup ids and stop processing any files */
       for (GList *lp = application->files_to_launch; lp != NULL; lp = lp->next)
         g_object_set_qdata (G_OBJECT (lp->data), thunar_application_startup_id_quark, NULL);
-      for (GList *lp = application->files_to_launch; lp != NULL; lp = lp->next)
-        g_object_set_qdata (G_OBJECT (lp->data), thunar_application_window_options_quark, NULL);
       thunar_g_list_free_full (application->files_to_launch);
       application->files_to_launch = NULL;
+      g_list_free_full (application->window_options_to_launch, g_free);
+      application->window_options_to_launch = NULL;
     }
   else
     {
-      ThunarApplicationWindowOptions *window_options = g_object_steal_qdata (G_OBJECT (file), thunar_application_window_options_quark);
-
-      application->window_options = window_options;
+      ThunarApplicationWindowOptions *window_options = application->window_options_to_launch->data;
 
       if (application->process_file_action == THUNAR_APPLICATION_LAUNCH_FILES)
         {
@@ -2293,7 +2309,7 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
         }
       else if (thunar_file_is_directory (file))
         {
-          thunar_application_open_window (application, file, screen, startup_id, application->force_new_window);
+          thunar_application_open_window_full (application, file, screen, startup_id, application->force_new_window, window_options);
         }
       else
         {
@@ -2306,7 +2322,7 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
               GList     *files = NULL;
               GtkWidget *window;
 
-              window = thunar_application_open_window (application, parent, screen, startup_id, application->force_new_window);
+              window = thunar_application_open_window_full (application, parent, screen, startup_id, application->force_new_window, window_options);
               g_object_unref (parent);
 
               files = g_list_append (files, thunar_file_get_file (file));
@@ -2315,12 +2331,13 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
             }
         }
 
-      application->window_options = NULL;
       g_free (window_options);
 
       /* remove the file from the list */
       application->files_to_launch = g_list_delete_link (application->files_to_launch,
                                                          application->files_to_launch);
+      application->window_options_to_launch = g_list_delete_link (application->window_options_to_launch,
+                                                                  application->window_options_to_launch);
 
       /* check if we have more files to process */
       if (application->files_to_launch != NULL)
@@ -2374,33 +2391,15 @@ thunar_application_process_files (ThunarApplication *application)
 
 
 
-/**
- * thunar_application_process_filenames:
- * @application       : a #ThunarApplication.
- * @working_directory : the working directory relative to which the @filenames should
- *                      be interpreted.
- * @filenames         : a list of supported URIs or filenames. If a filename is specified
- *                      it can be either an absolute path or a path relative to the
- *                      @working_directory.
- * @screen            : the #GdkScreen on which to process the @filenames, or %NULL to
- *                      use the default screen.
- * @startup_id        : startup id to finish startup notification and properly focus the
- *                      window when focus stealing is enabled or %NULL.
- * @error             : return location for errors or %NULL.
- * @action            : action to invoke on the files
- *
- * Tells @application to process the given @filenames and launch them appropriately.
- *
- * Return value: %TRUE on success, %FALSE if @error is set.
- **/
-gboolean
-thunar_application_process_filenames (ThunarApplication             *application,
-                                      const gchar                   *working_directory,
-                                      gchar                        **filenames,
-                                      GdkScreen                     *screen,
-                                      const gchar                   *startup_id,
-                                      GError                       **error,
-                                      ThunarApplicationProcessAction action)
+static gboolean
+thunar_application_process_filenames_full (ThunarApplication              *application,
+                                           const gchar                    *working_directory,
+                                           gchar                         **filenames,
+                                           GdkScreen                      *screen,
+                                           const gchar                    *startup_id,
+                                           GError                        **error,
+                                           ThunarApplicationProcessAction  action,
+                                           ThunarApplicationWindowOptions *window_options)
 {
   ThunarFile *file;
   GError     *derror = NULL;
@@ -2436,6 +2435,7 @@ thunar_application_process_filenames (ThunarApplication             *application
           g_error_free (derror);
 
           thunar_g_list_free_full (file_list);
+          g_free (window_options);
 
           return FALSE;
         }
@@ -2452,9 +2452,8 @@ thunar_application_process_filenames (ThunarApplication             *application
         g_object_set_qdata_full (G_OBJECT (lp->data), thunar_application_startup_id_quark,
                                  g_strdup (startup_id), (GDestroyNotify) g_free);
 
-      if (application->pending_window_options != NULL)
-        g_object_set_qdata_full (G_OBJECT (lp->data), thunar_application_window_options_quark,
-                                 g_steal_pointer (&application->pending_window_options), g_free);
+      application->window_options_to_launch = g_list_append (application->window_options_to_launch,
+                                                             g_steal_pointer (&window_options));
 
       /* append the file to the list of files we need to launch */
       application->files_to_launch = g_list_append (application->files_to_launch,
@@ -2472,6 +2471,39 @@ thunar_application_process_filenames (ThunarApplication             *application
   g_list_free (file_list);
 
   return TRUE;
+}
+
+
+
+/**
+ * thunar_application_process_filenames:
+ * @application       : a #ThunarApplication.
+ * @working_directory : the working directory relative to which the @filenames should
+ *                      be interpreted.
+ * @filenames         : a list of supported URIs or filenames. If a filename is specified
+ *                      it can be either an absolute path or a path relative to the
+ *                      @working_directory.
+ * @screen            : the #GdkScreen on which to process the @filenames, or %NULL to
+ *                      use the default screen.
+ * @startup_id        : startup id to finish startup notification and properly focus the
+ *                      window when focus stealing is enabled or %NULL.
+ * @error             : return location for errors or %NULL.
+ * @action            : action to invoke on the files
+ *
+ * Tells @application to process the given @filenames and launch them appropriately.
+ *
+ * Return value: %TRUE on success, %FALSE if @error is set.
+ **/
+gboolean
+thunar_application_process_filenames (ThunarApplication             *application,
+                                      const gchar                   *working_directory,
+                                      gchar                        **filenames,
+                                      GdkScreen                     *screen,
+                                      const gchar                   *startup_id,
+                                      GError                       **error,
+                                      ThunarApplicationProcessAction action)
+{
+  return thunar_application_process_filenames_full (application, working_directory, filenames, screen, startup_id, error, action, NULL);
 }
 
 
