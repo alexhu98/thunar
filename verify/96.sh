@@ -71,7 +71,7 @@ goto $((W * 3 / 4)) right
 ROW0=$((103 + (EUID == 0 ? 34 : 0)))
 SX=$((W / 2 + 50))
 dropped=''
-for ry in $ROW0 $((ROW0 + 8)) $((ROW0 - 8)) $((ROW0 + 16)) $((ROW0 + 24)) $((ROW0 - 16)) $((ROW0 + 32)) $((ROW0 + 40)); do
+for ry in $ROW0 $((ROW0 + 8)) $((ROW0 - 8)) $((ROW0 + 16)) $((ROW0 + 24)) $((ROW0 + 32)) $((ROW0 + 40)); do
   focus "$WID"
   xdotool mousemove --window "$WID" "$SX" "$ry"
   sleep 0.3

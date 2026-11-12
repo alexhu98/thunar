@@ -437,7 +437,9 @@ struct _ThunarStandardViewPrivate
   /* the "new-files" closure, which is used to select files whenever
    * new files are created by a ThunarJob associated with this view
    */
-  GClosure *new_files_closure;
+  GClosure  *new_files_closure;
+  GtkWidget *new_files_source_view;
+  gboolean   new_files_from_other_pane;
 
   /* the "new-files" path list that was remembered in the closure callback
    * if the view is currently being loaded and as such the folder may
@@ -1199,6 +1201,9 @@ thunar_standard_view_finalize (GObject *object)
       g_closure_unref (standard_view->priv->new_files_closure);
       standard_view->priv->new_files_closure = NULL;
     }
+
+  if (standard_view->priv->new_files_source_view != NULL)
+    g_object_remove_weak_pointer (G_OBJECT (standard_view->priv->new_files_source_view), (gpointer *) &standard_view->priv->new_files_source_view);
 
   /* drop any remaining "new-files" paths */
   thunar_g_list_free_full (standard_view->priv->new_files_path_list);
@@ -3107,6 +3112,17 @@ thunar_standard_view_unselect_all_files (ThunarView *view)
 
 
 
+static gboolean
+thunar_standard_view_is_other_pane (ThunarStandardView *standard_view,
+                                    GtkWidget          *source_view)
+{
+  return THUNAR_IS_VIEW (source_view)
+         && gtk_widget_get_toplevel (source_view) == gtk_widget_get_toplevel (GTK_WIDGET (standard_view))
+         && gtk_widget_get_ancestor (source_view, GTK_TYPE_NOTEBOOK) != gtk_widget_get_ancestor (GTK_WIDGET (standard_view), GTK_TYPE_NOTEBOOK);
+}
+
+
+
 static GClosure *
 thunar_standard_view_new_files_closure (ThunarStandardView *standard_view,
                                         GtkWidget          *source_view)
@@ -3121,7 +3137,12 @@ thunar_standard_view_new_files_closure (ThunarStandardView *standard_view,
     }
 
   /* set the remove view data we possibly need to reload */
-  g_object_set_data (G_OBJECT (standard_view), I_ ("source-view"), source_view);
+  if (standard_view->priv->new_files_source_view != NULL)
+    g_object_remove_weak_pointer (G_OBJECT (standard_view->priv->new_files_source_view), (gpointer *) &standard_view->priv->new_files_source_view);
+  standard_view->priv->new_files_source_view = source_view;
+  if (source_view != NULL)
+    g_object_add_weak_pointer (G_OBJECT (source_view), (gpointer *) &standard_view->priv->new_files_source_view);
+  standard_view->priv->new_files_from_other_pane = thunar_standard_view_is_other_pane (standard_view, source_view);
 
   /* allocate a new "new-files" closure */
   standard_view->priv->new_files_closure = g_cclosure_new_swap (G_CALLBACK (thunar_standard_view_new_files), standard_view, NULL);
@@ -3130,17 +3151,6 @@ thunar_standard_view_new_files_closure (ThunarStandardView *standard_view,
 
   /* and return our new closure */
   return standard_view->priv->new_files_closure;
-}
-
-
-
-static gboolean
-thunar_standard_view_is_other_pane (ThunarStandardView *standard_view,
-                                    GtkWidget          *source_view)
-{
-  return THUNAR_IS_VIEW (source_view)
-         && gtk_widget_get_toplevel (source_view) == gtk_widget_get_toplevel (GTK_WIDGET (standard_view))
-         && gtk_widget_get_ancestor (source_view, GTK_TYPE_NOTEBOOK) != gtk_widget_get_ancestor (GTK_WIDGET (standard_view), GTK_TYPE_NOTEBOOK);
 }
 
 
@@ -3158,7 +3168,7 @@ thunar_standard_view_new_files (ThunarStandardView *standard_view,
 
   _thunar_return_if_fail (THUNAR_IS_STANDARD_VIEW (standard_view));
 
-  source_view = g_object_get_data (G_OBJECT (standard_view), I_ ("source-view"));
+  source_view = standard_view->priv->new_files_source_view;
 
   /* release the previous "new-files" paths (if any) */
   if (G_UNLIKELY (standard_view->priv->new_files_path_list != NULL))
@@ -3199,7 +3209,7 @@ thunar_standard_view_new_files (ThunarStandardView *standard_view,
           g_list_free_full (file_list, g_object_unref);
 
           /* grab the focus to the view widget, unless the drag came from the other pane */
-          if (!thunar_standard_view_is_other_pane (standard_view, source_view))
+          if (!standard_view->priv->new_files_from_other_pane)
             gtk_widget_grab_focus (gtk_bin_get_child (GTK_BIN (standard_view)));
         }
       else if (belongs_here)
