@@ -103,6 +103,7 @@ enum
   PROP_MISC_RECURSIVE_PERMISSIONS,
   PROP_MISC_RECURSIVE_SEARCH,
   PROP_MISC_REMEMBER_GEOMETRY,
+  PROP_MISC_REMEMBER_SPLIT_POSITION,
   PROP_MISC_SHOW_ABOUT_TEMPLATES,
   PROP_MISC_SHOW_DELETE_ACTION,
   PROP_MISC_SINGLE_CLICK,
@@ -904,6 +905,13 @@ thunar_preferences_class_init (ThunarPreferencesClass *klass)
                         "MiscRememberGeometry",
                         NULL,
                         TRUE,
+                        EXO_PARAM_READWRITE);
+
+  preferences_props[PROP_MISC_REMEMBER_SPLIT_POSITION] =
+  g_param_spec_boolean ("misc-remember-split-position",
+                        "MiscRememberSplitPosition",
+                        NULL,
+                        FALSE,
                         EXO_PARAM_READWRITE);
 
   /**

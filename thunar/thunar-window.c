@@ -414,6 +414,14 @@ thunar_window_save_paned (ThunarWindow *window);
 static gboolean
 thunar_window_save_paned_notebooks (ThunarWindow *window);
 static gboolean
+thunar_window_paned_notebooks_button_release_event (GtkWidget      *paned,
+                                                    GdkEventButton *event,
+                                                    ThunarWindow   *window);
+static void
+thunar_window_paned_notebooks_apply_split (ThunarWindow *window);
+static void
+thunar_window_paned_notebooks_queue_split (ThunarWindow *window);
+static gboolean
 thunar_window_paned_notebooks_button_press_event (GtkWidget      *paned,
                                                   GdkEventButton *event);
 static void
@@ -686,6 +694,8 @@ struct _ThunarWindow
   gboolean keep_size_unsaved;
   gint     unsaved_width;
   gint     unsaved_height;
+
+  gint split_percent;
 
   /* type of the sidepane */
   ThunarSidepaneType sidepane_type;
@@ -4479,7 +4489,10 @@ thunar_window_action_toggle_split_view (ThunarWindow *window)
         window->notebook_left = NULL;
       gtk_notebook_set_show_border (GTK_NOTEBOOK (window->notebook_selected), FALSE);
 
+      window->split_percent = 0;
+      g_signal_handlers_disconnect_by_func (window->paned_notebooks, thunar_window_paned_notebooks_apply_split, window);
       g_signal_handlers_disconnect_by_func (window->paned_notebooks, thunar_window_save_paned_notebooks, window);
+      g_signal_handlers_disconnect_by_func (window->paned_notebooks, thunar_window_paned_notebooks_button_release_event, window);
       g_signal_handlers_disconnect_by_func (window->paned_notebooks, thunar_window_paned_notebooks_button_press_event, NULL);
     }
   else
@@ -4500,6 +4513,7 @@ thunar_window_split_view_add (ThunarWindow *window,
                               ThunarFile   *directory)
 {
   gint       page_num, last_splitview_separator_position;
+  gboolean   remember_split_position;
   GType      view_type;
   GtkWidget *view;
 
@@ -4513,20 +4527,20 @@ thunar_window_split_view_add (ThunarWindow *window,
   view = thunar_window_create_view (window, directory, view_type);
   thunar_window_notebook_insert_page (window, page_num + 1, view);
 
-  /* restore the last separator position */
-  g_object_get (G_OBJECT (window->preferences), "last-splitview-separator-position", &last_splitview_separator_position, NULL);
-  if (last_splitview_separator_position <= 0)
-    {
-      /* prevent notebook expand on tab creation */
-      last_splitview_separator_position = thunar_gtk_orientable_get_center_pos (GTK_ORIENTABLE (window->paned_notebooks));
-    }
-  gtk_paned_set_position (GTK_PANED (window->paned_notebooks), last_splitview_separator_position);
+  g_object_get (G_OBJECT (window->preferences),
+                "misc-remember-split-position", &remember_split_position,
+                "last-splitview-separator-position", &last_splitview_separator_position,
+                NULL);
+  if (remember_split_position && window->split_percent == 0 && last_splitview_separator_position > 0)
+    gtk_paned_set_position (GTK_PANED (window->paned_notebooks), last_splitview_separator_position);
+  else
+    thunar_window_paned_notebooks_queue_split (window);
 
   /* keep focus on the first notebook */
   thunar_window_paned_notebooks_switch (window);
 
   g_signal_connect_swapped (window->paned_notebooks, "accept-position", G_CALLBACK (thunar_window_save_paned_notebooks), window);
-  g_signal_connect_swapped (window->paned_notebooks, "button-release-event", G_CALLBACK (thunar_window_save_paned_notebooks), window);
+  g_signal_connect (window->paned_notebooks, "button-release-event", G_CALLBACK (thunar_window_paned_notebooks_button_release_event), window);
   g_signal_connect (window->paned_notebooks, "button-press-event", G_CALLBACK (thunar_window_paned_notebooks_button_press_event), NULL);
 }
 
@@ -5846,7 +5860,13 @@ thunar_window_save_paned (ThunarWindow *window)
 static gboolean
 thunar_window_save_paned_notebooks (ThunarWindow *window)
 {
+  gboolean remember_split_position;
+
   _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);
+
+  g_object_get (G_OBJECT (window->preferences), "misc-remember-split-position", &remember_split_position, NULL);
+  if (!remember_split_position)
+    return FALSE;
 
   /* save the separator position, use -1 (= unset) for 'center position' */
   g_object_set (G_OBJECT (window->preferences),
@@ -5856,8 +5876,65 @@ thunar_window_save_paned_notebooks (ThunarWindow *window)
                 : gtk_paned_get_position (GTK_PANED (window->paned_notebooks)),
                 NULL);
 
-  /* for button release event */
+  /* for the accept-position signal */
   return FALSE;
+}
+
+
+
+static gboolean
+thunar_window_paned_notebooks_button_release_event (GtkWidget      *paned,
+                                                    GdkEventButton *event,
+                                                    ThunarWindow   *window)
+{
+  if (event->window == gtk_paned_get_handle_window (GTK_PANED (paned)))
+    thunar_window_save_paned_notebooks (window);
+
+  return FALSE;
+}
+
+
+
+static void
+thunar_window_paned_notebooks_apply_split (ThunarWindow *window)
+{
+  gint size = thunar_gtk_orientable_get_size (GTK_ORIENTABLE (window->paned_notebooks));
+
+  if (size <= 1)
+    return;
+
+  g_signal_handlers_disconnect_by_func (window->paned_notebooks, thunar_window_paned_notebooks_apply_split, window);
+  gtk_paned_set_position (GTK_PANED (window->paned_notebooks), size * (window->split_percent > 0 ? window->split_percent : 50) / 100);
+  window->split_percent = 0;
+}
+
+
+
+static void
+thunar_window_paned_notebooks_queue_split (ThunarWindow *window)
+{
+  g_signal_handlers_disconnect_by_func (window->paned_notebooks, thunar_window_paned_notebooks_apply_split, window);
+  g_signal_connect_data (window->paned_notebooks, "size-allocate", G_CALLBACK (thunar_window_paned_notebooks_apply_split), window, NULL, G_CONNECT_SWAPPED | G_CONNECT_AFTER);
+  gtk_widget_queue_resize (window->paned_notebooks);
+}
+
+
+
+void
+thunar_window_open_split (ThunarWindow *window,
+                          gint          percent)
+{
+  _thunar_return_if_fail (THUNAR_IS_WINDOW (window));
+
+  window->split_percent = percent;
+  if (thunar_window_split_view_is_active (window))
+    thunar_window_paned_notebooks_queue_split (window);
+  else
+    {
+      thunar_window_action_toggle_split_view (window);
+      if (!thunar_window_split_view_is_active (window))
+        window->split_percent = 0;
+    }
 }
 
 

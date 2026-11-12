@@ -157,6 +157,11 @@ thunar_window_open_pane_tabs (ThunarWindow *window,
                               GList        *right);
 void
 thunar_window_keep_size_unsaved (ThunarWindow *window);
+
+void
+thunar_window_open_split (ThunarWindow *window,
+                          gint          percent);
+
 gboolean
 thunar_window_has_shortcut_sidepane (ThunarWindow *window);
 gboolean
