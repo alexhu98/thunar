@@ -2657,6 +2657,36 @@ thunar_application_rename_file_started (ThunarJob  *job,
 
 
 /**
+ * thunar_application_rename_file_to:
+ * @application : a #ThunarApplication.
+ * @file        : a #ThunarFile to be renamed.
+ * @name        : the new name of @file.
+ * @screen      : the #GdkScreen on which to show errors.
+ * @log_mode    : a #ThunarOperationLogMode to control logging of the operation
+ *
+ * Renames @file to @name in a job, like the rename dialog does.
+ **/
+void
+thunar_application_rename_file_to (ThunarApplication     *application,
+                                   ThunarFile            *file,
+                                   const gchar           *name,
+                                   GdkScreen             *screen,
+                                   ThunarOperationLogMode log_mode)
+{
+  ThunarJob *job;
+
+  _thunar_return_if_fail (THUNAR_IS_APPLICATION (application));
+  _thunar_return_if_fail (THUNAR_IS_FILE (file));
+  _thunar_return_if_fail (GDK_IS_SCREEN (screen));
+
+  job = thunar_io_jobs_rename_file (file, name, log_mode);
+  exo_job_launch (EXO_JOB (job));
+  thunar_application_rename_file_started (job, file, screen, application);
+}
+
+
+
+/**
  * thunar_application_rename_file:
  * @application : a #ThunarApplication.
  * @file        : a #ThunarFile to be renamed.

@@ -39,6 +39,9 @@ thunar_dialogs_show_create (gpointer     parent,
 gboolean
 thunar_dialogs_rename_popover_is_open (gpointer parent);
 void
+thunar_dialogs_select_rename_text (GtkEntry   *entry,
+                                   ThunarFile *file);
+void
 thunar_dialogs_show_rename_file (gpointer                    parent,
                                  ThunarFile                 *file,
                                  ThunarOperationLogMode      log_mode,

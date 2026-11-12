@@ -102,6 +102,12 @@ thunar_application_rename_file (ThunarApplication     *application,
                                 gpointer               parent,
                                 const gchar           *startup_id,
                                 ThunarOperationLogMode log_mode);
+void
+thunar_application_rename_file_to (ThunarApplication     *application,
+                                   ThunarFile            *file,
+                                   const gchar           *name,
+                                   GdkScreen             *screen,
+                                   ThunarOperationLogMode log_mode);
 
 void
 thunar_application_create_file (ThunarApplication     *application,

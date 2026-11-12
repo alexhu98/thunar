@@ -315,8 +315,8 @@ thunar_dialogs_rename_file_connect_button (XfceFilenameInput *filename_input,
 
 
 
-static void
-thunar_dialogs_rename_file_select (GtkEntry   *entry,
+void
+thunar_dialogs_select_rename_text (GtkEntry   *entry,
                                    ThunarFile *file)
 {
   const gchar *text;
@@ -377,7 +377,7 @@ thunar_dialogs_rename_file_dialog (GdkScreen   *screen,
 
   thunar_dialogs_rename_file_connect_button (filename_input, gtk_dialog_get_widget_for_response (GTK_DIALOG (dialog), GTK_RESPONSE_OK));
   gtk_widget_grab_focus (GTK_WIDGET (filename_input_entry));
-  thunar_dialogs_rename_file_select (filename_input_entry, file);
+  thunar_dialogs_select_rename_text (filename_input_entry, file);
 
   /* change the width of the input entry to be about the right size for N chars (filename length) */
   gtk_entry_set_max_width_chars (filename_input_entry, g_utf8_strlen (filename, -1));
@@ -509,7 +509,7 @@ thunar_dialogs_rename_popover_destroyed (ThunarDialogsRenamePopover *data)
 static void
 thunar_dialogs_rename_popover_focused (ThunarDialogsRenamePopover *data)
 {
-  thunar_dialogs_rename_file_select (xfce_filename_input_get_entry (data->filename_input), data->file);
+  thunar_dialogs_select_rename_text (xfce_filename_input_get_entry (data->filename_input), data->file);
 }
 
 

@@ -49,6 +49,7 @@
 #include "thunar/thunar-sendto-model.h"
 #include "thunar/thunar-shortcuts-pane.h"
 #include "thunar/thunar-simple-job.h"
+#include "thunar/thunar-standard-view.h"
 #include "thunar/thunar-tree-view.h"
 #include "thunar/thunar-util.h"
 #include "thunar/thunar-window.h"
@@ -2549,6 +2550,8 @@ thunar_action_manager_action_rename (ThunarActionManager *action_mgr)
   GtkWidget         *window;
   GtkWidget         *parent;
   ThunarApplication *application;
+  ThunarFile        *file;
+  gboolean           in_place;
 
   _thunar_return_val_if_fail (THUNAR_IS_ACTION_MANAGER (action_mgr), FALSE);
 
@@ -2567,9 +2570,15 @@ thunar_action_manager_action_rename (ThunarActionManager *action_mgr)
       if (THUNAR_IS_WINDOW (parent) && thunar_window_get_view (THUNAR_WINDOW (parent)) != NULL)
         parent = thunar_window_get_view (THUNAR_WINDOW (parent));
 
+      file = action_mgr->files_to_process->data;
+      g_object_get (G_OBJECT (action_mgr->preferences), "misc-rename-in-place", &in_place, NULL);
+      if (in_place && THUNAR_IS_STANDARD_VIEW (parent) && !thunar_file_is_desktop_file (file)
+          && thunar_standard_view_rename_in_place (THUNAR_STANDARD_VIEW (parent), file))
+        return TRUE;
+
       application = thunar_application_get ();
       thunar_application_rename_file (application,
-                                      action_mgr->files_to_process->data,
+                                      file,
                                       parent,
                                       NULL,
                                       THUNAR_OPERATION_LOG_OPERATIONS);
