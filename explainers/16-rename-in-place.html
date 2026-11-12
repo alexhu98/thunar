@@ -154,8 +154,8 @@
       <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
       <text x="786" y="90" class="t">Enter renames</text>
       <text x="786" y="114" class="b">same job as the</text>
-      <text x="786" y="134" class="b">dialog: undo, error</text>
-      <text x="786" y="154" class="b">dialog; Esc cancels</text>
+      <text x="786" y="134" class="b">dialog, as does a</text>
+      <text x="786" y="154" class="b">click; Esc cancels</text>
       <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
     </g>
     <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
@@ -203,7 +203,7 @@
     <li data-k="1"><b>F2 or Rename….</b> In <code>thunar-action-manager.c</code>, a rename of one file first checks the <code>misc-rename-in-place</code> preference, that the file isn't a <code>.desktop</code> launcher, and that the current view is the details view; then it calls the new <code>thunar_standard_view_rename_in_place</code>.</li>
     <li data-k="2"><b>Scroll into view.</b> If the file's row isn't on screen, the view scrolls to it at once, as #15's popover does. Editing then starts in a low-priority idle callback, after the scroll has been drawn, so the entry lands on the row and not where it used to be.</li>
     <li data-k="3"><b>Entry in Name.</b> The name cell is made editable just for this call and GTK opens a text entry in it. The entry goes in the Name column wherever it is, not in the first column. The name is selected without its extension (all of it for a folder), with the same function as the dialog.</li>
-    <li data-k="4"><b>Enter renames.</b> Enter, or a click elsewhere in the window, renames through <code>thunar_application_rename_file_start</code>: the one function the dialog, the popover and the in-place rename now share, so Ctrl+Z, the operation log and the "Failed to rename" error dialog work as before. Escape or closing the tab cancels; switching to another window leaves the entry open with the typed text. An empty name, one with <code>/</code>, or one longer than 255 bytes keeps the entry open with an error icon.</li>
+    <li data-k="4"><b>Enter renames.</b> Enter, or a mouse press anywhere else in the active window, renames through <code>thunar_application_rename_file_start</code>: the one function the dialog, the popover and the in-place rename now share, so Ctrl+Z, the operation log and the "Failed to rename" error dialog work as before. Escape, keys that move away (Ctrl+L, a view switch, Ctrl+W, Ctrl+Q) and closing the window cancel. Switching to another window leaves the entry open with the typed text. An empty name, one with <code>/</code>, or one longer than 255 bytes keeps the entry open with an error icon, and a click elsewhere then shows the error instead of renaming.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Everything else — as before</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
@@ -219,13 +219,14 @@
   <table>
     <tr><th>You do</th><th>What happens</th></tr>
     <tr data-k="k1"><td>Type a new name, press Enter</td><td>The file is renamed; Ctrl+Z renames it back.</td></tr>
-    <tr data-k="k2"><td>Click elsewhere in the window</td><td>Renames too, like Enter. With an invalid name, the entry stays open with the error instead.</td></tr>
+    <tr data-k="k2"><td>Click anywhere else in the window, left or right button</td><td>Renames too, like Enter. With an invalid name, the click is held back and the entry stays open with the error.</td></tr>
     <tr data-k="k3"><td>Press Escape</td><td>Nothing is renamed; the old name comes back.</td></tr>
     <tr data-k="k4"><td>Enter on an empty name, one with <code>/</code>, or one longer than 255 bytes</td><td>The entry stays open with a red error icon; nothing is renamed.</td></tr>
     <tr data-k="k5"><td>Enter on a name that's taken</td><td>Thunar's "Failed to rename" dialog; the old name stays.</td></tr>
     <tr data-k="k6"><td>GTK closes the entry itself (the row changes or is re-sorted)</td><td>Editing starts again on that row, with what you typed and its selection kept.</td></tr>
     <tr data-k="k7"><td>Switch window (Alt+Tab), or a progress or error dialog opens</td><td>The entry stays open with what you typed; nothing is renamed until you confirm.</td></tr>
-    <tr data-k="k8"><td>Close the tab</td><td>Treated like Escape: a half-typed name is never saved.</td></tr>
+    <tr data-k="k8"><td>Close the tab or the window (Ctrl+W, Ctrl+Q, the close button)</td><td>Treated like Escape: a half-typed name is never saved.</td></tr>
+    <tr data-k="k9"><td>Press a key that moves away: Ctrl+L, a view switch</td><td>Editing is cancelled, nothing is renamed, and focus goes where you asked.</td></tr>
   </table>
   </div>
   </section>
@@ -263,7 +264,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container, before CI's review. CI's two reviews found 17 findings: 13 are fixed and 4 low ones accepted; the newest fixes wait for CI's next run.</p>
+  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container, before CI's review. CI's three reviews found 24 findings: 17 are fixed and 7 low ones accepted; the newest fixes are being built and run locally, and wait for CI's next run.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good pieces</h3>
@@ -289,7 +290,8 @@ explainers/
     <tr data-k="c7"><td>#15 and #96 still pass</td><td><code>verify/15.sh</code> (now with the preference off) and <code>verify/96.sh</code> (F2 on a new folder) at 2f43ed4</td><td class="ok">2 of 2 pass</td></tr>
     <tr data-k="c8"><td>The other tests</td><td>All 17 tests at the first commit, 67cb170; only 16.sh failed, because it selected the wrong row, fixed by clicking the first row. Not re-run after the later fixes</td><td class="no">16 of 17, first commit only</td></tr>
     <tr data-k="c9"><td>Screenshots look right</td><td>The shot-auditor read the second run's shots and found two problems, both fixed: the entry drawn at a stale spot after a scroll, and ExoIconView's misplaced, clipped entry</td><td class="open">final run: audited after CI's run</td></tr>
-    <tr data-k="c10"><td>CI's review fixes</td><td>R1–R6 (CI's d9fa615), R7–R8 (3c577ce), R9–R11 and R13 (CI's 35198ee) and R12 (55f91a2): not built or tested locally</td><td class="no">not run here; R12 and 35198ee wait for the next CI run</td></tr>
+    <tr data-k="c10"><td>CI's review fixes</td><td>R1–R6 (CI's d9fa615), R7–R8 (3c577ce), R9–R11 and R13 (CI's 35198ee) and R12 (55f91a2): not built or tested locally</td><td class="no">not run here; CI's third review found R12 resolved</td></tr>
+    <tr data-k="c11"><td>The third review's fixes</td><td>fc3ec64 (R18–R20) and CI's e991468 (R24), built and run locally by the build-verify agent</td><td class="open">pending; CI's next run checks them too</td></tr>
   </table>
   </div>
   </section>
@@ -320,7 +322,7 @@ explainers/
 
   <section class="sub" id="review2">
   <h3 class="sec">CI's second review</h3>
-  <p data-k="ci2">CI reviewed head 386f308, with the R7 and R8 fixes, in run 43295943834 (Opus at high, 10 minutes): 9 new findings, R9–R17. CI fixed four in its commit 35198ee and the building session fixed R12 in 55f91a2. Neither has been built or run locally; they wait for CI's next run.</p>
+  <p data-k="ci2">CI reviewed head 386f308, with the R7 and R8 fixes, in run 43295943834 (Opus at high, 10 minutes): 9 new findings, R9–R17. CI fixed four in its commit 35198ee and the building session fixed R12 in 55f91a2. Neither was built or run locally; CI's third review found R12 resolved.</p>
   <ul class="tight">
     <li data-k="R9"><b>R9, medium, fixed by CI:</b> closing a tab mid-edit could still save a half-typed name.</li>
     <li data-k="R10"><b>R10, medium, fixed by CI:</b> when editing restarted after GTK cancelled it, the restored text was all selected, so the next key replaced it. The selection is now restored too.</li>
@@ -337,13 +339,32 @@ explainers/
   </ul>
   </section>
 
+  <section class="sub" id="review3">
+  <h3 class="sec">CI's third review</h3>
+  <p data-k="ci3">CI reviewed head ddfd7d6 in run 43298128125 (Opus at high, 9 minutes): R12 is resolved, R14–R17 are settled as accepted, and 7 new findings, R18–R24.</p>
+  <ul class="tight">
+    <li data-k="R18"><b>R18, medium, fixed in fc3ec64:</b> closing the whole window mid-edit (Ctrl+W on the last tab, Ctrl+Q, the close button) saved the half-typed name.</li>
+    <li data-k="R19"><b>R19, medium, fixed in fc3ec64:</b> a right-click on another row restarted editing and moved the selection back to the renamed row while the menu was open, so the menu acted on the renamed file.</li>
+    <li data-k="R20"><b>R20, low, fixed in fc3ec64:</b> with an invalid name, moving focus elsewhere (Ctrl+L, the other pane) restarted editing and pulled focus back.</li>
+    <li data-k="R24"><b>R24, low, fixed by CI in e991468:</b> on one path, text was copied and then freed.</li>
+  </ul>
+  <div class="note" data-k="rule">fc3ec64 fixes R18–R20 with one simpler rule. The name is saved on Enter, or when a mouse press elsewhere in the active window ends the edit. Keys that move away and closing the window cancel. Editing restarts with the typed text only when GTK cancels it while the entry still has focus (R2), or the window deactivates (R12). With an invalid name, a click outside the entry is held back and shows the error, so the entry stays open without restarting (R13).</div>
+  <p data-k="acc3">Three low findings, not confirmed and from a later review, are accepted rather than fixed, as this repo's CI review rules allow:</p>
+  <ul class="tight">
+    <li data-k="R21"><b>R21, accepted:</b> a valid name was saved on a view switch. Not confirmed, and fc3ec64 now cancels on a view-switch key anyway.</li>
+    <li data-k="R22"><b>R22, accepted:</b> a stale saved selection on a later focus grab. Not confirmed: each restart saves the selection again.</li>
+    <li data-k="R23"><b>R23, accepted:</b> typed text dropped while the window is inactive if focus had already left the entry. Not confirmed: no path reaches it.</li>
+  </ul>
+  <p data-k="pending">fc3ec64 and e991468 are being built and run locally now; that result is pending, and CI's next run checks them too.</p>
+  </section>
+
   <section class="sub" id="aftermerge">
   <h3 class="sec">Checked only after the merge</h3>
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI's build, smoke test and all verify scripts with R12 and the 35198ee fixes</td><td>Those fixes are in pushes CI hasn't run yet</td><td class="open">next CI run</td></tr>
-    <tr data-k="a2"><td>CI's review of the R12 fix</td><td>Runs on each code push to the PR</td><td class="open">next CI run</td></tr>
+    <tr data-k="a1"><td>CI's build, smoke test and all verify scripts with fc3ec64 and e991468</td><td>Those fixes are in pushes CI hasn't run yet</td><td class="open">next CI run</td></tr>
+    <tr data-k="a2"><td>CI's review of fc3ec64</td><td>Runs on each code push to the PR</td><td class="open">next CI run</td></tr>
     <tr data-k="a3"><td>Audit of CI's screenshots (<code>/visual-verify</code>)</td><td>Needs CI's shots on the shots branch</td><td class="open">after CI's run</td></tr>
     <tr data-k="a4"><td>Daily use on your desktop</td><td>The package reaches your machine only after the merge</td><td class="open">after the merge</td></tr>
   </table>
@@ -357,6 +378,7 @@ explainers/
     <li data-k="l2">The PR: <a href="https://github.com/alexhu98/thunar/pull/114">#114</a>. Its verify comment shows every screenshot from <code>verify/16.sh</code>, before and after.</li>
     <li data-k="l4">CI's first run, with its code review: <a href="https://github.com/alexhu98/thunar/actions/runs/43293478571">run 43293478571</a></li>
     <li data-k="l5">CI's second run, with its second review: <a href="https://github.com/alexhu98/thunar/actions/runs/43295943834">run 43295943834</a></li>
+    <li data-k="l6">CI's third run, with its third review: <a href="https://github.com/alexhu98/thunar/actions/runs/43298128125">run 43298128125</a></li>
     <li data-k="l3">After the merge: select a file in the details view and press F2.</li>
   </ul>
   </section>
