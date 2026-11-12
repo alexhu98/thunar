@@ -317,14 +317,14 @@ EOF
 
 collect() {
   printf '%s' "${FINDINGS:-}" | jq -e 'has("findings")' > /dev/null || { echo "::error::the review returned no findings object" >&2; exit 1; }
-  printf '%s' "$FINDINGS" | jq '.previous[]?.id |= (ascii_upcase | gsub("\\s"; ""))' > "$OUT/findings.json"
+  printf '%s' "$FINDINGS" | jq '.previous[]?.id |= (if type == "string" then ascii_upcase | gsub("\\s"; "") else . end)' > "$OUT/findings.json"
   git add -A
   git diff --cached --binary HEAD -- . "${NOT_IN_FIX[@]}" > "$OUT/fix.patch"
   git reset -q
   local missing unchecked err=
   missing=$(jq -r --slurpfile f "$OUT/findings.json" '[.[].id] - [$f[0].previous[]?.id] | join(", ")' "$OUT/open.json")
-  unchecked=$(jq -r --slurpfile o "$OUT/open.json" '[(.findings // [])[], (.previous // [])[] | select(.id == null or IN(.id; $o[0][].id))
-    | select(.checked != true or ([.reason, .note | strings] | any(test("\\bagents? ((had|has|have)(n.t| not)( yet)?|did(n.t| not)|never) (reported|returned|finished|responded|report|return|finish|respond) (before|when|by the time|in time)\\b"; "i"))))]
+  unchecked=$(jq -r --slurpfile o "$OUT/open.json" '[(.findings // [])[], ((.previous // [])[] | select(IN(.id; $o[0][].id)))
+    | select(.checked != true or ([.reason, .note | strings] | any(test("\\bagents? ((had|has|have)(n.t| not)( yet)?|did(n.t| not)|never) (reported|returned|finished|responded|report|return|finish|respond)( yet)?( (before|when|by the time|in time)\\b|[.;,!]|$)"; "i"))))]
     | length' "$OUT/findings.json")
   [[ -z $missing ]] || err="it returned no result for open finding(s) $missing"
   (( unchecked == 0 )) || err+="${err:+, and }it returned before the checking agents of $unchecked finding(s) reported"
