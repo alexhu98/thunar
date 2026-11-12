@@ -10,7 +10,7 @@
 #            fix as a patch, for the report job. Fails, saying why in collect-error.txt, when an open finding got no
 #            entry in previous, a finding or entry is not marked checked, or the execution log ($EXEC_LOG, default
 #            $RUNNER_TEMP/claude-execution-output.json) is missing or unreadable, shows an Agent call whose report came
-#            after the result, or shows no Agent call while there were findings to check.
+#            after the result, or shows fewer Agent calls than findings and open findings to check.
 #   report   as the review job's last step, without the push token, when the review left no fix to push. Otherwise, or when
 #            that step didn't write the review comment, in the separate review-report job holding the push token, which
 #            commits and pushes the fix (if any) as claude[bot]. Either way posts the other
@@ -326,12 +326,12 @@ agent_log() {
     | [$pre[] | select(.type == "assistant" and .parent_tool_use_id == null) | .message.content[]?
         | select(.type == "tool_use" and (.name == "Agent" or .name == "Task"))] as $calls
     | [$pre[] | select(.type == "user" and .parent_tool_use_id == null) | .message.content | arrays | .[]
-        | select(.type == "tool_result") | {id: .tool_use_id, t: (.content | txt), e: (.is_error == true)}] as $res
+        | select(.type == "tool_result") | {id: .tool_use_id, t: (.content | txt)}] as $res
     | ([$pre[] | select(.type == "user") | .message.content | txt | split("<task-notification>")[1:][]]
        + [$pre[] | select(.type == "system" and .subtype == "task_notification" and .status == "completed")
           | "<task-id>\(.task_id)</task-id><status>completed</status>"]) as $notes
     | [$calls[] | .id as $id | ([$res[] | select(.id == $id)] | first) as $r | $r.t as $t
-        | if $r == null or $r.e then $id
+        | if $r == null then $id
           elif ($t | startswith("Async agent launched")) then
             (($t | capture("agentId: *(?<a>[A-Za-z0-9_-]+)").a) // "") as $a
             | if $a != "" and any($notes[]; contains("<task-id>\($a)</task-id>") and contains("<status>completed</status>")) then empty else $id end
