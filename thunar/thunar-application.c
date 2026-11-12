@@ -66,6 +66,10 @@
 #include "thunar/thunar-util.h"
 #include "thunar/thunar-view.h"
 
+#ifdef GDK_WINDOWING_X11
+#include <gdk/gdkx.h>
+#endif
+
 #include <libxfce4ui/libxfce4ui.h>
 
 #define ACCEL_MAP_PATH "Thunar/accels.scm"
@@ -86,6 +90,8 @@ static const GOptionEntry option_entries[] =
   { "window", 'w', 0, G_OPTION_ARG_NONE, NULL, N_ ("Force open in a new window"), NULL, },
   { "tabs", 't', 0, G_OPTION_ARG_NONE, NULL, N_ ("Open the locations as tabs in one new window"), NULL, },
   { "tabs-right", 'T', 0, G_OPTION_ARG_NONE, NULL, N_ ("Open the locations after this option as tabs in the right pane"), NULL, },
+  { "geometry", 'g', 0, G_OPTION_ARG_STRING, NULL, N_ ("Set the size and position of the new window"), N_ ("GEOMETRY"), },
+  { "workspace", 's', 0, G_OPTION_ARG_STRING, NULL, N_ ("Open the new window on workspace N"), N_ ("N"), },
   { "tabs-right-uri", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_FILENAME_ARRAY, NULL, NULL, NULL, },
   { "daemon", 0, 0, G_OPTION_ARG_NONE, NULL, N_ ("Run in daemon mode"), NULL, },
   { "sm-client-id", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_STRING, &opt_sm_client_id, NULL, NULL, },
@@ -115,6 +121,18 @@ typedef struct
   gchar                 *name;
   gboolean               needs_poke;
 } ThunarApplicationTab;
+
+typedef struct
+{
+  gboolean has_size;
+  gboolean has_position;
+  gboolean x_negative;
+  gboolean y_negative;
+  gint     width;
+  gint     height;
+  gint     x;
+  gint     y;
+} ThunarApplicationGeometry;
 
 /* Prototype for the Thunar job launchers */
 typedef ThunarJob *(*Launcher) (GList *source_path_list,
@@ -172,6 +190,8 @@ thunar_application_handle_local_options (GApplication *application,
                                          GVariantDict *options);
 static void
 thunar_application_tabs_done (ThunarApplicationTabs *tabs);
+static void
+thunar_application_clear_window_options (ThunarApplication *application);
 static void
 thunar_application_tabs_poke_queued (ThunarApplicationTabs *tabs);
 static int
@@ -265,6 +285,10 @@ struct _ThunarApplication
   gboolean daemon;
   gboolean force_new_window;
 
+  gboolean                  has_geometry;
+  ThunarApplicationGeometry geometry;
+  gint                      workspace;
+
   guint        accel_map_save_id;
   GtkAccelMap *accel_map;
 
@@ -354,6 +378,8 @@ thunar_application_init (ThunarApplication *application)
    * in the primary instance anyways */
 
   application->force_new_window = FALSE;
+  application->has_geometry = FALSE;
+  application->workspace = -1;
   application->files_to_launch = NULL;
   application->process_file_action = THUNAR_APPLICATION_SELECT_FILES;
   application->progress_dialog = NULL;
@@ -559,6 +585,15 @@ thunar_application_local_command_line (GApplication *gapp,
           g_ptr_array_add (args, g_strdup (argv[n]));
           g_ptr_array_add (args, g_strdup (argv[++n]));
         }
+      else if (n > 0 && !dash_dash && argv[n + 1] != NULL
+               && ((short_group && (argv[n][strlen (argv[n]) - 1] == 'g' || argv[n][strlen (argv[n]) - 1] == 's'))
+                   || g_strcmp0 (argv[n], "--geometry") == 0 || g_strcmp0 (argv[n], "--workspace") == 0))
+        {
+          if (short_group && strchr (argv[n] + 1, 'T') != NULL)
+            tabs_right = TRUE;
+          g_ptr_array_add (args, g_strdup (argv[n]));
+          g_ptr_array_add (args, g_strdup (argv[++n]));
+        }
       else if (!tabs_right
                && ((short_group && strchr (argv[n] + 1, 'T') != NULL)
                    || (n > 0 && !dash_dash && g_strcmp0 (argv[n], "--tabs-right") == 0)))
@@ -732,6 +767,8 @@ thunar_application_tabs_done (ThunarApplicationTabs *tabs)
       thunar_window_open_pane_tabs (THUNAR_WINDOW (window), left, right);
     }
 
+  thunar_application_clear_window_options (tabs->application);
+
   thunar_g_list_free_full (left);
   thunar_g_list_free_full (right);
   g_list_free_full (tabs->tabs[0], thunar_application_tab_free);
@@ -842,6 +879,153 @@ thunar_application_handle_local_options (GApplication *gapp,
 
 
 
+static void
+thunar_application_clear_window_options (ThunarApplication *application)
+{
+  application->has_geometry = FALSE;
+  application->workspace = -1;
+}
+
+
+
+static gboolean
+thunar_application_parse_geometry_number (const gchar **string,
+                                          gint         *value)
+{
+  gchar  *end;
+  guint64 number;
+
+  if (!g_ascii_isdigit (**string))
+    return FALSE;
+
+  number = g_ascii_strtoull (*string, &end, 10);
+  if (number > 100000)
+    return FALSE;
+
+  *value = number;
+  *string = end;
+  return TRUE;
+}
+
+
+
+static gboolean
+thunar_application_parse_geometry (const gchar               *string,
+                                   ThunarApplicationGeometry *geometry)
+{
+  const gchar *p = string;
+
+  memset (geometry, 0, sizeof (*geometry));
+
+  if (*p == '=')
+    p++;
+
+  if (g_ascii_isdigit (*p))
+    {
+      if (!thunar_application_parse_geometry_number (&p, &geometry->width) || (*p != 'x' && *p != 'X'))
+        return FALSE;
+      p++;
+      if (!thunar_application_parse_geometry_number (&p, &geometry->height))
+        return FALSE;
+      if (geometry->width == 0 || geometry->height == 0)
+        return FALSE;
+      geometry->has_size = TRUE;
+    }
+
+  if (*p == '+' || *p == '-')
+    {
+      geometry->x_negative = (*p++ == '-');
+      if (!thunar_application_parse_geometry_number (&p, &geometry->x) || (*p != '+' && *p != '-'))
+        return FALSE;
+      geometry->y_negative = (*p++ == '-');
+      if (!thunar_application_parse_geometry_number (&p, &geometry->y))
+        return FALSE;
+      geometry->has_position = TRUE;
+    }
+
+  return *p == '\0' && (geometry->has_size || geometry->has_position);
+}
+
+
+
+static gboolean
+thunar_application_parse_workspace (const gchar *string,
+                                    gint        *workspace)
+{
+#ifdef GDK_WINDOWING_X11
+  GdkScreen *screen = gdk_screen_get_default ();
+  guint64    number;
+
+  if (screen == NULL || !GDK_IS_X11_SCREEN (screen))
+    {
+      *workspace = -1;
+      return TRUE;
+    }
+
+  if (!g_ascii_string_to_unsigned (string, 10, 1, gdk_x11_screen_get_number_of_desktops (screen), &number, NULL))
+    return FALSE;
+
+  *workspace = number - 1;
+#else
+  *workspace = -1;
+#endif
+  return TRUE;
+}
+
+
+
+static void
+thunar_application_apply_window_options (ThunarApplication *application,
+                                         GtkWindow         *window)
+{
+  ThunarApplicationGeometry *geometry = &application->geometry;
+  GdkWindow                 *root;
+  GdkGravity                 gravity;
+  gint                       width;
+  gint                       height;
+
+  if (application->has_geometry)
+    {
+      if (geometry->has_size)
+        {
+          gtk_window_unmaximize (window);
+          gtk_window_set_default_size (window, geometry->width, geometry->height);
+          thunar_window_keep_size_unsaved (THUNAR_WINDOW (window), geometry->width, geometry->height);
+        }
+
+      if (geometry->has_position)
+        {
+          gtk_window_get_default_size (window, &width, &height);
+          root = gdk_screen_get_root_window (gtk_window_get_screen (window));
+          if (geometry->x_negative)
+            gravity = geometry->y_negative ? GDK_GRAVITY_SOUTH_EAST : GDK_GRAVITY_NORTH_EAST;
+          else
+            gravity = geometry->y_negative ? GDK_GRAVITY_SOUTH_WEST : GDK_GRAVITY_NORTH_WEST;
+          gtk_window_set_gravity (window, gravity);
+          gtk_window_move (window,
+                           geometry->x_negative ? gdk_window_get_width (root) - geometry->x - width : geometry->x,
+                           geometry->y_negative ? gdk_window_get_height (root) - geometry->y - height : geometry->y);
+        }
+    }
+
+#ifdef GDK_WINDOWING_X11
+  if (application->workspace >= 0 && GDK_IS_X11_SCREEN (gtk_window_get_screen (window)))
+    {
+      gulong desktop = application->workspace;
+
+      gtk_widget_realize (GTK_WIDGET (window));
+      gdk_property_change (gtk_widget_get_window (GTK_WIDGET (window)),
+                           gdk_atom_intern_static_string ("_NET_WM_DESKTOP"),
+                           gdk_atom_intern_static_string ("CARDINAL"),
+                           32, GDK_PROP_MODE_REPLACE, (const guchar *) &desktop, 1);
+    }
+#endif
+
+  thunar_application_clear_window_options (application);
+}
+
+
+
 static int
 thunar_application_command_line (GApplication            *gapp,
                                  GApplicationCommandLine *command_line)
@@ -862,6 +1046,8 @@ thunar_application_command_line (GApplication            *gapp,
   gboolean           tabs_failed = FALSE;
   gboolean           open_first_window = TRUE;
   GList             *window_list;
+  gchar             *geometry = NULL;
+  gchar             *workspace = NULL;
 
   /* retrieve arguments */
   g_variant_dict_lookup (options_dict, "bulk-rename", "b", &bulk_rename);
@@ -872,6 +1058,10 @@ thunar_application_command_line (GApplication            *gapp,
   g_variant_dict_lookup (options_dict, "tabs", "b", &tabs_option);
   g_variant_dict_lookup (options_dict, "tabs-right", "b", &tabs_right_option);
   g_variant_dict_lookup (options_dict, "tabs-right-uri", "^aay", &right_filenames);
+  g_variant_dict_lookup (options_dict, "geometry", "s", &geometry);
+  g_variant_dict_lookup (options_dict, "workspace", "s", &workspace);
+
+  thunar_application_clear_window_options (application);
 
   /* FIXME: --quit should be named --suicide */
   if (G_UNLIKELY (quit))
@@ -907,10 +1097,22 @@ thunar_application_command_line (GApplication            *gapp,
       goto out;
     }
 
+  if (geometry != NULL)
+    {
+      application->has_geometry = thunar_application_parse_geometry (geometry, &application->geometry);
+      if (!application->has_geometry)
+        g_application_command_line_printerr (command_line, "Thunar: invalid geometry \"%s\"\n", geometry);
+    }
+
+  if (workspace != NULL && !thunar_application_parse_workspace (workspace, &application->workspace))
+    g_application_command_line_printerr (command_line, "Thunar: invalid workspace \"%s\"\n", workspace);
+
   if (tabs_option || tabs_right_option)
     {
       application->force_new_window = FALSE;
       tabs_failed = !thunar_application_open_tabs (application, command_line, cwd, filenames, right_filenames);
+      if (tabs_failed)
+        thunar_application_clear_window_options (application);
       goto out;
     }
 
@@ -919,6 +1121,7 @@ thunar_application_command_line (GApplication            *gapp,
     {
       /* we failed to process the filenames or the bulk rename failed */
       g_application_command_line_printerr (command_line, "Thunar: %s\n", error->message);
+      thunar_application_clear_window_options (application);
     }
 
   /* reopen tabs if desired and this is the first thunar window we open */
@@ -1001,6 +1204,8 @@ out:
   /* cleanup */
   g_strfreev (filenames);
   g_strfreev (right_filenames);
+  g_free (geometry);
+  g_free (workspace);
 
   if (error)
     {
@@ -1858,6 +2063,8 @@ thunar_application_open_window (ThunarApplication *application,
   /* hook up the window */
   thunar_application_take_window (application, GTK_WINDOW (window));
 
+  thunar_application_apply_window_options (application, GTK_WINDOW (window));
+
   /* show the new window */
   gtk_widget_show (window);
 
@@ -2039,6 +2246,7 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
         g_object_set_qdata (G_OBJECT (lp->data), thunar_application_startup_id_quark, NULL);
       thunar_g_list_free_full (application->files_to_launch);
       application->files_to_launch = NULL;
+      thunar_application_clear_window_options (application);
     }
   else
     {
@@ -2083,6 +2291,7 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
         }
 
       application->force_new_window = FALSE;
+      thunar_application_clear_window_options (application);
 
       /* unset the startup id */
       if (startup_id != NULL)

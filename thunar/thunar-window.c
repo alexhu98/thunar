@@ -416,6 +416,8 @@ thunar_window_save_paned_notebooks (ThunarWindow *window);
 static gboolean
 thunar_window_paned_notebooks_button_press_event (GtkWidget      *paned,
                                                   GdkEventButton *event);
+static gboolean
+thunar_window_save_geometry_timer (gpointer user_data);
 static void
 thunar_window_save_geometry_timer_destroy (gpointer user_data);
 static void
@@ -683,6 +685,8 @@ struct _ThunarWindow
 
   /* support to remember window geometry */
   guint save_geometry_timer_id;
+  gint  unsaved_width;
+  gint  unsaved_height;
 
   /* type of the sidepane */
   ThunarSidepaneType sidepane_type;
@@ -2428,7 +2432,7 @@ thunar_window_configure_event (GtkWidget         *widget,
       if (gtk_widget_get_visible (widget))
         {
           /* save the geometry one second after the last configure event */
-          window->save_geometry_timer_id = g_timeout_add_seconds_full (G_PRIORITY_LOW, 1, thunar_util_save_geometry_timer,
+          window->save_geometry_timer_id = g_timeout_add_seconds_full (G_PRIORITY_LOW, 1, thunar_window_save_geometry_timer,
                                                                        window, thunar_window_save_geometry_timer_destroy);
         }
     }
@@ -5864,6 +5868,42 @@ thunar_window_paned_notebooks_button_press_event (GtkWidget      *paned,
     }
 
   return FALSE;
+}
+
+
+
+static gboolean
+thunar_window_save_geometry_timer (gpointer user_data)
+{
+  ThunarWindow *window = THUNAR_WINDOW (user_data);
+  gint          width;
+  gint          height;
+
+  if (window->unsaved_width > 0)
+    {
+      gtk_window_get_size (GTK_WINDOW (window), &width, &height);
+      if (width == window->unsaved_width && height == window->unsaved_height
+          && (gdk_window_get_state (gtk_widget_get_window (GTK_WIDGET (window))) & (GDK_WINDOW_STATE_MAXIMIZED | GDK_WINDOW_STATE_FULLSCREEN)) == 0)
+        return G_SOURCE_REMOVE;
+
+      window->unsaved_width = 0;
+      window->unsaved_height = 0;
+    }
+
+  return thunar_util_save_geometry_timer (user_data);
+}
+
+
+
+void
+thunar_window_keep_size_unsaved (ThunarWindow *window,
+                                 gint          width,
+                                 gint          height)
+{
+  _thunar_return_if_fail (THUNAR_IS_WINDOW (window));
+
+  window->unsaved_width = width;
+  window->unsaved_height = height;
 }
 
 
