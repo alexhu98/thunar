@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PR #? Local review</title>
+<title>PR #110 Local review</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -100,7 +100,7 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">PR #?: a local /code-review at high, with fixes, before the first push</h1>
+  <h1 data-k="title">PR #110: a local /code-review at high, with fixes, before the first push</h1>
   <p class="lead" data-k="lead">Branch <code>109-local-review-high</code> → <code>main</code>, closes #109. Before a PR's first push, the session now has a fresh agent run the same review skill at the same level as CI, and apply its fixes, so fewer findings reach CI and cost a round each.</p>
 
   <nav class="parts" aria-label="Parts of this page">
@@ -283,7 +283,7 @@ explainers/
     <li data-k="b2"><b>Skipped, then fixed by the main session (S1 to S3):</b> <code>--fix</code> applies findings it isn't sure of, while CI applies only confirmed ones, so the rule now says to undo any fix you can't confirm; “run the fast checks” was never defined, and the same edit removed it; and the review sees only committed work, so the rule now starts with “commit the work”.</li>
     <li data-k="b3"><b>Skipped and left (S4 to S6):</b> the local review isn't given the issue, unlike CI, which is kept on purpose so it stays independent; the level <code>high</code> is named in three places, a low-value cleanup; and the explainer was missing at review time, which this page now is.</li>
   </ul>
-  <p data-k="ci">CI's own review runs after the first push and reports in the code review comment on PR #?, which wasn't open when this page was written.</p>
+  <p data-k="ci">CI's own review runs after the first push and reports in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/110">PR #110</a>.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -301,7 +301,7 @@ explainers/
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
     <li data-k="l1">The issue, with the #108 numbers and the nesting risk: <a href="https://github.com/alexhu98/thunar/issues/109">#109</a></li>
-    <li data-k="l2">The PR and its changes: PR #?, from branch <code>109-local-review-high</code>, not yet opened when this page was written</li>
+    <li data-k="l2">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/110">PR #110</a> → “Files changed”</li>
     <li data-k="l3">The PR that prompted it, with its 10 CI review rounds: <a href="https://github.com/alexhu98/thunar/pull/108">PR #108</a></li>
   </ul>
   </section>
