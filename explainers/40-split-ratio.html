@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #107 Split ratio</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #107: Split view opens at 50/50, and --split PERCENT</h1>
+  <p class="lead" data-k="lead">Branch <code>40-split-ratio</code> → <code>main</code>, closes #40 and #41. Every new split view now opens centered instead of at the last dragged pixel position, and <code>thunar --split 60</code> opens a new window split 60/40.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing builds on it yet</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">A new split view starts at a ratio of the pane's real size, 50/50 by default or the percentage given with <code>--split</code>, set in <code>thunar-window.c</code> and <code>thunar-application.c</code>.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="A split turning on, or thunar --split, queues a ratio that is applied when the pane gets its size; a drag stays in that window">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① #40 A new split view opens at 50/50</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Split turns on</text>
+      <text x="36" y="114" class="m">F3 · toolbar</text>
+      <text x="36" y="134" class="b">a window opening</text>
+      <text x="36" y="154" class="b">with split on</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Pick the start</text>
+      <text x="286" y="114" class="b">setting off (default):</text>
+      <text x="286" y="134" class="b">queue 50/50</text>
+      <text x="286" y="154" class="b">on: saved pixels</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Apply on resize</text>
+      <text x="536" y="114" class="m">size-allocate</text>
+      <text x="536" y="134" class="b">position = size ×</text>
+      <text x="536" y="154" class="b">percent / 100</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-you" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">You drag it</text>
+      <text x="786" y="114" class="b">stays in this window</text>
+      <text x="786" y="134" class="b">not saved, unless</text>
+      <text x="786" y="154" class="b">the setting is on</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② #41 thunar --split PERCENT</text>
+    <g data-k="5">
+      <rect class="box-merge" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Read the value</text>
+      <text x="36" y="314" class="m">--split 60</text>
+      <text x="36" y="334" class="b">10 to 90, or an error</text>
+      <text x="36" y="354" class="b">and no window</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Always new window</text>
+      <text x="286" y="314" class="b">even with windows</text>
+      <text x="286" y="334" class="b">as tabs; one window</text>
+      <text x="286" y="354" class="b">per folder</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Split that window</text>
+      <text x="536" y="314" class="m">open_split (60)</text>
+      <text x="536" y="334" class="b">kept on the window,</text>
+      <text x="536" y="354" class="b">never saved</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <path class="arrow" d="M230,320 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,320 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M625,260 V184" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>every new split (#40)</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>the --split option (#41)</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Split view shows two folders side by side, with a divider between them. Until now Thunar saved the divider's position in pixels after every drag and reused it for every new split, whatever the window's size, so after one drag in a wide window every later split opened lopsided. Now each new split opens in the middle, a drag only affects its own window, and <code>--split</code> asks for an uneven split for one new window.</p>
+  <div class="note" data-k="note">The ratio is set when the split pane gets its size, not straight away. GTK rescales a divider set earlier by the new size over its last size, and that last size can be left over from an earlier split, which would put the divider in the wrong place.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① #40 A new split view opens at 50/50</div>
+  <ol class="steps">
+    <li data-k="1"><b>Split turns on.</b> F3, the toolbar button, a window that opens with split view already on, and restored tabs all go through <code>thunar_window_split_view_add</code> in <code>thunar-window.c</code>.</li>
+    <li data-k="2"><b>Pick the start.</b> It reads the new hidden setting <code>misc-remember-split-position</code>, off by default. Off, it queues a 50/50 split. On, it uses the saved <code>last-splitview-separator-position</code> in pixels, as upstream Thunar does.</li>
+    <li data-k="3"><b>Apply on resize.</b> <code>thunar_window_paned_notebooks_queue_split</code> waits for the split pane's next <code>size-allocate</code>; then <code>_apply_split</code> sets the divider to the pane's width times the percentage, or its height in vertical split, and stops listening.</li>
+    <li data-k="4"><b>You drag it.</b> The divider stays where you put it for that window's life, also after you add or close tabs. It's saved only with the setting on. Double-clicking the divider still centers it.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② #41 thunar --split PERCENT</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Read the value.</b> <code>thunar_application_parse_split</code> accepts a whole number from 10 to 90. Anything else prints “Thunar: --split takes a percentage from 10 to 90”, exits with an error and opens nothing. <code>--help</code> lists <code>--split=PERCENT</code>.</li>
+    <li data-k="6"><b>Always a new window.</b> <code>--split</code> forces a new window, even with Thunar running and Open new windows as tabs on, one window per folder. The value travels with that launch or tabs request, never on the application, so other windows and later commands don't see it.</li>
+    <li data-k="7"><b>Split that window.</b> <code>thunar_window_open_split</code> stores the percentage on that window and turns split view on, with the same folder in both panes, so step 3 applies it. It never changes a saved setting.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">The cases, one by one</h3>
+  <div class="grid">
+    <div class="card" data-k="k1"><h3>F3 by default</h3><p>Opens at 50/50, even when a pixel position is saved. The saved value is left alone.</p></div>
+    <div class="card" data-k="k2"><h3>Hidden setting on</h3><p><code>misc-remember-split-position</code> true brings back upstream: F3 opens at the saved pixels, and a drag saves the new spot.</p></div>
+    <div class="card" data-k="k3"><h3>Vertical split</h3><p>With <code>misc-vertical-split-pane</code> on, the same rules apply by height: 50% by default, the top pane's share with <code>--split</code>.</p></div>
+    <div class="card" data-k="k4"><h3>With -t and -T</h3><p><code>-T</code> turns split on, at <code>--split</code>'s percentage. With <code>-t</code> alone, the right pane opens on the first tab.</p></div>
+    <div class="card" data-k="k5"><h3>Restored tabs</h3><p>With <code>--split</code>, the first window skips restoring the last session's tabs, which would have turned its split off again.</p></div>
+    <div class="card" data-k="k6"><h3>A value after -T</h3><p>The early command-line pass treats <code>--split VALUE</code> like <code>--geometry</code>, so the 60 after <code>-T</code> isn't taken as a right-pane folder.</p></div>
+  </div>
+  <pre data-k="diff" style="margin-top:14px">  g_object_get (G_OBJECT (window-&gt;preferences),
+                "misc-remember-split-position", &amp;remember_split_position,
+                "last-splitview-separator-position", &amp;last_splitview_separator_position,
+                NULL);
+<span class="add">  if (remember_split_position &amp;&amp; window-&gt;split_percent == 0 &amp;&amp; last_splitview_separator_position &gt; 0)</span>
+<span class="add">    gtk_paned_set_position (GTK_PANED (window-&gt;paned_notebooks), last_splitview_separator_position);</span>
+<span class="add">  else</span>
+<span class="add">    thunar_window_paned_notebooks_queue_split (window);</span></pre>
+  <div class="note" data-k="undo">To get the old behaviour back without reverting, turn the hidden setting on: <code>xfconf-query -c thunar -p /misc-remember-split-position -n -t bool -s true</code>. Reverting the PR removes the setting and <code>--split</code>; no other setting is written.</div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+├── thunar-window.c       # 50/50 or saved start, ratio applied on next size-allocate,
+│                         #   save handlers only with the setting on, open_split
+├── thunar-window.h       # declares thunar_window_open_split
+├── thunar-application.c  # --split option, parse 10–90, new window, launch/tabs field,
+│                         #   skip restored tabs, --split VALUE in the early pass
+└── thunar-preferences.c  # hidden misc-remember-split-position, default false
+verify/40.sh              # the test: the cases above, 6 shots
+explainers/40-split-ratio.html            # this page
+explainers/40-split-ratio.narration.json  # its narration</pre>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built and tested in this session's cloud container on the final code (commit <code>b49ff69</code>); CI's checks come after the push, and a real desktop check after the merge.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Issue #40's test plan</h3><p>Saved position 300 px, F3 centered, drag not saved, Ctrl+T keeps the drag, the setting brings back 300 px, vertical by height.</p></div>
+    <div class="card" data-k="r2"><h3>Issue #41's done list</h3><p>Running and not running, Open new windows as tabs, invalid values, <code>--help</code>, <code>-t</code>/<code>-T</code>, vertical split, saved value unchanged.</p></div>
+    <div class="card" data-k="r3"><h3>Upstream's own code</h3><p>The old save and restore stays as it was behind the setting, following the hidden <code>misc-remember-geometry</code> pattern; double-click centering is unchanged.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <p data-k="how">Every row is from this session, local build-verify. <code>verify/40.sh</code> measures each pane from a window screenshot, finding the two empty file views along a row or column.</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Builds and installs</td><td><code>dpkg-buildpackage</code>, then install of the debs in the cloud container</td><td class="ok">build OK, install OK</td></tr>
+    <tr data-k="c2"><td>All tests pass</td><td><code>verify-proof.sh run</code> under Xvfb on <code>b49ff69</code></td><td class="ok">16 of 16; 40.sh in 40 s</td></tr>
+    <tr data-k="c3"><td>--split from cold</td><td><code>thunar --split 60</code> with Thunar not running</td><td class="ok">60% (±3 px)</td></tr>
+    <tr data-k="c4"><td>Setting on: upstream</td><td><code>misc-remember-split-position</code> true, F3, then a drag to 400</td><td class="ok">300 px; saves ~400</td></tr>
+    <tr data-k="c5"><td>Default: centered</td><td>F3 with 300 px saved; then drag to 280</td><td class="ok">50/50; still 300 saved</td></tr>
+    <tr data-k="c6"><td>Drag stays in its window</td><td>Ctrl+T after the drag; then F3 in a new window</td><td class="ok">kept; new one 50/50</td></tr>
+    <tr data-k="c7"><td>--split with Thunar running</td><td>Open new windows as tabs on, <code>thunar --split 60</code>; then F3 in a later window</td><td class="ok">1 new window at 60%; old divider same; later 50/50</td></tr>
+    <tr data-k="c8"><td>Invalid values</td><td><code>--split 5</code>, <code>95</code>, <code>abc</code></td><td class="ok">error, non-zero, no window</td></tr>
+    <tr data-k="c9"><td>Help text</td><td><code>thunar --help</code></td><td class="ok">lists --split=PERCENT</td></tr>
+    <tr data-k="c10"><td>With -t and -T</td><td><code>-t alpha bravo charlie -T delta --split 60</code>; <code>-t alpha bravo --split 30</code></td><td class="ok">60%; 30%, alpha right</td></tr>
+    <tr data-k="c11"><td>Vertical split</td><td><code>misc-vertical-split-pane</code> on: F3, then <code>--split 60</code></td><td class="ok">50%; 60% by height</td></tr>
+    <tr data-k="c12"><td>Saved value untouched</td><td><code>xfconf-query</code> for <code>last-splitview-separator-position</code> at the end</td><td class="ok">300</td></tr>
+    <tr data-k="c13"><td>CI build, verify and review</td><td>Run by CI on PR #107 after the push</td><td class="no">not run yet</td></tr>
+  </table>
+  </div>
+  <p data-k="shots" style="margin-top:12px">The test takes six shots: <code>split-60-cold</code>; the pair <code>split-centered</code> (before: setting on, 300 px; after: default, 50/50); <code>drag-kept-with-tab</code>; the pair <code>split-60</code> (before: window charlie at 50/50; after: new window delta at 60/40); <code>split-30-tabs</code>; and <code>split-60-vertical</code>.</p>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A fresh general-purpose agent, given only the diff and issues #40 and #41, reviewed at high effort: 5 findings, 3 fixed, 2 left as they are. The checks above ran after the fixes.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed, the test's colours:</b> it measured the panes by white pixels, but CI uses a dark theme; it now measures runs of one colour.</li>
+    <li data-k="b2"><b>Fixed, a stale width:</b> the ratio was set right away, and GTK could rescale it from an earlier split's width; it's now applied on the next size-allocate.</li>
+    <li data-k="b3"><b>Fixed, restored tabs:</b> on a cold start, restoring tabs turned a <code>--split</code> window's split off; it's now skipped with <code>--split</code>.</li>
+    <li data-k="b4"><b>Not changed, two test notes:</b> a vertical-split skew from tab bars (no vertical check has tab bars), and a title check that could pass without the click (the left pane is switched to bravo first, so the click must change the title to alpha).</li>
+  </ul>
+  <p data-k="ci-review">CI's own review runs after the push and reports in the code review PR comment on <a href="https://github.com/alexhu98/thunar/pull/107">PR #107</a>.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>Your real desktop, including a window the window manager maximizes after it appears</td><td>The tests run under Xvfb with fixed window sizes; the ratio uses the pane's first size</td><td class="open">your first session after the merge</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/107">PR #107</a> → “Files changed”</li>
+    <li data-k="l2">CI's summary, code review, verify and explainer comments, with the shots, on PR #107 once CI has run</li>
+    <li data-k="l3">The issues: <a href="https://github.com/alexhu98/thunar/issues/40">#40</a> and <a href="https://github.com/alexhu98/thunar/issues/41">#41</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing builds on it yet</h2>
+  <p class="intro" data-k="intro">No open issue depends on #40 or #41, so nothing builds on this PR yet. What remains is a try on your own desktop after the merge.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR, then you try split view on your own desktop">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--merge)">#40 and #41 Split ratio</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">new splits at 50/50,</text>
+      <text x="36" y="134" class="b">--split for one</text>
+      <text x="36" y="154" class="b">new window</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Try it for real</text>
+      <text x="286" y="114" class="b">F3 in a big window,</text>
+      <text x="286" y="134" class="b">--split 60, and a</text>
+      <text x="286" y="154" class="b">maximized window</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-a">
+  <h3 class="sec">Your step (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Try it in your session.</b> After the merge, press F3 in a wide window and a small one: both should split in the middle. Then run <code>thunar --split 60 ~</code>, also in a window that opens maximized, and check the left pane takes 60%.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="split"><dt>Split view</dt><dd>Thunar showing two folder panes side by side (F3), or one above the other in vertical split.</dd></div>
+    <div data-k="divider"><dt>Divider</dt><dd>The bar between the two panes; drag it to resize them, double-click it to center it.</dd></div>
+    <div data-k="paned"><dt>GtkPaned</dt><dd>The GTK widget that holds the two panes and the divider's position in pixels.</dd></div>
+    <div data-k="alloc"><dt>size-allocate</dt><dd>The signal GTK sends when a widget gets its actual size on screen.</dd></div>
+    <div data-k="hidden"><dt>Hidden setting</dt><dd>A Thunar preference with no checkbox, set only with <code>xfconf-query</code>.</dd></div>
+    <div data-k="xfconf"><dt>xfconf-query</dt><dd>The command that reads and sets Xfce settings, such as the saved divider position.</dd></div>
+    <div data-k="tabs"><dt>-t and -T</dt><dd>Options that open the following folders as tabs in the left (<code>-t</code>) or right (<code>-T</code>) pane.</dd></div>
+    <div data-k="newtab"><dt>Open new windows as tabs</dt><dd>A Thunar setting that opens a new folder as a tab in the existing window instead.</dd></div>
+    <div data-k="restore"><dt>Restore tabs</dt><dd>Thunar reopening the tabs of the last session when it starts.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual screen with no monitor, where the tests run Thunar and take screenshots.</dd></div>
+    <div data-k="pair"><dt>Shot pair</dt><dd>A before and an after screenshot that CI joins into one image in its verify comment.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
