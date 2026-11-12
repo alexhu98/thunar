@@ -280,7 +280,7 @@ explainers/40-split-ratio.narration.json  # its narration</pre>
 
   <section class="sub" id="checks">
   <h3 class="sec">What was checked</h3>
-  <p data-k="how">Rows 1 to 12 are from this session's local build-verify on <code>b49ff69</code>, before both rounds of review fixes; the last four say their source. <code>verify/40.sh</code> measures each pane from a window screenshot, finding the two empty file views along a row or column.</p>
+  <p data-k="how">Rows 1 to 12 are from this session's local build-verify on <code>b49ff69</code>, before both rounds of review fixes; the last five say their source. <code>verify/40.sh</code> measures each pane from a window screenshot, finding the two empty file views along a row or column.</p>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
@@ -299,7 +299,8 @@ explainers/40-split-ratio.narration.json  # its narration</pre>
     <tr data-k="c13"><td>CI on <code>b23213f</code></td><td>CI run 43195797679: build, explainer, code review at high</td><td class="ok">build pass, explainer pass, review 10 low findings</td></tr>
     <tr data-k="c14"><td>Review fixes compile</td><td><code>make -C thunar</code> in this session, on the fixes for R1, R2, R4, R7, R8, R10, then for R11</td><td class="ok">both compiled; tests not re-run here</td></tr>
     <tr data-k="c15"><td>CI on <code>9dc5400</code></td><td>CI's second run, on the first round of fixes: build, verify, code review at high</td><td class="ok">build pass, review pass with R11 to R14; verify still running</td></tr>
-    <tr data-k="c16"><td>CI build, verify and review of <code>af2fc00</code></td><td>Run by CI on PR #107 after this push, on the R11 fix</td><td class="no">not run yet</td></tr>
+    <tr data-k="c16"><td>CI review of <code>0b8ba0f</code></td><td>CI's third review at high, after the R11 fix</td><td class="ok">R15 to R19: R15 medium, fixed; 4 low, accepted</td></tr>
+    <tr data-k="c17"><td>CI on the latest push</td><td>Run by CI on PR #107 after this push</td><td class="no">not run yet</td></tr>
   </table>
   </div>
   <p data-k="shots" style="margin-top:12px">The test takes six shots: <code>split-60-cold</code>; the pair <code>split-centered</code> (before: setting on, 300 px; after: default, 50/50); <code>drag-kept-with-tab</code>; the pair <code>split-60</code> (before: window charlie at 50/50; after: new window delta at 60/40); <code>split-30-tabs</code>; and <code>split-60-vertical</code>.</p>
@@ -314,15 +315,17 @@ explainers/40-split-ratio.narration.json  # its narration</pre>
     <li data-k="b3"><b>Fixed, restored tabs:</b> on a cold start, restoring tabs turned a <code>--split</code> window's split off; it's now skipped with <code>--split</code>.</li>
     <li data-k="b4"><b>Not changed, two test notes:</b> a vertical-split skew from tab bars (no vertical check has tab bars), and a title check that could pass without the click (the left pane is switched to bravo first, so the click must change the title to alpha).</li>
   </ul>
-  <p data-k="ci-review">CI's own review of <code>b23213f</code> (run 43195797679, high effort, 6 minutes) found 10 low findings and pushed no fix. Its second review, of <code>9dc5400</code>, resolved R1 and R2 and found R11 to R14; see the <a href="https://github.com/alexhu98/thunar/pull/107#issuecomment-6820455380">code review PR comment</a>. Of the 14 findings, 7 were fixed and 7 accepted unchanged.</p>
+  <p data-k="ci-review">CI's own review of <code>b23213f</code> (run 43195797679, high effort, 6 minutes) found 10 low findings and pushed no fix. Its second review, of <code>9dc5400</code>, resolved R1 and R2 and found R11 to R14; its third, of <code>0b8ba0f</code>, found R15 to R19; see the <a href="https://github.com/alexhu98/thunar/pull/107#issuecomment-6820455380">code review PR comment</a>. Of the 19 findings, 8 were fixed (R1, R2, R4, R7, R8, R10, R11 and R15) and 11 accepted unchanged.</p>
   <ul class="tight">
     <li data-k="f1"><b>Fixed R1, setting flipped with a split open:</b> the drag-save handlers are now always connected, and the save returns early unless <code>misc-remember-split-position</code> is on.</li>
     <li data-k="f2"><b>Fixed R2, duplicated size code:</b> a new <code>thunar_gtk_orientable_get_size</code> serves both the centering and the ratio.</li>
     <li data-k="f3"><b>Fixed R4, a ratio left waiting:</b> closing split view clears the percentage and the pending size-allocate handler.</li>
     <li data-k="f4"><b>Fixed R7, R8 and R10:</b> the test saves <code>thunar --help</code> before grepping it; <code>--split</code> no longer sets the application's new-window flag; the new doc comment is gone.</li>
-    <li data-k="f5"><b>Accepted R3, R5, R6 and R9, not changed:</b> you accepted them. R3 is the one window per folder that #41 asks for; R5, GTK lays out again before painting; R6, upstream centering also ignores the handle width; R9, the percentage has to wait for the window's real size.</li>
+    <li data-k="f5"><b>Accepted R3, R5, R6 and R9, not changed:</b> you accepted them, as a PR comment records. R3 is the one window per folder that #41 asks for; R5, GTK lays out again before painting; R6, upstream centering also ignores the handle width; R9, the percentage has to wait for the window's real size.</li>
     <li data-k="f6"><b>Fixed R11, a stray click saving the position:</b> with the setting on, any button release that reached the split pane saved the divider, so a click could save a one-off <code>--split</code> ratio. Now only a release on the divider's handle saves it; a keyboard move still does.</li>
     <li data-k="f7"><b>Accepted R12, R13 and R14:</b> no test for turning the setting on mid-split or for a dropped pending ratio, a preference lookup per divider release, and the <code>--split</code> new-window rule written in two places. They are low and unconfirmed from a later review, so the repo's review rules accept them.</li>
+    <li data-k="f8"><b>Fixed R15, an accept line CI didn't read:</b> the <code>Review-accept</code> line in <code>0b8ba0f</code> was its own paragraph, not a git trailer, so CI closed nothing. Commit <code>144712f</code> carries it as a proper trailer.</li>
+    <li data-k="f9"><b>Accepted R16 to R19:</b> a touchscreen drag starting beside the handle may not save; a plain click on the handle saves the current position; the release handler doesn't check which button; and the sidebar's upstream save on any release, outside this issue. All are low and unconfirmed from a later review, and matter only with the hidden <code>misc-remember-split-position</code> on.</li>
   </ul>
   </section>
 
