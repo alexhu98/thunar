@@ -1051,14 +1051,9 @@ static gboolean
 thunar_application_parse_split (const gchar *string,
                                 gint        *percent)
 {
-  gchar  *end;
   guint64 number;
 
-  if (!g_ascii_isdigit (*string))
-    return FALSE;
-
-  number = g_ascii_strtoull (string, &end, 10);
-  if (*end != '\0' || number < 10 || number > 90)
+  if (!g_ascii_string_to_unsigned (string, 10, 10, 90, &number, NULL))
     return FALSE;
 
   *percent = (gint) number;
