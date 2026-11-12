@@ -1105,7 +1105,6 @@ thunar_shortcuts_model_shortcut_places (ThunarShortcutsModel *model)
   GFile          *trash;
   GFile          *location;
   ThunarFile     *file;
-  GFile          *locations[5] = { NULL, };
   const gchar    *path;
   guint           n, m;
   const GUserDirectory special_dirs[] = {
@@ -1115,6 +1114,7 @@ thunar_shortcuts_model_shortcut_places (ThunarShortcutsModel *model)
     G_USER_DIRECTORY_PICTURES,
     G_USER_DIRECTORY_VIDEOS,
   };
+  GFile *locations[G_N_ELEMENTS (special_dirs)] = { NULL, };
 
   /* add the places heading */
   shortcut = g_slice_new0 (ThunarShortcut);
@@ -1188,6 +1188,9 @@ thunar_shortcuts_model_shortcut_places (ThunarShortcutsModel *model)
       else if (file != NULL)
         g_object_unref (file);
     }
+  for (n = 0; n < G_N_ELEMENTS (locations); n++)
+    if (locations[n] != NULL)
+      g_object_unref (locations[n]);
   g_object_unref (desktop);
   g_object_unref (home);
 
@@ -1377,9 +1380,7 @@ thunar_shortcuts_model_add_shortcut_with_path (ThunarShortcutsModel *model,
   _thunar_return_if_fail (shortcut->file == NULL || THUNAR_IS_FILE (shortcut->file));
 
   if (G_LIKELY (shortcut->file != NULL))
-    {
-      thunar_shortcuts_model_watch_file (model, shortcut->file);
-    }
+    thunar_shortcuts_model_watch_file (model, shortcut->file);
 
   if (path == NULL)
     {
