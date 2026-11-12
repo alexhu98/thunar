@@ -22,6 +22,17 @@ Run every command from the repo root as `cmd > "$LOGS/<step>.log" 2>&1; echo "ex
 `LOGS=${TMPDIR:-/tmp}/build-verify` (`mkdir -p` it), and never pipe a command into `tail`, which hides its exit code.
 Read a log only with `tail -n 30` or `grep -n`, never whole.
 
+0. **Exclude build outputs**, only in a cloud container (`$CLAUDE_CODE_REMOTE` is `true`), so the Stop hook's
+   untracked-files check doesn't re-prompt after every turn (#97). It appends only missing lines, so it is cheap to
+   repeat:
+   ```sh
+   x=$(git rev-parse --git-path info/exclude) && mkdir -p "$(dirname "$x")" || exit 1
+   for p in /dist/ /ar-lib /org.xfce.thunar.policy.in thunarx/actual-abi thunarx/expected-abi 'thunarx/*.log' \
+       'thunarx/*.trs' debian/.debhelper/ debian/tmp/ debian/files 'debian/*.substvars' 'debian/autoreconf.*' \
+       debian/debhelper-build-stamp $(sed -n 's|^Package: *\(.*\)|debian/\1/|p' debian/control); do
+     grep -qxF "$p" "$x" 2>/dev/null || printf '%s\n' "$p" >> "$x" || exit 1
+   done
+   ```
 1. **Build dependencies**, once per container: if `dpkg-checkbuilddeps` fails, run `sudo add-apt-repository -y
    ppa:zorinos/stable` and `sudo apt-get build-dep -y ./` (`CLAUDE.md`, "Building"). Never limit `apt-get update`
    to one source list.
@@ -48,6 +59,7 @@ Read a log only with `tail -n 30` or `grep -n`, never whole.
 Return exactly this, and nothing else: no preamble, no diagnosis, no suggested fix.
 
 ```
+excludes: OK | FAILED (exit <n>) | skipped (not a cloud container)
 build: OK | FAILED (exit <n>) | skipped
 install: OK | FAILED (exit <n>) | skipped
 verify: <k> of <m> passed (exit <n>) | not run: <cause> | skipped
