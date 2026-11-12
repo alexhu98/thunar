@@ -274,7 +274,7 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The checks were tried with fake review output and hand-made execution logs in dry runs. CI's first review found R1–R9 and its second R10–R16. Its third failed on R17, and the wording check was dropped. Its fourth passed and found R23, which added the execution-log check. Its fifth ran that check on a real log, which matched, and failed on R26 and R27. Its sixth failed on R34, now fixed, and R35, accepted by your decision. Its seventh failed on R40: agents reporting with or after the output still counted. R40–R42 and R38 are fixed. A real review run at #102's head was not done.</p>
+  <p class="intro" data-k="intro">The checks were tried with fake review output and hand-made execution logs in dry runs. CI's first review found R1–R9 and its second R10–R16. Its third failed on R17, and the wording check was dropped. Its fourth passed and found R23, which added the execution-log check. Its fifth ran that check on a real log, which matched, and failed on R26 and R27. Its sixth failed on R34, now fixed, and R35, accepted by your decision. Its seventh failed on R40: agents reporting with or after the output still counted. R40–R42 and R38 are fixed. Its eighth found R43–R49, all accepted: you chose to merge as is. A real review run at #102's head was not done.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -446,7 +446,25 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
     <tr data-k="x38"><td>R38</td><td>Low, CONFIRMED in the sixth review: the background count scanned the results again</td><td>Fixed: each Agent call is worked out once</td></tr>
   </table>
   </div>
-  <p data-k="b3">The R38–R42 fix push gets its own CI review: see the <a href="https://github.com/alexhu98/thunar/pull/104#issuecomment-6816365778">code review comment</a> on PR #104.</p>
+  <p data-k="b3">The R38–R42 fix push got its own CI review, the eighth, below; every finding is in the <a href="https://github.com/alexhu98/thunar/pull/104#issuecomment-6816365778">code review comment</a> on PR #104.</p>
+  </section>
+
+  <section class="sub" id="ci8">
+  <h3 class="sec">CI's eighth review</h3>
+  <p data-k="ci8">CI's eighth review, of <code>e119bda56016</code> in CI run 43187256697, found R38, R40, R41 and R42 resolved by <code>ce257f4</code>. It found R43–R49, and you chose to accept them all and merge as is:</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Finding</th><th>What it found</th><th>How it was handled</th></tr>
+    <tr data-k="y43"><td>R43</td><td>Medium, CONFIRMED: only a user-turn <code>&lt;task-notification&gt;</code> counts as a background agent's completion, but Claude Code may log it only as a system task notification, which R41 said not to count</td><td>Accepted by your decision: the two reviews contradict each other, and no real log has shown either; the one real CI log had 0 background agents in 9 calls</td></tr>
+    <tr data-k="y44"><td>R44</td><td>Low, CONFIRMED: if the final answer and an Agent launch in the same response are logged as separate entries, the Agent call falls outside the window</td><td>Accepted by your decision</td></tr>
+    <tr data-k="y45"><td>R45</td><td>Low: subagents' user-turn notifications also count</td><td>Accepted: later-review low, not confirmed</td></tr>
+    <tr data-k="y46"><td>R46</td><td>Low: a failed background agent retried in the foreground still fails the review</td><td>Accepted: later-review low, not confirmed</td></tr>
+    <tr data-k="y47"><td>R47</td><td>Low: the window ends at the last StructuredOutput call without checking CI used that output</td><td>Accepted: later-review low, not confirmed</td></tr>
+    <tr data-k="y48"><td>R48</td><td>Low: the artifact lists the log path twice, and has an empty line when Review is skipped</td><td>Accepted: later-review low, not confirmed, and harmless</td></tr>
+    <tr data-k="y49"><td>R49</td><td>Low: the <code>$late</code> filter is hard to read</td><td>Accepted: later-review low, not confirmed, style only</td></tr>
+  </table>
+  </div>
+  <p data-k="accept8">A <code>Review-accept</code> trailer on this explainer commit closes all seven, R43 and R44 by your decision. Then <code>origin/main</code>, which merged #106, is merged into the branch, so CI runs on top of current main.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -456,6 +474,7 @@ explainers/103-review-wait-agents.narration.json  # its narration</pre>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
     <tr data-k="a1"><td>An open finding fixed in another file comes back resolved</td><td>Needs a real review with an open finding and its fix elsewhere</td><td class="open">next such PR</td></tr>
     <tr data-k="a2"><td>Reviews stay well inside the 30-minute limit</td><td>Waiting makes each review longer; only real reviews show by how much</td><td class="open">first reviews after the merge</td></tr>
+    <tr data-k="a3"><td>How a background agent's completion is logged</td><td>No real log has shown one yet; the review job's counts line ("N agent calls, B in the background, L not reported before its output") will</td><td class="open">first review with a background agent</td></tr>
   </table>
   </div>
   </section>
