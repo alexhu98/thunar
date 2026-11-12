@@ -1197,6 +1197,8 @@ thunar_shortcuts_view_context_menu_visibility (ThunarShortcutsView *view,
             mask = THUNAR_SHORTCUT_GROUP_DEVICES;
           else if ((group & THUNAR_SHORTCUT_GROUP_PLACES) != 0)
             mask = THUNAR_SHORTCUT_GROUP_PLACES;
+          else if ((group & THUNAR_SHORTCUT_GROUP_BOOKMARKS) != 0)
+            mask = THUNAR_SHORTCUT_GROUP_BOOKMARKS;
           else if ((group & THUNAR_SHORTCUT_GROUP_NETWORK) != 0)
             mask = THUNAR_SHORTCUT_GROUP_NETWORK;
           else
@@ -1348,7 +1350,7 @@ thunar_shortcuts_view_context_menu (ThunarShortcutsView *view,
   else
     g_error ("Unknown type");
 
-  if (group == THUNAR_SHORTCUT_GROUP_PLACES_BOOKMARKS)
+  if (group == THUNAR_SHORTCUT_GROUP_BOOKMARKS_ENTRIES)
     {
       xfce_gtk_menu_append_separator (GTK_MENU_SHELL (context_menu));
       item = xfce_gtk_menu_item_new_from_action_entry (get_action_entry (THUNAR_SHORTCUTS_VIEW_ACTION_REMOVE_BOOKMARK), G_OBJECT (model), GTK_MENU_SHELL (context_menu));
