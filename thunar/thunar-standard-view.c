@@ -5412,17 +5412,20 @@ thunar_standard_view_rename_pressed (GtkGesture         *gesture,
   if (entry == NULL)
     return;
 
-  event = gtk_gesture_get_last_event (gesture, gtk_gesture_get_last_updated_sequence (gesture));
-  widget = event != NULL ? gtk_get_event_widget ((GdkEvent *) event) : NULL;
-  if (widget == GTK_WIDGET (entry) || (widget != NULL && gtk_widget_is_ancestor (widget, GTK_WIDGET (entry))))
-    return;
+  if (gtk_gesture_single_get_current_button (GTK_GESTURE_SINGLE (gesture)) < 8)
+    {
+      event = gtk_gesture_get_last_event (gesture, gtk_gesture_get_last_updated_sequence (gesture));
+      widget = event != NULL ? gtk_get_event_widget ((GdkEvent *) event) : NULL;
+      if (widget == GTK_WIDGET (entry) || (widget != NULL && gtk_widget_is_ancestor (widget, GTK_WIDGET (entry))))
+        return;
 
-  toplevel = gtk_event_controller_get_widget (GTK_EVENT_CONTROLLER (gesture));
-  if (widget == toplevel && gtk_gesture_single_get_current_button (GTK_GESTURE_SINGLE (gesture)) < 8)
-    return;
-  for (button = widget; button != NULL; button = gtk_widget_get_parent (button))
-    if (gtk_style_context_has_class (gtk_widget_get_style_context (button), "titlebutton"))
-      return;
+      toplevel = gtk_event_controller_get_widget (GTK_EVENT_CONTROLLER (gesture));
+      if (widget == toplevel)
+        return;
+      for (button = widget; button != NULL; button = gtk_widget_get_parent (button))
+        if (gtk_style_context_has_class (gtk_widget_get_style_context (button), "titlebutton"))
+          return;
+    }
 
   if (thunar_standard_view_rename_show_error (entry))
     gtk_gesture_set_state (gesture, GTK_EVENT_SEQUENCE_CLAIMED);
