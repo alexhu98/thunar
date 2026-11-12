@@ -1148,6 +1148,8 @@ thunar_standard_view_dispose (GObject *object)
   if (G_UNLIKELY (standard_view->priv->drag_timer_id != 0))
     g_source_remove (standard_view->priv->drag_timer_id);
 
+  g_clear_handle_id (&standard_view->priv->rename_idle_id, g_source_remove);
+
   /* disconnect from file */
   if (standard_view->priv->current_directory != NULL)
     {
@@ -1212,7 +1214,6 @@ thunar_standard_view_finalize (GObject *object)
   /* release the history */
   g_object_unref (standard_view->priv->history);
 
-  g_clear_handle_id (&standard_view->priv->rename_idle_id, g_source_remove);
   g_clear_object (&standard_view->priv->rename_file);
   g_clear_object (&standard_view->priv->rename_entry);
   g_free (standard_view->priv->rename_text);
@@ -5284,6 +5285,8 @@ thunar_standard_view_rename_check (const gchar *text)
     return _("The name cannot be empty");
   if (strchr (text, '/') != NULL)
     return _("The name cannot contain \"/\"");
+  if (strlen (text) > 255)
+    return _("The name is too long");
   return NULL;
 }
 
