@@ -386,6 +386,7 @@ jobs:
             ${{ runner.temp }}/review/fix.patch
             ${{ runner.temp }}/review/collect-error.txt
             ${{ runner.temp }}/claude-execution-output.json
+            ${{ steps.review.outputs.execution_file }}
           if-no-files-found: ignore
           overwrite: true
           retention-days: 14

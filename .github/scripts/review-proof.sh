@@ -10,7 +10,8 @@
 #            fix as a patch, for the report job. Fails, saying why in collect-error.txt, when an open finding got no
 #            entry in previous, a finding or entry is not marked checked, or the execution log ($EXEC_LOG, default
 #            $RUNNER_TEMP/claude-execution-output.json) is missing or unreadable, shows an Agent call whose report came
-#            after the result, or shows fewer Agent calls than findings and open findings to check.
+#            after the reviewer's last StructuredOutput call (or the result, without one), or shows fewer Agent calls than
+#            findings and open findings to check.
 #   report   as the review job's last step, without the push token, when the review left no fix to push. Otherwise, or when
 #            that step didn't write the review comment, in the separate review-report job holding the push token, which
 #            commits and pushes the fix (if any) as claude[bot]. Either way posts the other
@@ -320,24 +321,21 @@ EOF
 agent_log() {
   jq -r 'def txt: if type == "string" then . elif type == "array" then map(.text? // "") | join("\n") else "" end;
     . as $m
-    | ([range(length) | select($m[.].type == "result")] | last) as $end
-    | if $end == null then error("no result message") else . end
-    | $m[:$end] as $pre
+    | ([range(length) | select($m[.].type == "result")] | last) as $result
+    | if $result == null then error("no result message") else . end
+    | ([range($result) | select($m[.].type == "assistant" and $m[.].parent_tool_use_id == null
+        and any($m[.].message.content[]?; .type == "tool_use" and .name == "StructuredOutput"))] | last // $result) as $end
+    | $m[:$end + 1] as $pre
     | [$pre[] | select(.type == "assistant" and .parent_tool_use_id == null) | .message.content[]?
         | select(.type == "tool_use" and (.name == "Agent" or .name == "Task"))] as $calls
     | [$pre[] | select(.type == "user" and .parent_tool_use_id == null) | .message.content | arrays | .[]
         | select(.type == "tool_result") | {id: .tool_use_id, t: (.content | txt)}] as $res
-    | ([$pre[] | select(.type == "user") | .message.content | txt | split("<task-notification>")[1:][]]
-       + [$pre[] | select(.type == "system" and .subtype == "task_notification" and .status == "completed")
-          | "<task-id>\(.task_id)</task-id><status>completed</status>"]) as $notes
-    | [$calls[] | .id as $id | ([$res[] | select(.id == $id)] | first) as $r | $r.t as $t
-        | if $r == null then $id
-          elif ($t | startswith("Async agent launched")) then
-            (($t | capture("agentId: *(?<a>[A-Za-z0-9_-]+)").a) // "") as $a
-            | if $a != "" and any($notes[]; contains("<task-id>\($a)</task-id>") and contains("<status>completed</status>")) then empty else $id end
-          else empty end] as $late
-    | [$calls[] | .id as $id | [$res[] | select(.id == $id)] | first | select(. != null and (.t | startswith("Async agent launched")))] as $bg
-    | "\($calls | length) \($bg | length) \($late | length)"' "$1"
+    | [$pre[] | select(.type == "user") | .message.content | txt | split("<task-notification>")[1:][]] as $notes
+    | [$calls[] | .id as $id | ([$res[] | select(.id == $id)] | first) as $r
+        | {id: $id, r: $r, bg: ($r != null and ($r.t | startswith("Async agent launched")))}] as $per
+    | [$per[] | select(.r == null or (.bg and ((.r.t | capture("agentId: *(?<a>[A-Za-z0-9_-]+)").a // "") as $a
+        | $a == "" or (any($notes[]; contains("<task-id>\($a)</task-id>") and contains("<status>completed</status>")) | not))))] as $late
+    | "\($calls | length) \([$per[] | select(.bg)] | length) \($late | length)"' "$1"
 }
 
 collect() {
@@ -360,7 +358,7 @@ collect() {
     err+="${err:+, and }its execution log at $log could not be read"
   else
     read -r calls background late <<< "$counts"
-    echo "execution log: $calls agent calls, $background in the background, $late not reported before the result" >&2
+    echo "execution log: $calls agent calls, $background in the background, $late not reported before its output" >&2
     (( late == 0 )) || err+="${err:+, and }the execution log shows $late of its $calls agents not reported before it returned"
     needed=$(jq --slurpfile o "$OUT/open.json" '(.findings // [] | length) + ($o[0] | length)' "$OUT/findings.json")
     (( calls >= needed )) || err+="${err:+, and }the execution log shows $calls agents for its $needed findings to check"
