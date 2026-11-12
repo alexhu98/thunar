@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Issue #115 Verify budget</title>
+<title>PR #116 Verify budget</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -99,7 +99,7 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">The PR for #115: CI's verify job gets a 25-minute time budget</h1>
+  <h1 data-k="title">PR #116: CI's verify job gets a 25-minute time budget</h1>
   <p class="lead" data-k="lead">Branch <code>115-verify-budget</code> → <code>main</code>, closes #115. The smoke test and every <code>verify/&lt;issue&gt;.sh</code> fit in CI's verify run again, so PR #114 and later feature PRs stop failing with "not run (time budget)".</p>
 
   <nav class="parts" aria-label="Parts of this page">
@@ -218,7 +218,7 @@
     <tr><th>Run</th><th>Tests</th><th>Budget</th><th>Result</th></tr>
     <tr data-k="n1"><td><code>main</code> after PR #113 (#93)</td><td>smoke + 16 scripts, 776 s; the last one started at about 754 s, so it could end by 874 s</td><td>900 s</td><td class="ok">all ran, about 26 s to spare</td></tr>
     <tr data-k="n2"><td>PR #114 (#16) adds <code>verify/16.sh</code></td><td>90 s at first, about 38 s once trimmed</td><td>900 s</td><td class="no">95.sh, 96.sh not run</td></tr>
-    <tr data-k="n3"><td>With this PR</td><td>any script may start up to 1380 s into the run</td><td>1500 s</td><td class="open">checked by CI</td></tr>
+    <tr data-k="n3"><td>With this PR</td><td>any script may start up to 1380 s into the run</td><td>1500 s</td><td class="ok">CI on PR #116: 18 of 18 ran and passed</td></tr>
   </table>
   </div>
   </section>
@@ -247,7 +247,7 @@ explainers/115-verify-budget.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The change was checked by reading and parsing it here. The real proof is CI's verify run on this PR, which hasn't happened yet.</p>
+  <p class="intro" data-k="intro">The change was checked by reading and parsing it here, then by CI's run on PR #116: all 18 tests ran and passed, none cut for time.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -267,7 +267,10 @@ explainers/115-verify-budget.narration.json  # its narration</pre>
     <tr data-k="c3"><td>The workflow's new timeouts</td><td>Loaded <code>build.yml</code> with Python's YAML parser and read the verify job</td><td class="ok">job 45, run step 30</td></tr>
     <tr data-k="c4"><td>No old values left</td><td><code>grep</code> for "15-minute", "15 minutes" and 900 in <code>.github/</code>, <code>.claude/</code> and <code>CLAUDE.md</code></td><td class="ok">none; only an unrelated window size</td></tr>
     <tr data-k="c5"><td>Thunar's behaviour</td><td>No <code>verify/115.sh</code> and no screenshots: the PR changes no Thunar code</td><td class="no">not run</td></tr>
-    <tr data-k="c6"><td>Every test runs in CI</td><td>This PR changes <code>.github/</code>, so build and verify run: the smoke test and all 17 scripts, none "not run"</td><td class="open">not run yet</td></tr>
+    <tr data-k="c6"><td>Every test runs in CI</td><td>CI's verify job on PR #116, head <code>8740d73e5af8</code>: the smoke test and all 17 scripts</td><td class="ok">18 of 18 pass, none "not run (time budget)"</td></tr>
+    <tr data-k="c7"><td>The last two scripts start</td><td>The same run: <code>verify/95.sh</code> and <code>verify/96.sh</code>, the two PR #114 lost</td><td class="ok">ran, 29 s and 22 s</td></tr>
+    <tr data-k="c8"><td>The screenshots</td><td><code>/visual-verify pr:116</code> audited every shot of that run</td><td class="ok">158 shots, PASS</td></tr>
+    <tr data-k="c9"><td>The other CI checks</td><td>Build, explainer and review on the same head</td><td class="ok">all green</td></tr>
   </table>
   </div>
   </section>
@@ -276,21 +279,26 @@ explainers/115-verify-budget.narration.json  # its narration</pre>
   <h3 class="sec">Code review</h3>
   <p data-k="summary">Before the first push, a fresh agent reviewed the branch against <code>origin/main</code> at the high level. It fixed nothing and skipped 5 findings:</p>
   <ul class="tight">
-    <li data-k="s1"><b>S1, tests run in turn:</b> by the review's estimate the budget fills again at about 30 scripts. Running them in parallel would be a separate issue.</li>
-    <li data-k="s2"><b>S2, every script on every PR:</b> each code PR reruns all verify scripts and can hold a runner up to 45 minutes. Running only the changed ones would be a separate issue.</li>
+    <li data-k="s1"><b>S1, tests run in turn:</b> by the review's estimate the budget fills again at about 30 scripts. Running them in parallel goes into a follow-up issue.</li>
+    <li data-k="s2"><b>S2, every script on every PR:</b> each code PR reruns all verify scripts and can hold a runner up to 45 minutes. Running only the changed ones goes into a follow-up issue.</li>
     <li data-k="s3"><b>S3, no explainer:</b> the branch had none when it was reviewed; this page is it.</li>
-    <li data-k="s4"><b>S4, local runs cut off:</b> <code>build-verify</code>'s local run is stopped by the Bash tool at 10 minutes, which the old 900 s budget already passed. A separate issue.</li>
+    <li data-k="s4"><b>S4, local runs cut off:</b> <code>build-verify</code>'s local run is stopped by the Bash tool at 10 minutes, which the old 900 s budget already passed. It goes into a follow-up issue.</li>
     <li data-k="s5"><b>S5, job headroom:</b> 45 minutes leaves about 15 beyond the 30-minute step for install and upload. Raise it to 50 only if installs without the cache prove slow.</li>
   </ul>
-  <p data-k="ci">CI reviews every code push to the PR and reports in its code review comment, the second of CI's four comments on the PR.</p>
+  <p data-k="ci">CI's first review of PR #116 found four low, plausible findings, reported in its code review comment. The owner accepted all four, closed with a <code>Review-accept</code> trailer on this explainer-only commit:</p>
+  <ul class="tight">
+    <li data-k="r1"><b>R1, job headroom</b> (<code>build.yml:167</code>): the 45-minute job leaves about 15 beyond the 30-minute run step. Accepted: the worst case is about 43 minutes, and this PR widens the margin.</li>
+    <li data-k="r2"><b>R2, budget check</b> (<code>verify-proof.sh:145</code>): it ignores the 5 s kill grace and the time to build the shots. Accepted: that's seconds, and the margin predates this PR.</li>
+    <li data-k="r3"><b>R3, local runs cut off</b> (<code>verify-proof.sh:26</code>): <code>build-verify</code> and <code>/visual-verify run:</code> stop at the Bash tool's 10 minutes. Accepted here: the suite already took about 13, so it predates this PR. Same as S4; it goes into the follow-up issue.</li>
+    <li data-k="r4"><b>R4, treats the symptom</b> (<code>verify-proof.sh:26</code>): scripts still run one after another. Accepted: #115 asks for exactly this; parallel runs (S1) go into the follow-up issue.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
-  <h3 class="sec">Checked only after CI runs</h3>
+  <h3 class="sec">Checked only after the merge</h3>
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>All 18 tests run (smoke + 17 scripts), none "not run (time budget)"</td><td>Needs CI's verify job with the new budget</td><td class="open">this PR's CI run</td></tr>
     <tr data-k="a2"><td>PR #114's verify passes the budget, <code>verify/16.sh</code>, 95.sh and 96.sh included</td><td>PR #114 needs this change on <code>main</code> first</td><td class="open">PR #114's rerun after the merge</td></tr>
     <tr data-k="a3"><td>How much budget is left</td><td>Read from each verify run's time; no summary line shows it yet</td><td class="open">every later feature PR</td></tr>
   </table>
@@ -301,6 +309,7 @@ explainers/115-verify-budget.narration.json  # its narration</pre>
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
     <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/115">#115</a></li>
+    <li data-k="l4">This PR and its CI comments (summary, code review, verify, explainer): <a href="https://github.com/alexhu98/thunar/pull/116">PR #116</a></li>
     <li data-k="l2">The run that hit the limit: <a href="https://github.com/alexhu98/thunar/actions/runs/43308126377">run 43308126377</a> on <a href="https://github.com/alexhu98/thunar/pull/114">PR #114</a></li>
     <li data-k="l3">The timing it was measured from: <a href="https://github.com/alexhu98/thunar/pull/113">PR #113</a>'s verify comment</li>
   </ul>
@@ -311,11 +320,11 @@ explainers/115-verify-budget.narration.json  # its narration</pre>
   <section class="part" id="later">
   <p class="part-label" data-k="label">Part 3</p>
   <h2 data-k="heading">What comes later: PR #114 reruns on top</h2>
-  <p class="intro" data-k="intro">No open issue says it depends on #115, but PR #114 is blocked by it, and batch #111 waits on PR #114.</p>
+  <p class="intro" data-k="intro">No open issue says it depends on #115, but PR #114 is blocked by it, and batch #111 waits on PR #114. A follow-up issue takes on what this PR leaves.</p>
 
   <section class="sub" id="chain">
-  <div class="diagram" role="img" aria-label="This PR raises the budget, then PR #114 reruns its verify on top, then batch #111 can finish">
-  <svg viewBox="0 0 1000 200" xmlns="http://www.w3.org/2000/svg">
+  <div class="diagram" role="img" aria-label="PR #116 raises the budget, then PR #114 reruns its verify on top, then batch #111 can finish; a follow-up issue takes on parallel and changed-only runs and local runs">
+  <svg viewBox="0 0 1000 360" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
         <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
@@ -323,7 +332,7 @@ explainers/115-verify-budget.narration.json  # its narration</pre>
     </defs>
     <g data-k="1">
       <rect class="box-merge" x="20" y="40" width="270" height="120" rx="10"/>
-      <text x="36" y="70" class="t">This PR (#115)</text>
+      <text x="36" y="70" class="t">PR #116 (#115)</text>
       <text x="36" y="94" class="b">verify budget</text>
       <text x="36" y="114" class="b">15 → 25 minutes</text>
       <circle class="badge" cx="270" cy="62" r="12"/><text class="badge-n" x="270" y="66.5" text-anchor="middle">1</text>
@@ -344,11 +353,20 @@ explainers/115-verify-budget.narration.json  # its narration</pre>
     </g>
     <path class="arrow-future" d="M290,100 H361" marker-end="url(#ahf-next)"/>
     <path class="arrow-future" d="M635,100 H706" marker-end="url(#ahf-next)"/>
+    <g data-k="4">
+      <rect class="box-future" x="365" y="210" width="270" height="120" rx="10"/>
+      <text x="381" y="240" class="t">Follow-up issue</text>
+      <text x="381" y="264" class="b">parallel workers (S1),</text>
+      <text x="381" y="284" class="b">changed-only runs (S2),</text>
+      <text x="381" y="304" class="b">local runs in background</text>
+      <circle class="badge" cx="615" cy="232" r="12"/><text class="badge-n" x="615" y="236.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow-future" d="M155,160 V270 H361" marker-end="url(#ahf-next)"/>
   </svg>
   </div>
   <div class="legend">
     <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
-    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>waits on this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
   </div>
   </section>
 
@@ -364,6 +382,15 @@ explainers/115-verify-budget.narration.json  # its narration</pre>
   <h3 class="sec">Batch #111: #93, #17, #16</h3>
   <ol class="steps">
     <li data-k="1"><b>Finish the batch.</b> #93 and #17 are merged; with PR #114 through, the batch is done.</li>
+  </ol>
+  </section>
+
+  <section class="sub" id="followup">
+  <h3 class="sec">A follow-up issue: make verify faster</h3>
+  <ol class="steps">
+    <li data-k="1"><b>Parallel workers (S1, R4).</b> Run the verify scripts in a pool of workers, each with its own Xvfb, so the budget stops filling as scripts are added.</li>
+    <li data-k="2"><b>Only changed scripts on PRs (S2).</b> Run the scripts a PR touches, keeping the full suite for <code>main</code>.</li>
+    <li data-k="3"><b>Local runs in the background (S4, R3).</b> Run <code>build-verify</code> and <code>/visual-verify run:</code> past the Bash tool's 10-minute foreground limit.</li>
   </ol>
   </section>
   </section>
