@@ -5892,6 +5892,7 @@ thunar_window_keep_size_unsaved (ThunarWindow *window)
   _thunar_return_if_fail (THUNAR_IS_WINDOW (window));
 
   window->keep_size_unsaved = TRUE;
+  gtk_window_get_default_size (GTK_WINDOW (window), &window->unsaved_width, &window->unsaved_height);
 }
 
 

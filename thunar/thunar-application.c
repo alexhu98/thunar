@@ -1092,6 +1092,7 @@ thunar_application_command_line (GApplication            *gapp,
   gboolean           restore_tabs;
   gboolean           tabs_failed = FALSE;
   gboolean           open_first_window = TRUE;
+  gboolean           open_new_window_as_tab;
   GList             *window_list;
   gchar             *geometry = NULL;
   gchar             *workspace = NULL;
@@ -1166,6 +1167,10 @@ thunar_application_command_line (GApplication            *gapp,
       window_options = NULL;
       goto out;
     }
+
+  g_object_get (G_OBJECT (application->preferences), "misc-open-new-window-as-tab", &open_new_window_as_tab, NULL);
+  if (window_options != NULL && !open_first_window && !application->force_new_window && open_new_window_as_tab)
+    g_application_command_line_printerr (command_line, "Thunar: --geometry and --workspace ignored: the location opens as a tab in an existing window\n");
 
   /* if no filenames are provided, open current directory as default */
   if (!thunar_application_process_filenames_full (application, cwd, filenames == NULL ? current_directory : filenames, NULL, NULL, &error, THUNAR_APPLICATION_SELECT_FILES, g_steal_pointer (&window_options)))
@@ -2066,9 +2071,6 @@ thunar_application_open_window_full (ThunarApplication              *application
           if (directory != NULL)
             thunar_window_notebook_add_new_tab (THUNAR_WINDOW (data), directory, THUNAR_NEW_TAB_BEHAVIOR_SWITCH);
 
-          if (window_options != NULL)
-            g_message ("--geometry and --workspace ignored: the location opened as a tab in an existing window");
-
           /* bring the window to front */
           gtk_window_present (GTK_WINDOW (data));
 
@@ -2349,9 +2351,6 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
             }
         }
 
-      g_free (window_options);
-      g_free (launch);
-
       /* remove the file from the list */
       application->files_to_launch = g_list_delete_link (application->files_to_launch,
                                                          application->files_to_launch);
@@ -2369,8 +2368,7 @@ thunar_application_process_files_finish (ThunarBrowser *browser,
       if (startup_id != NULL)
         g_object_set_qdata (G_OBJECT (file), thunar_application_startup_id_quark, NULL);
 
-      /* release the file */
-      g_object_unref (file);
+      thunar_application_launch_free (launch);
     }
 
   /* release the application */
@@ -2424,6 +2422,7 @@ thunar_application_process_filenames_full (ThunarApplication              *appli
   GList                   *file_list = NULL;
   GList                   *lp;
   gint                     n;
+  gboolean                 busy;
 
   _thunar_return_val_if_fail (THUNAR_IS_APPLICATION (application), FALSE);
   _thunar_return_val_if_fail (working_directory != NULL, FALSE);
@@ -2459,6 +2458,8 @@ thunar_application_process_filenames_full (ThunarApplication              *appli
         }
     }
 
+  busy = application->files_to_launch != NULL;
+
   /* loop over all files */
   for (lp = file_list; lp != NULL; lp = lp->next)
     {
@@ -2479,7 +2480,7 @@ thunar_application_process_filenames_full (ThunarApplication              *appli
     }
 
   /* start processing files if we have any to launch */
-  if (application->files_to_launch != NULL)
+  if (application->files_to_launch != NULL && !busy)
     {
       application->process_file_action = action;
       thunar_application_process_files (application);
