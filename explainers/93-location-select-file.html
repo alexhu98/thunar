@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #113 Location select</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+  .del { color: var(--warn); display: inline-block; min-width: 100%; text-decoration: line-through; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #113: Enter on a file path in the location bar selects the file</h1>
+  <p class="lead" data-k="lead">Branch <code>93-location-select-file</code> → <code>main</code>, closes #93. Typing a file's path and pressing Enter now opens its folder in the same tab with the file selected, instead of launching the file.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing builds on #93 yet</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">Enter on a path to a file goes to the file's folder, selects the file, scrolls it into view and puts the keyboard on it. Folder paths and missing paths behave as before. One source file changes: <code>thunar/thunar-location-entry.c</code>.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="Enter on a file path: the file is poked, its folder opens in the same tab, the file is selected and scrolled into view, and the view takes focus. Folder and missing paths behave as before.">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Enter on a file path: find it, don't launch it</text>
+    <g data-k="1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Type, press Enter</text>
+      <text x="36" y="114" class="b">Ctrl+L, then a path</text>
+      <text x="36" y="134" class="b">to a file, such as</text>
+      <text x="36" y="154" class="b">sub/target.txt</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Poke the file</text>
+      <text x="286" y="114" class="b">mounts it if needed;</text>
+      <text x="286" y="134" class="b">the window is kept</text>
+      <text x="286" y="154" class="b">until it finishes</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Open its folder</text>
+      <text x="536" y="114" class="b">the file's parent,</text>
+      <text x="536" y="134" class="b">in the same tab;</text>
+      <text x="536" y="154" class="b">no new window</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Select, scroll</text>
+      <text x="786" y="114" class="b">selected once the</text>
+      <text x="786" y="134" class="b">folder has loaded,</text>
+      <text x="786" y="154" class="b">scrolled into view</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+    <g data-k="5">
+      <rect class="box-pr" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Focus the view</text>
+      <text x="786" y="314" class="b">keys such as Ctrl+C</text>
+      <text x="786" y="334" class="b">now act on the file,</text>
+      <text x="786" y="354" class="b">not the location bar</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② Other paths: as before</text>
+    <g data-k="6">
+      <rect class="box-merge" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Folder path</text>
+      <text x="36" y="314" class="b">opens the folder,</text>
+      <text x="36" y="334" class="b">and adds it to</text>
+      <text x="36" y="354" class="b">Recent</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Missing path</text>
+      <text x="286" y="314" class="b">shows the same</text>
+      <text x="286" y="334" class="b">error dialog as</text>
+      <text x="286" y="354" class="b">before</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
+    </g>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new behaviour from this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>unchanged behaviour</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">The location bar at the top of a Thunar window takes a typed path. Until now, Enter on a path to a file opened that file in its default app, and an executable script could even run. Usually you type a path to find a file, not to open it, so Thunar now does what Nautilus does: it shows the file in its folder, selected.</p>
+  <div class="note" data-k="note">The location bar knows only its navigator, not the window. This PR finds the window when Enter is pressed and reuses the window's own “show and select files” helper, which already waits for a folder to load before selecting.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Enter on a file path</div>
+  <ol class="steps">
+    <li data-k="1"><b>Type, press Enter.</b> You press Ctrl+L, type a full path to a file and press Enter. <code>thunar_location_entry_activate</code> runs, and now also takes the window the bar sits in.</li>
+    <li data-k="2"><b>Poke the file.</b> As before, <code>thunar_browser_poke_file</code> checks the file and mounts its location if needed. A remote path such as <code>sftp://</code> finishes later, after the bar's temporary entry may have left the window, so the window is held and handed to the finish callback.</li>
+    <li data-k="3"><b>Open its folder.</b> Instead of <code>thunar_file_launch</code>, the bar changes the current tab to the file's parent folder. The bar is then reset to show the folder, not the file, even when that folder was already shown.</li>
+    <li data-k="4"><b>Select, scroll.</b> <code>thunar_window_show_and_select_files</code> selects the file and scrolls to it. If the folder is still loading, the view keeps the selection and applies it once loading ends.</li>
+    <li data-k="5"><b>Focus the view.</b> The window's view takes keyboard focus. Without this, Enter on a file in the folder already shown left focus in the bar, because nothing else moved it.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② Other paths</div>
+  <ol class="steps" start="6" style="counter-reset: s 5">
+    <li data-k="6"><b>Folder path.</b> Opens the folder as before, and adds it to Recent. A file that is only selected is no longer added to Recent.</li>
+    <li data-k="7"><b>Missing path.</b> The poke fails and shows the same “Failed to open” error as before.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="parts">
+  <h3 class="sec">A closer look: the file branch</h3>
+<pre data-k="diff">  else
+    {
+<span class="del">      thunar_file_launch (file, location_entry-&gt;path_entry, NULL, &amp;error);</span>
+<span class="add">      parent = thunar_file_get_parent (file, &amp;error);</span>
+<span class="add">      thunar_navigator_change_directory (navigator, parent);</span>
+<span class="add">      thunar_window_show_and_select_files (window, files);</span>
+<span class="add">      gtk_widget_grab_focus (thunar_window_get_view (window));</span>
+    }</pre>
+  <div class="grid">
+    <div class="card" data-k="c1"><h3>Same tab</h3><p>The issue warned that “Open Item Location” opens tabs per folder. This PR changes the current tab's folder instead, so you stay where you were typing.</p></div>
+    <div class="card" data-k="c2"><h3>Hidden files</h3><p>A hidden file, with hidden files not shown, opens its folder with nothing selected. The issue accepts this.</p></div>
+    <div class="card" data-k="c3"><h3>Opening a file</h3><p>To open a file you typed, press Enter again once it's selected, or double-click it.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/thunar-location-entry.c  # Enter on a file selects it; window kept across the poke
+verify/93.sh                    # CI test: file, long folder, folder path, script
+explainers/93-location-select-file.html            # this page
+explainers/93-location-select-file.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo, revert the PR: Enter on a file path launches the file again. Nothing else depends on it.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The building session built the packages and ran every verify test in a cloud container, as CI does, then reviewed the branch. CI's own run on PR #113 wasn't finished when this page was written.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Issue #93</h3><p>Its wanted behaviour, approach and test plan: same tab, file selected and in view, folder and missing paths unchanged.</p></div>
+    <div class="card" data-k="r2"><h3>Window helper</h3><p><code>thunar_window_show_and_select_files</code>, already used to show files from the command line and D-Bus, does the selecting and scrolling.</p></div>
+    <div class="card" data-k="r3"><h3>Nautilus</h3><p>The issue names its behaviour as the model: Enter on a file path shows the file selected in its folder.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Packages build</td><td><code>dpkg-buildpackage</code> in a cloud container, by the building session</td><td class="ok">built, twice</td></tr>
+    <tr data-k="c2"><td>First verify run</td><td><code>verify-proof.sh install</code> and <code>run</code>, all tests</td><td class="no">15 of 17 pass</td></tr>
+    <tr data-k="c3"><td>Why it failed</td><td><code>93.sh</code> check 3: Enter on <code>run-me.sh</code>, in the folder already shown, left focus in the bar, so Ctrl+C copied nothing. <code>96.sh</code> didn't run in the 15-minute budget.</td><td class="ok">fixed: focus the view</td></tr>
+    <tr data-k="c4"><td>Second verify run</td><td>Same commands, after the focus fix</td><td class="ok">17 of 17 pass</td></tr>
+    <tr data-k="c5"><td>File in a small folder</td><td><code>93.sh</code>, run 2: Enter on <code>sub/target.txt</code>; title shows <code>sub</code>, no new window, selection copied and pasted into a fresh folder</td><td class="ok">target.txt selected</td></tr>
+    <tr data-k="c6"><td>File far down a long folder</td><td><code>93.sh</code>, run 2: Enter on <code>file-55.txt</code> in a 60-file folder; selection pasted; scroll shown in a shot</td><td class="ok">file-55.txt selected</td></tr>
+    <tr data-k="c7"><td>Folder path</td><td><code>93.sh</code>, run 2: Enter on <code>sub</code>, title waits for <code>sub</code></td><td class="ok">folder opens</td></tr>
+    <tr data-k="c8"><td>Executable script</td><td><code>93.sh</code>, run 2: Enter on <code>run-me.sh</code>; no <code>ran</code> marker file, no new window, selection pasted</td><td class="ok">selected, not run</td></tr>
+    <tr data-k="c9"><td>Review fixes commit</td><td>Compiled locally with no warnings; the verify tests weren't run again on it</td><td class="no">not re-run</td></tr>
+    <tr data-k="c10"><td>Remote path, hidden file, Recent</td><td>No test drives an <code>sftp://</code> path, a hidden file or the Recent list</td><td class="no">not run</td></tr>
+    <tr data-k="c11"><td>CI on PR #113</td><td>build, verify, review and explainer jobs on the final head</td><td class="open">not finished yet</td></tr>
+  </table>
+  </div>
+  <div class="note warn" data-k="caveat">Both local verify runs came before the last commit, the review fixes. CI's verify run on PR #113 is the one that covers the final code; its results are in the PR's comments.</div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh agent ran <code>/code-review high --fix</code> against <code>origin/main</code>. It found 8 problems: it fixed 2 itself, the session fixed 2 more, one was this missing page, and 3 were left on purpose.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed by the review:</b> the bar kept showing the file's path when its folder was already shown; a comment had gone stale.</li>
+    <li data-k="b2"><b>Fixed by the session:</b> a remote path typed in the buttons bar's temporary entry finishes after that entry left the window, so the window is now taken on Enter (S1); a file that was only selected was added to Recent, and now only opened folders are (S3).</li>
+    <li data-k="b3"><b>Left on purpose:</b> a hidden file opens its folder with nothing selected, as the issue allows (S2); the shared helper reloads the just-opened folder, so it's read twice (S4); the function keeps its name <code>open_or_launch</code> to keep the diff from upstream small (S6).</li>
+    <li data-k="ci">CI reviews every code push too, and reports in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/113">PR #113</a>.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>Typing a path on the owner's desktop, with real files and apps</td><td>The owner's machine gets the change only with the next build</td><td class="open">first install</td></tr>
+    <tr data-k="a2"><td>A file on an <code>sftp://</code> or other remote location</td><td>CI has no remote server to mount</td><td class="open">first remote use</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR, its changes and CI's comments: <a href="https://github.com/alexhu98/thunar/pull/113">PR #113</a></li>
+    <li data-k="l2">The issue: <a href="https://github.com/alexhu98/thunar/issues/93">#93</a></li>
+    <li data-k="l3">The test: <code>verify/93.sh</code>; its shots land on the <code>shots</code> branch under <code>pr-113/</code></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing builds on #93 yet</h2>
+  <p class="intro" data-k="intro">No open issue says “Depends on #93”. The batch in #111 runs this PR alongside #17 and #16, which change other files.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="Batch 111 runs three groups in parallel: this PR, bookmarks section 17, and rename in place 16. None depends on another.">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <text class="lane" x="20" y="44" style="fill:var(--future)">Batch #111: three groups in parallel</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">#93 select file</text>
+      <text x="36" y="114" class="b">this PR, #113</text>
+      <text x="36" y="134" class="b">location bar only</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">#17 bookmarks</text>
+      <text x="286" y="114" class="b">own side pane</text>
+      <text x="286" y="134" class="b">section; PR #112</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">#16 rename</text>
+      <text x="536" y="114" class="b">in place, in the</text>
+      <text x="536" y="134" class="b">views; no PR yet</text>
+    </g>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not merged yet, doesn't use this PR</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-17">
+  <h3 class="sec">#17 Bookmarks in their own section</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Parallel, not dependent.</b> It changes the side pane's shortcuts model and view, and doesn't use the location bar.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-16">
+  <h3 class="sec">#16 Rename files in place</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Parallel, not dependent.</b> It edits names inside the views and doesn't touch the location bar.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="location"><dt>Location bar</dt><dd>The path field at the top of a Thunar window; Ctrl+L focuses it.</dd></div>
+    <div data-k="buttons"><dt>Buttons bar</dt><dd>The location bar's other style, path buttons; typing opens a temporary entry.</dd></div>
+    <div data-k="poke"><dt>Poke</dt><dd>Thunar's check that a file is reachable, mounting its location first if needed.</dd></div>
+    <div data-k="navigator"><dt>Navigator</dt><dd>The interface the bar uses to change the current tab's folder.</dd></div>
+    <div data-k="recent"><dt>Recent</dt><dd>The <code>recent:///</code> list of recently opened files and folders.</dd></div>
+    <div data-k="hidden"><dt>Hidden file</dt><dd>A file whose name starts with a dot; shown only after Ctrl+H.</dd></div>
+    <div data-k="verify"><dt>verify script</dt><dd><code>verify/&lt;issue&gt;.sh</code>: a test CI runs against the built Thunar on a virtual screen.</dd></div>
+    <div data-k="xdotool"><dt>xdotool</dt><dd>A tool that types keys and finds windows, used to drive Thunar in tests.</dd></div>
+    <div data-k="nautilus"><dt>Nautilus</dt><dd>GNOME's file manager, the model for this behaviour.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
