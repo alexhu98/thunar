@@ -264,7 +264,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container. CI's seven reviews found 44 findings: 29 are fixed and 15 low ones accepted. CI's last fix, in 4b0639a, was not run locally; CI's run on it is pending.</p>
+  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container. CI's eight reviews found 46 findings: 31 are fixed and 15 low ones accepted. CI's run on its last fix, 8233a2b, ran out of verify time, so <code>verify/16.sh</code> was trimmed to fit.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good pieces</h3>
@@ -277,7 +277,7 @@ explainers/
 
   <section class="sub" id="checks">
   <h3 class="sec">What was checked</h3>
-  <p data-k="before">Most local results below ran at 2f43ed4, before CI's review fixes. fc3ec64, with the third review's fixes, was built and run locally too; CI's 1be3de5, e7902df, 7db96a7 and 4b0639a were not.</p>
+  <p data-k="before">Most local results below ran at 2f43ed4, before CI's review fixes. fc3ec64, with the third review's fixes, was built and run locally too; CI's 1be3de5, e7902df, 7db96a7, 4b0639a and 8233a2b were not. The trimmed <code>verify/16.sh</code> ran locally at 810cfcf.</p>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
@@ -285,8 +285,8 @@ explainers/
     <tr data-k="c2"><td>Thunar still starts</td><td>Smoke test, local, against the 2f43ed4 build</td><td class="ok">pass</td></tr>
     <tr data-k="c3"><td>Rename in place</td><td><code>verify/16.sh</code> at 2f43ed4: F2 on report.final.pdf shows the entry with "report.final" selected; Enter renames; Ctrl+Z undoes it</td><td class="ok">pass</td></tr>
     <tr data-k="c4"><td>Errors and cancel</td><td>Same run: Escape, an empty name and "bad/name" rename nothing; a taken name shows the error dialog and the old name comes back; clicking another row renames</td><td class="ok">pass</td></tr>
-    <tr data-k="c5"><td>Scroll, column, menu</td><td>Same run: a row scrolled out of view is scrolled back in; the entry opens in the Name column after it's moved second; Rename… from the context menu edits in place</td><td class="ok">pass</td></tr>
-    <tr data-k="c6"><td>Fallbacks unchanged</td><td>Same run: icon and compact views and the preference off open the popover; a launcher, three files and D-Bus open their dialogs; the checkbox is in Preferences</td><td class="ok">pass, 85 s</td></tr>
+    <tr data-k="c5"><td>Column, menu, scroll</td><td>Same run: the entry opens in the Name column after it's moved second; Rename… from the context menu edits in place; a row scrolled out of view is scrolled back in (since dropped from the test)</td><td class="ok">pass</td></tr>
+    <tr data-k="c6"><td>Fallbacks unchanged</td><td>Same run: the icon view and the preference off open the popover; so did the compact view, and a launcher, three files and D-Bus opened their dialogs, but those checks and the Preferences shot are since dropped</td><td class="ok">pass, 85 s</td></tr>
     <tr data-k="c7"><td>#15 and #96 still pass</td><td><code>verify/15.sh</code> (now with the preference off) and <code>verify/96.sh</code> (F2 on a new folder) at 2f43ed4</td><td class="ok">2 of 2 pass</td></tr>
     <tr data-k="c8"><td>The other tests</td><td>All 17 tests at the first commit, 67cb170; only 16.sh failed, because it selected the wrong row, fixed by clicking the first row. Not re-run after the later fixes</td><td class="no">16 of 17, first commit only</td></tr>
     <tr data-k="c9"><td>Screenshots look right</td><td>The shot-auditor read the second run's shots and found two problems, both fixed: the entry drawn at a stale spot after a scroll, and ExoIconView's misplaced, clipped entry</td><td class="open">final run: audited after CI's run</td></tr>
@@ -295,7 +295,9 @@ explainers/
     <tr data-k="c12"><td>The fourth review's fixes</td><td>CI's 1be3de5 (R19's finish, R25–R28): not built or run locally</td><td class="no">not run here; CI's fifth review read it</td></tr>
     <tr data-k="c13"><td>The fifth review's fixes</td><td>CI's e7902df (R32–R36), with 6f13ce7's build fix: not built or run locally</td><td class="no">not run here; CI's sixth run checked it</td></tr>
     <tr data-k="c14"><td>The sixth review's fix</td><td>CI's 7db96a7 (R41): not built or run locally</td><td class="no">not run here; CI's seventh run checked it</td></tr>
-    <tr data-k="c15"><td>The seventh review's fix</td><td>CI's 4b0639a (R43): not built or run locally</td><td class="no">not run here; CI's run on it is pending</td></tr>
+    <tr data-k="c15"><td>The seventh review's fix</td><td>CI's 4b0639a (R43): not built or run locally</td><td class="no">not run here; CI's eighth review read it</td></tr>
+    <tr data-k="c16"><td>The eighth review's fixes</td><td>CI's 8233a2b (R45, R46): not built locally; CI's verify on it, with the 90 s <code>verify/16.sh</code></td><td class="no">CI: 15 of 17 pass, 16.sh included; 95.sh and 96.sh not run (time budget)</td></tr>
+    <tr data-k="c17"><td>The trimmed test</td><td><code>verify/16.sh</code> at 810cfcf, locally; 493f5f2 then dropped the compact-view and bulk-rename checks and was not run locally</td><td class="ok">pass, 43 s at 810cfcf</td></tr>
   </table>
   </div>
   </section>
@@ -423,13 +425,40 @@ explainers/
   </ul>
   </section>
 
+  <section class="sub" id="review8">
+  <h3 class="sec">CI's eighth review</h3>
+  <p data-k="ci8">CI reviewed head fcbdb02 in run 43307264973 (Opus at high, 5 minutes): R44 is settled as accepted, and 2 new findings, R45 and R46, both fixed by CI in its commit 8233a2b. That makes 46 findings in all, none open.</p>
+  <ul class="tight">
+    <li data-k="R45"><b>R45, medium, fixed by CI in 8233a2b:</b> when the entry couldn't open again after you navigated away, the name you typed was dropped without a word.</li>
+    <li data-k="R46"><b>R46, low, fixed by CI in 8233a2b:</b> no verify step pressed the mouse's back button with an invalid name; <code>verify/16.sh</code> now does.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="budget">
+  <h3 class="sec">The verify time budget</h3>
+  <p data-k="what">CI's verify on 8233a2b passed 15 of 17 tests, but reported <code>verify/95.sh</code> and <code>96.sh</code> as not run (time budget), which fails the job.</p>
+  <p data-k="why"><code>verify-proof.sh</code> starts a test only while the time used so far plus 120 s fits in the 900 s budget. <code>verify/16.sh</code> took 90 s, which pushed the last two tests past that line.</p>
+  <p data-k="choice">At 1:41 PM PST you chose to trim <code>verify/16.sh</code> to about 45 s.</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Kept</th><th>Dropped</th></tr>
+    <tr data-k="t1"><td>F2's entry (a before and after pair), Enter, Ctrl+Z, Escape</td><td>The scroll-into-view pair</td></tr>
+    <tr data-k="t2"><td>An empty name, "bad/name" and the back button keep the entry open with its error (one shot)</td><td>The compact view</td></tr>
+    <tr data-k="t3"><td>A taken name shows the error dialog (one shot); a click elsewhere renames</td><td>The launcher question and the D-Bus dialog, both still covered by <code>verify/15.sh</code></td></tr>
+    <tr data-k="t4"><td>The moved Name column (one shot); Rename… from the context menu</td><td>Bulk rename</td></tr>
+    <tr data-k="t5"><td>The icon view and the preference off open the popover (one shot each)</td><td>The Preferences shot</td></tr>
+  </table>
+  </div>
+  <div class="note" data-k="local">The trimmed test ran locally in 43 s at 810cfcf. 493f5f2 then dropped the compact-view and bulk-rename checks; that version was not run locally, and CI's next run is its first.</div>
+  </section>
+
   <section class="sub" id="aftermerge">
   <h3 class="sec">Checked only after the merge</h3>
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI's build, smoke test and all verify scripts with CI's 4b0639a</td><td>CI's run on that commit hasn't finished yet</td><td class="open">next CI run</td></tr>
-    <tr data-k="a2"><td>A review of CI's 4b0639a</td><td>CI skips its own fix commit; a later code push's review covers it</td><td class="open">next code push</td></tr>
+    <tr data-k="a1"><td>CI's build, smoke test and all verify scripts with the trimmed <code>verify/16.sh</code></td><td>CI hasn't run them on 493f5f2 yet</td><td class="open">next CI run</td></tr>
+    <tr data-k="a2"><td>A review of CI's 8233a2b and the trimmed test</td><td>CI skips its own fix commit; the next code push's review covers it</td><td class="open">next CI run</td></tr>
     <tr data-k="a3"><td>Audit of CI's screenshots (<code>/visual-verify</code>)</td><td>Needs CI's shots on the shots branch</td><td class="open">after CI's run</td></tr>
     <tr data-k="a4"><td>Daily use on your desktop</td><td>The package reaches your machine only after the merge</td><td class="open">after the merge</td></tr>
   </table>
@@ -448,6 +477,7 @@ explainers/
     <li data-k="l8">CI's fifth run, with its fifth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43303011464">run 43303011464</a></li>
     <li data-k="l9">CI's sixth run, with its sixth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43304608720">run 43304608720</a></li>
     <li data-k="l10">CI's seventh run, with its seventh review: <a href="https://github.com/alexhu98/thunar/actions/runs/43306063302">run 43306063302</a></li>
+    <li data-k="l11">CI's eighth run, with its eighth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43307264973">run 43307264973</a></li>
     <li data-k="l3">After the merge: select a file in the details view and press F2.</li>
   </ul>
   </section>
