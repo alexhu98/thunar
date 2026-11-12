@@ -210,7 +210,7 @@
   <div class="lane-h" style="color:var(--accent)">① Enter on a file path</div>
   <ol class="steps">
     <li data-k="1"><b>Type, press Enter.</b> You press Ctrl+L, type a full path to a file and press Enter. <code>thunar_location_entry_activate</code> runs, and now also takes the window the bar sits in.</li>
-    <li data-k="2"><b>Poke the file.</b> As before, <code>thunar_browser_poke_file</code> checks the file and mounts its location if needed. A remote path such as <code>sftp://</code> finishes later, after the bar's temporary entry may have left the window, so the window is held and handed to the finish callback.</li>
+    <li data-k="2"><b>Poke the file.</b> As before, <code>thunar_browser_poke_file</code> checks the file and mounts its location if needed. A remote path such as <code>sftp://</code> finishes later, after the bar's temporary entry may have left the window, so the window is held and handed to the finish callback. If the window closed meanwhile, the callback does nothing.</li>
     <li data-k="3"><b>Open its folder.</b> Instead of <code>thunar_file_launch</code>, the bar changes the current tab to the file's parent folder. The bar is then reset to show the folder, not the file, even when that folder was already shown.</li>
     <li data-k="4"><b>Select, scroll.</b> <code>thunar_window_show_and_select_files</code> selects the file and scrolls to it. If the folder is still loading, the view keeps the selection and applies it once loading ends.</li>
     <li data-k="5"><b>Focus the view.</b> The window's view takes keyboard focus. Without this, Enter on a file in the folder already shown left focus in the bar, because nothing else moved it.</li>
@@ -243,7 +243,7 @@
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">thunar/thunar-location-entry.c  # Enter on a file selects it; window kept across the poke
-verify/93.sh                    # CI test: file, long folder, folder path, script
+verify/93.sh                    # CI test: file, long folder, folder path, script, buttons bar
 explainers/93-location-select-file.html            # this page
 explainers/93-location-select-file.narration.json  # its narration</pre>
   <div class="note" data-k="undo">To undo, revert the PR: Enter on a file path launches the file again. Nothing else depends on it.</div>
@@ -254,7 +254,7 @@ explainers/93-location-select-file.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The building session built the packages and ran every verify test in a cloud container, as CI does, then reviewed the branch. CI's own run on PR #113 wasn't finished when this page was written.</p>
+  <p class="intro" data-k="intro">The building session built the packages and ran every verify test in a cloud container, as CI does, then reviewed the branch. CI then built, verified and reviewed the final code on PR #113.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -278,12 +278,13 @@ explainers/93-location-select-file.narration.json  # its narration</pre>
     <tr data-k="c6"><td>File far down a long folder</td><td><code>93.sh</code>, run 2: Enter on <code>file-55.txt</code> in a 60-file folder; selection pasted; scroll shown in a shot</td><td class="ok">file-55.txt selected</td></tr>
     <tr data-k="c7"><td>Folder path</td><td><code>93.sh</code>, run 2: Enter on <code>sub</code>, title waits for <code>sub</code></td><td class="ok">folder opens</td></tr>
     <tr data-k="c8"><td>Executable script</td><td><code>93.sh</code>, run 2: Enter on <code>run-me.sh</code>; no <code>ran</code> marker file, no new window, selection pasted</td><td class="ok">selected, not run</td></tr>
-    <tr data-k="c9"><td>Review fixes commit</td><td>Compiled locally with no warnings; the verify tests weren't run again on it</td><td class="no">not re-run</td></tr>
+    <tr data-k="c9"><td>Buttons-style bar</td><td><code>93.sh</code> in CI: Ctrl+L opens the temporary entry, Enter on <code>many/file-07.txt</code></td><td class="ok">file-07.txt selected</td></tr>
     <tr data-k="c10"><td>Remote path, hidden file, Recent</td><td>No test drives an <code>sftp://</code> path, a hidden file or the Recent list</td><td class="no">not run</td></tr>
-    <tr data-k="c11"><td>CI on PR #113</td><td>build, verify, review and explainer jobs on the final head</td><td class="open">not finished yet</td></tr>
+    <tr data-k="c11"><td>CI on PR #113</td><td>CI run 43294090275 on the final head <code>5527238</code>: build, verify (all tests), explainer</td><td class="ok">built; 17 of 17 pass</td></tr>
+    <tr data-k="c12"><td>Screenshot audit</td><td><code>/visual-verify pr:113</code>, an independent shot auditor reading every CI shot</td><td class="ok">PASS, 153 of 153 OK</td></tr>
   </table>
   </div>
-  <div class="note warn" data-k="caveat">Both local verify runs came before the last commit, the review fixes. CI's verify run on PR #113 is the one that covers the final code; its results are in the PR's comments.</div>
+  <div class="note" data-k="caveat">Both local verify runs came before the review fixes. CI's run 43294090275 built and verified the final code, including the new buttons bar test.</div>
   </section>
 
   <section class="sub" id="review">
@@ -294,6 +295,18 @@ explainers/93-location-select-file.narration.json  # its narration</pre>
     <li data-k="b2"><b>Fixed by the session:</b> a remote path typed in the buttons bar's temporary entry finishes after that entry left the window, so the window is now taken on Enter (S1); a file that was only selected was added to Recent, and now only opened folders are (S3).</li>
     <li data-k="b3"><b>Left on purpose:</b> a hidden file opens its folder with nothing selected, as the issue allows (S2); the shared helper reloads the just-opened folder, so it's read twice (S4); the function keeps its name <code>open_or_launch</code> to keep the diff from upstream small (S6).</li>
     <li data-k="ci">CI reviews every code push too, and reports in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/113">PR #113</a>.</li>
+  </ul>
+  <p data-k="ci1">CI's first review, at high, found 8 (R1–R8):</p>
+  <ul class="tight">
+    <li data-k="r1"><b>Fixed:</b> R1, medium, confirmed: the window kept across the poke stayed in memory but not usable, so a window closed mid-poke was still used. The callback now checks first.</li>
+    <li data-k="r2"><b>Fixed:</b> R2, low, confirmed: no test of the buttons bar's temporary entry. <code>93.sh</code> now has a fourth pair for it.</li>
+    <li data-k="r3"><b>Accepted by the owner, one by one:</b> R3 hidden file, as the issue allows; R4 a remote path finishing after a tab switch, same as folders today; R5 the folder read twice, same as other callers.</li>
+    <li data-k="r4"><b>Also accepted:</b> R6 Enter on the folder shown keeps focus in the bar, as upstream; R7 finding the window by its toplevel, prior art; R8 comments only updated.</li>
+  </ul>
+  <p data-k="ci2">The second review, of the fix, found 3 more:</p>
+  <ul class="tight">
+    <li data-k="r5"><b>Fixed by CI's own commit:</b> R11, low, confirmed: a window closed mid-poke left the callback using the bar's destroyed entry.</li>
+    <li data-k="r6"><b>Accepted:</b> R9 and R10, low, plausible: the closed-window check reads the window's folder; the buttons test doesn't check the bar style, though its shot shows it.</li>
   </ul>
   </section>
 
