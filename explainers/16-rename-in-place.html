@@ -264,7 +264,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container. CI's nine reviews found 55 findings: 36 are fixed and 19 low ones accepted. <code>verify/16.sh</code> was trimmed to fit CI's old 15-minute verify budget; #115 raised it to 25 minutes, and every trimmed check is back.</p>
+  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container. CI's ten reviews found 64 findings: 42 are fixed and 22 low ones accepted. <code>verify/16.sh</code> was trimmed to fit CI's old 15-minute verify budget; #115 raised it to 25 minutes, and every trimmed check is back.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good pieces</h3>
@@ -277,7 +277,7 @@ explainers/
 
   <section class="sub" id="checks">
   <h3 class="sec">What was checked</h3>
-  <p data-k="before">Most local results below ran at 2f43ed4, before CI's review fixes. fc3ec64, with the third review's fixes, was built and run locally too; CI's 1be3de5, e7902df, 7db96a7, 4b0639a, 8233a2b and bb61992 were not. The trimmed <code>verify/16.sh</code> ran locally at 810cfcf; the restored one, 6c895b4, was not.</p>
+  <p data-k="before">Most local results below ran at 2f43ed4, before CI's review fixes. fc3ec64, with the third review's fixes, was built and run locally too; CI's 1be3de5, e7902df, 7db96a7, 4b0639a, 8233a2b, bb61992 and 60ee0c07f were not. The trimmed <code>verify/16.sh</code> ran locally at 810cfcf; the restored one, 6c895b4, was not.</p>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
@@ -300,6 +300,7 @@ explainers/
     <tr data-k="c17"><td>The trimmed test</td><td><code>verify/16.sh</code> at 810cfcf, locally; 493f5f2 then dropped the compact-view and bulk-rename checks and was not run locally</td><td class="ok">pass, 43 s at 810cfcf</td></tr>
     <tr data-k="c18"><td>The ninth review's fixes</td><td>CI's bb61992 (R47–R50): not built or run locally</td><td class="no">not run here; CI's next run is its first</td></tr>
     <tr data-k="c19"><td>The restored test</td><td><code>verify/16.sh</code> at 6c895b4, with every trimmed check back and CI's R47 fix kept: not run locally</td><td class="open">CI's next run, with the 25-minute budget</td></tr>
+    <tr data-k="c20"><td>The tenth review's fixes</td><td>CI's 60ee0c07f (R56–R61): not built or run locally</td><td class="no">not run here; CI's next run is its first</td></tr>
   </table>
   </div>
   </section>
@@ -455,6 +456,26 @@ explainers/
   </ul>
   </section>
 
+  <section class="sub" id="review10">
+  <h3 class="sec">CI's tenth review</h3>
+  <p data-k="ci10">CI reviewed head 773a6be, the restored test merged with <code>main</code>, in run 43333696969 (Opus at high, 10 minutes): 9 new findings, R56–R64. CI fixed six in its commit 60ee0c07f, which was not built or run locally.</p>
+  <ul class="tight">
+    <li data-k="R56"><b>R56, medium, fixed by CI in 60ee0c07f:</b> Up or Down in the entry ended the edit through GTK's own key handling with no name check, so an invalid name was dropped without an error.</li>
+    <li data-k="R57"><b>R57, medium, fixed by CI in 60ee0c07f:</b> when the name check refused the text, the rename still cleared all its state, losing the typed name.</li>
+    <li data-k="R58"><b>R58, medium, fixed by CI in 60ee0c07f:</b> while the folder loaded, the rename retried every 100 ms with no limit; it now waits for the loading-finished hook.</li>
+    <li data-k="R59"><b>R59, medium, fixed by CI in 60ee0c07f:</b> while one file's rename was pending, a rename of another file was dropped instead of falling back to the popover or dialog.</li>
+    <li data-k="R60"><b>R60, low, fixed by CI in 60ee0c07f:</b> the rename function's doc block gave a wrong return value and added explanatory prose.</li>
+    <li data-k="R61"><b>R61, low, fixed by CI in 60ee0c07f:</b> <code>verify/16.sh</code> had a duplicate half-second pause.</li>
+  </ul>
+  <p data-k="acc10">Three low findings, from a later review and not confirmed, are accepted rather than fixed, as this repo's CI review rules allow:</p>
+  <ul class="tight">
+    <li data-k="R62"><b>R62, accepted:</b> keys typed right after F2 can reach the list's type-ahead search before the entry opens. The verifier found the window is about one frame.</li>
+    <li data-k="R63"><b>R63, accepted:</b> moving keyboard focus out of the entry, with Tab or Ctrl+L, drops the typed name. This is the PR's rule: only Enter or a click saves, anything else cancels.</li>
+    <li data-k="R64"><b>R64, accepted:</b> <code>thunar_application_rename_file_to</code> is a thin wrapper. The verifier disproved it as a defect: it is the public entry the action manager uses.</li>
+  </ul>
+  <div class="note" data-k="pending10">CI's results on the new head are pending: its verify run with the restored checks and the screenshot audit.</div>
+  </section>
+
   <section class="sub" id="budget">
   <h3 class="sec">The verify time budget</h3>
   <p data-k="what">CI's verify on 8233a2b passed 15 of 17 tests, but reported <code>verify/95.sh</code> and <code>96.sh</code> as not run (time budget), which fails the job.</p>
@@ -480,7 +501,7 @@ explainers/
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
     <tr data-k="a1"><td>CI's build, smoke test and all verify scripts with the restored <code>verify/16.sh</code></td><td>CI hasn't run them on the new head yet</td><td class="open">next CI run</td></tr>
-    <tr data-k="a2"><td>A review of CI's bb61992 and the restored test</td><td>CI skips its own fix commit; the next code push's review covers it</td><td class="open">next CI run</td></tr>
+    <tr data-k="a2"><td>A review of CI's 60ee0c07f</td><td>CI skips its own fix commit; the next code push's review covers it</td><td class="open">next CI run</td></tr>
     <tr data-k="a3"><td>Audit of CI's screenshots (<code>/visual-verify</code>)</td><td>Needs CI's shots on the shots branch</td><td class="open">after CI's next run</td></tr>
     <tr data-k="a4"><td>Daily use on your desktop</td><td>The package reaches your machine only after the merge</td><td class="open">after the merge</td></tr>
   </table>
@@ -501,6 +522,7 @@ explainers/
     <li data-k="l10">CI's seventh run, with its seventh review: <a href="https://github.com/alexhu98/thunar/actions/runs/43306063302">run 43306063302</a></li>
     <li data-k="l11">CI's eighth run, with its eighth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43307264973">run 43307264973</a></li>
     <li data-k="l12">CI's ninth run, with its ninth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43313740481">run 43313740481</a></li>
+    <li data-k="l13">CI's tenth run, with its tenth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43333696969">run 43333696969</a></li>
     <li data-k="l3">After the merge: select a file in the details view and press F2.</li>
   </ul>
   </section>
