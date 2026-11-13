@@ -311,7 +311,7 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
     <li data-k="gone"><b>Gone with Ctrl+Shift+A, R3, R5, R8:</b> GTK's unselect-all key, the menu item in every view, and the new label's casing. All three went with the action in <code>44f9e3b</code>.</li>
     <li data-k="r4"><b>Accepted, R4:</b> Invert Selection and rubber-band selection can still select Loading… rows. The owner leaves it to upstream, which fixed it in its 4.21 development series (upstream #1500): a select function that refuses rows without a file. The fork gets it with 4.22.</li>
     <li data-k="later"><b>Accepted, R11, R12, R13:</b> unconfirmed lows from the later review. The Select All Files label and tooltip wording (R11); GTK's Ctrl+/ still selects every row, as on main (R12); the folder follows a cursor the user may not see, which is the issue's table (R13).</li>
-    <li data-k="owner"><b>Waiting on the owner, R2 and R7:</b> the range selection repeats what <code>select_files_between</code> does, but that helper selects row by row, and CI itself recommends accepting (R2). Shift+Down after Ctrl+A shrinks the selection to the rows from its anchor to the cursor, as Ctrl+A already did on main (R7). The recommendation for both is to accept.</li>
+    <li data-k="owner"><b>Accepted, R2 and R7:</b> the range selection repeats what <code>select_files_between</code> does, but that helper selects row by row, while the issue asked for one <code>select_range</code> on big folders; CI itself recommended accepting (R2). Shift+Down after Ctrl+A shrinks the selection to the rows from its anchor to the cursor, but Ctrl+A already did that on main, as in most file managers (R7). The owner accepted both.</li>
   </ul>
   </section>
 

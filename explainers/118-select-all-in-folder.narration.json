@@ -1,7 +1,7 @@
 {
   "title": "PR #119 · Select All in Folder",
   "voice": "af_heart",
-  "page_sha256": "e619719d122f7d7a0de080aa3497b644b16a8ac78e57c68b598cf3edb8e142ae",
+  "page_sha256": "dd51d4e62f32d1f139ad78269768a256a729f60bbf2d0415fd09e933adf69534",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 119, for issue 118: Ctrl+A selects everything inside the current expanded folder.", "say": "This is a tour of pull request one nineteen, for issue one eighteen: control A selects everything inside the current expanded folder.", "src": "ab6305f209ff"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "c950c64a6897"},
@@ -44,7 +44,7 @@
     {"screen": "cireview", "keys": ["gone"], "caption": "Three went away with the Ctrl+Shift+A action.", "say": "Three went away with the control shift A action.", "src": "f66e490bb0d3"},
     {"screen": "cireview", "keys": ["r4"], "caption": "Invert Selection can still pick Loading rows. That's accepted, because upstream already fixed it for 4.22.", "say": "Invert Selection can still pick Loading rows. That's accepted, because upstream already fixed it for four twenty-two.", "src": "a40b317bdb5b"},
     {"screen": "cireview", "keys": ["later"], "caption": "Three unconfirmed low findings from the later review are accepted.", "say": "Three unconfirmed low findings from the later review are accepted.", "src": "2b92b043ab84"},
-    {"screen": "cireview", "keys": ["owner"], "caption": "Two wait on the owner, with a recommendation to accept both.", "say": "Two wait on the owner, with a recommendation to accept both.", "src": "8a467dfc43fc"},
+    {"screen": "cireview", "keys": ["owner"], "caption": "The owner accepted the last two: one select_range stays faster, and Ctrl+A already behaved that way on main.", "say": "The owner accepted the last two: one range selection stays faster, and control A already behaved that way on main.", "src": "f8f00d3cf9d3"},
     {"screen": "aftermerge", "keys": ["a1", "a2"], "caption": "Real folders on the owner's desktop, the new Ctrl+A habit, and speed in a huge folder are only seen after the merge.", "say": "Real folders on the owner's desktop, the new control A habit, and speed in a huge folder are only seen after the merge.", "src": "814c104968da"},
     {"screen": "see", "keys": [], "caption": "The PR, its changes, CI's screenshots and the issue are all linked here.", "from": ["l0", "l1", "l2", "l3"], "src": "6a5db6e6fcc1"},
     {"screen": "later", "keys": [], "caption": "Part 3. What comes later.", "src": "528333146b07"},
@@ -116,7 +116,7 @@
     "cireview/gone": "f66e490bb0d3",
     "cireview/r4": "a40b317bdb5b",
     "cireview/later": "2b92b043ab84",
-    "cireview/owner": "8a467dfc43fc",
+    "cireview/owner": "f8f00d3cf9d3",
     "aftermerge/a1": "1b1688aba099",
     "aftermerge/a2": "6534215fe94e",
     "see/l0": "214dc858dc5e",
