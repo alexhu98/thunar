@@ -146,10 +146,12 @@ xdotool key ctrl+a
 xdotool type --delay 20 tabbed.pdf
 xdotool key Return
 exists "$DIR/tabbed.pdf" "typing tabbed.pdf into the entry left open after Down and Tab"
+absent "$DIR/report.final.pdf" "typing tabbed.pdf into the entry left open after Down and Tab"
 [[ ! -e $DIR/bad ]] || fail "Enter on 'bad/name' created the folder bad"
 sleep 0.5
 keys ctrl+z
 exists "$DIR/report.final.pdf" "Ctrl+Z after renaming to tabbed.pdf"
+absent "$DIR/tabbed.pdf" "Ctrl+Z after renaming to tabbed.pdf"
 
 second_row
 f2
