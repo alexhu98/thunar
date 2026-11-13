@@ -139,6 +139,9 @@ xdotool click 8
 sleep 1
 [[ $(xdotool getwindowname "$MAIN") == *files* ]] || fail "the back button with 'bad/name' in the entry left the folder: the title is '$(xdotool getwindowname "$MAIN")'"
 shot "$MAIN" back-button "The mouse back button with 'bad/name' in the entry stayed in files, with the entry still open and its error icon"
+xdotool key Down Tab
+sleep 1
+shot "$MAIN" down-tab "Down and then Tab with 'bad/name' in the entry left the entry open in report.final.pdf's row with its error icon, and renamed nothing"
 xdotool key Escape
 sleep 0.5
 exists "$DIR/report.final.pdf" "an empty name, 'bad/name' and Escape"
@@ -156,6 +159,15 @@ xdotool key Return
 sleep 0.5
 exists "$DIR/report.final.pdf" "after the failed rename to taken.pdf"
 shot "$MAIN" name-restored "After the error, the second row shows report.final.pdf again and no entry is left open"
+
+second_row
+f2
+xdotool type --delay 20 down
+xdotool key Down
+exists "$DIR/down.pdf" "typing down over 'report.final' and pressing Down"
+sleep 0.5
+keys ctrl+z
+exists "$DIR/report.final.pdf" "Ctrl+Z after renaming with Down"
 
 second_row
 f2
