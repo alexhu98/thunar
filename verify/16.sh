@@ -171,18 +171,22 @@ f2
 xdotool type --delay 20 down
 xdotool key Down
 exists "$DIR/down.pdf" "typing down over 'report.final' and pressing Down"
+absent "$DIR/report.final.pdf" "typing down over 'report.final' and pressing Down"
 sleep 0.5
 keys ctrl+z
 exists "$DIR/report.final.pdf" "Ctrl+Z after renaming with Down"
+absent "$DIR/down.pdf" "Ctrl+Z after renaming with Down"
 
 second_row
 f2
 xdotool type --delay 20 up
 xdotool key Up
 exists "$DIR/up.pdf" "typing up over 'report.final' and pressing Up"
+absent "$DIR/report.final.pdf" "typing up over 'report.final' and pressing Up"
 sleep 0.5
 keys ctrl+z
 exists "$DIR/report.final.pdf" "Ctrl+Z after renaming with Up"
+absent "$DIR/up.pdf" "Ctrl+Z after renaming with Up"
 
 second_row
 f2
