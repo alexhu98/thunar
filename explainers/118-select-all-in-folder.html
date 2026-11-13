@@ -100,8 +100,8 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">PR #119: Ctrl+Shift+A selects everything inside the current folder</h1>
-  <p class="lead" data-k="lead">Branch <code>118-select-all-in-folder</code> → <code>main</code>, closes #118. In the detailed list with Expandable Folders on, one key now selects just the contents of the folder you're in, instead of every row in the view.</p>
+  <h1 data-k="title">PR #119: Ctrl+A selects everything inside the current expanded folder</h1>
+  <p class="lead" data-k="lead">Branch <code>118-select-all-in-folder</code> → <code>main</code>, closes #118. In the detailed list with Expandable Folders on, Ctrl+A now selects just the contents of the folder you're in. From a top-level row it still selects every row.</p>
 
   <nav class="parts" aria-label="Parts of this page">
     <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
@@ -114,10 +114,10 @@
   <section class="part" id="adds">
   <p class="part-label" data-k="label">Part 1</p>
   <h2 data-k="heading">What this PR adds</h2>
-  <p class="intro" data-k="intro">A new action, Select All in Folder, on Ctrl+Shift+A and in the Edit menu. It picks the folder from the cursor row and selects that folder's rows in one go. The logic lives in <code>thunar-details-view.c</code>.</p>
+  <p class="intro" data-k="intro">Ctrl+A, and Edit › Select All Files, now pick the folder from the cursor row and select that folder's rows in one go. Only <code>thunar-details-view.c</code> changes.</p>
 
   <section class="sub" id="flow">
-  <div class="diagram" role="img" aria-label="Ctrl+Shift+A picks the folder at the cursor, finds its first and last visible rows and selects them in one go; with no folder it selects everything, and while the folder is loading it changes nothing.">
+  <div class="diagram" role="img" aria-label="Ctrl+A picks the folder at the cursor, finds its first and last visible rows and selects them in one go; the icon and compact views are unchanged, with no folder it selects the whole view, and while the folder is loading it changes nothing.">
   <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -125,13 +125,13 @@
       </marker>
     </defs>
 
-    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Ctrl+Shift+A — select one folder's rows</text>
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Ctrl+A — select one folder's rows</text>
     <g data-k="1">
-      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
-      <text x="36" y="90" class="t">Press the key</text>
-      <text x="36" y="114" class="m">Ctrl+Shift+A</text>
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Press Ctrl+A</text>
+      <text x="36" y="114" class="m">Ctrl+A</text>
       <text x="36" y="134" class="b">or Edit › Select All</text>
-      <text x="36" y="154" class="b">in Folder</text>
+      <text x="36" y="154" class="b">Files, as before</text>
       <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
     </g>
     <g data-k="2">
@@ -161,82 +161,91 @@
     <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
     <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
     <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M170,180 V256" marker-end="url(#ah-flow)"/>
     <path class="arrow" d="M375,180 V256" marker-end="url(#ah-flow)"/>
     <path class="arrow" d="M625,180 V256" marker-end="url(#ah-flow)"/>
+    <text x="179" y="222" class="b">other views</text>
     <text x="384" y="222" class="b">no folder</text>
     <text x="634" y="222" class="b">still loading</text>
 
     <text class="lane" x="20" y="244" style="fill:var(--merge)">② Other cases</text>
     <g data-k="5">
-      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
-      <text x="286" y="290" class="t">Select all</text>
-      <text x="286" y="314" class="b">top-level row, icon</text>
-      <text x="286" y="334" class="b">view, or Expandable</text>
-      <text x="286" y="354" class="b">Folders off: Ctrl+A</text>
-      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">5</text>
+      <rect class="box-merge" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Other views</text>
+      <text x="36" y="314" class="b">icon and compact</text>
+      <text x="36" y="334" class="b">views: Ctrl+A is</text>
+      <text x="36" y="354" class="b">unchanged</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">5</text>
     </g>
     <g data-k="6">
+      <rect class="box-pr" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Whole view</text>
+      <text x="286" y="314" class="b">top-level row, or</text>
+      <text x="286" y="334" class="b">Expandable Folders</text>
+      <text x="286" y="354" class="b">off: all but Loading</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
       <rect class="box-pr" x="520" y="260" width="210" height="120" rx="10"/>
       <text x="536" y="290" class="t">No change</text>
       <text x="536" y="314" class="b">first child is the</text>
       <text x="536" y="334" class="b">Loading… row: the</text>
       <text x="536" y="354" class="b">selection is kept</text>
-      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">7</text>
     </g>
   </svg>
   </div>
   <div class="legend">
-    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new in this PR</span>
-    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>Thunar's existing Select All, reused</span>
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new or changed in this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>unchanged Thunar code</span>
   </div>
   </section>
 
   <section class="sub" id="bigpic">
   <h3 class="sec">The big picture</h3>
-  <p data-k="why">With Expandable Folders on, the detailed list shows a folder's contents as indented rows under it, like a tree. Ctrl+A selects every row in the view, opened folders included, so selecting just one folder's files meant Shift+click or holding Shift+Down. Ctrl+Shift+A now does it in one key press.</p>
+  <p data-k="why">With Expandable Folders on, the detailed list shows a folder's contents as indented rows under it, like a tree. Ctrl+A used to select every row in the view, opened folders included, so selecting just one folder's files meant Shift+click or holding Shift+Down. Ctrl+A now selects the folder you're in.</p>
   <div class="note" data-k="note">The folder comes from the cursor, the row with the keyboard focus outline, not from the selection. The selection is replaced, and the cursor itself never moves.</div>
+  <div class="note warn" data-k="differs">This differs from issue #118, which asked for a new action, Select All in Folder, on Ctrl+Shift+A. In the building session the owner chose to give that behaviour to Ctrl+A instead. So no action, menu item or shortcut is added, and GTK's own Ctrl+Shift+A, which unselects everything, keeps working.</div>
   </section>
 
   <section class="sub" id="steps">
   <h3 class="sec">Step by step (numbers match the diagram)</h3>
   <div class="panel">
-  <div class="lane-h" style="color:var(--accent)">① Ctrl+Shift+A — select one folder's rows</div>
+  <div class="lane-h" style="color:var(--accent)">① Ctrl+A — select one folder's rows</div>
   <ol class="steps">
-    <li data-k="1"><b>Press the key.</b> A new row in the action table of <code>thunar-standard-view.c</code>, right after Select All, binds Ctrl+Shift+A, so it can be changed in the shortcuts editor. <code>thunar-window.c</code> adds “Select All in Folder” to the Edit menu below Select All. The handler gives the view focus and calls the view's own select-all-in-folder, or plain Select All for views that have none, such as the icon and compact views.</li>
+    <li data-k="1"><b>Press Ctrl+A.</b> Ctrl+A and Edit › Select All Files call the view's Select All, as they always did. In the details view that is <code>thunar_details_view_select_all</code> in <code>thunar-details-view.c</code>, the one code file this PR changes.</li>
     <li data-k="2"><b>Pick the folder.</b> The details view reads the cursor row, only while Expandable Folders is on. If that row is an expanded folder, it is the folder. Otherwise its parent folder is, so a file inside <code>a</code>, or a collapsed folder inside it, picks <code>a</code>.</li>
     <li data-k="3"><b>Find the range.</b> The range starts at the folder's first child. It ends at the last visible row inside the folder, found by stepping into the last child as long as it is expanded. In the list's order, everything between those two rows is the folder's contents, and nothing else.</li>
     <li data-k="4"><b>Select at once.</b> It clears the selection and selects the whole range with one <code>select_range</code> call, so a folder with thousands of rows is one call, not thousands. It then unselects any Loading… rows inside expanded subfolders, and tells the rest of Thunar about the new selection once. The folder row itself is outside the range, so it isn't selected.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Other cases</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
-    <li data-k="5"><b>Select all.</b> With the cursor on a top-level row that isn't an expanded folder, with no cursor, or with Expandable Folders off, it runs the same Select All as Ctrl+A. So do the icon and compact views, through step 1.</li>
-    <li data-k="6"><b>No change.</b> A folder that was just expanded shows a Loading… row until its files arrive. If that row is the folder's first child, Ctrl+Shift+A leaves the selection as it was, instead of clearing it.</li>
+    <li data-k="5"><b>Other views.</b> The icon and compact views have their own Select All, which this PR doesn't touch, so Ctrl+A there still selects everything.</li>
+    <li data-k="6"><b>Whole view.</b> With the cursor on a top-level row that isn't an expanded folder, with no cursor, or with Expandable Folders off, Ctrl+A selects every row as before. It now also unselects any Loading… rows, and tells Thunar about the change once.</li>
+    <li data-k="7"><b>No change.</b> A folder that was just expanded shows a Loading… row until its files arrive. If that row is the folder's first child, Ctrl+A leaves the selection as it was, instead of clearing it.</li>
   </ol>
   </div>
   </section>
 
   <section class="sub" id="cases">
-  <h3 class="sec">What Ctrl+Shift+A selects</h3>
+  <h3 class="sec">What Ctrl+A selects</h3>
   <div class="table-wrap">
   <table>
-    <tr><th>Cursor on</th><th>Ctrl+Shift+A selects</th><th>Test shot</th></tr>
+    <tr><th>Cursor on</th><th>Ctrl+A selects</th><th>Test shot</th></tr>
     <tr data-k="k1"><td>An expanded folder</td><td>Every row inside it, at all depths, but not the folder row</td><td><code>on-expanded-folder</code></td></tr>
-    <tr data-k="k2"><td>A row inside an expanded folder, a collapsed subfolder included</td><td>Every row in that row's parent folder</td><td><code>inside-a</code>, <code>nested-folder</code></td></tr>
-    <tr data-k="k3"><td>A top-level file or collapsed folder</td><td>Every row in the view, like Ctrl+A</td><td><code>top-level-all</code></td></tr>
-    <tr data-k="k4"><td>Any row, with Expandable Folders off, or in the icon or compact view</td><td>Every row in the view, like Ctrl+A</td><td><code>expandable-off</code> (icon and compact views not tested)</td></tr>
+    <tr data-k="k2"><td>A row inside an expanded folder, a collapsed subfolder included</td><td>Every row in that row's parent folder</td><td><code>inside-a</code>, <code>nested-folder</code>, <code>edit-menu</code></td></tr>
+    <tr data-k="k3"><td>A top-level file or collapsed folder</td><td>Every row in the view, expanded children included</td><td><code>top-level-all</code></td></tr>
+    <tr data-k="k4"><td>Any row, with Expandable Folders off, or in the icon or compact view</td><td>Every row in the view, as before</td><td><code>expandable-off</code> (icon and compact views not tested)</td></tr>
     <tr data-k="k5"><td>An expanded folder whose files are still loading</td><td>Nothing changes</td><td>not tested</td></tr>
   </table>
   </div>
-  <div class="note warn" data-k="gtk">Ctrl+Shift+A used to be GTK's built-in “unselect all” key in the list and icon views. It now selects instead, as the issue asked. Escape still unselects everything.</div>
+  <div class="note warn" data-k="whole">From inside an expanded folder, Ctrl+A no longer selects the whole view. To get every row, move the cursor to a top-level row first, for example with Home or End.</div>
   </section>
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">thunar/
-├── thunar-standard-view.h  # new action id, new view slot select_all_in_folder
-├── thunar-standard-view.c  # Ctrl+Shift+A action row and its handler
-├── thunar-details-view.c   # picks the folder, selects its range, skips Loading rows
-└── thunar-window.c         # Edit menu item below Select All
+└── thunar-details-view.c   # Select All picks the folder, selects its range, skips Loading rows
 verify/118.sh               # the test: 7 checks, 8 screenshots
 explainers/118-select-all-in-folder.html            # this page
 explainers/118-select-all-in-folder.narration.json  # its narration</pre>
@@ -248,13 +257,13 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested in a cloud container by the session that wrote the code, then reviewed. CI builds, tests and reviews it again on this PR.</p>
+  <p class="intro" data-k="intro">The first design, a new Ctrl+Shift+A action, was built, tested and reviewed in a cloud container. The final Ctrl+A design has only been compiled here; CI builds, tests and reviews it on this PR.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 references</h3>
   <div class="grid">
-    <div class="card" data-k="r1"><h3>Issue #118's table</h3><p>The owner's three cases: cursor on an expanded folder, inside one, or at the top level. The test checks each one, on the same files the issue lists.</p></div>
-    <div class="card" data-k="r2"><h3>Ctrl+A, Select All</h3><p>The existing select-all in the details view. Every “select everything” case calls it, and the test compares those cases with its result.</p></div>
+    <div class="card" data-k="r1"><h3>Issue #118's table</h3><p>The owner's three cases: cursor on an expanded folder, inside one, or at the top level. The test checks each one, on the same files the issue lists, now with Ctrl+A.</p></div>
+    <div class="card" data-k="r2"><h3>Ctrl+A as it was</h3><p>The old Select All selected every row. The whole-view cases still do, and the test checks them with Expandable Folders on and off.</p></div>
     <div class="card" data-k="r3"><h3>Copy and paste as a probe</h3><p>The test reads the selection by copying it and pasting into an empty folder, then listing that folder, rather than reading the status bar as the issue suggested.</p></div>
   </div>
   </section>
@@ -264,16 +273,16 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage</code> of the first commit <code>47d5e1a</code>, in the building session's cloud container</td><td class="ok">build OK, debs installed</td></tr>
-    <tr data-k="c2"><td>Nothing else broke</td><td>The smoke test and the other verify scripts, each under its own Xvfb, against that build</td><td class="ok">smoke pass, 18 of 18 pass</td></tr>
+    <tr data-k="c1"><td>It builds (first design)</td><td><code>dpkg-buildpackage</code> of the first, Ctrl+Shift+A commit <code>47d5e1a</code>, in the building session's cloud container</td><td class="ok">build OK, debs installed</td></tr>
+    <tr data-k="c2"><td>Nothing else broke (first design)</td><td>The smoke test and the other verify scripts, each under its own Xvfb, against that build</td><td class="ok">smoke pass, 18 of 18 pass</td></tr>
     <tr data-k="c3"><td>First run of the new test</td><td><code>verify/118.sh</code> against that build. Clicking <code>top.txt</code> left the cursor on <code>b1.txt</code>, so the check selected only <code>b1.txt</code>. The Edit menu check started on <code>b1.txt</code>, so it proved nothing.</td><td class="no">failed at check 7; the test was fixed</td></tr>
-    <tr data-k="c4"><td>Cursor inside or on a folder</td><td>Fixed <code>verify/118.sh</code> (<code>e4e4548</code>), re-run alone with the same setup, against the <code>47d5e1a</code> build: Ctrl+Shift+A on <code>a1.txt</code>, on <code>a</code>, and on <code>s1.txt</code> in <code>a/sub</code></td><td class="ok">4, 4 and 1 rows, as expected</td></tr>
-    <tr data-k="c5"><td>Cursor stays, and the Edit menu</td><td>Same run: Ctrl+Space after Ctrl+Shift+A unselects only <code>a1.txt</code>; Edit › Select All in Folder from <code>a2.txt</code></td><td class="ok">3 rows left; same 4 rows</td></tr>
-    <tr data-k="c6"><td>Falls back to Select All</td><td>Same run: Ctrl+Shift+A on <code>top.txt</code>, reached with End, with Expandable Folders on, then off</td><td class="ok">all 8 rows; all 3 rows</td></tr>
-    <tr data-k="c7"><td>The final code compiles cleanly</td><td><code>gcc -fsyntax-only -Wall -Wextra</code> after the review fixes in <code>de04083</code></td><td class="ok">no warnings</td></tr>
-    <tr data-k="c8"><td>The final code, built and tested</td><td>The local build and test ran on <code>47d5e1a</code>, before the review fixes in <code>de04083</code>; not re-run here</td><td class="no">not run here</td></tr>
+    <tr data-k="c4"><td>Cursor inside or on a folder (first design)</td><td>Fixed <code>verify/118.sh</code> (<code>e4e4548</code>), re-run alone with the same setup, against the <code>47d5e1a</code> build: Ctrl+Shift+A on <code>a1.txt</code>, on <code>a</code>, and on <code>s1.txt</code> in <code>a/sub</code></td><td class="ok">4, 4 and 1 rows, as expected</td></tr>
+    <tr data-k="c5"><td>Cursor stays, and the Edit menu (first design)</td><td>Same run: Ctrl+Space after Ctrl+Shift+A unselects only <code>a1.txt</code>; Edit › Select All in Folder from <code>a2.txt</code></td><td class="ok">3 rows left; same 4 rows</td></tr>
+    <tr data-k="c6"><td>Whole view (first design)</td><td>Same run: Ctrl+Shift+A on <code>top.txt</code>, reached with End, with Expandable Folders on, then off</td><td class="ok">all 8 rows; all 3 rows</td></tr>
+    <tr data-k="c7"><td>The final Ctrl+A code compiles cleanly</td><td><code>gcc -fsyntax-only -Wall -Wextra</code> on <code>44f9e3b</code></td><td class="ok">no warnings</td></tr>
+    <tr data-k="c8"><td>The final Ctrl+A code, built and tested</td><td>A full build and run of every test, with <code>verify/118.sh</code> now pressing Ctrl+A and using Edit › Select All Files, was still running in the building session when this page was written</td><td class="no">result not known</td></tr>
     <tr data-k="c9"><td>Folder still loading</td><td>No test holds a folder in its Loading… state; the review fix for it was only read and compiled</td><td class="no">not run</td></tr>
-    <tr data-k="c10"><td>Icon and compact views, rebinding the key</td><td>Not in the test; the icon and compact views reuse Select All unchanged</td><td class="no">not run</td></tr>
+    <tr data-k="c10"><td>Icon and compact views</td><td>Not in the test; their Select All isn't changed</td><td class="no">not run</td></tr>
     <tr data-k="c11"><td>CI build and verify on the final code</td><td>CI's build and verify jobs, with <code>verify/118.sh</code> and its screenshots</td><td class="open">runs on the PR in CI</td></tr>
     <tr data-k="c12"><td>Screenshot audit</td><td><code>/visual-verify pr:119</code> on CI's screenshots</td><td class="open">runs on the PR in CI</td></tr>
   </table>
@@ -282,14 +291,14 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">Before the first push, a fresh agent ran <code>/code-review</code> at level high on the whole branch. It found 7 problems. 4 are fixed: 1 by the reviewer, 2 by the building session, and 1 by this page and its narration. 3 are left for the owner.</p>
+  <p data-k="summary">Before the first push, a fresh agent ran <code>/code-review</code> at level high on the whole branch, which then held the first, Ctrl+Shift+A design. It found 7 problems. 4 are fixed: 1 by the reviewer, 2 by the building session, and 1 by this page and its narration. The owner's switch to Ctrl+A settled 2 more, and partly fixed the last.</p>
   <ul class="tight">
-    <li data-k="b1"><b>Fixed, loading folders:</b> an expanded folder whose only child was still the Loading… row made Ctrl+Shift+A clear the selection. It now leaves the selection alone.</li>
+    <li data-k="b1"><b>Fixed, loading folders:</b> an expanded folder whose only child was still the Loading… row made the new selection clear everything. It now leaves the selection alone.</li>
     <li data-k="b2"><b>Fixed, tidier code:</b> the Loading… row check no longer looks up plain rows that have no children, and a condition that changed the cursor path halfway through is now plain steps.</li>
     <li data-k="s4"><b>Fixed, S4:</b> the branch had no explainer page or narration yet, so CI's explainer job would have failed. This page and its narration fix it.</li>
-    <li data-k="b3"><b>Left for the owner, S1:</b> Ctrl+Shift+A replaces GTK's built-in unselect-all key in the list and icon views. The issue asked for this key, and Escape still unselects all.</li>
-    <li data-k="b4"><b>Left for the owner, S2:</b> Ctrl+A, Invert Selection and this action's Select All fallback can select Loading… rows. That predates this PR; a general fix in the details view belongs in its own issue.</li>
-    <li data-k="b5"><b>Left for the owner, S6:</b> the Edit menu item shows in every view and acts like Select All outside the expandable details view, as the issue specifies.</li>
+    <li data-k="b3"><b>Settled, S1:</b> Ctrl+Shift+A would have replaced GTK's built-in unselect-all key in the list and icon views. With Ctrl+A chosen instead, that key keeps working.</li>
+    <li data-k="b4"><b>Partly fixed, S2:</b> Ctrl+A and Invert Selection could select Loading… rows, before this PR too. Ctrl+A no longer does; Invert Selection still can, and the owner was offered a separate issue for it.</li>
+    <li data-k="b5"><b>Settled, S6:</b> the new Edit menu item would have shown in every view. No menu item is added now.</li>
   </ul>
   <p data-k="ci">CI reviews every code push at level high and reports in the <a href="https://github.com/alexhu98/thunar/pull/119">code review comment</a> on this PR. It hadn't run when this page was written.</p>
   </section>
@@ -299,7 +308,7 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>Daily use on the owner's desktop, with real folders</td><td>CI and the container use small test folders on a virtual screen</td><td class="open">when the owner installs the next build</td></tr>
+    <tr data-k="a1"><td>Daily use on the owner's desktop, with real folders, and Ctrl+A no longer selecting the whole view from inside a folder</td><td>CI and the container use small test folders on a virtual screen</td><td class="open">when the owner installs the next build</td></tr>
     <tr data-k="a2"><td>Speed in a folder with thousands of rows</td><td>Not measured; the selection is one call, and the Loading… check visits each row of the folder's expanded subfolders</td><td class="open">the first big folder</td></tr>
   </table>
   </div>
@@ -336,7 +345,7 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
     <text class="lane" x="20" y="44" style="fill:var(--future)">After this PR</text>
     <g data-k="n1">
       <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
-      <text x="36" y="90" class="t">#118 Ctrl+Shift+A</text>
+      <text x="36" y="90" class="t">#118 Ctrl+A</text>
       <text x="36" y="114" class="b">selects the rows of</text>
       <text x="36" y="134" class="b">the cursor's folder</text>
     </g>
@@ -352,7 +361,7 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
       <text x="536" y="90" class="t">You: decide S2</text>
       <text x="536" y="114" class="b">an issue to keep</text>
       <text x="536" y="134" class="b">Loading… rows out</text>
-      <text x="536" y="154" class="b">of every Select All</text>
+      <text x="536" y="154" class="b">of Invert Selection</text>
     </g>
     <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
     <path class="arrow" d="M480,120 H516" marker-end="url(#ah-next)"/>
@@ -383,13 +392,13 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
     <div data-k="cursor"><dt>Cursor row</dt><dd>The row with the keyboard focus outline. Arrow keys move it; it can differ from the selection.</dd></div>
     <div data-k="loading"><dt>Loading… row</dt><dd>A stand-in row shown under a just-expanded folder until its files are read. It is not a file.</dd></div>
     <div data-k="range"><dt><code>select_range</code></dt><dd>GTK's call that selects every row between two rows in one step.</dd></div>
-    <div data-k="action"><dt>Action table</dt><dd>Thunar's list of commands, each with a name, menu label and default shortcut that the shortcuts editor can change.</dd></div>
+    <div data-k="menu"><dt>Edit › Select All Files</dt><dd>The Edit menu item for Ctrl+A. It runs the same Select All.</dd></div>
     <div data-k="ctrlspace"><dt>Ctrl+Space</dt><dd>Toggles whether the cursor row is selected, without moving the cursor.</dd></div>
     <div data-k="verify"><dt>Verify script</dt><dd><code>verify/&lt;issue&gt;.sh</code>: drives Thunar with simulated keys and clicks on a virtual screen, checks the result and takes screenshots.</dd></div>
     <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual screen with no monitor, so Thunar can run in CI.</dd></div>
     <div data-k="smoke"><dt>Smoke test</dt><dd>CI's basic check that Thunar is still running 10 seconds after it starts.</dd></div>
     <div data-k="vv"><dt><code>/visual-verify</code></dt><dd>A check in which a separate agent looks at every screenshot and says whether it shows what it claims.</dd></div>
-    <div data-k="sn"><dt>S1, S2, S6</dt><dd>Review findings the review left unfixed, numbered in its report, for the owner to decide.</dd></div>
+    <div data-k="sn"><dt>S1, S2, S4, S6</dt><dd>Review findings, numbered in its report, that the reviewer didn't fix itself.</dd></div>
   </dl>
   </section>
 </main>
