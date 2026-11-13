@@ -101,19 +101,24 @@ keys ctrl+shift+a
 selected_is s1.txt
 shot "$MAIN" nested-folder "Ctrl+Shift+A on s1.txt inside a/sub selected only s1.txt, the one row in its parent folder sub"
 
-click_row 6
+click_row 4
+selected_is a2.txt
 keys alt+e f
-selected_is b1.txt
-shot "$MAIN" edit-menu "Edit > Select All in Folder with the cursor on b1.txt selected only b1.txt, the one row inside b"
+selected_is a1.txt a2.txt sub s1.txt
+shot "$MAIN" edit-menu "Edit > Select All in Folder with the cursor on a2.txt selected the same 4 rows inside a as Ctrl+Shift+A"
 
-click_row 7
+click_row 0
+keys End
+selected_is top.txt
 keys ctrl+shift+a
 selected_is a sub s1.txt a1.txt a2.txt b b1.txt top.txt
 shot "$MAIN" top-level-all "Ctrl+Shift+A on the top-level file top.txt selected every row in the view, like Ctrl+A"
 
 xfconf-query -c thunar -p /misc-expandable-folders -s false
 sleep 1
-click_row 2
+click_row 0
+keys End
+selected_is top.txt
 keys ctrl+shift+a
 selected_is a b top.txt
 shot "$MAIN" expandable-off "With Expandable Folders off, Ctrl+Shift+A on top.txt selected all three rows, like Ctrl+A"
