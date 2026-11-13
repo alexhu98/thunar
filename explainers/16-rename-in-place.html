@@ -264,7 +264,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container. CI's eleven reviews found 71 findings: 47 are fixed and 24 low ones accepted. <code>verify/16.sh</code> was trimmed to fit CI's old 15-minute verify budget; #115 raised it to 25 minutes, and every trimmed check is back.</p>
+  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container. CI's twelve reviews found 78 findings: 51 are fixed and 27 low ones accepted. <code>verify/16.sh</code> was trimmed to fit CI's old 15-minute verify budget; #115 raised it to 25 minutes, and every trimmed check is back.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good pieces</h3>
@@ -277,7 +277,7 @@ explainers/
 
   <section class="sub" id="checks">
   <h3 class="sec">What was checked</h3>
-  <p data-k="before">Most local results below ran at 2f43ed4, before CI's review fixes. fc3ec64, with the third review's fixes, was built and run locally too; CI's 1be3de5, e7902df, 7db96a7, 4b0639a, 8233a2b, bb61992, 60ee0c07f and 776df734 were not. The trimmed <code>verify/16.sh</code> ran locally at 810cfcf; the restored one, 6c895b4, was not.</p>
+  <p data-k="before">Most local results below ran at 2f43ed4, before CI's review fixes. fc3ec64, with the third review's fixes, was built and run locally too; CI's 1be3de5, e7902df, 7db96a7, 4b0639a, 8233a2b, bb61992, 60ee0c07f, 776df734 and 97ea1879 were not. The trimmed <code>verify/16.sh</code> ran locally at 810cfcf; the restored one, 6c895b4, was not.</p>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
@@ -301,7 +301,8 @@ explainers/
     <tr data-k="c18"><td>The ninth review's fixes</td><td>CI's bb61992 (R47–R50): not built or run locally</td><td class="no">not run here; CI's next run is its first</td></tr>
     <tr data-k="c19"><td>The restored test</td><td><code>verify/16.sh</code> at 6c895b4, with every trimmed check back and CI's R47 fix kept: not run locally; CI ran it in full (90 s) on da34910</td><td class="ok">CI: pass</td></tr>
     <tr data-k="c20"><td>The tenth review's fixes</td><td>CI's 60ee0c07f (R56–R61): not built locally; CI's verify on da34910</td><td class="ok">CI: 19 of 19 pass</td></tr>
-    <tr data-k="c21"><td>The eleventh review's fixes</td><td>CI's 776df734 (R65–R69), with R68's Up and Down checks in <code>verify/16.sh</code>: not built or run locally</td><td class="no">not run here; CI's next run is its first</td></tr>
+    <tr data-k="c21"><td>The eleventh review's fixes</td><td>CI's 776df734 (R65–R69), with R68's Up and Down checks in <code>verify/16.sh</code>: not built or run locally</td><td class="no">not run here; CI's twelfth review read it</td></tr>
+    <tr data-k="c22"><td>The twelfth review's fixes</td><td>CI's 97ea1879 (R72–R75), with R75's Up, Down and Tab checks in <code>verify/16.sh</code>: not built or run locally</td><td class="no">not run here; CI's next run is its first</td></tr>
   </table>
   </div>
   </section>
@@ -471,7 +472,7 @@ explainers/
   <p data-k="acc10">Three low findings, from a later review and not confirmed, are accepted rather than fixed, as this repo's CI review rules allow:</p>
   <ul class="tight">
     <li data-k="R62"><b>R62, accepted:</b> keys typed right after F2 can reach the list's type-ahead search before the entry opens. The verifier found the window is about one frame.</li>
-    <li data-k="R63"><b>R63, accepted:</b> moving keyboard focus out of the entry, with Tab or Ctrl+L, drops the typed name. This is the PR's rule: only Enter or a click saves, anything else cancels.</li>
+    <li data-k="R63"><b>R63, accepted:</b> moving keyboard focus out of the entry drops the typed name. Corrected for R76: Tab ends the edit like Enter, so a valid name is saved and an invalid one keeps the entry open with its error; Ctrl+L jumps to the location bar and drops the typed name, valid or not.</li>
     <li data-k="R64"><b>R64, accepted:</b> <code>thunar_application_rename_file_to</code> is a thin wrapper. The verifier disproved it as a defect: it is the public entry the action manager uses.</li>
   </ul>
   <div class="note" data-k="pending10">On the next head, da34910, CI's verify passed 19 of 19 with the full <code>verify/16.sh</code>, and <code>/visual-verify</code> passed all 178 shots.</div>
@@ -492,7 +493,25 @@ explainers/
     <li data-k="R70"><b>R70, accepted:</b> dropping the repeated pause might let F2 arrive while the folder loads. Not confirmed: about 2.3 s of pauses and a row click come before F2.</li>
     <li data-k="R71"><b>R71, accepted:</b> a fresh F2 during a reload opens the popover instead of waiting. Not confirmed as a defect: that's the documented fallback for F2 during any load, and the rename still works.</li>
   </ul>
-  <div class="note" data-k="pending11">CI's results on the newest head are pending: its verify run with the new Up and Down checks and the screenshot audit.</div>
+  <div class="note" data-k="pending11">CI's twelfth review, below, read these fixes; its verify results for them are still pending.</div>
+  </section>
+
+  <section class="sub" id="review12">
+  <h3 class="sec">CI's twelfth review</h3>
+  <p data-k="ci12">CI reviewed head 8e07fd4, which covers CI's 776df734, in run 43341354858 (Opus at high): 7 new findings, R72–R78. CI fixed four in its commit 97ea1879, which was not built or run locally.</p>
+  <ul class="tight">
+    <li data-k="R72"><b>R72, medium, fixed by CI in 97ea1879:</b> renaming another file saved the first file's pending text without the name check and the file-still-exists check that a restarted edit uses.</li>
+    <li data-k="R73"><b>R73, medium, fixed by CI in 97ea1879:</b> R67 was only partly fixed. While the first file's edit was queued to restart, renaming a second file still opened its popover, and the first file's entry then took focus.</li>
+    <li data-k="R74"><b>R74, low, fixed by CI in 97ea1879:</b> repeated blocks that cancel a queued restart and save a pending name now use the shared helpers.</li>
+    <li data-k="R75"><b>R75, low, fixed by CI in 97ea1879:</b> <code>verify/16.sh</code> now checks that Up saves a rename, and that Down and Tab keep an invalid name open.</li>
+  </ul>
+  <p data-k="acc12">Three low findings, from a later review and only plausible, are accepted rather than fixed, as this repo's CI review rules allow:</p>
+  <ul class="tight">
+    <li data-k="R76"><b>R76, accepted:</b> the Down and Tab shot seemed to contradict this page's R63 note. The verifier found the shot right: Down is held back with an invalid name, and Tab ends the edit like Enter, which keeps an invalid name open. The R63 note is corrected above.</li>
+    <li data-k="R77"><b>R77, accepted:</b> when a folder is unbound mid-load, only the rename restarts, with no shared loading-finished helper. Nothing behaves wrongly: upstream skips selecting and scrolling there on purpose.</li>
+    <li data-k="R78"><b>R78, accepted:</b> an invalid name reopens the entry whenever the edit ends with a save. Thunar never ends the edit itself, and the other ways (Enter, Page keys, clicks) reopen it just as a cancel does.</li>
+  </ul>
+  <div class="note" data-k="pending12">CI's results on the newest head are pending: its verify run with the new Up, Down and Tab checks, and the screenshot audit.</div>
   </section>
 
   <section class="sub" id="budget">
@@ -519,8 +538,8 @@ explainers/
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI's build, smoke test and all verify scripts with R68's Up and Down checks</td><td>CI hasn't run them on the newest head yet</td><td class="open">next CI run</td></tr>
-    <tr data-k="a2"><td>A review of CI's 776df734</td><td>CI skips its own fix commit; the next code push's review covers it</td><td class="open">next CI run</td></tr>
+    <tr data-k="a1"><td>CI's build, smoke test and all verify scripts with R75's Up, Down and Tab checks</td><td>CI hasn't run them on the newest head yet</td><td class="open">next CI run</td></tr>
+    <tr data-k="a2"><td>A review of CI's 97ea1879</td><td>CI skips its own fix commit; the next code push's review covers it</td><td class="open">next CI run</td></tr>
     <tr data-k="a3"><td>Audit of CI's screenshots (<code>/visual-verify</code>)</td><td>Needs CI's newest shots on the shots branch</td><td class="open">after CI's next run</td></tr>
     <tr data-k="a4"><td>Daily use on your desktop</td><td>The package reaches your machine only after the merge</td><td class="open">after the merge</td></tr>
   </table>
@@ -543,6 +562,7 @@ explainers/
     <li data-k="l12">CI's ninth run, with its ninth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43313740481">run 43313740481</a></li>
     <li data-k="l13">CI's tenth run, with its tenth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43333696969">run 43333696969</a></li>
     <li data-k="l14">CI's eleventh run, with its eleventh review: <a href="https://github.com/alexhu98/thunar/actions/runs/43335628617">run 43335628617</a></li>
+    <li data-k="l15">CI's twelfth run, with its twelfth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43341354858">run 43341354858</a></li>
     <li data-k="l3">After the merge: select a file in the details view and press F2.</li>
   </ul>
   </section>
