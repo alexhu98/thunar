@@ -258,7 +258,7 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The first design, a new Ctrl+Shift+A action, was built, tested and reviewed in a cloud container. The final Ctrl+A design has only been compiled here; CI builds, tests and reviews it on this PR.</p>
+  <p class="intro" data-k="intro">The first design, a new Ctrl+Shift+A action, was built, tested and reviewed in a cloud container. The Ctrl+A design was built and tested there too, before CI's review fixes, which were only compiled; CI builds, tests and reviews it all on this PR.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 references</h3>
@@ -281,8 +281,8 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
     <tr data-k="c5"><td>Cursor stays, and the Edit menu (first design)</td><td>Same run: Ctrl+Space after Ctrl+Shift+A unselects only <code>a1.txt</code>; Edit › Select All in Folder from <code>a2.txt</code></td><td class="ok">3 rows left; same 4 rows</td></tr>
     <tr data-k="c6"><td>Whole view (first design)</td><td>Same run: Ctrl+Shift+A on <code>top.txt</code>, reached with End, with Expandable Folders on, then off</td><td class="ok">all 8 rows; all 3 rows</td></tr>
     <tr data-k="c7"><td>The final Ctrl+A code compiles cleanly</td><td><code>gcc -fsyntax-only -Wall -Wextra</code> on <code>44f9e3b</code>, and again on the CI review fixes in <code>d757408</code></td><td class="ok">no warnings</td></tr>
-    <tr data-k="c8"><td>The final Ctrl+A code, built and tested</td><td>A full build and run of every test on <code>44f9e3b</code>, with <code>verify/118.sh</code> now pressing Ctrl+A and using Edit › Select All Files, may still be running in the building session. <code>d757408</code> hasn't been built here.</td><td class="no">result not known</td></tr>
-    <tr data-k="c9"><td>Folder still loading</td><td>No test holds a folder in its Loading… state; the review fix for it was only read and compiled</td><td class="no">not run</td></tr>
+    <tr data-k="c8"><td>The first Ctrl+A commit, built and tested</td><td><code>build-verify</code> agent in a cloud container on <code>44f9e3b</code>: build, then the smoke test and every verify script, with <code>verify/118.sh</code> pressing Ctrl+A and using Edit › Select All Files; it passed in 44 s, with no warnings in changed files. The review fixes in <code>d757408</code> weren't built here; CI builds and verifies them.</td><td class="ok">build OK, 20 of 20 pass</td></tr>
+    <tr data-k="c9"><td>Folder still loading</td><td>No test holds a folder in its Loading… state; the review fix for it was only read and compiled. CI flagged the gap as R14, accepted below.</td><td class="no">not run</td></tr>
     <tr data-k="c10"><td>Icon and compact views</td><td>Not in the test; their Select All isn't changed</td><td class="no">not run</td></tr>
     <tr data-k="c11"><td>CI build and verify on the final code</td><td>CI's build and verify jobs, with <code>verify/118.sh</code> and its screenshots</td><td class="open">runs on the PR in CI</td></tr>
     <tr data-k="c12"><td>Screenshot audit</td><td><code>/visual-verify pr:119</code> on CI's screenshots</td><td class="open">runs on the PR in CI</td></tr>
@@ -305,13 +305,15 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
 
   <section class="sub" id="cireview">
   <h3 class="sec">CI's code review</h3>
-  <p data-k="ci">CI reviewed the first design (<code>fd6a77d</code>) and the Ctrl+A design (<code>44f9e3b</code>) at level high. It found 13 low findings, R1 to R13, listed in the <a href="https://github.com/alexhu98/thunar/pull/119">code review comment</a> on this PR.</p>
+  <p data-k="ci">CI reviewed the first design (<code>fd6a77d</code>), the Ctrl+A design (<code>44f9e3b</code>) and its review fixes (head <code>1ebaebf</code>, with <code>d757408</code>) at level high. It found 18 low findings, R1 to R18, listed in the <a href="https://github.com/alexhu98/thunar/pull/119">code review comment</a> on this PR.</p>
   <ul class="tight">
-    <li data-k="fixed"><b>Fixed in <code>d757408</code>, R1, R6, R9, R10:</b> a folder still loading now gets an empty selection, replacing the old one (R1). The Loading… check looks only at a folder's sole child, without a lookup per row (R6). The Select All comment in <code>thunar-standard-view.h</code> now says it may select only the cursor's folder (R9). The whole-view Loading… check runs only with Expandable Folders on (R10).</li>
+    <li data-k="fixed"><b>Fixed in <code>d757408</code>, R1, R6, R9, R10:</b> a folder still loading now gets an empty selection, replacing the old one (R1). The Loading… check looks only at a folder's sole child, without a lookup per row (R6). The Select All comment in <code>thunar-standard-view.h</code> now says it may select only the cursor's folder (R9). The whole-view Loading… check runs only with Expandable Folders on (R10). CI now shows R1, R9 and R10 as resolved.</li>
     <li data-k="gone"><b>Gone with Ctrl+Shift+A, R3, R5, R8:</b> GTK's unselect-all key, the menu item in every view, and the new label's casing. All three went with the action in <code>44f9e3b</code>.</li>
     <li data-k="r4"><b>Accepted, R4:</b> Invert Selection and rubber-band selection can still select Loading… rows. The owner leaves it to upstream, which fixed it in its 4.21 development series (upstream #1500): a select function that refuses rows without a file. The fork gets it with 4.22.</li>
     <li data-k="later"><b>Accepted, R11, R12, R13:</b> unconfirmed lows from the later review. The Select All Files label and tooltip wording (R11); GTK's Ctrl+/ still selects every row, as on main (R12); the folder follows a cursor the user may not see, which is the issue's table (R13).</li>
     <li data-k="owner"><b>Accepted, R2 and R7:</b> the range selection repeats what <code>select_files_between</code> does, but that helper selects row by row, while the issue asked for one <code>select_range</code> on big folders; CI itself recommended accepting (R2). Shift+Down after Ctrl+A shrinks the selection to the rows from its anchor to the cursor, but Ctrl+A already did that on main, as in most file managers (R7). The owner accepted both.</li>
+    <li data-k="r14"><b>Accepted, R14 (confirmed):</b> no verify step presses Ctrl+A on a folder still showing Loading…, or checks the whole-view Loading… unselect. For a small folder the Loading… row lasts a split second, so a test would need a huge folder and a timed key press, and would be flaky. The owner accepted it, and the gap stays listed as not tested.</li>
+    <li data-k="r15"><b>Accepted, R15 to R18:</b> a loading folder ends with an empty selection, which the issue asks for, since the selection replaces the current one and Loading… rows must not be selected (R15). Invert Selection, rubber-band and Shift+click still select Loading… rows, as on main, left to upstream 4.22 like R4 (R16). The sole-child check repeats the model's <code>node_has_dummy_child</code>, but that helper is private to the model, so the view can't call it (R17). Whole-view Ctrl+A walks every expanded row, but only the visible rows that Select All already touches, once per key press (R18).</li>
   </ul>
   </section>
 
