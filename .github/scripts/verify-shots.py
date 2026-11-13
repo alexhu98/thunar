@@ -262,7 +262,10 @@ def comment(out):
             log = os.path.join(out, 'logs', f'{name}.log')
             tail = open(log, errors='replace').read().splitlines()[-30:] if os.path.exists(log) else []
             body = '\n'.join(tail).replace('```', "'''")
-            lines += ['', 'Last lines of the log:', '', '```text', body, '```']
+            if tail:
+                lines += ['', 'Last lines of the log:', '', '```text', body, '```']
+            else:
+                lines += ['', 'No log: the test did not start.']
         mine = [e for e in entries if e['test'] == name]
         if not mine:
             lines += ['', 'No screenshots.']
