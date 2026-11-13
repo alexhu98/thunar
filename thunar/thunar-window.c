@@ -1618,6 +1618,8 @@ thunar_window_update_edit_menu (ThunarWindow *window,
       thunar_standard_view_append_menu_item (THUNAR_STANDARD_VIEW (window->view),
                                              GTK_MENU (menu), THUNAR_STANDARD_VIEW_ACTION_SELECT_ALL_FILES);
       thunar_standard_view_append_menu_item (THUNAR_STANDARD_VIEW (window->view),
+                                             GTK_MENU (menu), THUNAR_STANDARD_VIEW_ACTION_SELECT_ALL_IN_FOLDER);
+      thunar_standard_view_append_menu_item (THUNAR_STANDARD_VIEW (window->view),
                                              GTK_MENU (menu), THUNAR_STANDARD_VIEW_ACTION_SELECT_BY_PATTERN);
       thunar_standard_view_append_menu_item (THUNAR_STANDARD_VIEW (window->view),
                                              GTK_MENU (menu), THUNAR_STANDARD_VIEW_ACTION_INVERT_SELECTION);
