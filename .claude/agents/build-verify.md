@@ -49,7 +49,7 @@ Read a log only with `tail -n 30` or `grep -n`, never whole.
    the test tools. On failure, return its last 30 lines and stop.
 4. **Run**: `.github/scripts/verify-proof.sh run`. The suite can run past the Bash tool's 10-minute limit, so start
    `rm -f "$LOGS/run.exit"; .github/scripts/verify-proof.sh run > "$LOGS/run.log" 2>&1; echo $? > "$LOGS/run.exit"`
-   with `run_in_background`, then wait with a Monitor until-loop on `$LOGS/run.exit` (at most 45 minutes, CI's limit
+   with `run_in_background` and a `timeout` of 2700000 ms, then wait with a Monitor until-loop on `$LOGS/run.exit` (at most 45 minutes, CI's limit
    for the job) and report `exit=<its content>`; never wait with a foreground `sleep`. If the sandbox can't start Xvfb (the smoke test fails before
    Thunar launches, or `Xvfb` is missing), say `verify: not run: <cause>`; CI runs the tests. Otherwise return each
    test's result line (`<name>: <status> in <s> s`), the `<k> of <m> passed` line and, for each test that didn't

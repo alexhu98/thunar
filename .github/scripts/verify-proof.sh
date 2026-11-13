@@ -8,9 +8,10 @@
 #   run      runs the smoke test (Thunar is still running 10 s after launch) and each verify/<issue>.sh, $JOBS at a
 #            time, each with its own Xvfb, xfwm4 and D-Bus session, a fresh HOME and XDG folders, and a $TIMEOUT s
 #            limit. A test that could end after $BUDGET s of the run's wall-clock time is reported as not run, and one
-#            that passes with a before/after pair that has no pair call fails. results.tsv keeps the serial order. Numbers the shots and makes each pair's 1920px image
-#            (verify-shots.py build). Writes the shots, $OUT/pairs/, the logs, $OUT/results.tsv, $OUT/numbered.json,
-#            the manifest $OUT/verify.tsv and, last, $OUT/complete, and fails if any test failed.
+#            that passes with a before/after pair that has no pair call fails. results.tsv keeps the serial order.
+#            Numbers the shots and makes each pair's 1920px image (verify-shots.py build). Writes the shots,
+#            $OUT/pairs/, the logs, $OUT/results.tsv, $OUT/numbered.json, the manifest $OUT/verify.tsv and, last,
+#            $OUT/complete, and fails if any test failed.
 #   publish  commits the shots, the pair images and the manifest to the shots branch under pr-$PR/
 #            (verify-<test>-<shot>.png, pair-<test>-<what>.png, verify.tsv) through shots.sh, writes the verify
 #            comment through pr-comment.sh and then the summary through pr-summary.py. Run it whether or not run
@@ -109,6 +110,7 @@ test_one() {  # name, command...
     WORK=$dir/work SHOTS=$OUT/shots/$name XVFB_LOG=$OUT/logs/$name.xvfb.log GTK_THEME=$(theme) NO_AT_BRIDGE=1 \
     timeout -k 5 "$TIMEOUT" dbus-run-session -- "$HERE/verify-proof.sh" session "$@" >"$OUT/logs/$name.log" 2>&1 </dev/null &
   pid=$!
+  echo "$pid" > "$dir.pid"
   wait "$pid" && status=0 || status=$?
   if (( status == 0 )) && ! python3 "$HERE/verify-shots.py" check "$OUT/shots/$name" >>"$OUT/logs/$name.log" 2>&1; then
     status="pairs incomplete"
@@ -120,6 +122,7 @@ test_one() {  # name, command...
     status="exit $status"
   fi
   kill -- -"$pid" 2>/dev/null || true
+  rm -f "$dir.pid"
   printf '%s\t%s\t%s\n' "$name" "$status" $((SECONDS - start)) > "$OUT/run/$name.row"
   echo "$name: $status in $((SECONDS - start)) s"
   [[ $status == pass ]] || sed 's/^/  | /' "$OUT/logs/$name.log" | tail -n 30
@@ -143,8 +146,10 @@ run() {
   mkdir -p "$OUT/logs" "$OUT/run"
   : > "$OUT/results.tsv"
   theme > "$OUT/theme"
-  local script name begin=$SECONDS names=(smoke)
+  local script name begin=$SECONDS names=(smoke) cmd
   local -A running=()
+  trap 'for f in "$OUT"/run/*.pid; do [[ -f $f ]] && kill -- -"$(<"$f")" 2>/dev/null; done' EXIT
+  trap 'exit 143' TERM INT
   for script in verify/*.sh; do
     [[ -f $script ]] || continue
     name=$(basename "$script" .sh)
@@ -158,15 +163,16 @@ run() {
   for name in "${names[@]}"; do
     [[ $name != *.sh ]] || continue
     while (( ${#running[@]} >= JOBS )); do reap; done
-    if (( SECONDS - begin + TIMEOUT > BUDGET )); then
+    if [[ $name == smoke ]]; then
+      cmd=(smoke)
+    elif (( SECONDS - begin + TIMEOUT > BUDGET )); then
       not_run "$name" "not run (time budget)" "verify/$name.sh could end after the run's ${BUDGET} s budget, so it was not run"
-    elif [[ $name == smoke ]]; then
-      test_one smoke smoke > "$OUT/run/smoke.console" 2>&1 &
-      running[$!]=smoke
+      continue
     else
-      test_one "$name" bash "verify/$name.sh" > "$OUT/run/$name.console" 2>&1 &
-      running[$!]=$name
+      cmd=(bash "verify/$name.sh")
     fi
+    test_one "$name" "${cmd[@]}" > "$OUT/run/$name.console" 2>&1 &
+    running[$!]=$name
   done
   while (( ${#running[@]} > 0 )); do reap; done
   for name in "${names[@]}"; do
