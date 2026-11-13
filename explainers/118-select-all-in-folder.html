@@ -114,10 +114,10 @@
   <section class="part" id="adds">
   <p class="part-label" data-k="label">Part 1</p>
   <h2 data-k="heading">What this PR adds</h2>
-  <p class="intro" data-k="intro">Ctrl+A, and Edit › Select All Files, now pick the folder from the cursor row and select that folder's rows in one go. Only <code>thunar-details-view.c</code> changes.</p>
+  <p class="intro" data-k="intro">Ctrl+A, and Edit › Select All Files, now pick the folder from the cursor row and select that folder's rows in one go. The work is in <code>thunar-details-view.c</code>.</p>
 
   <section class="sub" id="flow">
-  <div class="diagram" role="img" aria-label="Ctrl+A picks the folder at the cursor, finds its first and last visible rows and selects them in one go; the icon and compact views are unchanged, with no folder it selects the whole view, and while the folder is loading it changes nothing.">
+  <div class="diagram" role="img" aria-label="Ctrl+A picks the folder at the cursor, finds its first and last visible rows and selects them in one go; the icon and compact views are unchanged, with no folder it selects the whole view, and while the folder is loading the selection is emptied.">
   <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -187,10 +187,10 @@
     </g>
     <g data-k="7">
       <rect class="box-pr" x="520" y="260" width="210" height="120" rx="10"/>
-      <text x="536" y="290" class="t">No change</text>
-      <text x="536" y="314" class="b">first child is the</text>
+      <text x="536" y="290" class="t">Empty selection</text>
+      <text x="536" y="314" class="b">only child is the</text>
       <text x="536" y="334" class="b">Loading… row: the</text>
-      <text x="536" y="354" class="b">selection is kept</text>
+      <text x="536" y="354" class="b">old one is cleared</text>
       <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">7</text>
     </g>
   </svg>
@@ -213,7 +213,7 @@
   <div class="panel">
   <div class="lane-h" style="color:var(--accent)">① Ctrl+A — select one folder's rows</div>
   <ol class="steps">
-    <li data-k="1"><b>Press Ctrl+A.</b> Ctrl+A and Edit › Select All Files call the view's Select All, as they always did. In the details view that is <code>thunar_details_view_select_all</code> in <code>thunar-details-view.c</code>, the one code file this PR changes.</li>
+    <li data-k="1"><b>Press Ctrl+A.</b> Ctrl+A and Edit › Select All Files call the view's Select All, as they always did. In the details view that is <code>thunar_details_view_select_all</code> in <code>thunar-details-view.c</code>, where this PR's code is.</li>
     <li data-k="2"><b>Pick the folder.</b> The details view reads the cursor row, only while Expandable Folders is on. If that row is an expanded folder, it is the folder. Otherwise its parent folder is, so a file inside <code>a</code>, or a collapsed folder inside it, picks <code>a</code>.</li>
     <li data-k="3"><b>Find the range.</b> The range starts at the folder's first child. It ends at the last visible row inside the folder, found by stepping into the last child as long as it is expanded. In the list's order, everything between those two rows is the folder's contents, and nothing else.</li>
     <li data-k="4"><b>Select at once.</b> It clears the selection and selects the whole range with one <code>select_range</code> call, so a folder with thousands of rows is one call, not thousands. It then unselects any Loading… rows inside expanded subfolders, and tells the rest of Thunar about the new selection once. The folder row itself is outside the range, so it isn't selected.</li>
@@ -221,8 +221,8 @@
   <div class="lane-h" style="color:var(--merge)">② Other cases</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
     <li data-k="5"><b>Other views.</b> The icon and compact views have their own Select All, which this PR doesn't touch, so Ctrl+A there still selects everything.</li>
-    <li data-k="6"><b>Whole view.</b> With the cursor on a top-level row that isn't an expanded folder, with no cursor, or with Expandable Folders off, Ctrl+A selects every row as before. It now also unselects any Loading… rows, and tells Thunar about the change once.</li>
-    <li data-k="7"><b>No change.</b> A folder that was just expanded shows a Loading… row until its files arrive. If that row is the folder's first child, Ctrl+A leaves the selection as it was, instead of clearing it.</li>
+    <li data-k="6"><b>Whole view.</b> With the cursor on a top-level row that isn't an expanded folder, with no cursor, or with Expandable Folders off, Ctrl+A selects every row as before. With Expandable Folders on, it now also unselects any Loading… rows, and tells Thunar about the change once.</li>
+    <li data-k="7"><b>Empty selection.</b> A folder that was just expanded shows a Loading… row until its files arrive. If that row is the folder's only child, there is nothing in it to select yet, so Ctrl+A replaces the old selection with an empty one.</li>
   </ol>
   </div>
   </section>
@@ -236,7 +236,7 @@
     <tr data-k="k2"><td>A row inside an expanded folder, a collapsed subfolder included</td><td>Every row in that row's parent folder</td><td><code>inside-a</code>, <code>nested-folder</code>, <code>edit-menu</code></td></tr>
     <tr data-k="k3"><td>A top-level file or collapsed folder</td><td>Every row in the view, expanded children included</td><td><code>top-level-all</code></td></tr>
     <tr data-k="k4"><td>Any row, with Expandable Folders off, or in the icon or compact view</td><td>Every row in the view, as before</td><td><code>expandable-off</code> (icon and compact views not tested)</td></tr>
-    <tr data-k="k5"><td>An expanded folder whose files are still loading</td><td>Nothing changes</td><td>not tested</td></tr>
+    <tr data-k="k5"><td>An expanded folder whose files are still loading</td><td>Nothing: the old selection is cleared</td><td>not tested</td></tr>
   </table>
   </div>
   <div class="note warn" data-k="whole">From inside an expanded folder, Ctrl+A no longer selects the whole view. To get every row, move the cursor to a top-level row first, for example with Home or End.</div>
@@ -245,7 +245,8 @@
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">thunar/
-└── thunar-details-view.c   # Select All picks the folder, selects its range, skips Loading rows
+├── thunar-details-view.c   # Select All picks the folder, selects its range, skips Loading rows
+└── thunar-standard-view.h  # one comment: Select All may select only the cursor's folder
 verify/118.sh               # the test: 7 checks, 8 screenshots
 explainers/118-select-all-in-folder.html            # this page
 explainers/118-select-all-in-folder.narration.json  # its narration</pre>
@@ -279,8 +280,8 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
     <tr data-k="c4"><td>Cursor inside or on a folder (first design)</td><td>Fixed <code>verify/118.sh</code> (<code>e4e4548</code>), re-run alone with the same setup, against the <code>47d5e1a</code> build: Ctrl+Shift+A on <code>a1.txt</code>, on <code>a</code>, and on <code>s1.txt</code> in <code>a/sub</code></td><td class="ok">4, 4 and 1 rows, as expected</td></tr>
     <tr data-k="c5"><td>Cursor stays, and the Edit menu (first design)</td><td>Same run: Ctrl+Space after Ctrl+Shift+A unselects only <code>a1.txt</code>; Edit › Select All in Folder from <code>a2.txt</code></td><td class="ok">3 rows left; same 4 rows</td></tr>
     <tr data-k="c6"><td>Whole view (first design)</td><td>Same run: Ctrl+Shift+A on <code>top.txt</code>, reached with End, with Expandable Folders on, then off</td><td class="ok">all 8 rows; all 3 rows</td></tr>
-    <tr data-k="c7"><td>The final Ctrl+A code compiles cleanly</td><td><code>gcc -fsyntax-only -Wall -Wextra</code> on <code>44f9e3b</code></td><td class="ok">no warnings</td></tr>
-    <tr data-k="c8"><td>The final Ctrl+A code, built and tested</td><td>A full build and run of every test, with <code>verify/118.sh</code> now pressing Ctrl+A and using Edit › Select All Files, was still running in the building session when this page was written</td><td class="no">result not known</td></tr>
+    <tr data-k="c7"><td>The final Ctrl+A code compiles cleanly</td><td><code>gcc -fsyntax-only -Wall -Wextra</code> on <code>44f9e3b</code>, and again on the CI review fixes in <code>d757408</code></td><td class="ok">no warnings</td></tr>
+    <tr data-k="c8"><td>The final Ctrl+A code, built and tested</td><td>A full build and run of every test on <code>44f9e3b</code>, with <code>verify/118.sh</code> now pressing Ctrl+A and using Edit › Select All Files, may still be running in the building session. <code>d757408</code> hasn't been built here.</td><td class="no">result not known</td></tr>
     <tr data-k="c9"><td>Folder still loading</td><td>No test holds a folder in its Loading… state; the review fix for it was only read and compiled</td><td class="no">not run</td></tr>
     <tr data-k="c10"><td>Icon and compact views</td><td>Not in the test; their Select All isn't changed</td><td class="no">not run</td></tr>
     <tr data-k="c11"><td>CI build and verify on the final code</td><td>CI's build and verify jobs, with <code>verify/118.sh</code> and its screenshots</td><td class="open">runs on the PR in CI</td></tr>
@@ -293,14 +294,25 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
   <h3 class="sec">Code review</h3>
   <p data-k="summary">Before the first push, a fresh agent ran <code>/code-review</code> at level high on the whole branch, which then held the first, Ctrl+Shift+A design. It found 7 problems. 4 are fixed: 1 by the reviewer, 2 by the building session, and 1 by this page and its narration. The owner's switch to Ctrl+A settled 2 more, and partly fixed the last.</p>
   <ul class="tight">
-    <li data-k="b1"><b>Fixed, loading folders:</b> an expanded folder whose only child was still the Loading… row made the new selection clear everything. It now leaves the selection alone.</li>
+    <li data-k="b1"><b>Fixed, loading folders:</b> an expanded folder whose only child was still the Loading… row cleared the selection by accident. The local fix kept the old selection; CI's R1 below changed that to a deliberate empty selection.</li>
     <li data-k="b2"><b>Fixed, tidier code:</b> the Loading… row check no longer looks up plain rows that have no children, and a condition that changed the cursor path halfway through is now plain steps.</li>
     <li data-k="s4"><b>Fixed, S4:</b> the branch had no explainer page or narration yet, so CI's explainer job would have failed. This page and its narration fix it.</li>
     <li data-k="b3"><b>Settled, S1:</b> Ctrl+Shift+A would have replaced GTK's built-in unselect-all key in the list and icon views. With Ctrl+A chosen instead, that key keeps working.</li>
-    <li data-k="b4"><b>Partly fixed, S2:</b> Ctrl+A and Invert Selection could select Loading… rows, before this PR too. Ctrl+A no longer does; Invert Selection still can, and the owner was offered a separate issue for it.</li>
+    <li data-k="b4"><b>Partly fixed, S2:</b> Ctrl+A and Invert Selection could select Loading… rows, before this PR too. Ctrl+A no longer does; Invert Selection still can, which is CI's R4 below.</li>
     <li data-k="b5"><b>Settled, S6:</b> the new Edit menu item would have shown in every view. No menu item is added now.</li>
   </ul>
-  <p data-k="ci">CI reviews every code push at level high and reports in the <a href="https://github.com/alexhu98/thunar/pull/119">code review comment</a> on this PR. It hadn't run when this page was written.</p>
+  </section>
+
+  <section class="sub" id="cireview">
+  <h3 class="sec">CI's code review</h3>
+  <p data-k="ci">CI reviewed the first design (<code>fd6a77d</code>) and the Ctrl+A design (<code>44f9e3b</code>) at level high. It found 13 low findings, R1 to R13, listed in the <a href="https://github.com/alexhu98/thunar/pull/119">code review comment</a> on this PR.</p>
+  <ul class="tight">
+    <li data-k="fixed"><b>Fixed in <code>d757408</code>, R1, R6, R9, R10:</b> a folder still loading now gets an empty selection, replacing the old one (R1). The Loading… check looks only at a folder's sole child, without a lookup per row (R6). The Select All comment in <code>thunar-standard-view.h</code> now says it may select only the cursor's folder (R9). The whole-view Loading… check runs only with Expandable Folders on (R10).</li>
+    <li data-k="gone"><b>Gone with Ctrl+Shift+A, R3, R5, R8:</b> GTK's unselect-all key, the menu item in every view, and the new label's casing. All three went with the action in <code>44f9e3b</code>.</li>
+    <li data-k="r4"><b>Accepted, R4:</b> Invert Selection and rubber-band selection can still select Loading… rows. The owner leaves it to upstream, which fixed it in its 4.21 development series (upstream #1500): a select function that refuses rows without a file. The fork gets it with 4.22.</li>
+    <li data-k="later"><b>Accepted, R11, R12, R13:</b> unconfirmed lows from the later review. The Select All Files label and tooltip wording (R11); GTK's Ctrl+/ still selects every row, as on main (R12); the folder follows a cursor the user may not see, which is the issue's table (R13).</li>
+    <li data-k="owner"><b>Waiting on the owner, R2 and R7:</b> the range selection repeats what <code>select_files_between</code> does, but that helper selects row by row, and CI itself recommends accepting (R2). Shift+Down after Ctrl+A shrinks the selection to the rows from its anchor to the cursor, as Ctrl+A already did on main (R7). The recommendation for both is to accept.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -329,10 +341,10 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
   <section class="part" id="later">
   <p class="part-label" data-k="label">Part 3</p>
   <h2 data-k="heading">What comes later: nothing builds on #118</h2>
-  <p class="intro" data-k="intro">No open issue says “Depends on #118”. The one other open issue, #117, speeds up CI's verify job and will run this PR's test with the rest.</p>
+  <p class="intro" data-k="intro">No open issue says “Depends on #118”. The one other open issue, #117, speeds up CI's verify job and will run this PR's test with the rest. Upstream's 4.22 brings the fix for R4.</p>
 
   <section class="sub" id="next">
-  <div class="diagram" role="img" aria-label="This PR merges; #117 later runs its test in a faster verify job, and the owner decides whether to open an issue for S2.">
+  <div class="diagram" role="img" aria-label="This PR merges; #117 later runs its test in a faster verify job, and upstream 4.22 keeps Loading rows out of every selection.">
   <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -357,20 +369,19 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
       <text x="286" y="154" class="b">PR's test included</text>
     </g>
     <g data-k="n3">
-      <rect class="box-you" x="520" y="60" width="210" height="120" rx="10"/>
-      <text x="536" y="90" class="t">You: decide S2</text>
-      <text x="536" y="114" class="b">an issue to keep</text>
-      <text x="536" y="134" class="b">Loading… rows out</text>
-      <text x="536" y="154" class="b">of Invert Selection</text>
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Upstream 4.22</text>
+      <text x="536" y="114" class="b">no selection takes</text>
+      <text x="536" y="134" class="b">Loading… rows (R4,</text>
+      <text x="536" y="154" class="b">upstream #1500)</text>
     </g>
     <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
-    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
   </svg>
   </div>
   <div class="legend">
     <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
     <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
-    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
   </div>
   </section>
 
@@ -379,6 +390,15 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
   <div class="panel">
   <ol class="steps">
     <li data-k="1"><b>Runs this test, nothing more.</b> #117 runs the verify scripts in parallel and only the changed ones on a PR. It doesn't touch Thunar's code; <code>verify/118.sh</code> is just one more script for it to run.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="upstream">
+  <h3 class="sec">Upstream 4.22 (later)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Arrives with the move to 4.22.</b> Upstream's commit <code>a1e92d2a0</code> (#1500) gives the details view a select function that refuses rows without a file. Then Invert Selection and rubber-band selection skip Loading… rows too, which closes R4 without fork code.</li>
   </ol>
   </div>
   </section>
@@ -398,7 +418,8 @@ explainers/118-select-all-in-folder.narration.json  # its narration</pre>
     <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual screen with no monitor, so Thunar can run in CI.</dd></div>
     <div data-k="smoke"><dt>Smoke test</dt><dd>CI's basic check that Thunar is still running 10 seconds after it starts.</dd></div>
     <div data-k="vv"><dt><code>/visual-verify</code></dt><dd>A check in which a separate agent looks at every screenshot and says whether it shows what it claims.</dd></div>
-    <div data-k="sn"><dt>S1, S2, S4, S6</dt><dd>Review findings, numbered in its report, that the reviewer didn't fix itself.</dd></div>
+    <div data-k="sn"><dt>S1–S6, R1–R13</dt><dd>Findings of the local review (S) and of CI's review (R), numbered in their reports.</dd></div>
+    <div data-k="upstream"><dt>Upstream</dt><dd>Xfce's own Thunar, which this fork follows; 4.21 is its development series before the 4.22 release.</dd></div>
   </dl>
   </section>
 </main>
