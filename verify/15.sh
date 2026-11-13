@@ -25,6 +25,7 @@ EOF
 echo dbus > "$APPS/notes.txt"
 echo first > "$APPS/zz-first.txt"
 xfconf-query -c thunar -p /default-view -n -t string -s ThunarDetailsView
+xfconf-query -c thunar -p /misc-rename-in-place -n -t bool -s false
 
 P='Rename popover in the details view'
 O='Other views and callers'

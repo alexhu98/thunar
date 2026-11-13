@@ -237,6 +237,9 @@ thunar_standard_view_get_action_entries (void);
 
 void
 thunar_standard_view_queue_redraw (ThunarStandardView *standard_view);
+gboolean
+thunar_standard_view_rename_in_place (ThunarStandardView *standard_view,
+                                      ThunarFile         *file);
 void
 thunar_standard_view_set_statusbar_text (ThunarStandardView *standard_view,
                                          const gchar        *text);

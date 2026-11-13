@@ -104,6 +104,7 @@ enum
   PROP_MISC_RECURSIVE_SEARCH,
   PROP_MISC_REMEMBER_GEOMETRY,
   PROP_MISC_REMEMBER_SPLIT_POSITION,
+  PROP_MISC_RENAME_IN_PLACE,
   PROP_MISC_SHOW_ABOUT_TEMPLATES,
   PROP_MISC_SHOW_DELETE_ACTION,
   PROP_MISC_SINGLE_CLICK,
@@ -923,6 +924,18 @@ thunar_preferences_class_init (ThunarPreferencesClass *klass)
   preferences_props[PROP_MISC_SHOW_ABOUT_TEMPLATES] =
   g_param_spec_boolean ("misc-show-about-templates",
                         "MiscShowAboutTemplates",
+                        NULL,
+                        TRUE,
+                        EXO_PARAM_READWRITE);
+
+  /**
+   * ThunarPreferences:misc-rename-in-place:
+   *
+   * Whether renaming a single file edits its name in the view.
+   **/
+  preferences_props[PROP_MISC_RENAME_IN_PLACE] =
+  g_param_spec_boolean ("misc-rename-in-place",
+                        "MiscRenameInPlace",
                         NULL,
                         TRUE,
                         EXO_PARAM_READWRITE);

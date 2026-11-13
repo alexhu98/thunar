@@ -26,10 +26,11 @@
 
 G_BEGIN_DECLS;
 
-typedef void (*ThunarDialogsRenameCallback) (ThunarJob  *job,
-                                             ThunarFile *file,
-                                             GdkScreen  *screen,
-                                             gpointer    user_data);
+typedef void (*ThunarDialogsRenameCallback) (ThunarFile            *file,
+                                             const gchar           *name,
+                                             GdkScreen             *screen,
+                                             ThunarOperationLogMode log_mode,
+                                             gpointer               user_data);
 
 gchar *
 thunar_dialogs_show_create (gpointer     parent,
@@ -38,6 +39,9 @@ thunar_dialogs_show_create (gpointer     parent,
                             const gchar *title);
 gboolean
 thunar_dialogs_rename_popover_is_open (gpointer parent);
+void
+thunar_dialogs_select_rename_text (GtkEntry   *entry,
+                                   ThunarFile *file);
 void
 thunar_dialogs_show_rename_file (gpointer                    parent,
                                  ThunarFile                 *file,

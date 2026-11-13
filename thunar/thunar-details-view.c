@@ -683,7 +683,7 @@ thunar_details_view_set_cursor (ThunarStandardView *standard_view,
   g_object_set (G_OBJECT (standard_view->name_renderer), "mode", GTK_CELL_RENDERER_MODE_EDITABLE, NULL);
 
   /* tell the tree view to start editing the given row */
-  column = gtk_tree_view_get_column (GTK_TREE_VIEW (gtk_bin_get_child (GTK_BIN (standard_view))), 0);
+  column = THUNAR_DETAILS_VIEW (standard_view)->columns[THUNAR_COLUMN_NAME];
   gtk_tree_view_set_cursor_on_cell (GTK_TREE_VIEW (gtk_bin_get_child (GTK_BIN (standard_view))),
                                     path, column, standard_view->name_renderer,
                                     start_editing);
@@ -710,7 +710,7 @@ thunar_details_view_scroll_to_path (ThunarStandardView *standard_view,
     return;
 
   /* tell the tree view to scroll to the given row */
-  column = gtk_tree_view_get_column (GTK_TREE_VIEW (gtk_bin_get_child (GTK_BIN (standard_view))), 0);
+  column = THUNAR_DETAILS_VIEW (standard_view)->columns[THUNAR_COLUMN_NAME];
   gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW (gtk_bin_get_child (GTK_BIN (standard_view))), path, column, use_align, row_align, col_align);
 }
 

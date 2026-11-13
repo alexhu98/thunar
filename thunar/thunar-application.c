@@ -2633,12 +2633,17 @@ thunar_application_rename_file_finished (ExoJob  *job,
 
 
 static void
-thunar_application_rename_file_started (ThunarJob  *job,
-                                        ThunarFile *file,
-                                        GdkScreen  *screen,
-                                        gpointer    user_data)
+thunar_application_rename_file_start (ThunarFile            *file,
+                                      const gchar           *name,
+                                      GdkScreen             *screen,
+                                      ThunarOperationLogMode log_mode,
+                                      gpointer               user_data)
 {
   ThunarApplication *application = THUNAR_APPLICATION (user_data);
+  ThunarJob         *job;
+
+  job = thunar_io_jobs_rename_file (file, name, log_mode);
+  exo_job_launch (EXO_JOB (job));
 
   /* remember the screen and file */
   g_object_set_qdata (G_OBJECT (job), thunar_application_screen_quark, screen);
@@ -2652,6 +2657,32 @@ thunar_application_rename_file_started (ThunarJob  *job,
   /* destroy the job when it has finished */
   g_signal_connect (job, "finished",
                     G_CALLBACK (thunar_application_rename_file_finished), NULL);
+}
+
+
+
+/**
+ * thunar_application_rename_file_to:
+ * @application : a #ThunarApplication.
+ * @file        : a #ThunarFile to be renamed.
+ * @name        : the new name of @file.
+ * @screen      : the #GdkScreen on which to show errors.
+ * @log_mode    : a #ThunarOperationLogMode to control logging of the operation
+ *
+ * Renames @file to @name in a job, like the rename dialog does.
+ **/
+void
+thunar_application_rename_file_to (ThunarApplication     *application,
+                                   ThunarFile            *file,
+                                   const gchar           *name,
+                                   GdkScreen             *screen,
+                                   ThunarOperationLogMode log_mode)
+{
+  _thunar_return_if_fail (THUNAR_IS_APPLICATION (application));
+  _thunar_return_if_fail (THUNAR_IS_FILE (file));
+  _thunar_return_if_fail (GDK_IS_SCREEN (screen));
+
+  thunar_application_rename_file_start (file, name, screen, log_mode, application);
 }
 
 
@@ -2728,7 +2759,7 @@ thunar_application_rename_file (ThunarApplication     *application,
     }
 
   /* run the rename dialog */
-  thunar_dialogs_show_rename_file (parent, file, log_mode, thunar_application_rename_file_started, application);
+  thunar_dialogs_show_rename_file (parent, file, log_mode, thunar_application_rename_file_start, application);
 
 out:
   if (window_ref != NULL)
