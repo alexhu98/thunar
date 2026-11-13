@@ -74,7 +74,7 @@ struct _ThunarStandardViewClass
    * both the list and the items are owned by the caller. */
   GList *(*get_selected_items) (ThunarStandardView *standard_view);
 
-  /* Selects all items in the view */
+  /* Selects all items in the view, or in the folder at the cursor */
   void (*select_all) (ThunarStandardView *standard_view);
 
   /* Unselects all items in the view */

@@ -579,14 +579,116 @@ thunar_details_view_get_selected_items (ThunarStandardView *standard_view)
 
 
 static void
+thunar_details_view_unselect_placeholders (GtkTreeView      *tree_view,
+                                           GtkTreeModel     *model,
+                                           GtkTreeSelection *selection,
+                                           GtkTreeIter      *parent)
+{
+  GtkTreeIter  iter;
+  GtkTreePath *path;
+  ThunarFile  *file;
+  gboolean     expanded;
+
+  if (!gtk_tree_model_iter_children (model, &iter, parent))
+    return;
+
+  if (parent != NULL && gtk_tree_model_iter_n_children (model, parent) == 1)
+    {
+      file = thunar_standard_view_model_get_file (THUNAR_STANDARD_VIEW_MODEL (model), &iter);
+      if (file == NULL)
+        {
+          gtk_tree_selection_unselect_iter (selection, &iter);
+          return;
+        }
+      g_object_unref (file);
+    }
+
+  do
+    {
+      if (!gtk_tree_model_iter_has_child (model, &iter))
+        continue;
+
+      path = gtk_tree_model_get_path (model, &iter);
+      expanded = gtk_tree_view_row_expanded (tree_view, path);
+      gtk_tree_path_free (path);
+      if (expanded)
+        thunar_details_view_unselect_placeholders (tree_view, model, selection, &iter);
+    }
+  while (gtk_tree_model_iter_next (model, &iter));
+}
+
+
+
+static void
 thunar_details_view_select_all (ThunarStandardView *standard_view)
 {
-  GtkTreeSelection *selection;
+  ThunarDetailsView *details_view = THUNAR_DETAILS_VIEW (standard_view);
+  GtkTreeView       *tree_view;
+  GtkTreeModel      *model;
+  GtkTreeSelection  *selection;
+  GtkTreePath       *cursor;
+  GtkTreePath       *first;
+  GtkTreePath       *last;
+  GtkTreeIter        folder;
+  GtkTreeIter        iter;
+  GtkTreeIter        child;
+  gint               n_children;
 
   _thunar_return_if_fail (THUNAR_IS_DETAILS_VIEW (standard_view));
 
-  selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (gtk_bin_get_child (GTK_BIN (standard_view))));
-  gtk_tree_selection_select_all (selection);
+  tree_view = GTK_TREE_VIEW (details_view->tree_view);
+  model = gtk_tree_view_get_model (tree_view);
+  selection = gtk_tree_view_get_selection (tree_view);
+
+  cursor = NULL;
+  if (details_view->expandable_folders)
+    gtk_tree_view_get_cursor (tree_view, &cursor, NULL);
+
+  if (cursor != NULL && !gtk_tree_view_row_expanded (tree_view, cursor))
+    {
+      if (gtk_tree_path_get_depth (cursor) > 1)
+        gtk_tree_path_up (cursor);
+      else
+        g_clear_pointer (&cursor, gtk_tree_path_free);
+    }
+
+  if (cursor == NULL
+      || !gtk_tree_model_get_iter (model, &folder, cursor)
+      || !gtk_tree_model_iter_children (model, &child, &folder))
+    {
+      gtk_tree_path_free (cursor);
+      g_signal_handlers_block_by_func (selection, thunar_standard_view_selection_changed, standard_view);
+      gtk_tree_selection_select_all (selection);
+      if (details_view->expandable_folders)
+        thunar_details_view_unselect_placeholders (tree_view, model, selection, NULL);
+      g_signal_handlers_unblock_by_func (selection, thunar_standard_view_selection_changed, standard_view);
+      thunar_standard_view_selection_changed (standard_view);
+      return;
+    }
+
+  first = gtk_tree_model_get_path (model, &child);
+  iter = folder;
+  last = gtk_tree_path_copy (cursor);
+  while (gtk_tree_view_row_expanded (tree_view, last)
+         && (n_children = gtk_tree_model_iter_n_children (model, &iter)) > 0
+         && gtk_tree_model_iter_nth_child (model, &child, &iter, n_children - 1))
+    {
+      iter = child;
+      gtk_tree_path_free (last);
+      last = gtk_tree_model_get_path (model, &iter);
+    }
+
+  g_signal_handlers_block_by_func (selection, thunar_standard_view_selection_changed, standard_view);
+  gtk_tree_selection_unselect_all (selection);
+  gtk_tree_selection_select_range (selection, first, last);
+  thunar_details_view_unselect_placeholders (tree_view, model, selection, &folder);
+  g_signal_handlers_unblock_by_func (selection, thunar_standard_view_selection_changed, standard_view);
+
+  thunar_standard_view_selection_changed (standard_view);
+
+  gtk_tree_path_free (first);
+  gtk_tree_path_free (last);
+  gtk_tree_path_free (cursor);
 }
 
 
