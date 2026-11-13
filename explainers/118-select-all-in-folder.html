@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #119 Folder Select</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #119: Ctrl+Shift+A selects everything inside the current folder</h1>
+  <p class="lead" data-k="lead">Branch <code>118-select-all-in-folder</code> → <code>main</code>, closes #118. In the detailed list with Expandable Folders on, one key now selects just the contents of the folder you're in, instead of every row in the view.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing builds on #118</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">A new action, Select All in Folder, on Ctrl+Shift+A and in the Edit menu. It picks the folder from the cursor row and selects that folder's rows in one go. The logic lives in <code>thunar-details-view.c</code>.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="Ctrl+Shift+A picks the folder at the cursor, finds its first and last visible rows and selects them in one go; with no folder it selects everything, and while the folder is loading it changes nothing.">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Ctrl+Shift+A — select one folder's rows</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Press the key</text>
+      <text x="36" y="114" class="m">Ctrl+Shift+A</text>
+      <text x="36" y="134" class="b">or Edit › Select All</text>
+      <text x="36" y="154" class="b">in Folder</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Pick the folder</text>
+      <text x="286" y="114" class="b">expanded row: itself</text>
+      <text x="286" y="134" class="b">other rows: their</text>
+      <text x="286" y="154" class="b">parent folder</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Find the range</text>
+      <text x="536" y="114" class="b">from its first child</text>
+      <text x="536" y="134" class="b">to the last visible</text>
+      <text x="536" y="154" class="b">row inside it</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Select at once</text>
+      <text x="786" y="114" class="m">select_range</text>
+      <text x="786" y="134" class="b">minus Loading rows;</text>
+      <text x="786" y="154" class="b">cursor stays put</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M375,180 V256" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M625,180 V256" marker-end="url(#ah-flow)"/>
+    <text x="384" y="222" class="b">no folder</text>
+    <text x="634" y="222" class="b">still loading</text>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② Other cases</text>
+    <g data-k="5">
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Select all</text>
+      <text x="286" y="314" class="b">top-level row, icon</text>
+      <text x="286" y="334" class="b">view, or Expandable</text>
+      <text x="286" y="354" class="b">Folders off: Ctrl+A</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-pr" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">No change</text>
+      <text x="536" y="314" class="b">first child is the</text>
+      <text x="536" y="334" class="b">Loading… row: the</text>
+      <text x="536" y="354" class="b">selection is kept</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new in this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>Thunar's existing Select All, reused</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">With Expandable Folders on, the detailed list shows a folder's contents as indented rows under it, like a tree. Ctrl+A selects every row in the view, opened folders included, so selecting just one folder's files meant Shift+click or holding Shift+Down. Ctrl+Shift+A now does it in one key press.</p>
+  <div class="note" data-k="note">The folder comes from the cursor, the row with the keyboard focus outline, not from the selection. The selection is replaced, and the cursor itself never moves.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Ctrl+Shift+A — select one folder's rows</div>
+  <ol class="steps">
+    <li data-k="1"><b>Press the key.</b> A new row in the action table of <code>thunar-standard-view.c</code>, right after Select All, binds Ctrl+Shift+A, so it can be changed in the shortcuts editor. <code>thunar-window.c</code> adds “Select All in Folder” to the Edit menu below Select All. The handler gives the view focus and calls the view's own select-all-in-folder, or plain Select All for views that have none, such as the icon and compact views.</li>
+    <li data-k="2"><b>Pick the folder.</b> The details view reads the cursor row, only while Expandable Folders is on. If that row is an expanded folder, it is the folder. Otherwise its parent folder is, so a file inside <code>a</code>, or a collapsed folder inside it, picks <code>a</code>.</li>
+    <li data-k="3"><b>Find the range.</b> The range starts at the folder's first child. It ends at the last visible row inside the folder, found by stepping into the last child as long as it is expanded. In the list's order, everything between those two rows is the folder's contents, and nothing else.</li>
+    <li data-k="4"><b>Select at once.</b> It clears the selection and selects the whole range with one <code>select_range</code> call, so a folder with thousands of rows is one call, not thousands. It then unselects any Loading… rows inside expanded subfolders, and tells the rest of Thunar about the new selection once. The folder row itself is outside the range, so it isn't selected.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② Other cases</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Select all.</b> With the cursor on a top-level row that isn't an expanded folder, with no cursor, or with Expandable Folders off, it runs the same Select All as Ctrl+A. So do the icon and compact views, through step 1.</li>
+    <li data-k="6"><b>No change.</b> A folder that was just expanded shows a Loading… row until its files arrive. If that row is the folder's first child, Ctrl+Shift+A leaves the selection as it was, instead of clearing it.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">What Ctrl+Shift+A selects</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Cursor on</th><th>Ctrl+Shift+A selects</th><th>Test shot</th></tr>
+    <tr data-k="k1"><td>An expanded folder</td><td>Every row inside it, at all depths, but not the folder row</td><td><code>on-expanded-folder</code></td></tr>
+    <tr data-k="k2"><td>A row inside an expanded folder, a collapsed subfolder included</td><td>Every row in that row's parent folder</td><td><code>inside-a</code>, <code>nested-folder</code></td></tr>
+    <tr data-k="k3"><td>A top-level file or collapsed folder</td><td>Every row in the view, like Ctrl+A</td><td><code>top-level-all</code></td></tr>
+    <tr data-k="k4"><td>Any row, with Expandable Folders off, or in the icon or compact view</td><td>Every row in the view, like Ctrl+A</td><td><code>expandable-off</code> (icon and compact views not tested)</td></tr>
+    <tr data-k="k5"><td>An expanded folder whose files are still loading</td><td>Nothing changes</td><td>not tested</td></tr>
+  </table>
+  </div>
+  <div class="note warn" data-k="gtk">Ctrl+Shift+A used to be GTK's built-in “unselect all” key in the list and icon views. It now selects instead, as the issue asked. Escape still unselects everything.</div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+├── thunar-standard-view.h  # new action id, new view slot select_all_in_folder
+├── thunar-standard-view.c  # Ctrl+Shift+A action row and its handler
+├── thunar-details-view.c   # picks the folder, selects its range, skips Loading rows
+└── thunar-window.c         # Edit menu item below Select All
+verify/118.sh               # the test: 7 checks, 8 screenshots
+explainers/118-select-all-in-folder.html            # this page
+explainers/118-select-all-in-folder.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo it, revert this PR. It adds no setting and stores nothing.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built and tested in a cloud container by the session that wrote the code, then reviewed. CI builds, tests and reviews it again on this PR.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Issue #118's table</h3><p>The owner's three cases: cursor on an expanded folder, inside one, or at the top level. The test checks each one, on the same files the issue lists.</p></div>
+    <div class="card" data-k="r2"><h3>Ctrl+A, Select All</h3><p>The existing select-all in the details view. Every “select everything” case calls it, and the test compares those cases with its result.</p></div>
+    <div class="card" data-k="r3"><h3>Copy and paste as a probe</h3><p>The test reads the selection by copying it and pasting into an empty folder, then listing that folder, rather than reading the status bar as the issue suggested.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage</code> of the first commit <code>47d5e1a</code>, in the building session's cloud container</td><td class="ok">build OK, debs installed</td></tr>
+    <tr data-k="c2"><td>Nothing else broke</td><td>The smoke test and the other verify scripts, each under its own Xvfb, against that build</td><td class="ok">smoke pass, 18 of 18 pass</td></tr>
+    <tr data-k="c3"><td>First run of the new test</td><td><code>verify/118.sh</code> against that build. Clicking <code>top.txt</code> left the cursor on <code>b1.txt</code>, so the check selected only <code>b1.txt</code>. The Edit menu check started on <code>b1.txt</code>, so it proved nothing.</td><td class="no">failed at check 7; the test was fixed</td></tr>
+    <tr data-k="c4"><td>Cursor inside or on a folder</td><td>Fixed <code>verify/118.sh</code> (<code>e4e4548</code>), re-run alone with the same setup, against the <code>47d5e1a</code> build: Ctrl+Shift+A on <code>a1.txt</code>, on <code>a</code>, and on <code>s1.txt</code> in <code>a/sub</code></td><td class="ok">4, 4 and 1 rows, as expected</td></tr>
+    <tr data-k="c5"><td>Cursor stays, and the Edit menu</td><td>Same run: Ctrl+Space after Ctrl+Shift+A unselects only <code>a1.txt</code>; Edit › Select All in Folder from <code>a2.txt</code></td><td class="ok">3 rows left; same 4 rows</td></tr>
+    <tr data-k="c6"><td>Falls back to Select All</td><td>Same run: Ctrl+Shift+A on <code>top.txt</code>, reached with End, with Expandable Folders on, then off</td><td class="ok">all 8 rows; all 3 rows</td></tr>
+    <tr data-k="c7"><td>The final code compiles cleanly</td><td><code>gcc -fsyntax-only -Wall -Wextra</code> after the review fixes in <code>de04083</code></td><td class="ok">no warnings</td></tr>
+    <tr data-k="c8"><td>The final code, built and tested</td><td>The local build and test ran on <code>47d5e1a</code>, before the review fixes in <code>de04083</code>; not re-run here</td><td class="no">not run here</td></tr>
+    <tr data-k="c9"><td>Folder still loading</td><td>No test holds a folder in its Loading… state; the review fix for it was only read and compiled</td><td class="no">not run</td></tr>
+    <tr data-k="c10"><td>Icon and compact views, rebinding the key</td><td>Not in the test; the icon and compact views reuse Select All unchanged</td><td class="no">not run</td></tr>
+    <tr data-k="c11"><td>CI build and verify on the final code</td><td>CI's build and verify jobs, with <code>verify/118.sh</code> and its screenshots</td><td class="open">runs on the PR in CI</td></tr>
+    <tr data-k="c12"><td>Screenshot audit</td><td><code>/visual-verify pr:119</code> on CI's screenshots</td><td class="open">runs on the PR in CI</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh agent ran <code>/code-review</code> at level high on the whole branch. It found 7 problems. 4 are fixed: 1 by the reviewer, 2 by the building session, and 1 by this page and its narration. 3 are left for the owner.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed, loading folders:</b> an expanded folder whose only child was still the Loading… row made Ctrl+Shift+A clear the selection. It now leaves the selection alone.</li>
+    <li data-k="b2"><b>Fixed, tidier code:</b> the Loading… row check no longer looks up plain rows that have no children, and a condition that changed the cursor path halfway through is now plain steps.</li>
+    <li data-k="s4"><b>Fixed, S4:</b> the branch had no explainer page or narration yet, so CI's explainer job would have failed. This page and its narration fix it.</li>
+    <li data-k="b3"><b>Left for the owner, S1:</b> Ctrl+Shift+A replaces GTK's built-in unselect-all key in the list and icon views. The issue asked for this key, and Escape still unselects all.</li>
+    <li data-k="b4"><b>Left for the owner, S2:</b> Ctrl+A, Invert Selection and this action's Select All fallback can select Loading… rows. That predates this PR; a general fix in the details view belongs in its own issue.</li>
+    <li data-k="b5"><b>Left for the owner, S6:</b> the Edit menu item shows in every view and acts like Select All outside the expandable details view, as the issue specifies.</li>
+  </ul>
+  <p data-k="ci">CI reviews every code push at level high and reports in the <a href="https://github.com/alexhu98/thunar/pull/119">code review comment</a> on this PR. It hadn't run when this page was written.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>Daily use on the owner's desktop, with real folders</td><td>CI and the container use small test folders on a virtual screen</td><td class="open">when the owner installs the next build</td></tr>
+    <tr data-k="a2"><td>Speed in a folder with thousands of rows</td><td>Not measured; the selection is one call, and the Loading… check visits each row of the folder's expanded subfolders</td><td class="open">the first big folder</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l0">The PR: <a href="https://github.com/alexhu98/thunar/pull/119">#119</a>, with CI's summary, code review, verify and explainer comments</li>
+    <li data-k="l1">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...118-select-all-in-folder">main…118-select-all-in-folder</a>, or this PR's “Files changed”</li>
+    <li data-k="l2">The screenshots of <code>verify/118.sh</code>: CI's verify comment on the PR</li>
+    <li data-k="l3">The issue: <a href="https://github.com/alexhu98/thunar/issues/118">#118</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing builds on #118</h2>
+  <p class="intro" data-k="intro">No open issue says “Depends on #118”. The one other open issue, #117, speeds up CI's verify job and will run this PR's test with the rest.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR merges; #117 later runs its test in a faster verify job, and the owner decides whether to open an issue for S2.">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">After this PR</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">#118 Ctrl+Shift+A</text>
+      <text x="36" y="114" class="b">selects the rows of</text>
+      <text x="36" y="134" class="b">the cursor's folder</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">#117 faster CI</text>
+      <text x="286" y="114" class="b">verify scripts run</text>
+      <text x="286" y="134" class="b">in parallel, this</text>
+      <text x="286" y="154" class="b">PR's test included</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-you" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">You: decide S2</text>
+      <text x="536" y="114" class="b">an issue to keep</text>
+      <text x="536" y="134" class="b">Loading… rows out</text>
+      <text x="536" y="154" class="b">of every Select All</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-117">
+  <h3 class="sec">#117 Faster CI verify (next, unrelated)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Runs this test, nothing more.</b> #117 runs the verify scripts in parallel and only the changed ones on a PR. It doesn't touch Thunar's code; <code>verify/118.sh</code> is just one more script for it to run.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="expandable"><dt>Expandable Folders</dt><dd>A setting of the detailed list view: folders get a triangle that shows their contents as indented rows.</dd></div>
+    <div data-k="details"><dt>Detailed list view</dt><dd>Thunar's view with one row per file and columns for size, type and date.</dd></div>
+    <div data-k="cursor"><dt>Cursor row</dt><dd>The row with the keyboard focus outline. Arrow keys move it; it can differ from the selection.</dd></div>
+    <div data-k="loading"><dt>Loading… row</dt><dd>A stand-in row shown under a just-expanded folder until its files are read. It is not a file.</dd></div>
+    <div data-k="range"><dt><code>select_range</code></dt><dd>GTK's call that selects every row between two rows in one step.</dd></div>
+    <div data-k="action"><dt>Action table</dt><dd>Thunar's list of commands, each with a name, menu label and default shortcut that the shortcuts editor can change.</dd></div>
+    <div data-k="ctrlspace"><dt>Ctrl+Space</dt><dd>Toggles whether the cursor row is selected, without moving the cursor.</dd></div>
+    <div data-k="verify"><dt>Verify script</dt><dd><code>verify/&lt;issue&gt;.sh</code>: drives Thunar with simulated keys and clicks on a virtual screen, checks the result and takes screenshots.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual screen with no monitor, so Thunar can run in CI.</dd></div>
+    <div data-k="smoke"><dt>Smoke test</dt><dd>CI's basic check that Thunar is still running 10 seconds after it starts.</dd></div>
+    <div data-k="vv"><dt><code>/visual-verify</code></dt><dd>A check in which a separate agent looks at every screenshot and says whether it shows what it claims.</dd></div>
+    <div data-k="sn"><dt>S1, S2, S6</dt><dd>Review findings the review left unfixed, numbered in its report, for the owner to decide.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
