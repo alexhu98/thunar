@@ -239,7 +239,7 @@ explainers/117-parallel-verify.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The building session ran mock tests of the new runner and the full suite in a cloud container; CI's verify run on PR #121 is still to come.</p>
+  <p class="intro" data-k="intro">The building session ran mock tests of the new runner and the full suite in a cloud container; CI's verify run on PR #121 then ran the full suite three at a time, and its shots were audited.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -262,9 +262,13 @@ explainers/117-parallel-verify.narration.json  # its narration</pre>
     <tr data-k="c6"><td>Per-test times</td><td>Same run's result lines</td><td class="ok">12 s (smoke) to 103 s (16)</td></tr>
     <tr data-k="c7"><td>A local run past 10 minutes</td><td>That run took 333 s, so it never reached the Bash tool's 10-minute limit</td><td class="no">not shown</td></tr>
     <tr data-k="c8"><td>Thunar screenshots, <code>verify/117.sh</code></td><td>The PR changes only CI and agent files, no Thunar behaviour</td><td class="no">none</td></tr>
+    <tr data-k="c9"><td>Full suite on CI, three at a time</td><td>CI run 43521071177 on head 473f58f31708, after the second review's fixes and before cfe7965</td><td class="ok">20 of 20 passed</td></tr>
+    <tr data-k="c10"><td>Time on CI against the serial run</td><td>That run's “Smoke test and verify/*.sh” step, against PR #116's serial run</td><td class="ok">5 min 55 s (355 s), not about 13 min</td></tr>
+    <tr data-k="c11"><td>Load on the 4-vCPU runner (R6, S2)</td><td>That run's per-test times against the 120 s limit</td><td class="ok">longest 102 s (16), none timed out</td></tr>
+    <tr data-k="c12"><td>Shots not mixed up between tests</td><td><code>/visual-verify pr:121</code> on 473f58f31708: the independent shot-auditor read every shot from the 20 tests</td><td class="ok">187 of 187 OK, VERDICT PASS</td></tr>
   </table>
   </div>
-  <div class="note" data-k="note">333 s in the container and about 13 minutes on CI for PR #116 come from different machines, so they don't measure the speed-up. CI's run on PR #121 does.</div>
+  <div class="note" data-k="note">333 s in the container and about 13 minutes on CI for PR #116 come from different machines, so they don't measure the speed-up. CI's run on PR #121 does: 355 s on CI against about 13 minutes.</div>
   </section>
 
   <section class="sub" id="review">
@@ -281,19 +285,27 @@ explainers/117-parallel-verify.narration.json  # its narration</pre>
     <li data-k="r2"><b>Clean stop (R2, R5, R7):</b> the exit trap no longer stops at a failing kill and also kills the test subshells; Ctrl-C exits 130.</li>
     <li data-k="r3"><b>Agent run (R3, R10):</b> <code>build-verify</code> sets <code>LOGS</code> in the command and waits on the completion notice with a 35-minute timeout.</li>
     <li data-k="r4"><b>Small ones (R4, R8):</b> a new explanatory comment removed; <code>JOBS</code> must be a positive number.</li>
-    <li data-k="r6"><b>R6, open:</b> the same worry as S2, three workers on four vCPUs. CI's verify run on PR #121 settles it.</li>
+    <li data-k="r6"><b>R6, waiting on the owner:</b> the same worry as S2, three workers on four vCPUs. In CI run 43521071177 no test timed out or slowed past its limit; whether 3 workers stay is the owner's call.</li>
+  </ul>
+  <p data-k="ci2">CI's second review, of 7ced01e, found R11–R18. All were fixed in 473f58f except R17, which counts as accepted.</p>
+  <ul class="tight">
+    <li data-k="r11"><b>R11 (medium, confirmed):</b> the exit trap dropped tests that had finished but weren't reaped. Now <code>results.tsv</code> is collected on exit, with unfinished tests marked “cut short”.</li>
+    <li data-k="r12"><b>R12–R16, R18:</b> <code>JOBS</code> is checked before old results are wiped, <code>results.tsv</code> is written atomically, and <code>build-verify</code> sets <code>LOGS</code>, may wait with Monitor and reports a missing exit file.</li>
+    <li data-k="r17"><b>R17, accepted:</b> a pid-file race lasting microseconds, there before this PR.</li>
+  </ul>
+  <p data-k="ci3">CI's third review, of 473f58f, found R19–R26, all low.</p>
+  <ul class="tight">
+    <li data-k="r19"><b>R19 (confirmed), fixed in cfe7965:</b> a cut-short test with no log showed an empty log block. The verify comment now says “No log: the test did not start.”</li>
+    <li data-k="r20"><b>R20–R26, not confirmed, accepted:</b> R20 can't happen on bash 5.2; R21's cut-short rows still reach the verify comment; R22's Monitor wait is only a fallback to the completion notice; R23 is wording only; R24 is R17's race; R25's subshells die on TERM before writing a row; the review itself disproved R26.</li>
   </ul>
   </section>
 
   <section class="sub" id="aftermerge">
-  <h3 class="sec">Checked only after CI's run on this PR</h3>
+  <h3 class="sec">Not shown yet</h3>
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>R6: three workers don't slow tests past 120 s or make waits flaky</td><td>Only GitHub's 4-vCPU runner shows it; see the verify comment on <a href="https://github.com/alexhu98/thunar/pull/121">PR #121</a></td><td class="open">CI verify on PR #121</td></tr>
-    <tr data-k="a2"><td>Total time on CI against the serial 13 minutes</td><td>The container run was on another machine</td><td class="open">CI verify on PR #121</td></tr>
-    <tr data-k="a3"><td>The review fixes (7ced01e) on the full suite</td><td>The container run was on d101039, before them</td><td class="open">CI verify on PR #121</td></tr>
-    <tr data-k="a4"><td>Shots not mixed up between tests</td><td><code>/visual-verify pr:121</code> audits CI's shots</td><td class="open">after CI verify on PR #121</td></tr>
+    <tr data-k="a6"><td>The “No log” line from R19's fix (cfe7965) in a real verify comment</td><td>It shows only when a test is cut short before it starts; in CI run 43521071177 none was</td><td class="open">the next run that cuts a test short</td></tr>
     <tr data-k="a5"><td>A local run longer than 10 minutes finishes</td><td>The suite now takes under 10 minutes locally</td><td class="open">first long local run</td></tr>
   </table>
   </div>
@@ -312,11 +324,11 @@ explainers/117-parallel-verify.narration.json  # its narration</pre>
   <!-- ============================== PART 3 ============================== -->
   <section class="part" id="later">
   <p class="part-label" data-k="label">Part 3</p>
-  <h2 data-k="heading">What comes later: CI's run on this PR</h2>
-  <p class="intro" data-k="intro">No open issue says it depends on #117. What comes next is CI's verify run on PR #121, and then every later feature PR's run.</p>
+  <h2 data-k="heading">What comes later: your call on R6</h2>
+  <p class="intro" data-k="intro">No open issue says it depends on #117. What comes next is the owner's decision on R6, and then every later feature PR's run.</p>
 
   <section class="sub" id="next">
-  <div class="diagram" role="img" aria-label="PR #121 runs tests three at a time; CI's verify run on it settles R6 and the speed-up; later feature PRs then add scripts under the same budget">
+  <div class="diagram" role="img" aria-label="PR #121 runs tests three at a time; the owner decides R6 from CI's run; later feature PRs then add scripts under the same budget">
   <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -331,10 +343,11 @@ explainers/117-parallel-verify.narration.json  # its narration</pre>
       <circle class="badge" cx="270" cy="62" r="12"/><text class="badge-n" x="270" y="66.5" text-anchor="middle">1</text>
     </g>
     <g data-k="2">
-      <rect class="box-future" x="365" y="40" width="270" height="120" rx="10"/>
-      <text x="381" y="70" class="t">CI verify on #121</text>
-      <text x="381" y="94" class="b">settles R6 and shows</text>
-      <text x="381" y="114" class="b">the time saved: next</text>
+      <rect class="box-you" x="365" y="40" width="270" height="120" rx="10"/>
+      <text x="381" y="70" class="t">You decide R6</text>
+      <text x="381" y="94" class="b">keep 3 workers? CI ran</text>
+      <text x="381" y="114" class="b">20 of 20 in 5 min 55 s</text>
+      <text x="381" y="134" class="b">next</text>
       <circle class="badge" cx="615" cy="62" r="12"/><text class="badge-n" x="615" y="66.5" text-anchor="middle">2</text>
     </g>
     <g data-k="3">
@@ -350,6 +363,7 @@ explainers/117-parallel-verify.narration.json  # its narration</pre>
   </div>
   <div class="legend">
     <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>your decision</span>
     <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not run or built yet</span>
   </div>
   </section>
@@ -359,7 +373,7 @@ explainers/117-parallel-verify.narration.json  # its narration</pre>
   <div class="panel">
   <ol class="steps">
     <li data-k="1"><b>This PR.</b> The runner, the agent and <code>CLAUDE.md</code> change together.</li>
-    <li data-k="2"><b>CI verify on PR #121 (next).</b> Its time against the serial 13 minutes, and whether any test failed from load, decides whether 3 workers stay.</li>
+    <li data-k="2"><b>Your decision on R6 (next).</b> CI's run took 5 min 55 s against the serial 13 minutes, with no test past its limit; you decide whether 3 workers stay.</li>
     <li data-k="3"><b>Later feature PRs.</b> With three running at once, each new script adds roughly a third of its own time to the run, not all of it.</li>
   </ol>
   </div>
