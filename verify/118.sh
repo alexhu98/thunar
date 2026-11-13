@@ -1,5 +1,5 @@
 #!/bin/bash
-# Issue #118: with Expandable Folders on, Ctrl+Shift+A selects everything inside the folder at the cursor.
+# Issue #118: with Expandable Folders on, Ctrl+A selects everything inside the folder at the cursor.
 set -euo pipefail
 . .github/scripts/verify-lib.sh
 
@@ -61,7 +61,7 @@ selected_is() {
   [[ $got == "$want" ]] || fail "check $N: the selection held '$got', expected '$want'"
 }
 
-G='Ctrl+Shift+A in expanded folders'
+G='Ctrl+A in expanded folders'
 
 open_thunar "$DIR"
 MAIN=$WID
@@ -82,43 +82,43 @@ sleep 1
 click_row 3
 selected_is a1.txt
 shot "$MAIN" before-inside-a "a, a/sub and b are expanded; the cursor is on a1.txt inside a, and only a1.txt is selected"
-keys ctrl+shift+a
+keys ctrl+a
 selected_is a1.txt a2.txt sub s1.txt
-shot "$MAIN" after-inside-a "Ctrl+Shift+A on a1.txt selected sub, s1.txt, a1.txt and a2.txt (4 items), but not a, b, b1.txt or top.txt"
-pair inside-a "Put the cursor on a1.txt inside the expanded folder a, then pressed Ctrl+Shift+A" "Ctrl+Shift+A selects every row in the cursor's parent folder, at all depths, and nothing outside it" "a1.txt selected" "sub, s1.txt, a1.txt, a2.txt selected" "$G"
+shot "$MAIN" after-inside-a "Ctrl+A on a1.txt selected sub, s1.txt, a1.txt and a2.txt (4 items), but not a, b, b1.txt or top.txt"
+pair inside-a "Put the cursor on a1.txt inside the expanded folder a, then pressed Ctrl+A" "Ctrl+A selects every row in the cursor's parent folder, at all depths, and nothing outside it" "a1.txt selected" "sub, s1.txt, a1.txt, a2.txt selected" "$G"
 
 keys ctrl+space
 selected_is a2.txt sub s1.txt
-shot "$MAIN" cursor-stays "Ctrl+Space after Ctrl+Shift+A unselected a1.txt only, so the cursor stayed on a1.txt"
+shot "$MAIN" cursor-stays "Ctrl+Space after Ctrl+A unselected a1.txt only, so the cursor stayed on a1.txt"
 
 click_row 0
-keys ctrl+shift+a
+keys ctrl+a
 selected_is a1.txt a2.txt sub s1.txt
-shot "$MAIN" on-expanded-folder "Ctrl+Shift+A with the cursor on the expanded folder a selected its 4 rows but not the a row itself"
+shot "$MAIN" on-expanded-folder "Ctrl+A with the cursor on the expanded folder a selected its 4 rows but not the a row itself"
 
 click_row 2
-keys ctrl+shift+a
+keys ctrl+a
 selected_is s1.txt
-shot "$MAIN" nested-folder "Ctrl+Shift+A on s1.txt inside a/sub selected only s1.txt, the one row in its parent folder sub"
+shot "$MAIN" nested-folder "Ctrl+A on s1.txt inside a/sub selected only s1.txt, the one row in its parent folder sub"
 
 click_row 4
 selected_is a2.txt
-keys alt+e f
+keys alt+e a
 selected_is a1.txt a2.txt sub s1.txt
-shot "$MAIN" edit-menu "Edit > Select All in Folder with the cursor on a2.txt selected the same 4 rows inside a as Ctrl+Shift+A"
+shot "$MAIN" edit-menu "Edit > Select All Files with the cursor on a2.txt selected the same 4 rows inside a as Ctrl+A"
 
 click_row 0
 keys End
 selected_is top.txt
-keys ctrl+shift+a
+keys ctrl+a
 selected_is a sub s1.txt a1.txt a2.txt b b1.txt top.txt
-shot "$MAIN" top-level-all "Ctrl+Shift+A on the top-level file top.txt selected every row in the view, like Ctrl+A"
+shot "$MAIN" top-level-all "Ctrl+A on the top-level file top.txt selected every row in the view, expanded children included"
 
 xfconf-query -c thunar -p /misc-expandable-folders -s false
 sleep 1
 click_row 0
 keys End
 selected_is top.txt
-keys ctrl+shift+a
+keys ctrl+a
 selected_is a b top.txt
-shot "$MAIN" expandable-off "With Expandable Folders off, Ctrl+Shift+A on top.txt selected all three rows, like Ctrl+A"
+shot "$MAIN" expandable-off "With Expandable Folders off, Ctrl+A on top.txt selected all three rows, as before"

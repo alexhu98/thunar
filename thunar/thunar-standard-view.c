@@ -247,8 +247,6 @@ thunar_standard_view_set_selected_files_view (ThunarView *view,
 static gboolean
 thunar_standard_view_select_all_files (ThunarView *view);
 static gboolean
-thunar_standard_view_select_all_in_folder (ThunarView *view);
-static gboolean
 thunar_standard_view_select_by_pattern (ThunarView *view);
 static gboolean
 thunar_standard_view_selection_invert (ThunarView *view);
@@ -529,7 +527,6 @@ struct _ThunarStandardViewPrivate
 static XfceGtkActionEntry thunar_standard_view_action_entries[] =
 {
     { THUNAR_STANDARD_VIEW_ACTION_SELECT_ALL_FILES,   "<Actions>/ThunarStandardView/select-all-files",   "<Primary>a", XFCE_GTK_MENU_ITEM,       N_ ("Select _all Files"),     N_ ("Select all files in this window"),                   NULL, G_CALLBACK (thunar_standard_view_select_all_files),            },
-    { THUNAR_STANDARD_VIEW_ACTION_SELECT_ALL_IN_FOLDER, "<Actions>/ThunarStandardView/select-all-in-folder", "<Primary><shift>a", XFCE_GTK_MENU_ITEM, N_ ("Select All in _Folder"), N_ ("Select everything inside the folder at the cursor"), NULL, G_CALLBACK (thunar_standard_view_select_all_in_folder),        },
     { THUNAR_STANDARD_VIEW_ACTION_SELECT_BY_PATTERN,  "<Actions>/ThunarStandardView/select-by-pattern",  "<Primary>s", XFCE_GTK_MENU_ITEM,       N_ ("Select _by Pattern..."), N_ ("Select all files that match a certain pattern"),     NULL, G_CALLBACK (thunar_standard_view_select_by_pattern),           },
     { THUNAR_STANDARD_VIEW_ACTION_INVERT_SELECTION,   "<Actions>/ThunarStandardView/invert-selection",   "<Primary><shift>I", XFCE_GTK_MENU_ITEM,       N_ ("_Invert Selection"),     N_ ("Select all files but not those currently selected"), NULL, G_CALLBACK (thunar_standard_view_selection_invert),            },
     { THUNAR_STANDARD_VIEW_ACTION_UNSELECT_ALL_FILES, "<Actions>/ThunarStandardView/unselect-all-files", "Escape",     XFCE_GTK_MENU_ITEM,       N_ ("U_nselect all Files"),   N_ ("Unselect all files in this window"),                 NULL, G_CALLBACK (thunar_standard_view_unselect_all_files),          },
@@ -2991,25 +2988,6 @@ thunar_standard_view_select_all_files (ThunarView *view)
   (*THUNAR_STANDARD_VIEW_GET_CLASS (standard_view)->select_all) (standard_view);
 
   /* required in case of shortcut activation, in order to signal that the accel key got handled */
-  return TRUE;
-}
-
-
-
-static gboolean
-thunar_standard_view_select_all_in_folder (ThunarView *view)
-{
-  ThunarStandardView *standard_view = THUNAR_STANDARD_VIEW (view);
-
-  _thunar_return_val_if_fail (THUNAR_IS_STANDARD_VIEW (standard_view), FALSE);
-
-  gtk_widget_grab_focus (GTK_WIDGET (standard_view));
-
-  if (THUNAR_STANDARD_VIEW_GET_CLASS (standard_view)->select_all_in_folder != NULL)
-    (*THUNAR_STANDARD_VIEW_GET_CLASS (standard_view)->select_all_in_folder) (standard_view);
-  else
-    (*THUNAR_STANDARD_VIEW_GET_CLASS (standard_view)->select_all) (standard_view);
-
   return TRUE;
 }
 

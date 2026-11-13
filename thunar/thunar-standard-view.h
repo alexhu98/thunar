@@ -50,7 +50,6 @@ typedef struct _ThunarStandardView        ThunarStandardView;
 typedef enum
 {
   THUNAR_STANDARD_VIEW_ACTION_SELECT_ALL_FILES,
-  THUNAR_STANDARD_VIEW_ACTION_SELECT_ALL_IN_FOLDER,
   THUNAR_STANDARD_VIEW_ACTION_SELECT_BY_PATTERN,
   THUNAR_STANDARD_VIEW_ACTION_INVERT_SELECTION,
   THUNAR_STANDARD_VIEW_ACTION_UNSELECT_ALL_FILES,
@@ -77,7 +76,6 @@ struct _ThunarStandardViewClass
 
   /* Selects all items in the view */
   void (*select_all) (ThunarStandardView *standard_view);
-  void (*select_all_in_folder) (ThunarStandardView *standard_view);
 
   /* Unselects all items in the view */
   void (*unselect_all) (ThunarStandardView *standard_view);

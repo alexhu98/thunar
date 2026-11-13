@@ -63,8 +63,6 @@ thunar_details_view_get_selected_items (ThunarStandardView *standard_view);
 static void
 thunar_details_view_select_all (ThunarStandardView *standard_view);
 static void
-thunar_details_view_select_all_in_folder (ThunarStandardView *standard_view);
-static void
 thunar_details_view_unselect_all (ThunarStandardView *standard_view);
 static void
 thunar_details_view_selection_invert (ThunarStandardView *standard_view);
@@ -251,7 +249,6 @@ thunar_details_view_class_init (ThunarDetailsViewClass *klass)
   thunarstandard_view_class = THUNAR_STANDARD_VIEW_CLASS (klass);
   thunarstandard_view_class->get_selected_items = thunar_details_view_get_selected_items;
   thunarstandard_view_class->select_all = thunar_details_view_select_all;
-  thunarstandard_view_class->select_all_in_folder = thunar_details_view_select_all_in_folder;
   thunarstandard_view_class->unselect_all = thunar_details_view_unselect_all;
   thunarstandard_view_class->selection_invert = thunar_details_view_selection_invert;
   thunarstandard_view_class->select_path = thunar_details_view_select_path;
@@ -582,19 +579,6 @@ thunar_details_view_get_selected_items (ThunarStandardView *standard_view)
 
 
 static void
-thunar_details_view_select_all (ThunarStandardView *standard_view)
-{
-  GtkTreeSelection *selection;
-
-  _thunar_return_if_fail (THUNAR_IS_DETAILS_VIEW (standard_view));
-
-  selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (gtk_bin_get_child (GTK_BIN (standard_view))));
-  gtk_tree_selection_select_all (selection);
-}
-
-
-
-static void
 thunar_details_view_unselect_placeholders (GtkTreeView      *tree_view,
                                            GtkTreeModel     *model,
                                            GtkTreeSelection *selection,
@@ -633,7 +617,7 @@ thunar_details_view_unselect_placeholders (GtkTreeView      *tree_view,
 
 
 static void
-thunar_details_view_select_all_in_folder (ThunarStandardView *standard_view)
+thunar_details_view_select_all (ThunarStandardView *standard_view)
 {
   ThunarDetailsView *details_view = THUNAR_DETAILS_VIEW (standard_view);
   GtkTreeView       *tree_view;
@@ -671,7 +655,11 @@ thunar_details_view_select_all_in_folder (ThunarStandardView *standard_view)
       || !gtk_tree_model_iter_children (model, &child, &folder))
     {
       gtk_tree_path_free (cursor);
-      thunar_details_view_select_all (standard_view);
+      g_signal_handlers_block_by_func (selection, thunar_standard_view_selection_changed, standard_view);
+      gtk_tree_selection_select_all (selection);
+      thunar_details_view_unselect_placeholders (tree_view, model, selection, NULL);
+      g_signal_handlers_unblock_by_func (selection, thunar_standard_view_selection_changed, standard_view);
+      thunar_standard_view_selection_changed (standard_view);
       return;
     }
 
