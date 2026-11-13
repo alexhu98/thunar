@@ -1,7 +1,7 @@
 ---
 name: build-verify
 description: Builds Thunar's debs from the working tree, installs them and runs the smoke test and every verify/<issue>.sh under Xvfb, as CI does, and returns about 10 lines with the exact failing lines. Keeps the build and test output out of the caller's context. Never edits sources, commits or pushes.
-tools: Bash, Read, Grep, Glob, Monitor
+tools: Bash, Read, Grep, Glob
 model: inherit
 effort: medium
 color: yellow
@@ -48,9 +48,9 @@ Read a log only with `tail -n 30` or `grep -n`, never whole.
    `.github/scripts/verify-proof.sh install` installs all three debs from step 2, even over the same version, and
    the test tools. On failure, return its last 30 lines and stop.
 4. **Run**: `.github/scripts/verify-proof.sh run`. The suite can run past the Bash tool's 10-minute limit, so start
-   `rm -f "$LOGS/run.exit"; .github/scripts/verify-proof.sh run > "$LOGS/run.log" 2>&1; echo $? > "$LOGS/run.exit"`
-   with `run_in_background` and a `timeout` of 2700000 ms, then wait with a Monitor until-loop on `$LOGS/run.exit` (at most 45 minutes, CI's limit
-   for the job) and report `exit=<its content>`; never wait with a foreground `sleep`. If the sandbox can't start Xvfb (the smoke test fails before
+   `LOGS=${TMPDIR:-/tmp}/build-verify; mkdir -p "$LOGS"; rm -f "$LOGS/run.exit"; .github/scripts/verify-proof.sh run > "$LOGS/run.log" 2>&1; echo $? > "$LOGS/run.exit"`
+   with `run_in_background` and a `timeout` of 2100000 ms (CI caps the run step at 30 minutes), wait for its
+   completion notice, never with a foreground `sleep`, and report `exit=<the content of $LOGS/run.exit>`. If the sandbox can't start Xvfb (the smoke test fails before
    Thunar launches, or `Xvfb` is missing), say `verify: not run: <cause>`; CI runs the tests. Otherwise return each
    test's result line (`<name>: <status> in <s> s`), the `<k> of <m> passed` line and, for each test that didn't
    pass, its `  | ` lines from the log, verbatim: `grep -n -E ' in [0-9]+ s$|: (not run|misnamed)|^  \||passed$|::warning::'`

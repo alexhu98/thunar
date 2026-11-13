@@ -134,11 +134,24 @@ not_run() {  # name, status, reason
   echo "$1: $2"
 }
 
-reap() {  # waits for one running test and prints its result lines
-  local done
+collect() {  # [final]
+  local n
+  for n in "${names[@]}"; do
+    if [[ -f $OUT/run/$n.row ]]; then
+      cat "$OUT/run/$n.row"
+    elif (( $# )); then
+      printf '%s\terror\t0\n' "$n"
+    fi
+  done > "$OUT/results.tsv"
+}
+
+reap() {
+  local done=''
   wait -n -p done "${!running[@]}" || true
+  [[ -n $done ]] || return 0
   cat "$OUT/run/${running[$done]}.console"
   unset "running[$done]"
+  collect
 }
 
 run() {
@@ -146,10 +159,12 @@ run() {
   mkdir -p "$OUT/logs" "$OUT/run"
   : > "$OUT/results.tsv"
   theme > "$OUT/theme"
-  local script name begin=$SECONDS names=(smoke) cmd
+  [[ $JOBS =~ ^[1-9][0-9]*$ ]] || { echo "JOBS must be a positive number, not '$JOBS'" >&2; exit 2; }
+  local script name begin=$SECONDS names=(smoke) tests=(smoke) cmd
   local -A running=()
-  trap 'for f in "$OUT"/run/*.pid; do [[ -f $f ]] && kill -- -"$(<"$f")" 2>/dev/null; done' EXIT
-  trap 'exit 143' TERM INT
+  trap 'kill $(jobs -p) 2>/dev/null || true; for f in "$OUT"/run/*.pid; do [[ -f $f ]] && kill -- -"$(<"$f")" 2>/dev/null || true; done' EXIT
+  trap 'exit 143' TERM
+  trap 'exit 130' INT
   for script in verify/*.sh; do
     [[ -f $script ]] || continue
     name=$(basename "$script" .sh)
@@ -159,14 +174,15 @@ run() {
       continue
     fi
     names+=("$name")
+    tests+=("$name")
   done
-  for name in "${names[@]}"; do
-    [[ $name != *.sh ]] || continue
+  for name in "${tests[@]}"; do
     while (( ${#running[@]} >= JOBS )); do reap; done
     if [[ $name == smoke ]]; then
       cmd=(smoke)
     elif (( SECONDS - begin + TIMEOUT > BUDGET )); then
       not_run "$name" "not run (time budget)" "verify/$name.sh could end after the run's ${BUDGET} s budget, so it was not run"
+      collect
       continue
     else
       cmd=(bash "verify/$name.sh")
@@ -175,9 +191,7 @@ run() {
     running[$!]=$name
   done
   while (( ${#running[@]} > 0 )); do reap; done
-  for name in "${names[@]}"; do
-    cat "$OUT/run/$name.row" >> "$OUT/results.tsv" 2>/dev/null || printf '%s\terror\t0\n' "$name" >> "$OUT/results.tsv"
-  done
+  collect final
   echo "all tests ended in $((SECONDS - begin)) s, $JOBS at a time"
   python3 "$HERE/verify-shots.py" build "$OUT" || echo "::warning::some pair images could not be made" >&2
   : > "$OUT/complete"
