@@ -142,10 +142,14 @@ shot "$MAIN" back-button "The mouse back button with 'bad/name' in the entry sta
 xdotool key Down Tab
 sleep 1
 shot "$MAIN" down-tab "Down and then Tab with 'bad/name' in the entry left the entry open in report.final.pdf's row with its error icon, and renamed nothing"
-xdotool key Escape
-sleep 0.5
-exists "$DIR/report.final.pdf" "an empty name, 'bad/name' and Escape"
+xdotool key ctrl+a
+xdotool type --delay 20 tabbed.pdf
+xdotool key Return
+exists "$DIR/tabbed.pdf" "typing tabbed.pdf into the entry left open after Down and Tab"
 [[ ! -e $DIR/bad ]] || fail "Enter on 'bad/name' created the folder bad"
+sleep 0.5
+keys ctrl+z
+exists "$DIR/report.final.pdf" "Ctrl+Z after renaming to tabbed.pdf"
 
 second_row
 f2
