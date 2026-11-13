@@ -5584,13 +5584,31 @@ thunar_standard_view_rename_paths (ThunarStandardView *standard_view)
 
 
 static gboolean
+thunar_standard_view_rename_commit (ThunarStandardView *standard_view)
+{
+  gchar *text;
+
+  if (standard_view->priv->rename_text == NULL
+      || thunar_standard_view_rename_check (standard_view->priv->rename_text) != NULL
+      || standard_view->priv->rename_file == NULL
+      || !thunar_file_exists (standard_view->priv->rename_file))
+    return FALSE;
+
+  text = g_steal_pointer (&standard_view->priv->rename_text);
+  thunar_standard_view_rename_finish (standard_view, text);
+  g_free (text);
+  return TRUE;
+}
+
+
+
+static gboolean
 thunar_standard_view_rename_idle (gpointer user_data)
 {
   ThunarStandardView *standard_view = THUNAR_STANDARD_VIEW (user_data);
   ThunarApplication  *application;
   ThunarFile         *file;
   GList              *paths;
-  gchar              *text;
   gboolean            in_folder;
 
   standard_view->priv->rename_idle_id = 0;
@@ -5609,16 +5627,8 @@ thunar_standard_view_rename_idle (gpointer user_data)
 
   if (standard_view->priv->rename_entry == NULL)
     {
-      if (standard_view->priv->rename_text != NULL
-          && thunar_standard_view_rename_check (standard_view->priv->rename_text) == NULL
-          && standard_view->priv->rename_file != NULL
-          && thunar_file_exists (standard_view->priv->rename_file))
-        {
-          text = g_steal_pointer (&standard_view->priv->rename_text);
-          thunar_standard_view_rename_finish (standard_view, text);
-          g_free (text);
-          return G_SOURCE_REMOVE;
-        }
+      if (thunar_standard_view_rename_commit (standard_view))
+        return G_SOURCE_REMOVE;
 
       file = g_steal_pointer (&standard_view->priv->rename_file);
       in_folder = file != NULL
@@ -5665,22 +5675,16 @@ thunar_standard_view_rename_in_place (ThunarStandardView *standard_view,
   ThunarStandardViewClass *klass;
   GdkRectangle             rect;
   GList                   *paths;
-  gchar                   *text;
 
   _thunar_return_val_if_fail (THUNAR_IS_STANDARD_VIEW (standard_view), FALSE);
   _thunar_return_val_if_fail (THUNAR_IS_FILE (file), FALSE);
 
-  if (standard_view->priv->rename_entry == NULL && standard_view->priv->rename_text != NULL
-      && standard_view->priv->rename_file != file)
+  if (standard_view->priv->rename_entry == NULL && standard_view->priv->rename_file != file
+      && (standard_view->priv->rename_text != NULL || standard_view->priv->rename_idle_id != 0))
     {
-      if (standard_view->priv->rename_idle_id != 0)
-        {
-          g_source_remove (standard_view->priv->rename_idle_id);
-          standard_view->priv->rename_idle_id = 0;
-        }
-      text = g_steal_pointer (&standard_view->priv->rename_text);
-      thunar_standard_view_rename_finish (standard_view, text);
-      g_free (text);
+      g_clear_handle_id (&standard_view->priv->rename_idle_id, g_source_remove);
+      if (!thunar_standard_view_rename_commit (standard_view))
+        thunar_standard_view_rename_finish (standard_view, NULL);
     }
 
   if (standard_view->priv->rename_entry != NULL || standard_view->priv->rename_idle_id != 0

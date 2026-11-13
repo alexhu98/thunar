@@ -171,6 +171,15 @@ exists "$DIR/report.final.pdf" "Ctrl+Z after renaming with Down"
 
 second_row
 f2
+xdotool type --delay 20 up
+xdotool key Up
+exists "$DIR/up.pdf" "typing up over 'report.final' and pressing Up"
+sleep 0.5
+keys ctrl+z
+exists "$DIR/report.final.pdf" "Ctrl+Z after renaming with Up"
+
+second_row
+f2
 xdotool key ctrl+a
 xdotool type --delay 20 clicked.pdf
 xdotool mousemove --window "$MAIN" "$NAME_X" "$ROW0"
