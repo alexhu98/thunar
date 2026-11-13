@@ -592,16 +592,19 @@ thunar_details_view_unselect_placeholders (GtkTreeView      *tree_view,
   if (!gtk_tree_model_iter_children (model, &iter, parent))
     return;
 
-  do
+  if (parent != NULL && gtk_tree_model_iter_n_children (model, parent) == 1)
     {
       file = thunar_standard_view_model_get_file (THUNAR_STANDARD_VIEW_MODEL (model), &iter);
       if (file == NULL)
         {
           gtk_tree_selection_unselect_iter (selection, &iter);
-          continue;
+          return;
         }
       g_object_unref (file);
+    }
 
+  do
+    {
       if (!gtk_tree_model_iter_has_child (model, &iter))
         continue;
 
@@ -630,7 +633,6 @@ thunar_details_view_select_all (ThunarStandardView *standard_view)
   GtkTreeIter        iter;
   GtkTreeIter        child;
   gint               n_children;
-  ThunarFile        *file;
 
   _thunar_return_if_fail (THUNAR_IS_DETAILS_VIEW (standard_view));
 
@@ -657,19 +659,12 @@ thunar_details_view_select_all (ThunarStandardView *standard_view)
       gtk_tree_path_free (cursor);
       g_signal_handlers_block_by_func (selection, thunar_standard_view_selection_changed, standard_view);
       gtk_tree_selection_select_all (selection);
-      thunar_details_view_unselect_placeholders (tree_view, model, selection, NULL);
+      if (details_view->expandable_folders)
+        thunar_details_view_unselect_placeholders (tree_view, model, selection, NULL);
       g_signal_handlers_unblock_by_func (selection, thunar_standard_view_selection_changed, standard_view);
       thunar_standard_view_selection_changed (standard_view);
       return;
     }
-
-  file = thunar_standard_view_model_get_file (THUNAR_STANDARD_VIEW_MODEL (model), &child);
-  if (file == NULL)
-    {
-      gtk_tree_path_free (cursor);
-      return;
-    }
-  g_object_unref (file);
 
   first = gtk_tree_model_get_path (model, &child);
   iter = folder;
