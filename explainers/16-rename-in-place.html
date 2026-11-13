@@ -264,7 +264,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container. CI's fourteen reviews found 87 findings: 53 are fixed and 34 low ones accepted. <code>verify/16.sh</code> was trimmed to fit CI's old 15-minute verify budget; #115 raised it to 25 minutes, and every trimmed check is back.</p>
+  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container. CI's fifteen reviews found 89 findings: 54 are fixed and 35 low ones accepted. <code>verify/16.sh</code> was trimmed to fit CI's old 15-minute verify budget; #115 raised it to 25 minutes, and every trimmed check is back.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good pieces</h3>
@@ -304,7 +304,8 @@ explainers/
     <tr data-k="c21"><td>The eleventh review's fixes</td><td>CI's 776df734 (R65–R69), with R68's Up and Down checks in <code>verify/16.sh</code>: not built or run locally</td><td class="no">not run here; CI's twelfth review read it</td></tr>
     <tr data-k="c22"><td>The twelfth review's fixes</td><td>CI's 97ea1879 (R72–R75), with R75's Up, Down and Tab checks in <code>verify/16.sh</code>: not built or run locally</td><td class="no">not run here; CI's thirteenth review read it</td></tr>
     <tr data-k="c23"><td>The thirteenth review's fix</td><td>CI's 151f4a9d (R79), a change to <code>verify/16.sh</code> only, with no Thunar code: not run locally</td><td class="no">not run here; CI's fourteenth review read it</td></tr>
-    <tr data-k="c24"><td>The fourteenth review's fix</td><td>CI's 3d17d778 (R84), two lines in <code>verify/16.sh</code> only: not run locally</td><td class="no">not run here; CI's next run is its first</td></tr>
+    <tr data-k="c24"><td>The fourteenth review's fix</td><td>CI's 3d17d778 (R84), two lines in <code>verify/16.sh</code> only: not run locally</td><td class="no">not run here; CI's fifteenth review read it</td></tr>
+    <tr data-k="c25"><td>The fifteenth review's fix</td><td>CI's ff901fb5 (R88), four lines in <code>verify/16.sh</code> only: not run locally</td><td class="no">not run here; CI's next run is its first</td></tr>
   </table>
   </div>
   </section>
@@ -544,7 +545,17 @@ explainers/
     <li data-k="R86"><b>R86, accepted:</b> the only Escape press after a resumed invalid name was removed. That check couldn't catch the regression, so nothing is lost.</li>
     <li data-k="R87"><b>R87, accepted:</b> the script types after the down-tab shot without refocusing. Taking a shot doesn't change focus, and losing focus is the bug this step tests.</li>
   </ul>
-  <div class="note" data-k="pending14">CI's results on the newest head are pending: its verify run with R84's checks, and the screenshot audit.</div>
+  <div class="note" data-k="pending14">CI's fifteenth review, below, read this fix.</div>
+  </section>
+
+  <section class="sub" id="review15">
+  <h3 class="sec">CI's fifteenth review</h3>
+  <p data-k="ci15">CI reviewed head 9009fb6 in run 43349476921 (Opus at high): 2 new findings, R88 and R89. The last two rounds changed only the test script.</p>
+  <ul class="tight">
+    <li data-k="R88"><b>R88, low, fixed by CI in ff901fb5:</b> the Down and Up rename checks now also check that report.final.pdf is gone, and that down.pdf and up.pdf are gone after Ctrl+Z.</li>
+    <li data-k="R89"><b>R89, accepted:</b> the rename-then-undo checks are written out five times instead of in a helper. Real duplication, but nothing fails, so this low, plausible finding is accepted.</li>
+  </ul>
+  <div class="note" data-k="pending15">CI's results on the newest head are pending: its verify run with R88's checks, and the screenshot audit.</div>
   </section>
 
   <section class="sub" id="budget">
@@ -598,6 +609,7 @@ explainers/
     <li data-k="l15">CI's twelfth run, with its twelfth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43341354858">run 43341354858</a></li>
     <li data-k="l16">CI's thirteenth run, with its thirteenth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43343018204">run 43343018204</a></li>
     <li data-k="l17">CI's fourteenth run, with its fourteenth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43344023510">run 43344023510</a></li>
+    <li data-k="l18">CI's fifteenth run, with its fifteenth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43349476921">run 43349476921</a></li>
     <li data-k="l3">After the merge: select a file in the details view and press F2.</li>
   </ul>
   </section>
