@@ -1906,6 +1906,10 @@ thunar_standard_view_set_loading (ThunarStandardView *standard_view,
       standard_view->priv->files_to_select = NULL;
     }
 
+  if (!loading && standard_view->priv->rename_text != NULL
+      && standard_view->priv->rename_entry == NULL && standard_view->priv->rename_idle_id == 0)
+    standard_view->priv->rename_idle_id = g_idle_add_full (G_PRIORITY_LOW, thunar_standard_view_rename_idle, standard_view, NULL);
+
   /* check if we're done loading and have a scheduled scroll_to_file
    * scrolling after loading circumvents the scroll caused by gtk_tree_view_set_cell */
   if (THUNAR_IS_DETAILS_VIEW (standard_view))
@@ -5380,6 +5384,9 @@ thunar_standard_view_rename_key_pressed (GtkWidget          *entry,
 {
   if (event->keyval == GDK_KEY_Escape)
     standard_view->priv->rename_escaped = TRUE;
+  else if (event->keyval == GDK_KEY_Up || event->keyval == GDK_KEY_KP_Up
+           || event->keyval == GDK_KEY_Down || event->keyval == GDK_KEY_KP_Down)
+    return thunar_standard_view_rename_show_error (GTK_ENTRY (entry));
   return FALSE;
 }
 
@@ -5561,10 +5568,7 @@ thunar_standard_view_rename_idle (gpointer user_data)
   standard_view->priv->rename_idle_id = 0;
 
   if (standard_view->priv->rename_text != NULL && thunar_view_get_loading (THUNAR_VIEW (standard_view)))
-    {
-      standard_view->priv->rename_idle_id = g_timeout_add_full (G_PRIORITY_LOW, 100, thunar_standard_view_rename_idle, standard_view, NULL);
-      return G_SOURCE_REMOVE;
-    }
+    return G_SOURCE_REMOVE;
 
   paths = thunar_standard_view_rename_paths (standard_view);
   if (paths != NULL)
@@ -5621,12 +5625,10 @@ thunar_standard_view_rename_idle (gpointer user_data)
  * Turns the name of @file into a text entry, and renames @file when the
  * entry is confirmed.
  *
- * Editing starts once the view has scrolled @file into view; if it can't
- * start then, @file is renamed in the popover or dialog instead.
- *
- * Return value: %TRUE if editing was queued or is in progress,
- *               %FALSE if @file is not shown in this view, or the view is
- *               not a #ThunarDetailsView.
+ * Return value: %TRUE if editing of @file was queued or is in progress,
+ *               %FALSE if @file is not shown in this view, the view is
+ *               not a mapped, loaded #ThunarDetailsView, or another file
+ *               is being renamed in place.
  **/
 gboolean
 thunar_standard_view_rename_in_place (ThunarStandardView *standard_view,
@@ -5639,8 +5641,9 @@ thunar_standard_view_rename_in_place (ThunarStandardView *standard_view,
   _thunar_return_val_if_fail (THUNAR_IS_STANDARD_VIEW (standard_view), FALSE);
   _thunar_return_val_if_fail (THUNAR_IS_FILE (file), FALSE);
 
-  if (standard_view->priv->rename_entry != NULL || standard_view->priv->rename_idle_id != 0)
-    return TRUE;
+  if (standard_view->priv->rename_entry != NULL || standard_view->priv->rename_idle_id != 0
+      || standard_view->priv->rename_text != NULL)
+    return standard_view->priv->rename_file == file;
 
   if (!THUNAR_IS_DETAILS_VIEW (standard_view))
     return FALSE;
