@@ -264,7 +264,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container. CI's thirteen reviews found 83 findings: 52 are fixed and 31 low ones accepted. <code>verify/16.sh</code> was trimmed to fit CI's old 15-minute verify budget; #115 raised it to 25 minutes, and every trimmed check is back.</p>
+  <p class="intro" data-k="intro">Built and tested locally in the building session's cloud container. CI's fourteen reviews found 87 findings: 53 are fixed and 34 low ones accepted. <code>verify/16.sh</code> was trimmed to fit CI's old 15-minute verify budget; #115 raised it to 25 minutes, and every trimmed check is back.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good pieces</h3>
@@ -277,7 +277,7 @@ explainers/
 
   <section class="sub" id="checks">
   <h3 class="sec">What was checked</h3>
-  <p data-k="before">Most local results below ran at 2f43ed4, before CI's review fixes. fc3ec64, with the third review's fixes, was built and run locally too; CI's 1be3de5, e7902df, 7db96a7, 4b0639a, 8233a2b, bb61992, 60ee0c07f, 776df734, 97ea1879 and 151f4a9d were not. The trimmed <code>verify/16.sh</code> ran locally at 810cfcf; the restored one, 6c895b4, was not.</p>
+  <p data-k="before">Most local results below ran at 2f43ed4, before CI's review fixes. fc3ec64, with the third review's fixes, was built and run locally too; CI's 1be3de5, e7902df, 7db96a7, 4b0639a, 8233a2b, bb61992, 60ee0c07f, 776df734, 97ea1879, 151f4a9d and 3d17d778 were not. The trimmed <code>verify/16.sh</code> ran locally at 810cfcf; the restored one, 6c895b4, was not.</p>
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
@@ -303,7 +303,8 @@ explainers/
     <tr data-k="c20"><td>The tenth review's fixes</td><td>CI's 60ee0c07f (R56–R61): not built locally; CI's verify on da34910</td><td class="ok">CI: 19 of 19 pass</td></tr>
     <tr data-k="c21"><td>The eleventh review's fixes</td><td>CI's 776df734 (R65–R69), with R68's Up and Down checks in <code>verify/16.sh</code>: not built or run locally</td><td class="no">not run here; CI's twelfth review read it</td></tr>
     <tr data-k="c22"><td>The twelfth review's fixes</td><td>CI's 97ea1879 (R72–R75), with R75's Up, Down and Tab checks in <code>verify/16.sh</code>: not built or run locally</td><td class="no">not run here; CI's thirteenth review read it</td></tr>
-    <tr data-k="c23"><td>The thirteenth review's fix</td><td>CI's 151f4a9d (R79), a change to <code>verify/16.sh</code> only, with no Thunar code: not run locally</td><td class="no">not run here; CI's next run is its first</td></tr>
+    <tr data-k="c23"><td>The thirteenth review's fix</td><td>CI's 151f4a9d (R79), a change to <code>verify/16.sh</code> only, with no Thunar code: not run locally</td><td class="no">not run here; CI's fourteenth review read it</td></tr>
+    <tr data-k="c24"><td>The fourteenth review's fix</td><td>CI's 3d17d778 (R84), two lines in <code>verify/16.sh</code> only: not run locally</td><td class="no">not run here; CI's next run is its first</td></tr>
   </table>
   </div>
   </section>
@@ -528,7 +529,22 @@ explainers/
     <li data-k="R82"><b>R82, accepted:</b> the doc comment doesn't mention the effect on another file's pending edit. The comment is still accurate.</li>
     <li data-k="R83"><b>R83, accepted:</b> the Up check doesn't cover the keypad keys, or check after Ctrl+Z. Not a meaningful gap against the issue.</li>
   </ul>
-  <div class="note" data-k="pending13">CI's results on the newest head are pending: its verify run with R79's assertion, and the screenshot audit.</div>
+  <div class="note" data-k="pending13">CI's fourteenth review, below, read this fix.</div>
+  </section>
+
+  <section class="sub" id="review14">
+  <h3 class="sec">CI's fourteenth review</h3>
+  <p data-k="ci14">CI reviewed head 1b74ccc, which covers CI's 151f4a9d, in run 43344023510 (Opus at high): 4 new findings, R84–R87. Its only code change this round is CI's 3d17d778, two lines in the test script.</p>
+  <ul class="tight">
+    <li data-k="R84"><b>R84, low, fixed by CI in 3d17d778:</b> after Down and Tab, the test only checked that tabbed.pdf exists. It now also checks that report.final.pdf is gone, and that tabbed.pdf is gone after Ctrl+Z.</li>
+    <li data-k="R85"><b>R85, low, accepted by you on PR #114:</b> the tabbed.pdf rename can't tell the in-row entry from the fallback popover, which xdotool can't see. The down-tab screenshot, checked by the screenshot audit, shows which one opened.</li>
+  </ul>
+  <p data-k="acc14">Two low findings, from a later review and only plausible, are accepted rather than fixed, as this repo's CI review rules allow:</p>
+  <ul class="tight">
+    <li data-k="R86"><b>R86, accepted:</b> the only Escape press after a resumed invalid name was removed. That check couldn't catch the regression, so nothing is lost.</li>
+    <li data-k="R87"><b>R87, accepted:</b> the script types after the down-tab shot without refocusing. Taking a shot doesn't change focus, and losing focus is the bug this step tests.</li>
+  </ul>
+  <div class="note" data-k="pending14">CI's results on the newest head are pending: its verify run with R84's checks, and the screenshot audit.</div>
   </section>
 
   <section class="sub" id="budget">
@@ -555,8 +571,8 @@ explainers/
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI's build, smoke test and all verify scripts with R79's Down and Tab assertion</td><td>CI hasn't run them on the newest head yet</td><td class="open">next CI run</td></tr>
-    <tr data-k="a2"><td>A review of CI's 151f4a9d</td><td>CI skips its own fix commit; the next code push's review covers it</td><td class="open">next CI run</td></tr>
+    <tr data-k="a1"><td>CI's build, smoke test and all verify scripts with R84's Down and Tab checks</td><td>CI hasn't run them on the newest head yet</td><td class="open">next CI run</td></tr>
+    <tr data-k="a2"><td>A review of CI's 3d17d778</td><td>CI skips its own fix commit; the next code push's review covers it</td><td class="open">next CI run</td></tr>
     <tr data-k="a3"><td>Audit of CI's screenshots (<code>/visual-verify</code>)</td><td>Needs CI's newest shots on the shots branch</td><td class="open">after CI's next run</td></tr>
     <tr data-k="a4"><td>Daily use on your desktop</td><td>The package reaches your machine only after the merge</td><td class="open">after the merge</td></tr>
   </table>
@@ -581,6 +597,7 @@ explainers/
     <li data-k="l14">CI's eleventh run, with its eleventh review: <a href="https://github.com/alexhu98/thunar/actions/runs/43335628617">run 43335628617</a></li>
     <li data-k="l15">CI's twelfth run, with its twelfth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43341354858">run 43341354858</a></li>
     <li data-k="l16">CI's thirteenth run, with its thirteenth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43343018204">run 43343018204</a></li>
+    <li data-k="l17">CI's fourteenth run, with its fourteenth review: <a href="https://github.com/alexhu98/thunar/actions/runs/43344023510">run 43344023510</a></li>
     <li data-k="l3">After the merge: select a file in the details view and press F2.</li>
   </ul>
   </section>
