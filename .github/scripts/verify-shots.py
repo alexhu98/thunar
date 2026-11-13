@@ -238,7 +238,7 @@ def comment(out):
     theme = open(os.path.join(out, 'theme')).read().strip() if os.path.exists(os.path.join(out, 'theme')) else 'default'
     lines += [f'### Verify: {head}', '']
     if not complete:
-        lines += ['The run step stopped before it finished, so later tests are missing.', '']
+        lines += ['The run step stopped before it finished, so the tests it had not finished are marked cut short.', '']
     if unnumbered:
         status['text'] += '; the shots could not be numbered'
         lines += ["The shots could not be numbered, so none were published; see the run's `verify` artifact.", '']

@@ -1,7 +1,7 @@
 ---
 name: build-verify
 description: Builds Thunar's debs from the working tree, installs them and runs the smoke test and every verify/<issue>.sh under Xvfb, as CI does, and returns about 10 lines with the exact failing lines. Keeps the build and test output out of the caller's context. Never edits sources, commits or pushes.
-tools: Bash, Read, Grep, Glob
+tools: Bash, Read, Grep, Glob, Monitor
 model: inherit
 effort: medium
 color: yellow
@@ -50,7 +50,8 @@ Read a log only with `tail -n 30` or `grep -n`, never whole.
 4. **Run**: `.github/scripts/verify-proof.sh run`. The suite can run past the Bash tool's 10-minute limit, so start
    `LOGS=${TMPDIR:-/tmp}/build-verify; mkdir -p "$LOGS"; rm -f "$LOGS/run.exit"; .github/scripts/verify-proof.sh run > "$LOGS/run.log" 2>&1; echo $? > "$LOGS/run.exit"`
    with `run_in_background` and a `timeout` of 2100000 ms (CI caps the run step at 30 minutes), wait for its
-   completion notice, never with a foreground `sleep`, and report `exit=<the content of $LOGS/run.exit>`. If the sandbox can't start Xvfb (the smoke test fails before
+   completion notice or with a Monitor until-loop on `$LOGS/run.exit`, never with a foreground `sleep`, and report
+   `exit=<the content of $LOGS/run.exit>`, or `exit=none (the run was stopped)` when that file is missing. If the sandbox can't start Xvfb (the smoke test fails before
    Thunar launches, or `Xvfb` is missing), say `verify: not run: <cause>`; CI runs the tests. Otherwise return each
    test's result line (`<name>: <status> in <s> s`), the `<k> of <m> passed` line and, for each test that didn't
    pass, its `  | ` lines from the log, verbatim: `grep -n -E ' in [0-9]+ s$|: (not run|misnamed)|^  \||passed$|::warning::'`

@@ -26,6 +26,8 @@ DEBS=${DEBS:-$HOME/verify-debs}
 TIMEOUT=${TIMEOUT:-120}
 BUDGET=${BUDGET:-1500}
 JOBS=${JOBS:-3}
+names=()
+declare -A running=()
 TOOLS=(xvfb xfwm4 xdotool imagemagick x11-utils dbus gvfs gvfs-daemons zorin-desktop-themes)
 mkdir -p "$OUT"
 
@@ -134,35 +136,40 @@ not_run() {  # name, status, reason
   echo "$1: $2"
 }
 
-collect() {  # [final]
+collect() {  # [status for tests with no result]
   local n
   for n in "${names[@]}"; do
     if [[ -f $OUT/run/$n.row ]]; then
       cat "$OUT/run/$n.row"
     elif (( $# )); then
-      printf '%s\terror\t0\n' "$n"
+      printf '%s\t%s\t0\n' "$n" "$1"
     fi
-  done > "$OUT/results.tsv"
+  done > "$OUT/results.tsv.new"
+  mv "$OUT/results.tsv.new" "$OUT/results.tsv"
 }
 
 reap() {
   local done=''
   wait -n -p done "${!running[@]}" || true
-  [[ -n $done ]] || return 0
+  if [[ -z ${done:-} ]]; then
+    running=()
+    return 0
+  fi
   cat "$OUT/run/${running[$done]}.console"
   unset "running[$done]"
   collect
 }
 
 run() {
+  [[ $JOBS =~ ^[1-9][0-9]*$ ]] || { echo "JOBS must be a positive number, not '$JOBS'" >&2; exit 2; }
   rm -rf "$OUT/logs" "$OUT/run" "$OUT/shots" "$OUT/pairs" "$OUT/complete" "$OUT/verify.tsv" "$OUT/numbered.json"
   mkdir -p "$OUT/logs" "$OUT/run"
   : > "$OUT/results.tsv"
   theme > "$OUT/theme"
-  [[ $JOBS =~ ^[1-9][0-9]*$ ]] || { echo "JOBS must be a positive number, not '$JOBS'" >&2; exit 2; }
-  local script name begin=$SECONDS names=(smoke) tests=(smoke) cmd
-  local -A running=()
-  trap 'kill $(jobs -p) 2>/dev/null || true; for f in "$OUT"/run/*.pid; do [[ -f $f ]] && kill -- -"$(<"$f")" 2>/dev/null || true; done' EXIT
+  local script name begin=$SECONDS tests=(smoke) cmd
+  names=(smoke)
+  running=()
+  trap 'kill $(jobs -p) 2>/dev/null || true; for f in "$OUT"/run/*.pid; do [[ -f $f ]] && kill -- -"$(<"$f")" 2>/dev/null || true; done; [[ -e $OUT/complete ]] || collect "cut short"' EXIT
   trap 'exit 143' TERM
   trap 'exit 130' INT
   for script in verify/*.sh; do
@@ -191,7 +198,7 @@ run() {
     running[$!]=$name
   done
   while (( ${#running[@]} > 0 )); do reap; done
-  collect final
+  collect error
   echo "all tests ended in $((SECONDS - begin)) s, $JOBS at a time"
   python3 "$HERE/verify-shots.py" build "$OUT" || echo "::warning::some pair images could not be made" >&2
   : > "$OUT/complete"
