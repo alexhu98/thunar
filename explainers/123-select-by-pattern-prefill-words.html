@@ -316,7 +316,7 @@ explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</
     <li data-k="r1"><b>R1, medium, fixed:</b> in word mode a pattern with <code>*</code> or <code>?</code> is matched as a wildcard pattern, so <code>*.png</code> works. #124 said they were plain letters; you chose to keep the fix.</li>
     <li data-k="r2"><b>R2, low, fixed:</b> three upstream tooltips are back to their original words, <code>wildcard pattern</code>, <code>Examp*</code> and <code>Rés*</code>, so their translations still apply.</li>
     <li data-k="r3"><b>R3, low, fixed:</b> a query of only Unicode spaces, which splits into empty words, now selects nothing instead of everything.</li>
-    <li data-k="r4"><b>R4–R9, low, plausible, waiting on you to accept:</b> a cleared box keeps the old pattern (#123 asks for it); Case sensitive and Match diacritics reset each time (out of scope); an empty word query selects nothing while <code>**</code> selects all (by design); repeated setup lines (style); focus and highlight calls not provably redundant; one PR for two issues (on purpose).</li>
+    <li data-k="r4"><b>R4–R9, low, accepted by you:</b> kept as they are and closed with a <code>Review-accept</code> trailer. R4: a cleared box keeps the saved pattern, as #123 asks. R5: Case sensitive and Match diacritics reset each time, as upstream does; remembering them was out of scope. R6: an empty word query selects nothing while wildcard mode's empty box selects all, as #124's Risks ask; Ctrl+A selects all. R7: repeated setup lines in <code>get_paths_for_words</code>, style only. R8: the show, focus and highlight calls aren't provably redundant, since select-on-focus is a user setting. R9: one PR for two issues, as you asked.</li>
   </ul>
   </section>
 
