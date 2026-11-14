@@ -5334,6 +5334,9 @@ thunar_standard_view_select_cursor_if_none (ThunarStandardView *standard_view)
     return;
 
   view = gtk_bin_get_child (GTK_BIN (standard_view));
+  if (view == NULL || !gtk_widget_has_focus (view))
+    return;
+
   if (GTK_IS_TREE_VIEW (view))
     gtk_tree_view_get_cursor (GTK_TREE_VIEW (view), &cursor, NULL);
   else if (EXO_IS_ICON_VIEW (view))
