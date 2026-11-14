@@ -516,25 +516,6 @@ thunar_standard_view_model_get_paths_for_pattern (ThunarStandardViewModel *model
 
 
 
-/**
- * thunar_standard_view_model_get_paths_for_words:
- * @model            : a #ThunarStandardViewModel instance.
- * @query            : space-separated words, as in Search.
- * @case_sensitive   : %TRUE to use case sensitive matching.
- * @match_diacritics : %TRUE to require accents to match.
- *
- * Looks up all rows in the @model whose name contains every word of
- * @query, or doesn't contain a word written as !word, and returns
- * a list of #GtkTreePath<!---->s corresponding to the rows. An empty
- * or whitespace-only @query matches nothing.
- *
- * The caller is responsible to free the returned list using:
- * <informalexample><programlisting>
- * g_list_free_full (list, (GDestroyNotify) gtk_tree_path_free);
- * </programlisting></informalexample>
- *
- * Return value: the list of #GtkTreePath<!---->s that match @query.
- **/
 GList *
 thunar_standard_view_model_get_paths_for_words (ThunarStandardViewModel *model,
                                                 const gchar             *query,

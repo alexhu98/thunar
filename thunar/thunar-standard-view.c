@@ -3041,7 +3041,7 @@ thunar_standard_view_select_by_pattern (ThunarView *view)
   _thunar_return_val_if_fail (THUNAR_IS_STANDARD_VIEW (standard_view), FALSE);
 
   window = gtk_widget_get_toplevel (GTK_WIDGET (standard_view));
-  /* TRANSLATORS: Dialog allowing selection by wildcard ("*.c", etc.) */
+  /* TRANSLATORS: Dialog allowing selection by wildcard ("*.c", etc.) or by words, as in Search */
   dialog = gtk_dialog_new_with_buttons (C_ ("Select by Pattern dialog: title",
                                             "Select by Pattern"),
                                         GTK_WINDOW (window),
@@ -3085,13 +3085,13 @@ thunar_standard_view_select_by_pattern (ThunarView *view)
   gtk_widget_show (info_image);
 
   case_sensitive_button = gtk_check_button_new_with_mnemonic (C_ ("Select by Pattern dialog: labels: case sensitive checkbox", "C_ase sensitive"));
-  gtk_widget_set_tooltip_text (GTK_WIDGET (case_sensitive_button), C_ ("Select by Pattern dialog: tooltips: case sensitive checkbox", "If enabled, letter case must match the pattern.\nExamp* would match Example.txt and not example.txt"));
+  gtk_widget_set_tooltip_text (GTK_WIDGET (case_sensitive_button), C_ ("Select by Pattern dialog: tooltips: case sensitive checkbox", "If enabled, letter case must match the pattern.\nExamp would match Example.txt and not example.txt"));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (case_sensitive_button), FALSE);
   gtk_grid_attach_next_to (grid, case_sensitive_button, entry, GTK_POS_BOTTOM, 1, 1);
   gtk_widget_show (case_sensitive_button);
 
   match_diacritics_button = gtk_check_button_new_with_mnemonic (C_ ("Select by Pattern dialog: labels: match diacritics checkbox", "_Match diacritics"));
-  gtk_widget_set_tooltip_text (GTK_WIDGET (match_diacritics_button), C_ ("Select by Pattern dialog: tooltips: match diacritics checkbox", "If enabled, require accents to match the pattern.\nRés* would match Résumé.txt and not Resume.txt"));
+  gtk_widget_set_tooltip_text (GTK_WIDGET (match_diacritics_button), C_ ("Select by Pattern dialog: tooltips: match diacritics checkbox", "If enabled, require accents to match the pattern.\nRés would match Résumé.txt and not Resume.txt"));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (match_diacritics_button), FALSE);
   gtk_grid_attach_next_to (grid, match_diacritics_button, case_sensitive_button, GTK_POS_BOTTOM, 1, 1);
   gtk_widget_show (match_diacritics_button);
