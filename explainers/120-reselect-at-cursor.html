@@ -204,7 +204,7 @@
   <h3 class="sec">The big picture</h3>
   <p data-k="why">Clicking blank space in a folder clears the selection. Before this PR, pressing Up on the first file, Down on the last, Home at the top or End at the bottom then selected nothing at all, so the keyboard seemed dead until you pressed a key that could move. PgUp and PgDn always selected a file, and issue #120 asked for the other four keys to do the same.</p>
   <div class="note" data-k="note">The keyboard cursor (the row with the focus outline) and the selection are separate. A blank-space click clears the selection but leaves the cursor where it was. GTK selects a row only when the cursor moves, so at the first or last row these keys did nothing.</div>
-  <div class="note" data-k="order">The issue warned that the details view's own key handler runs before the shared one and might swallow Up and Down. It does, with Expandable Folders on, so that handler calls the same helper (lane ②). One helper serves both places.</div>
+  <div class="note" data-k="order">The issue warned that the details view's own key handler runs before the shared one and might swallow Up and Down. It does, with Expandable Folders on, so that handler calls the same helper (lane ②). One helper serves both places, and it checks the keyboard focus itself, so both paths get that check.</div>
   </section>
 
   <section class="sub" id="steps">
@@ -215,13 +215,13 @@
     <li data-k="1"><b>Press a key.</b> Up, Down, Home or End, or their keypad versions, with no Shift or Ctrl, while no file is selected, for example right after a click on blank space.</li>
     <li data-k="2"><b>Shared handler.</b> <code>thunar_standard_view_key_press_event</code> in <code>thunar-standard-view.c</code> is connected to the inner widget of every view: details, icon and compact. Its new rule fires only for those keys, unmodified, when the file view itself has the keyboard focus and nothing is selected. Anything else, such as a key on a focused column header, goes on exactly as before.</li>
     <li data-k="3"><b>View moves first.</b> The rule runs the view's own key handler (GtkTreeView in the details view, ExoIconView in the icon and compact views). Where the cursor can move, that moves it and selects the new row, as it always did. At the first or last row it moves nothing and selects nothing.</li>
-    <li data-k="4"><b>Select the cursor.</b> The new helper <code>thunar_standard_view_select_cursor_if_none</code> then checks again. If still nothing is selected, it reads the cursor row and selects it, but only if that row holds a file, so a Loading… placeholder under an expanded folder is never selected. The handler then stops the key, so it isn't handled twice.</li>
+    <li data-k="4"><b>Select the cursor.</b> The new helper <code>thunar_standard_view_select_cursor_if_none</code> then checks again. If still nothing is selected, it reads the cursor row and selects it, but only if that row holds a file, so a Loading… placeholder under an expanded folder is never selected. Like the rule, it does nothing unless the file view has the keyboard focus. The handler then stops the key, so it isn't handled twice.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Details view, Expandable Folders on</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
     <li data-k="5"><b>Details first.</b> With Expandable Folders on, <code>thunar-details-view.c</code> handles Up and Down itself, so it can step into and out of opened folders. Its handler is connected before the shared one, and it stops the key, so the shared rule never sees Up or Down here. Home and End still pass through to steps 2 to 4.</li>
     <li data-k="6"><b>Edge: no move.</b> On the first or last row, its cursor functions return without moving. That part is unchanged.</li>
-    <li data-k="7"><b>Same helper.</b> After a plain Up or Down (no Shift or Ctrl at all), the details handler now calls the same helper as step 4, so the file at the cursor is selected. Shift and Ctrl with Up or Down keep their own selection code from PR #51 (issue #49).</li>
+    <li data-k="7"><b>Same helper.</b> After a plain Up or Down (no Shift or Ctrl at all), the details handler now calls the same helper as step 4, so the file at the cursor is selected. The helper's own focus check covers this path too. Shift and Ctrl with Up or Down keep their own selection code from PR #51 (issue #49).</li>
   </ol>
   </div>
   </section>
@@ -242,7 +242,7 @@
   </section>
 
   <section class="sub" id="diff">
-  <h3 class="sec">The new rule in the shared handler</h3>
+  <h3 class="sec">The new rule, and the focus check in the helper</h3>
 <pre data-k="code">  if (standard_view-&gt;accel_group != NULL &amp;&amp; xfce_gtk_handle_tab_accels (…))
     return TRUE;
 
@@ -257,15 +257,23 @@
 <span class="add">    }</span>
 
   return FALSE;</pre>
+  <p data-k="both">The helper checks the focus too, so the details view's own Up and Down path (lane ②) gets the same check:</p>
+<pre data-k="helper"><span class="add">  if (thunar_standard_view_has_selected_items (standard_view))</span>
+<span class="add">    return;</span>
+
+<span class="add">  view = gtk_bin_get_child (GTK_BIN (standard_view));</span>
+<span class="add">  if (view == NULL || !gtk_widget_has_focus (view))</span>
+<span class="add">    return;</span>
+<span class="add">  …</span></pre>
   </section>
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">thunar/
-├── thunar-standard-view.c  # the new rule in the shared key handler, and the helper
+├── thunar-standard-view.c  # the new rule in the shared key handler, and the helper with its focus check
 ├── thunar-standard-view.h  # declares the helper for the details view
 └── thunar-details-view.c   # Expandable Folders: plain Up/Down call the helper
-verify/120.sh               # the test: 21 key checks, 7 blank-click checks, 8 screenshots
+verify/120.sh               # the test: 21 key checks, 19 blank-click checks (every click), 8 screenshots
 explainers/120-reselect-at-cursor.html            # this page
 explainers/120-reselect-at-cursor.narration.json  # its narration</pre>
   <div class="note" data-k="undo">To undo it, revert this PR. It adds no setting and stores nothing.</div>
@@ -276,14 +284,14 @@ explainers/120-reselect-at-cursor.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The building session built it and ran every test twice in a cloud container, the way CI does: once on the first commit, and again after the local review's fixes. Then CI reviewed the PR and pushed a fix for 3 findings, and CI's build, all tests and a screenshot audit passed on that fix.</p>
+  <p class="intro" data-k="intro">The building session built it and ran every test twice in a cloud container, the way CI does: once on the first commit, and again after the local review's fixes. CI then reviewed the PR twice. Its build, all tests and a screenshot audit passed after the first review's fixes. The second review's fixes passed every test in the container, and CI's build and tests passed on its own fix for it; CI's run on the last test change was still to come when this page was written.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 references</h3>
   <div class="grid">
     <div class="card" data-k="r1"><h3>Issue #120's cases</h3><p>A one-file folder with all four keys; the first file with Up and Home; the last file with Down and End; Expandable Folders on and off; the icon view. The test runs each one.</p></div>
     <div class="card" data-k="r2"><h3>PgUp and PgDn</h3><p>They always select the row they land on, even when the cursor can't move. That is the behaviour the four keys now copy.</p></div>
-    <div class="card" data-k="r3"><h3>Copy and paste as a probe</h3><p>Each check first copies a sentinel file in a fourth Thunar window, then presses Ctrl+C in the test window and Ctrl+V in a second window. The pasted names are the selection; “sentinel” means nothing was selected.</p></div>
+    <div class="card" data-k="r3"><h3>Copy and paste as a probe</h3><p>Unless the clipboard already holds it, each check first copies a sentinel file in a fourth Thunar window, then presses Ctrl+C in the test window and Ctrl+V in a second window. The pasted names are the selection; “sentinel” means nothing was selected.</p></div>
   </div>
   </section>
 
@@ -303,7 +311,11 @@ explainers/120-reselect-at-cursor.narration.json  # its narration</pre>
     <tr data-k="c9"><td>CI build (after CI's fix)</td><td>CI's build job on <code>582b134</code>, run <a href="https://github.com/alexhu98/thunar/actions/runs/43553753398">43553753398</a></td><td class="ok">build passed</td></tr>
     <tr data-k="c10"><td>CI verify (after CI's fix)</td><td>Same run: the smoke test and every <code>verify/*.sh</code>, with the fixed <code>verify/120.sh</code>: its 21 key checks plus a blank-click check once per window and view. Smoke 16 s, <code>verify/118.sh</code> 47 s, <code>verify/120.sh</code> 86 s.</td><td class="ok">21 of 21 pass</td></tr>
     <tr data-k="c11"><td>Screenshot audit</td><td><code>/visual-verify pr:122</code> on <code>582b134</code>'s CI shots, by an independent shot-auditor agent: shots #8–#13 of <code>verify/120.sh</code> and the smoke shot. <a href="https://github.com/alexhu98/thunar/pull/122#issuecomment-6871482242">Its comment</a>.</td><td class="ok">9 of 9 shots OK, PASS</td></tr>
-    <tr data-k="c12"><td>CI on this page's push</td><td>CI's run on the push that carries this page edit. Only <code>explainers/</code> changes, so its review skips it.</td><td class="open">runs after this page was written</td></tr>
+    <tr data-k="c12"><td>It builds (after CI's second review)</td><td><code>build-verify</code> agent in the building session's cloud container, on CI's fix <code>a1109fa</code> plus the R10 and R13 test changes, before the waits were shortened</td><td class="ok">build OK</td></tr>
+    <tr data-k="c13"><td>Every test (after CI's second review)</td><td>Same agent and build: the smoke test and every <code>verify/*.sh</code>. <code>verify/120.sh</code> took 95 s, too close to its 120 s limit, since CI ran about 25% slower than the container before.</td><td class="ok">21 of 21 pass, 95 s</td></tr>
+    <tr data-k="c14"><td><code>verify/120.sh</code> with shorter waits</td><td><code>verify-proof.sh run</code> with only the smoke test and <code>verify/120.sh</code>, twice, on the same build with the test from <code>c9205ca</code>: 40 checks, every blank-space click included. Smoke 12 s.</td><td class="ok">2 of 2 runs pass, 65 s each</td></tr>
+    <tr data-k="c15"><td>CI on <code>a1109fa</code></td><td>CI's build and verify on its own fix commit for the second review, run <a href="https://github.com/alexhu98/thunar/actions/runs/43557116135">43557116135</a>, with the test from before <code>c9205ca</code> (no R10 or R13 change). Smoke 17 s, <code>verify/118.sh</code> 49 s, <code>verify/120.sh</code> 85 s. Its review skipped CI's own fix commit; the explainer rendered and the narration was current.</td><td class="ok">build passed, 21 of 21 pass</td></tr>
+    <tr data-k="c16"><td>CI on this push</td><td>CI's build, tests and review on the push that carries <code>c9205ca</code> and this page</td><td class="open">runs after this page was written</td></tr>
   </table>
   </div>
   </section>
@@ -322,7 +334,7 @@ explainers/120-reselect-at-cursor.narration.json  # its narration</pre>
   </section>
 
   <section class="sub" id="cireview">
-  <h3 class="sec">CI's code review</h3>
+  <h3 class="sec">CI's first code review</h3>
   <p data-k="ci">CI reviewed head <code>4110d36</code> with Opus at level high in 8 minutes (run <a href="https://github.com/alexhu98/thunar/actions/runs/43553053572">43553053572</a>) and found 7 problems, listed in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/122">PR #122</a>. It fixed 3 in its own commit <code>582b134</code>; the owner accepted the other 4. CI skipped reviewing <code>582b134</code>, its own fix commit.</p>
   <ul class="tight">
     <li data-k="R1"><b>Fixed, R1 (medium):</b> <code>verify/120.sh</code> read the selection with Ctrl+C, but Copy does nothing with no selection, so a stale clipboard could pass a check. Each check now copies a sentinel file first, so an empty selection pastes “sentinel”.</li>
@@ -332,6 +344,19 @@ explainers/120-reselect-at-cursor.narration.json  # its narration</pre>
     <li data-k="R5"><b>Accepted, R5:</b> the “anything selected?” check builds the list of selected rows on each key press. Only the first press after a large selection pays for it, and that press already runs an equal selection-changed pass.</li>
     <li data-k="R6"><b>Accepted, R6:</b> the helper is called from two places. They cover separate cases: the details view stops Up and Down itself with Expandable Folders on.</li>
     <li data-k="R7"><b>Accepted, R7:</b> the fixed waits in <code>verify/120.sh</code> could approach its 120 s limit. It took 86 s in CI, 34 s to spare.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="cireview2">
+  <h3 class="sec">CI's second code review</h3>
+  <p data-k="ci">CI reviewed head <code>44c9acb</code>, the commits since <code>4110d36</code>, with Opus at level high in 4 minutes (run <a href="https://github.com/alexhu98/thunar/actions/runs/43556773880">43556773880</a>) and found 6 more problems. It fixed 2 in its own commit <code>a1109fa</code>, the building session fixed 2 in <code>c9205ca</code>, and 2 are accepted under <code>CLAUDE.md</code>'s CI review rules: low findings from a later review that weren't confirmed.</p>
+  <ul class="tight">
+    <li data-k="R8"><b>Fixed, R8 (medium):</b> R3's focus check covered only the shared handler. With Expandable Folders on, the details view's own Up and Down path called the helper with no focus check. Fixed in <code>a1109fa</code>.</li>
+    <li data-k="R9"><b>Fixed, R9 (low):</b> the focus check belongs in the helper itself. <code>thunar_standard_view_select_cursor_if_none</code> now returns early unless the file view has the keyboard focus. Fixed in <code>a1109fa</code>.</li>
+    <li data-k="R10"><b>Fixed, R10 (low):</b> the blank-space click was checked only once per window and view. Now every <code>deselect</code> checks that nothing is selected. Fixed in <code>c9205ca</code>.</li>
+    <li data-k="R13"><b>Fixed, R13 (low):</b> copying the sentinel before every check was redundant. It is now copied only when the clipboard may still hold a file. The same commit shortened the fixed waits in each check.</li>
+    <li data-k="R11"><b>Accepted, R11:</b> the sentinel is selected with one Ctrl+A and never checked directly. It is in effect: the first blank-click check expects “sentinel” and fails if nothing was copied.</li>
+    <li data-k="R12"><b>Accepted, R12:</b> the extra checks could push <code>verify/120.sh</code> past 120 s. With the shorter waits it took 65 s in both container runs, 55 s to spare.</li>
   </ul>
   </section>
 
@@ -355,6 +380,8 @@ explainers/120-reselect-at-cursor.narration.json  # its narration</pre>
     <li data-k="l4">CI's review of <code>4110d36</code>: run <a href="https://github.com/alexhu98/thunar/actions/runs/43553053572">43553053572</a></li>
     <li data-k="l5">CI's build and tests on <code>582b134</code>: run <a href="https://github.com/alexhu98/thunar/actions/runs/43553753398">43553753398</a></li>
     <li data-k="l6">The screenshot audit: <a href="https://github.com/alexhu98/thunar/pull/122#issuecomment-6871482242">its PR comment</a></li>
+    <li data-k="l7">CI's second review, of <code>44c9acb</code>: run <a href="https://github.com/alexhu98/thunar/actions/runs/43556773880">43556773880</a></li>
+    <li data-k="l8">CI's build and tests on <code>a1109fa</code>: run <a href="https://github.com/alexhu98/thunar/actions/runs/43557116135">43557116135</a></li>
   </ul>
   </section>
   </section>
@@ -413,8 +440,9 @@ explainers/120-reselect-at-cursor.narration.json  # its narration</pre>
     <div data-k="smoke"><dt>Smoke test</dt><dd>CI's basic check that Thunar is still running 10 seconds after it starts.</dd></div>
     <div data-k="vv"><dt><code>/visual-verify</code></dt><dd>A check in which a separate agent looks at every screenshot and says whether it shows what it claims.</dd></div>
     <div data-k="sn"><dt>S1–S6</dt><dd>Findings of the local review, numbered in its report.</dd></div>
-    <div data-k="rn"><dt>R1–R7</dt><dd>Findings of CI's review, numbered in its code review comment.</dd></div>
-    <div data-k="sentinel"><dt>Sentinel file</dt><dd>A file the test copies before each check, so a paste of it means nothing was selected.</dd></div>
+    <div data-k="rn"><dt>R1–R13</dt><dd>Findings of CI's reviews, numbered in its code review comment: R1–R7 from the first review, R8–R13 from the second.</dd></div>
+    <div data-k="accepted"><dt>Accepted finding</dt><dd>A review finding left as it is on purpose, by the owner or under <code>CLAUDE.md</code>'s CI review rules.</dd></div>
+    <div data-k="sentinel"><dt>Sentinel file</dt><dd>A file the test copies whenever the clipboard may still hold another file, so a paste of it means nothing was selected.</dd></div>
   </dl>
   </section>
 </main>
