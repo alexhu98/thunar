@@ -54,6 +54,7 @@ selected_is() {
   sleep 0.3
   rm -f "$DEST_DIR"/*
   [[ $got == "$want " ]] || fail "check $N: the selection held '$got', expected '$want'"
+  focus "$CUR"
 }
 
 reselects() {
@@ -138,3 +139,10 @@ CUR=$ONE_WID
 keys ctrl+1
 sleep 1
 reselects Down only.txt
+
+CUR=$MANY_WID
+keys ctrl+3
+sleep 1
+keys Home
+reselects Up a.txt
+shot "$CUR" compact-first "Compact view: with the cursor on the first file a.txt, Up after a blank-space click selected a.txt again"

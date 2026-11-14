@@ -271,8 +271,6 @@ thunar_standard_view_key_press_event (GtkWidget          *view,
                                       GdkEventKey        *event,
                                       ThunarStandardView *standard_view);
 static gboolean
-thunar_standard_view_has_selected_items (ThunarStandardView *standard_view);
-static gboolean
 thunar_standard_view_scroll_event (GtkWidget          *view,
                                    GdkEventScroll     *event,
                                    ThunarStandardView *standard_view);
@@ -396,6 +394,8 @@ thunar_standard_view_cell_layout_data_func (GtkCellLayout   *layout,
                                             gpointer         data);
 static void
 thunar_standard_view_set_model (ThunarStandardView *standard_view);
+static gboolean
+thunar_standard_view_has_selected_items (ThunarStandardView *standard_view);
 static void
 thunar_standard_view_update_selected_files (ThunarStandardView *standard_view,
                                             GList              *files_to_select);
@@ -5324,6 +5324,8 @@ thunar_standard_view_select_cursor_if_none (ThunarStandardView *standard_view)
 {
   GtkWidget   *view;
   GtkTreePath *cursor = NULL;
+  GtkTreeIter  iter;
+  ThunarFile  *file = NULL;
 
   _thunar_return_if_fail (THUNAR_IS_STANDARD_VIEW (standard_view));
 
@@ -5339,7 +5341,14 @@ thunar_standard_view_select_cursor_if_none (ThunarStandardView *standard_view)
   if (cursor == NULL)
     return;
 
-  (*THUNAR_STANDARD_VIEW_GET_CLASS (standard_view)->select_path) (standard_view, cursor);
+  if (gtk_tree_model_get_iter (GTK_TREE_MODEL (standard_view->model), &iter, cursor))
+    file = thunar_standard_view_model_get_file (standard_view->model, &iter);
+
+  if (file != NULL)
+    {
+      (*THUNAR_STANDARD_VIEW_GET_CLASS (standard_view)->select_path) (standard_view, cursor);
+      g_object_unref (file);
+    }
   gtk_tree_path_free (cursor);
 }
 
