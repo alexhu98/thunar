@@ -394,6 +394,8 @@ thunar_standard_view_cell_layout_data_func (GtkCellLayout   *layout,
                                             gpointer         data);
 static void
 thunar_standard_view_set_model (ThunarStandardView *standard_view);
+static gboolean
+thunar_standard_view_has_selected_items (ThunarStandardView *standard_view);
 static void
 thunar_standard_view_update_selected_files (ThunarStandardView *standard_view,
                                             GList              *files_to_select);
@@ -3407,6 +3409,19 @@ thunar_standard_view_key_press_event (GtkWidget          *view,
   if (standard_view->accel_group != NULL && xfce_gtk_handle_tab_accels (event, standard_view->accel_group, standard_view, thunar_standard_view_action_entries, THUNAR_STANDARD_VIEW_N_ACTIONS) == TRUE)
     return TRUE;
 
+  if ((event->state & gtk_accelerator_get_default_mod_mask ()) == 0
+      && gtk_widget_has_focus (view)
+      && (event->keyval == GDK_KEY_Up || event->keyval == GDK_KEY_KP_Up
+          || event->keyval == GDK_KEY_Down || event->keyval == GDK_KEY_KP_Down
+          || event->keyval == GDK_KEY_Home || event->keyval == GDK_KEY_KP_Home
+          || event->keyval == GDK_KEY_End || event->keyval == GDK_KEY_KP_End)
+      && !thunar_standard_view_has_selected_items (standard_view))
+    {
+      GTK_WIDGET_GET_CLASS (view)->key_press_event (view, event);
+      thunar_standard_view_select_cursor_if_none (standard_view);
+      return TRUE;
+    }
+
   return FALSE;
 }
 
@@ -5289,6 +5304,56 @@ thunar_standard_view_transfer_selection (ThunarStandardView *standard_view,
   files = thunar_component_get_selected_files (THUNAR_COMPONENT (old_view));
   if (files != NULL)
     thunar_component_set_selected_files (THUNAR_COMPONENT (standard_view), files);
+}
+
+
+
+static gboolean
+thunar_standard_view_has_selected_items (ThunarStandardView *standard_view)
+{
+  GList *selected;
+
+  selected = (*THUNAR_STANDARD_VIEW_GET_CLASS (standard_view)->get_selected_items) (standard_view);
+  g_list_free_full (selected, (GDestroyNotify) gtk_tree_path_free);
+  return selected != NULL;
+}
+
+
+
+void
+thunar_standard_view_select_cursor_if_none (ThunarStandardView *standard_view)
+{
+  GtkWidget   *view;
+  GtkTreePath *cursor = NULL;
+  GtkTreeIter  iter;
+  ThunarFile  *file = NULL;
+
+  _thunar_return_if_fail (THUNAR_IS_STANDARD_VIEW (standard_view));
+
+  if (thunar_standard_view_has_selected_items (standard_view))
+    return;
+
+  view = gtk_bin_get_child (GTK_BIN (standard_view));
+  if (view == NULL || !gtk_widget_has_focus (view))
+    return;
+
+  if (GTK_IS_TREE_VIEW (view))
+    gtk_tree_view_get_cursor (GTK_TREE_VIEW (view), &cursor, NULL);
+  else if (EXO_IS_ICON_VIEW (view))
+    exo_icon_view_get_cursor (EXO_ICON_VIEW (view), &cursor, NULL);
+
+  if (cursor == NULL)
+    return;
+
+  if (gtk_tree_model_get_iter (GTK_TREE_MODEL (standard_view->model), &iter, cursor))
+    file = thunar_standard_view_model_get_file (standard_view->model, &iter);
+
+  if (file != NULL)
+    {
+      (*THUNAR_STANDARD_VIEW_GET_CLASS (standard_view)->select_path) (standard_view, cursor);
+      g_object_unref (file);
+    }
+  gtk_tree_path_free (cursor);
 }
 
 

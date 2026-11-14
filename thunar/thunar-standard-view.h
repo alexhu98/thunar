@@ -250,6 +250,8 @@ thunar_standard_view_set_statusbar_text_for_job (ThunarStandardView *standard_vi
 void
 thunar_standard_view_transfer_selection (ThunarStandardView *standard_view,
                                          ThunarStandardView *old_view);
+void
+thunar_standard_view_select_cursor_if_none (ThunarStandardView *standard_view);
 
 
 G_END_DECLS;
