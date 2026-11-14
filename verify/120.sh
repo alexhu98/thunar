@@ -36,34 +36,35 @@ keys() {
 deselect() {
   focus "$CUR"
   xdotool mousemove --window "$CUR" "$BLANK_X" "$BLANK_Y"
-  sleep 0.3
+  sleep 0.2
   xdotool click 1
-  sleep 0.4
-  if [[ -z ${CHECKED["$CUR $VIEW"]:-} ]]; then
-    CHECKED["$CUR $VIEW"]=1
-    selected_is sentinel
-  fi
+  sleep 0.3
+  selected_is sentinel
 }
 
 N=0
-declare -A CHECKED=()
+CLIP=''
 selected_is() {
   local want=$1 got='' i
   N=$((N + 1))
-  focus "$SENT"
+  if [[ $CLIP != sentinel ]]; then
+    focus "$SENT"
+    xdotool key ctrl+c
+    sleep 0.1
+  fi
+  focus "$CUR"
   xdotool key ctrl+c
-  sleep 0.2
-  keys ctrl+c
   focus "$DEST"
   xdotool key ctrl+v
-  for ((i = 0; i < 25; i++)); do
+  for ((i = 0; i < 50; i++)); do
     got=$(ls -A "$DEST_DIR" | tr '\n' ' ')
     [[ $got == "$want " ]] && break
-    sleep 0.2
+    sleep 0.1
   done
-  sleep 0.3
+  sleep 0.2
   rm -f "$DEST_DIR"/*
   [[ $got == "$want " ]] || fail "check $N: the selection held '$got', expected '$want'"
+  CLIP=$want
   focus "$CUR"
 }
 
@@ -94,7 +95,6 @@ wait_title "$MANY_WID" many
 sleep 1
 
 G='Details view, Expandable Folders on'
-VIEW=details
 
 CUR=$ONE_WID
 deselect
@@ -125,7 +125,6 @@ shot "$CUR" details-last "With the cursor on the last file c.txt, Down and End a
 
 xfconf-query -c thunar -p /misc-expandable-folders -s false
 sleep 1
-VIEW=details-off
 
 CUR=$ONE_WID
 reselects Up only.txt
@@ -138,7 +137,6 @@ reselects Down c.txt
 shot "$CUR" expandable-off-last "With Expandable Folders off, Down after a blank-space click selected the last file c.txt again"
 
 G='Icon view'
-VIEW=icon
 
 CUR=$MANY_WID
 keys ctrl+1
@@ -162,7 +160,6 @@ reselects Down only.txt
 CUR=$MANY_WID
 keys ctrl+3
 sleep 1
-VIEW=compact
 keys Home
 reselects Up a.txt
 shot "$CUR" compact-first "Compact view: with the cursor on the first file a.txt, Up after a blank-space click selected a.txt again"
