@@ -116,3 +116,11 @@ open_dialog
 dialog_keys Return
 selected_is "${THREE[@]}"
 shot "$MAIN" case-ignored "With Case sensitive unticked again, CP 2post selected all three cp files"
+
+keys ctrl+a
+open_dialog
+xdotool type --delay 20 '*1pre*'
+shot "$DLG" wildcard-in-word-mode-dialog "Match words is still ticked, with the wildcard pattern *1pre* typed"
+dialog_keys Return
+selected_is cp-a-1pre.png
+shot "$MAIN" wildcard-in-word-mode "With Match words ticked, *1pre* was matched as a wildcard pattern and selected only cp-a-1pre.png"

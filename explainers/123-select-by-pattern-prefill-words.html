@@ -225,7 +225,7 @@
   <div class="lane-h" style="color:var(--merge)">② #124 Match words</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
     <li data-k="5"><b>Match words.</b> A third checkbox, “Match words, like Search (Ctrl+F)”, sits below Case sensitive and Match diacritics. It is on the first time, and Select saves its state the same way as the pattern. The info icon's tooltip switches to explain the mode that is ticked.</li>
-    <li data-k="6"><b>Split into words.</b> The new <code>thunar_standard_view_model_get_paths_for_words</code> normalizes the text and splits it with Search's <code>thunar_util_split_search_query</code>. <code>!word</code> excludes a word, <code>\!</code> is a literal <code>!</code>, and <code>*</code> and <code>?</code> are plain letters. A box of only spaces selects nothing.</li>
+    <li data-k="6"><b>Split into words.</b> The new <code>thunar_standard_view_model_get_paths_for_words</code> normalizes the text and splits it with Search's <code>thunar_util_split_search_query</code>. <code>!word</code> excludes a word and <code>\!</code> is a literal <code>!</code>. A pattern with <code>*</code> or <code>?</code> is matched as a wildcard pattern instead, so a habit like <code>*.png</code> still works, and the tooltip says so. A box of only spaces, Unicode ones included, selects nothing.</li>
     <li data-k="7"><b>Every word in.</b> The same loop over the folder's rows that the wildcard mode uses now calls Search's <code>thunar_util_search_terms_match</code> when it has words. Case sensitive and Match diacritics still apply, which Search itself never does.</li>
     <li data-k="8"><b>Files selected.</b> The rest is unchanged: unselect all, put the cursor on the first match, select every match. With the box unticked, the old wildcard pattern runs exactly as before.</li>
   </ol>
@@ -242,7 +242,7 @@
     <tr data-k="w2"><td><code>cp !1pre</code></td><td>on</td><td>the same three: <code>!1pre</code> leaves out cp-a-1pre</td></tr>
     <tr data-k="w3"><td><code>CP 2post</code>, Case sensitive ticked</td><td>on</td><td>only CP-c-2post</td></tr>
     <tr data-k="w4"><td><code>cp*-2post.png</code></td><td>off</td><td>the same three, as the old wildcard mode did</td></tr>
-    <tr data-k="w5"><td><code>*.txt</code></td><td>on</td><td>only names that really contain <code>*.txt</code>: untick the box for wildcards</td></tr>
+    <tr data-k="w5"><td><code>*1pre*</code></td><td>on</td><td>only cp-a-1pre: with <code>*</code> or <code>?</code>, word mode falls back to the wildcard pattern</td></tr>
   </table>
   </div>
   </section>
@@ -252,13 +252,16 @@
 <pre data-k="tree">thunar/
 ├── thunar-standard-view.c        # the two static variables, prefill and
 │                                 # highlight, the new checkbox and its
-│                                 # tooltip switch, save on Select
+│                                 # tooltip switch, save on Select, and
+│                                 # wildcards in word mode
 ├── thunar-standard-view-model.c  # get_paths_for_words; the shared loop
-│                                 # matches words or a wildcard pattern
+│                                 # matches words or a wildcard pattern;
+│                                 # a query of only spaces selects nothing
 └── thunar-standard-view-model.h  # declares get_paths_for_words
 verify/
 ├── 123.sh                        # prefill, Enter reuse, Cancel, 2nd window
-└── 124.sh                        # word mode, !word, remembered off, case
+└── 124.sh                        # word mode, !word, remembered off, case,
+                                  # *1pre* as a wildcard in word mode
 explainers/123-select-by-pattern-prefill-words.html            # this page
 explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</pre>
   </section>
@@ -268,7 +271,7 @@ explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested in a cloud container from git, as CI does; CI and the screenshot audit haven't run yet.</p>
+  <p class="intro" data-k="intro">Built and tested in a cloud container from git, then by CI and the screenshot audit on 939a0c7; CI's review fixes haven't been through CI yet.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -289,11 +292,13 @@ explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</
     <tr data-k="c3"><td>Every test</td><td><code>verify-proof.sh run</code> on this branch's debs, before the review fixes</td><td class="ok">22 of 23 pass, smoke test included</td></tr>
     <tr data-k="c4"><td>Word mode (#124)</td><td><code>verify/124.sh</code> in that run: default on, <code>cp 2post</code>, <code>!1pre</code>, remembered off, Case sensitive</td><td class="ok">pass in 34 s</td></tr>
     <tr data-k="c5"><td>Last pattern (#123)</td><td><code>verify/123.sh</code> in that run: prefill, Enter reuse, Cancel, a second window</td><td class="open">failed only on a shot-naming rule; shot renamed, not re-run</td></tr>
-    <tr data-k="c6"><td>CI build, verify and review</td><td>The PR isn't open yet, so CI hasn't run</td><td class="no">not run yet</td></tr>
-    <tr data-k="c7"><td>Screenshot audit</td><td><code>/visual-verify</code> runs on CI's shots once CI has taken them</td><td class="no">not run yet</td></tr>
+    <tr data-k="c6"><td>CI build and verify</td><td>CI run 43568921229 on 939a0c7: build, then every verify script on its debs</td><td class="ok">build pass; 23 of 23 pass, <code>123.sh</code> and <code>124.sh</code> included</td></tr>
+    <tr data-k="c7"><td>Screenshot audit</td><td><code>/visual-verify pr:125</code> on CI's shots of 939a0c7</td><td class="ok">PASS, 210 shots OK</td></tr>
+    <tr data-k="c8"><td>CI review</td><td>The review job at <code>high</code> on 939a0c7; the first attempt didn't finish, the one re-run did</td><td class="ok">pass, 9 findings (below)</td></tr>
+    <tr data-k="c9"><td>The newest commits</td><td>CI's fix commit 6d3a777 and the new <code>*1pre*</code> step in <code>verify/124.sh</code> came after that run</td><td class="no">not run yet</td></tr>
   </table>
   </div>
-  <div class="note" data-k="caveat">The local tests ran before the review fixes, which changed two tooltips, a comment and the name of one shot. CI's verify run on the final code is the one to trust.</div>
+  <div class="note" data-k="caveat">CI's run on 939a0c7 passed every test, after the local review fixes. Its own fixes R1–R3 and the new word-mode wildcard step come later, so CI's next run is the one to trust.</div>
   </section>
 
   <section class="sub" id="review">
@@ -301,12 +306,18 @@ explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</
   <p data-k="summary">Before the first push, a fresh agent reviewed the branch at <code>high</code> against <code>origin/main</code>. It found 8 problems: 3 fixed, 5 left as they are.</p>
   <ul class="tight">
     <li data-k="b1"><b>Fixed, wording:</b> the dialog title's translator comment now mentions words, and a new doc comment was removed, since the repo adds no new explanatory comments.</li>
-    <li data-k="b2"><b>Fixed, tooltips:</b> the Case sensitive and Match diacritics examples were <code>Examp*</code> and <code>Rés*</code>; now <code>Examp</code> and <code>Rés</code>, which hold in both modes.</li>
-    <li data-k="b3"><b>Left for you:</b> with word mode on by default, a habit like <code>*.txt</code> is read as literal text. That is what #124 asked for.</li>
-    <li data-k="b4"><b>Accepted:</b> the reworded pattern-label tooltip loses its existing translations, and “(Ctrl+F)” is fixed text even if the shortcut is remapped, as #124 worded it.</li>
+    <li data-k="b2"><b>Fixed, tooltips:</b> the Case sensitive and Match diacritics examples were <code>Examp*</code> and <code>Rés*</code>; now <code>Examp</code> and <code>Rés</code>, which hold in both modes. CI's R2 later reverted this, to keep their translations.</li>
+    <li data-k="b3"><b>Left for you, then changed:</b> with word mode on by default, a habit like <code>*.txt</code> was read as literal text. CI's R1 raised it again; you chose the wildcard fallback.</li>
+    <li data-k="b4"><b>Accepted:</b> the reworded pattern-label tooltip lost its translations, until CI's R2 restored it; “(Ctrl+F)” is fixed text even if the shortcut is remapped, as #124 worded it.</li>
     <li data-k="b5"><b>Kept small:</b> a new translator note stays, because gettext needs it, and about 6 setup lines repeat between the two model functions.</li>
   </ul>
-  <p data-k="ci">CI reviews every code push and reports in the PR's code review comment; it hasn't run yet.</p>
+  <p data-k="ci">CI's review of 939a0c7 at <code>high</code>, in the PR's code review comment, found 9 problems, R1–R9, and pushed fix commit 6d3a777 for three:</p>
+  <ul class="tight">
+    <li data-k="r1"><b>R1, medium, fixed:</b> in word mode a pattern with <code>*</code> or <code>?</code> is matched as a wildcard pattern, so <code>*.png</code> works. #124 said they were plain letters; you chose to keep the fix.</li>
+    <li data-k="r2"><b>R2, low, fixed:</b> three upstream tooltips are back to their original words, <code>wildcard pattern</code>, <code>Examp*</code> and <code>Rés*</code>, so their translations still apply.</li>
+    <li data-k="r3"><b>R3, low, fixed:</b> a query of only Unicode spaces, which splits into empty words, now selects nothing instead of everything.</li>
+    <li data-k="r4"><b>R4–R9, low, plausible, waiting on you to accept:</b> a cleared box keeps the old pattern (#123 asks for it); Case sensitive and Match diacritics reset each time (out of scope); an empty word query selects nothing while <code>**</code> selects all (by design); repeated setup lines (style); focus and highlight calls not provably redundant; one PR for two issues (on purpose).</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -314,8 +325,8 @@ explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI's build, verify, review and screenshots</td><td>CI runs on the PR, which isn't open yet</td><td class="open">first push of PR #125</td></tr>
-    <tr data-k="a2"><td><code>verify/123.sh</code> passing end to end</td><td>Not re-run here after the shot rename</td><td class="open">CI's verify job on PR #125</td></tr>
+    <tr data-k="a1"><td>CI's build, verify, review and screenshots of the newest commits</td><td>CI's fix commit and the new test step came after CI's last run</td><td class="open">next push of PR #125</td></tr>
+    <tr data-k="a2"><td><code>verify/124.sh</code>'s <code>*1pre*</code> step in word mode</td><td>Added after CI's run; not run here</td><td class="open">CI's verify job on that push</td></tr>
     <tr data-k="a3"><td>Use on your own desktop</td><td>Needs the next build installed on your machine</td><td class="open">after the merge</td></tr>
   </table>
   </div>
@@ -326,6 +337,7 @@ explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</
   <ul class="tight">
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/125">PR #125</a> → “Files changed”</li>
     <li data-k="l2">The issues: <a href="https://github.com/alexhu98/thunar/issues/123">#123</a> (last pattern) and <a href="https://github.com/alexhu98/thunar/issues/124">#124</a> (match words)</li>
+    <li data-k="l4">CI's run on 939a0c7: <a href="https://github.com/alexhu98/thunar/actions/runs/43568921229">run 43568921229</a></li>
     <li data-k="l3">Try it: Ctrl+S, type <code>cp 2post</code>, Select; Ctrl+S again and press Enter</li>
   </ul>
   </section>
@@ -387,7 +399,7 @@ explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</
   <dl class="gloss">
     <div data-k="sbp"><dt>Select by Pattern</dt><dd>Edit menu item (Ctrl+S) that selects every file whose name matches what you type.</dd></div>
     <div data-k="wild"><dt>Wildcard pattern</dt><dd><code>?</code> is any one character and <code>*</code> any run of characters, e.g. <code>*.txt</code>.</dd></div>
-    <div data-k="words"><dt>Word mode</dt><dd>The text is split at spaces; a name must contain every word, in any order.</dd></div>
+    <div data-k="words"><dt>Word mode</dt><dd>The text is split at spaces; a name must contain every word, in any order. With <code>*</code> or <code>?</code> it is a wildcard pattern.</dd></div>
     <div data-k="excl"><dt>!word</dt><dd>In word mode, leaves out names that contain that word.</dd></div>
     <div data-k="diac"><dt>Diacritics</dt><dd>Accents on letters, like the é in Résumé.</dd></div>
     <div data-k="static"><dt>static variable</dt><dd>A C variable kept for the life of the program, shared by every window.</dd></div>
