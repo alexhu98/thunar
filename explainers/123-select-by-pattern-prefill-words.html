@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #125 Pattern memory</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #125: Select by Pattern remembers your pattern and matches words</h1>
+  <p class="lead" data-k="lead">Branch <code>123-select-by-pattern-prefill-words</code> → <code>main</code>, closes #123 and #124. Ctrl+S now opens with the last pattern, highlighted, and by default matches words the way Search (Ctrl+F) does.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing builds on it yet</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">The Select by Pattern dialog keeps the last pattern and a new “Match words” checkbox in memory until Thunar quits, all in thunar-standard-view.c and its view model.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="Lane one: the dialog opens with the last pattern, highlighted, and Select saves it for every window. Lane two: with Match words on, the pattern is split into words and a file is selected when its name has every word.">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① #123 Last pattern — reuse it with Enter</text>
+    <g data-k="1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Press Ctrl+S</text>
+      <text x="36" y="114" class="b">in any folder,</text>
+      <text x="36" y="134" class="b">in any window</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Prefilled</text>
+      <text x="286" y="114" class="m">*-2post.png</text>
+      <text x="286" y="134" class="b">last pattern, all</text>
+      <text x="286" y="154" class="b">of it highlighted</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Select saves it</text>
+      <text x="536" y="114" class="b">only if not empty;</text>
+      <text x="536" y="134" class="b">Cancel keeps the</text>
+      <text x="536" y="154" class="b">old pattern</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-merge" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Next dialog</text>
+      <text x="786" y="114" class="b">same pattern in</text>
+      <text x="786" y="134" class="b">every window, until</text>
+      <text x="786" y="154" class="b">Thunar quits</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② #124 Match words — like Search (Ctrl+F)</text>
+    <g data-k="5">
+      <rect class="box-you" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Match words</text>
+      <text x="36" y="314" class="b">new checkbox, on</text>
+      <text x="36" y="334" class="b">by default, kept</text>
+      <text x="36" y="354" class="b">like the pattern</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-pr" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Split into words</text>
+      <text x="286" y="314" class="m">cp !1pre</text>
+      <text x="286" y="334" class="b">Search's own split;</text>
+      <text x="286" y="354" class="b">!word excludes</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-pr" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Every word in</text>
+      <text x="536" y="314" class="b">each name is tested</text>
+      <text x="536" y="334" class="b">by Search's match,</text>
+      <text x="536" y="354" class="b">in any order</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <g data-k="8">
+      <rect class="box-merge" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Files selected</text>
+      <text x="786" y="314" class="b">same as before:</text>
+      <text x="786" y="334" class="b">unselect, cursor,</text>
+      <text x="786" y="354" class="b">select the matches</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">8</text>
+    </g>
+    <path class="arrow" d="M230,320 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,320 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,320 H766" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new code in this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>what you see</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Edit → Select by Pattern (Ctrl+S) selects every file in the folder whose name matches what you type. It used to open empty every time, and it only took wildcard patterns, so <code>cp-detail-tx-w 2post</code>, which works in Search, matched nothing. Now the dialog remembers your last pattern, and by default reads it as words, the same way Search does.</p>
+  <div class="note" data-k="note">Both memories are plain variables in the running Thunar program. Nothing is written to Thunar's settings (xfconf), so they are gone when Thunar quits, which usually means when the last window closes.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① #123 Last pattern</div>
+  <ol class="steps">
+    <li data-k="1"><b>Press Ctrl+S.</b> In any folder of any Thunar window, <code>thunar_standard_view_select_by_pattern</code> builds the dialog, as before.</li>
+    <li data-k="2"><b>Prefilled.</b> If a pattern was saved, the box is filled with it. The text is highlighted only after the dialog is shown and the box has focus, so GTK doesn't clear the highlight. Enter reuses it; typing replaces it.</li>
+    <li data-k="3"><b>Select saves it.</b> Only Select saves, and only a non-empty pattern. It saves the text as you typed it, before a bare word is wrapped as <code>*word*</code>, so reuse never adds extra stars. Cancel saves nothing.</li>
+    <li data-k="4"><b>Next dialog.</b> The pattern is one file-level <code>static</code> variable, so every folder and window shares it, and it survives closing a window. Thunar already keeps app-wide memory this way, in <code>thunar-file.c</code> and <code>thunar-notify.c</code>.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② #124 Match words</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Match words.</b> A third checkbox, “Match words, like Search (Ctrl+F)”, sits below Case sensitive and Match diacritics. It is on the first time, and Select saves its state the same way as the pattern. The info icon's tooltip switches to explain the mode that is ticked.</li>
+    <li data-k="6"><b>Split into words.</b> The new <code>thunar_standard_view_model_get_paths_for_words</code> normalizes the text and splits it with Search's <code>thunar_util_split_search_query</code>. <code>!word</code> excludes a word and <code>\!</code> is a literal <code>!</code>. A pattern with <code>*</code> or <code>?</code> is matched as a wildcard pattern instead, so a habit like <code>*.png</code> still works, and the tooltip says so. A box of only spaces, Unicode ones included, selects nothing.</li>
+    <li data-k="7"><b>Every word in.</b> The same loop over the folder's rows that the wildcard mode uses now calls Search's <code>thunar_util_search_terms_match</code> when it has words. Case sensitive and Match diacritics still apply, which Search itself never does.</li>
+    <li data-k="8"><b>Files selected.</b> The rest is unchanged: unselect all, put the cursor on the first match, select every match. With the box unticked, the old wildcard pattern runs exactly as before.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">Same folder, two modes</h3>
+  <p data-k="setup">In a folder of <code>cp-a-1pre.png</code>, <code>cp-a-2post.png</code>, <code>cp-b-2post.png</code>, <code>CP-c-2post.png</code> and <code>other-2post.png</code> (the files verify/124.sh makes):</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>You type</th><th>Match words</th><th>Selected</th></tr>
+    <tr data-k="w1"><td><code>cp 2post</code></td><td>on</td><td>cp-a-2post, cp-b-2post, CP-c-2post</td></tr>
+    <tr data-k="w2"><td><code>cp !1pre</code></td><td>on</td><td>the same three: <code>!1pre</code> leaves out cp-a-1pre</td></tr>
+    <tr data-k="w3"><td><code>CP 2post</code>, Case sensitive ticked</td><td>on</td><td>only CP-c-2post</td></tr>
+    <tr data-k="w4"><td><code>cp*-2post.png</code></td><td>off</td><td>the same three, as the old wildcard mode did</td></tr>
+    <tr data-k="w5"><td><code>*1pre*</code></td><td>on</td><td>only cp-a-1pre: with <code>*</code> or <code>?</code>, word mode falls back to the wildcard pattern</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+├── thunar-standard-view.c        # the two static variables, prefill and
+│                                 # highlight, the new checkbox and its
+│                                 # tooltip switch, save on Select, and
+│                                 # wildcards in word mode
+├── thunar-standard-view-model.c  # get_paths_for_words; the shared loop
+│                                 # matches words or a wildcard pattern;
+│                                 # a query of only spaces selects nothing
+└── thunar-standard-view-model.h  # declares get_paths_for_words
+verify/
+├── 123.sh                        # prefill, Enter reuse, Cancel, 2nd window
+└── 124.sh                        # word mode, !word, remembered off, case,
+                                  # *1pre* as a wildcard in word mode
+explainers/123-select-by-pattern-prefill-words.html            # this page
+explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</pre>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built and tested in a cloud container from git, then by CI on 939a0c7 and again on the newest head, aa93e7a, after every review fix.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Search (Ctrl+F)</h3><p>Word mode calls Search's own split and match functions from <code>thunar-util.c</code>, so it reads a query exactly as Search does.</p></div>
+    <div class="card" data-k="r2"><h3>The wildcard mode</h3><p>The new function copies the setup of <code>get_paths_for_pattern</code> and shares its loop over the rows, so both modes see the same files.</p></div>
+    <div class="card" data-k="r3"><h3>Static app memory</h3><p>The file-level <code>static</code> variables follow <code>thunar-file.c</code> and <code>thunar-notify.c</code>, which keep app-wide state the same way.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage</code> from git in this session's cloud container, by the build-verify agent</td><td class="ok">build OK; 20 gtk-doc warnings, all on older doc blocks in the view model</td></tr>
+    <tr data-k="c2"><td>It installs</td><td>The built thunar debs installed in the same container</td><td class="ok">install OK</td></tr>
+    <tr data-k="c3"><td>Every test</td><td><code>verify-proof.sh run</code> on this branch's debs, before the review fixes</td><td class="ok">22 of 23 pass, smoke test included</td></tr>
+    <tr data-k="c4"><td>Word mode (#124)</td><td><code>verify/124.sh</code> in that run: default on, <code>cp 2post</code>, <code>!1pre</code>, remembered off, Case sensitive</td><td class="ok">pass in 34 s</td></tr>
+    <tr data-k="c5"><td>Last pattern (#123)</td><td><code>verify/123.sh</code> in that run: prefill, Enter reuse, Cancel, a second window</td><td class="open">failed only on a shot-naming rule; shot renamed, not re-run</td></tr>
+    <tr data-k="c6"><td>CI build and verify</td><td>CI run 43573111854 on aa93e7a: build, then every verify script on its debs</td><td class="ok">build pass; 23 of 23 pass, <code>124.sh</code>'s new wildcard-in-word-mode step included</td></tr>
+    <tr data-k="c7"><td>Screenshot audit</td><td><code>/visual-verify pr:125</code> on CI's shots of 939a0c7, then of aa93e7a</td><td class="ok">PASS on 939a0c7, 210 shots OK; PASS on aa93e7a, 212 shots OK, posted on the PR</td></tr>
+    <tr data-k="c8"><td>CI review</td><td>The review job at <code>high</code> on each code push, last on aa93e7a</td><td class="ok">pass; 23 findings in all, R1–R23 (below)</td></tr>
+    <tr data-k="c9"><td>CI explainer</td><td>The explainer job on aa93e7a: renders this page and checks its narration</td><td class="ok">pass</td></tr>
+  </table>
+  </div>
+  <div class="note" data-k="caveat">CI's run on aa93e7a came after every review fix and passed build, verify, review and explainer, and its screenshot audit passed.</div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh agent reviewed the branch at <code>high</code> against <code>origin/main</code>. It found 8 problems: 3 fixed, 5 left as they are.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed, wording:</b> the dialog title's translator comment now mentions words, and a new doc comment was removed, since the repo adds no new explanatory comments.</li>
+    <li data-k="b2"><b>Fixed, tooltips:</b> the Case sensitive and Match diacritics examples were <code>Examp*</code> and <code>Rés*</code>; now <code>Examp</code> and <code>Rés</code>, which hold in both modes. CI's R2 later reverted this, to keep their translations.</li>
+    <li data-k="b3"><b>Left for you, then changed:</b> with word mode on by default, a habit like <code>*.txt</code> was read as literal text. CI's R1 raised it again; you chose the wildcard fallback.</li>
+    <li data-k="b4"><b>Accepted:</b> the reworded pattern-label tooltip lost its translations, until CI's R2 restored it; “(Ctrl+F)” is fixed text even if the shortcut is remapped, as #124 worded it.</li>
+    <li data-k="b5"><b>Kept small:</b> a new translator note stays, because gettext needs it, and about 6 setup lines repeat between the two model functions.</li>
+  </ul>
+  <p data-k="ci">CI's review of 939a0c7 at <code>high</code>, in the PR's code review comment, found 9 problems, R1–R9, and pushed fix commit 6d3a777 for three:</p>
+  <ul class="tight">
+    <li data-k="r1"><b>R1, medium, fixed:</b> in word mode a pattern with <code>*</code> or <code>?</code> is matched as a wildcard pattern, so <code>*.png</code> works. #124 said they were plain letters; you chose to keep the fix.</li>
+    <li data-k="r2"><b>R2, low, fixed:</b> three upstream tooltips are back to their original words, <code>wildcard pattern</code>, <code>Examp*</code> and <code>Rés*</code>, so their translations still apply.</li>
+    <li data-k="r3"><b>R3, low, fixed:</b> a query of only Unicode spaces, which splits into empty words, now selects nothing instead of everything.</li>
+    <li data-k="r4"><b>R4–R9, low, accepted by you:</b> kept as they are and closed with a <code>Review-accept</code> trailer. R4: a cleared box keeps the saved pattern, as #123 asks. R5: Case sensitive and Match diacritics reset each time, as upstream does; remembering them was out of scope. R6: an empty word query selects nothing while wildcard mode's empty box selects all, as #124's Risks ask; Ctrl+A selects all. R7: repeated setup lines in <code>get_paths_for_words</code>, style only. R8: the show, focus and highlight calls aren't provably redundant, since select-on-focus is a user setting. R9: one PR for two issues, as you asked.</li>
+  </ul>
+  <p data-k="ci2">CI's later review of 7e85b26 found three more, R10–R12, all low, and fixed them in commit 9b14e31:</p>
+  <ul class="tight">
+    <li data-k="r10"><b>R10, low, fixed:</b> the word-mode tooltip's translator note now also names the <code>*</code> and <code>?</code> wildcards.</li>
+    <li data-k="r11"><b>R11, low, fixed:</b> the wildcard check, written twice, is now one if/else.</li>
+    <li data-k="r12"><b>R12, low, fixed:</b> a redundant strip and empty-string return left <code>get_paths_for_words</code>; empty or all-space queries still select nothing.</li>
+  </ul>
+  <p data-k="ci3">CI's review of ff82070 found nine more, R13–R21, all low:</p>
+  <ul class="tight">
+    <li data-k="r19"><b>R19, confirmed, tidied:</b> without R12's strip, spaces at either end left empty words, which change no selection. <code>g_strstrip</code> is back before the split, as Search does in <code>thunar-list-model.c</code>.</li>
+    <li data-k="r20"><b>R20, R21, accepted:</b> in word mode a pattern with <code>*</code> or <code>?</code> is a plain wildcard pattern that must match the whole name, so several words, <code>!word</code> and <code>\!</code> don't apply. That is the R1 fallback you chose, closed with a <code>Review-accept</code> trailer.</li>
+    <li data-k="r14"><b>R14–R18, unconfirmed, accepted:</b> wildcard fallback details; the label tooltip still says “wildcard pattern”, kept for its translations (R2); the new <code>verify/124.sh</code> step doesn't itself check the box, and adds time (about 34 s of 120 s).</li>
+    <li data-k="r13"><b>R13, confirmed, accepted by you:</b> a Search query made only of uncommon Unicode line separators splits into empty words, so Ctrl+F matches every file. Upstream Thunar's Search has the same code, on xfce-4.20 and master, and Select by Pattern already selects nothing then. It's an edge case, kept as it is with no separate issue, and closed with a <code>Review-accept</code> trailer.</li>
+  </ul>
+  <p data-k="ci4">CI's review of aa93e7a found two more, R22 and R23, both low and plausible, both accepted with a <code>Review-accept</code> trailer:</p>
+  <ul class="tight">
+    <li data-k="r22"><b>R22, accepted:</b> <code>g_strstrip</code> strips only ASCII spaces, so a Unicode line separator at either end still leaves an empty word. It matches everything, so it filters nothing; a query of only those still selects nothing. Search does the same.</li>
+    <li data-k="r23"><b>R23, accepted:</b> R19's commit changes no selection, so it is a tidy-up matching Search, not a bug fix. This page now says so.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after CI or the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a3"><td>Use on your own desktop</td><td>Needs the next build installed on your machine</td><td class="open">after the merge</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/125">PR #125</a> → “Files changed”</li>
+    <li data-k="l2">The issues: <a href="https://github.com/alexhu98/thunar/issues/123">#123</a> (last pattern) and <a href="https://github.com/alexhu98/thunar/issues/124">#124</a> (match words)</li>
+    <li data-k="l4">CI's run on aa93e7a: <a href="https://github.com/alexhu98/thunar/actions/runs/43573111854">run 43573111854</a></li>
+    <li data-k="l3">Try it: Ctrl+S, type <code>cp 2post</code>, Select; Ctrl+S again and press Enter</li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing builds on it yet</h2>
+  <p class="intro" data-k="intro">No open issue says “Depends on #123” or “Depends on #124”; this PR closes both, the only open issues.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR closes #123 and #124; no open issue builds on them yet.">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">After this PR</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">#123 + #124</text>
+      <text x="36" y="114" class="b">last pattern and</text>
+      <text x="36" y="134" class="b">word matching in</text>
+      <text x="36" y="154" class="b">Select by Pattern</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">No issue yet</text>
+      <text x="286" y="114" class="b">nothing open says</text>
+      <text x="286" y="134" class="b">it depends on</text>
+      <text x="286" y="154" class="b">#123 or #124</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="nothing">
+  <h3 class="sec">Nothing next</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Out of scope here.</b> #123 left out a pattern history and remembering Case sensitive and Match diacritics. Either would need its own issue.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="sbp"><dt>Select by Pattern</dt><dd>Edit menu item (Ctrl+S) that selects every file whose name matches what you type.</dd></div>
+    <div data-k="wild"><dt>Wildcard pattern</dt><dd><code>?</code> is any one character and <code>*</code> any run of characters, e.g. <code>*.txt</code>.</dd></div>
+    <div data-k="words"><dt>Word mode</dt><dd>The text is split at spaces; a name must contain every word, in any order. With <code>*</code> or <code>?</code> it is a wildcard pattern.</dd></div>
+    <div data-k="excl"><dt>!word</dt><dd>In word mode, leaves out names that contain that word.</dd></div>
+    <div data-k="diac"><dt>Diacritics</dt><dd>Accents on letters, like the é in Résumé.</dd></div>
+    <div data-k="static"><dt>static variable</dt><dd>A C variable kept for the life of the program, shared by every window.</dd></div>
+    <div data-k="xfconf"><dt>xfconf</dt><dd>Xfce's settings store; things saved there survive a restart.</dd></div>
+    <div data-k="gtkdoc"><dt>gtk-doc</dt><dd>The tool that builds API docs from special comments; it warns about incomplete ones.</dd></div>
+    <div data-k="verify"><dt>verify script</dt><dd><code>verify/&lt;issue&gt;.sh</code>: drives Thunar on a virtual screen, checks the result, takes screenshots.</dd></div>
+    <div data-k="debs"><dt>debs</dt><dd>Debian packages built from this branch and installed to test it.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>

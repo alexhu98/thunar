@@ -2995,6 +2995,25 @@ thunar_standard_view_select_all_files (ThunarView *view)
 
 
 
+static gchar   *select_by_pattern_last_pattern = NULL;
+static gboolean select_by_pattern_match_words = TRUE;
+
+
+
+static void
+thunar_standard_view_select_by_pattern_update_tooltip (GtkToggleButton *match_words_button,
+                                                       GtkWidget       *info_image)
+{
+  if (gtk_toggle_button_get_active (match_words_button))
+    /* TRANSLATORS: the ! character, the \! escape and the * and ? wildcards are special symbols, and they must not be localized. */
+    gtk_widget_set_tooltip_text (info_image, C_ ("Select by Pattern dialog: tooltips: pattern entry text box in word mode", "Files whose name contains every word you enter, in any order, will be selected.\n!word excludes names that contain word, and \\! stands for a literal !.\n\nFor example: cp-detail 2post, report !draft\n\nWith * or ? wildcards, the pattern is matched as a wildcard pattern."));
+  else
+    /* TRANSLATORS: the * and ? characters are the ASCII wildcard special symbols, and they must not be localized. */
+    gtk_widget_set_tooltip_text (info_image, C_ ("Select by Pattern dialog: tooltips: pattern entry text box", "? matches exactly one character,\n* matches any number of characters, including zero.\n\nFor example: *.txt, file??.png, pict\n\nWithout any * or ? wildcards, the pattern will match anywhere in a name. With wildcards, the pattern must match at both the start and the end of a name."));
+}
+
+
+
 static gboolean
 thunar_standard_view_select_by_pattern (ThunarView *view)
 {
@@ -3008,6 +3027,7 @@ thunar_standard_view_select_by_pattern (ThunarView *view)
   GtkWidget          *info_image;
   GtkWidget          *case_sensitive_button;
   GtkWidget          *match_diacritics_button;
+  GtkWidget          *match_words_button;
   GList              *paths;
   GList              *lp;
   gint                response;
@@ -3015,12 +3035,13 @@ thunar_standard_view_select_by_pattern (ThunarView *view)
   gchar              *pattern_extended = NULL;
   gboolean            case_sensitive;
   gboolean            match_diacritics;
+  gboolean            match_words;
   gint                row = 0;
 
   _thunar_return_val_if_fail (THUNAR_IS_STANDARD_VIEW (standard_view), FALSE);
 
   window = gtk_widget_get_toplevel (GTK_WIDGET (standard_view));
-  /* TRANSLATORS: Dialog allowing selection by wildcard ("*.c", etc.) */
+  /* TRANSLATORS: Dialog allowing selection by wildcard ("*.c", etc.) or by words, as in Search */
   dialog = gtk_dialog_new_with_buttons (C_ ("Select by Pattern dialog: title",
                                             "Select by Pattern"),
                                         GTK_WINDOW (window),
@@ -3055,11 +3076,11 @@ thunar_standard_view_select_by_pattern (ThunarView *view)
   gtk_grid_attach_next_to (grid, entry, label, GTK_POS_RIGHT, 1, 1);
   gtk_widget_set_hexpand (entry, TRUE);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label), entry);
+  if (select_by_pattern_last_pattern != NULL)
+    gtk_entry_set_text (GTK_ENTRY (entry), select_by_pattern_last_pattern);
   gtk_widget_show (entry);
 
   info_image = gtk_image_new_from_icon_name ("dialog-information", GTK_ICON_SIZE_MENU);
-  /* TRANSLATORS: the * and ? characters are the ASCII wildcard special symbols, and they must not be localized. */
-  gtk_widget_set_tooltip_text (GTK_WIDGET (info_image), C_ ("Select by Pattern dialog: tooltips: pattern entry text box", "? matches exactly one character,\n* matches any number of characters, including zero.\n\nFor example: *.txt, file??.png, pict\n\nWithout any * or ? wildcards, the pattern will match anywhere in a name. With wildcards, the pattern must match at both the start and the end of a name."));
   gtk_grid_attach_next_to (grid, info_image, entry, GTK_POS_RIGHT, 1, 1);
   gtk_widget_show (info_image);
 
@@ -3075,14 +3096,35 @@ thunar_standard_view_select_by_pattern (ThunarView *view)
   gtk_grid_attach_next_to (grid, match_diacritics_button, case_sensitive_button, GTK_POS_BOTTOM, 1, 1);
   gtk_widget_show (match_diacritics_button);
 
+  match_words_button = gtk_check_button_new_with_mnemonic (C_ ("Select by Pattern dialog: labels: match words checkbox", "Match _words, like Search (Ctrl+F)"));
+  gtk_widget_set_tooltip_text (GTK_WIDGET (match_words_button), C_ ("Select by Pattern dialog: tooltips: match words checkbox", "If enabled, select files whose name contains every space-separated word, as Search does.\nIf disabled, the pattern is a wildcard pattern."));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (match_words_button), select_by_pattern_match_words);
+  gtk_grid_attach_next_to (grid, match_words_button, match_diacritics_button, GTK_POS_BOTTOM, 1, 1);
+  gtk_widget_show (match_words_button);
+
+  thunar_standard_view_select_by_pattern_update_tooltip (GTK_TOGGLE_BUTTON (match_words_button), info_image);
+  g_signal_connect (match_words_button, "toggled", G_CALLBACK (thunar_standard_view_select_by_pattern_update_tooltip), info_image);
+
+  gtk_widget_show (dialog);
+  gtk_widget_grab_focus (entry);
+  gtk_editable_select_region (GTK_EDITABLE (entry), 0, -1);
+
   response = gtk_dialog_run (GTK_DIALOG (dialog));
   if (response == GTK_RESPONSE_OK)
     {
       /* get entered pattern */
       pattern = gtk_entry_get_text (GTK_ENTRY (entry));
-      if (pattern != NULL
-          && strchr (pattern, '*') == NULL
-          && strchr (pattern, '?') == NULL)
+      match_words = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (match_words_button));
+      select_by_pattern_match_words = match_words;
+      if (pattern != NULL && *pattern != '\0')
+        {
+          g_free (select_by_pattern_last_pattern);
+          select_by_pattern_last_pattern = g_strdup (pattern);
+        }
+
+      if (pattern != NULL && strpbrk (pattern, "*?") != NULL)
+        match_words = FALSE;
+      else if (!match_words && pattern != NULL)
         {
           /* make file matching pattern */
           pattern_extended = g_strdup_printf ("*%s*", pattern);
@@ -3096,7 +3138,10 @@ thunar_standard_view_select_by_pattern (ThunarView *view)
       match_diacritics = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (match_diacritics_button));
 
       /* select all files that match pattern */
-      paths = thunar_standard_view_model_get_paths_for_pattern (standard_view->model, pattern, case_sensitive, match_diacritics);
+      if (match_words)
+        paths = thunar_standard_view_model_get_paths_for_words (standard_view->model, pattern, case_sensitive, match_diacritics);
+      else
+        paths = thunar_standard_view_model_get_paths_for_pattern (standard_view->model, pattern, case_sensitive, match_diacritics);
       THUNAR_STANDARD_VIEW_GET_CLASS (standard_view)->unselect_all (standard_view);
 
       /* set the cursor and scroll to the first selected item */

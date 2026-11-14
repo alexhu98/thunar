@@ -152,6 +152,11 @@ thunar_standard_view_model_get_paths_for_pattern (ThunarStandardViewModel *model
                                                   const gchar             *pattern,
                                                   gboolean                 case_sensitive,
                                                   gboolean                 match_diacritics);
+GList *
+thunar_standard_view_model_get_paths_for_words (ThunarStandardViewModel *model,
+                                                const gchar             *query,
+                                                gboolean                 case_sensitive,
+                                                gboolean                 match_diacritics);
 ThunarJob *
 thunar_standard_view_model_get_job (ThunarStandardViewModel *model);
 void
