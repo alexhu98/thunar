@@ -524,6 +524,7 @@ thunar_standard_view_model_get_paths_for_words (ThunarStandardViewModel *model,
 {
   struct _MatchForeach mf;
   gchar               *normalized_query;
+  guint                n;
 
   _thunar_return_val_if_fail (THUNAR_IS_STANDARD_VIEW_MODEL (model), NULL);
   _thunar_return_val_if_fail (g_utf8_validate (query, -1, NULL), NULL);
@@ -538,8 +539,13 @@ thunar_standard_view_model_get_paths_for_words (ThunarStandardViewModel *model,
 
   mf.terms = thunar_util_split_search_query (normalized_query, NULL);
   g_free (normalized_query);
-  if (mf.terms == NULL)
-    return NULL;
+  for (n = 0; mf.terms != NULL && mf.terms[n] != NULL && *mf.terms[n] == '\0'; n++)
+    ;
+  if (mf.terms == NULL || mf.terms[n] == NULL)
+    {
+      g_strfreev (mf.terms);
+      return NULL;
+    }
 
   mf.pspec = NULL;
   mf.paths = NULL;
