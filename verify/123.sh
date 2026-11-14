@@ -91,7 +91,7 @@ xdotool type --delay 20 'zzz'
 dialog_keys Escape
 keys ctrl+a
 open_dialog
-shot "$DLG" after-cancel "After typing zzz and cancelling, the dialog still shows *-2post.png"
+shot "$DLG" cancel-kept "After typing zzz and cancelling, the dialog still shows *-2post.png"
 dialog_keys Return
 selected_is a-2post.png b-2post.png
 
