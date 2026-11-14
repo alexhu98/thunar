@@ -1526,6 +1526,8 @@ thunar_details_view_key_press_event (GtkTreeView       *tree_view,
           thunar_details_view_unblock_selection_changed (THUNAR_STANDARD_VIEW (details_view));
           thunar_standard_view_selection_changed (THUNAR_STANDARD_VIEW (details_view));
         }
+      else if (state == 0)
+        thunar_standard_view_select_cursor_if_none (THUNAR_STANDARD_VIEW (details_view));
 
       g_list_free_full (saved_rows, (GDestroyNotify) gtk_tree_path_free);
       gtk_tree_path_free (new_cursor);
