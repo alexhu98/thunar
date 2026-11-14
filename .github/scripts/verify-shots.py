@@ -16,6 +16,7 @@ verify-shots.py comment OUT
 verify-shots.py status SHA STATE TEXT
     Prints the <!-- pr-proof:status {...} --> marker of a comment with that head, state and text.
 """
+import collections
 import json
 import os
 import re
@@ -263,9 +264,16 @@ def comment(out):
             if not os.path.exists(log):
                 lines += ['', 'No log: the test did not start.']
             else:
+                tail, blanks = collections.deque(maxlen=30), collections.deque(maxlen=30)
                 with open(log, errors='replace') as f:
-                    tail = f.read().splitlines()[-30:]
-                if any(t.strip() for t in tail):
+                    for line in f:
+                        if line.strip():
+                            tail.extend(blanks)
+                            blanks.clear()
+                            tail.append(line.rstrip('\n'))
+                        else:
+                            blanks.append('')
+                if tail:
                     body = '\n'.join(tail).replace('```', "'''")
                     lines += ['', 'Last lines of the log:', '', '```text', body, '```']
                 else:
