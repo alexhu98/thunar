@@ -16,6 +16,7 @@ verify-shots.py comment OUT
 verify-shots.py status SHA STATE TEXT
     Prints the <!-- pr-proof:status {...} --> marker of a comment with that head, state and text.
 """
+import collections
 import json
 import os
 import re
@@ -238,7 +239,7 @@ def comment(out):
     theme = open(os.path.join(out, 'theme')).read().strip() if os.path.exists(os.path.join(out, 'theme')) else 'default'
     lines += [f'### Verify: {head}', '']
     if not complete:
-        lines += ['The run step stopped before it finished, so later tests are missing.', '']
+        lines += ['The run step stopped before it finished, so the tests it had not finished are marked cut short.', '']
     if unnumbered:
         status['text'] += '; the shots could not be numbered'
         lines += ["The shots could not be numbered, so none were published; see the run's `verify` artifact.", '']
@@ -260,9 +261,23 @@ def comment(out):
         lines += ['', f'#### {label(name)}']
         if st != 'pass':
             log = os.path.join(out, 'logs', f'{name}.log')
-            tail = open(log, errors='replace').read().splitlines()[-30:] if os.path.exists(log) else []
-            body = '\n'.join(tail).replace('```', "'''")
-            lines += ['', 'Last lines of the log:', '', '```text', body, '```']
+            if not os.path.exists(log):
+                lines += ['', 'No log: the test did not start.']
+            else:
+                tail, blanks = collections.deque(maxlen=30), collections.deque(maxlen=30)
+                with open(log, errors='replace') as f:
+                    for line in f:
+                        if line.strip():
+                            tail.extend(blanks)
+                            blanks.clear()
+                            tail.append(line.rstrip('\n'))
+                        else:
+                            blanks.append('')
+                if tail:
+                    body = '\n'.join(tail).replace('```', "'''")
+                    lines += ['', 'Last lines of the log:', '', '```text', body, '```']
+                else:
+                    lines += ['', 'The log is empty.']
         mine = [e for e in entries if e['test'] == name]
         if not mine:
             lines += ['', 'No screenshots.']

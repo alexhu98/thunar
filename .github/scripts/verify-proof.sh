@@ -5,17 +5,18 @@
 #            which repairs what dpkg left, may downgrade the built debs, and skips them when the same version is
 #            installed, so dpkg -i then installs them over whatever is there. $DEBS then keeps exactly the
 #            installed versions of everything apt and dpkg added. Prints cached=true|false (for $GITHUB_OUTPUT).
-#   run      runs the smoke test (Thunar is still running 10 s after launch), then each verify/<issue>.sh, each with
-#            its own Xvfb, xfwm4 and D-Bus session, a fresh HOME and XDG folders, and a $TIMEOUT s limit. A script
-#            that could end after $BUDGET s of the run is reported as not run, and one that passes with a before/after
-#            pair that has no pair call fails. Numbers the shots and makes each pair's 1920px image
-#            (verify-shots.py build). Writes the shots, $OUT/pairs/, the logs, $OUT/results.tsv, $OUT/numbered.json,
-#            the manifest $OUT/verify.tsv and, last, $OUT/complete, and fails if any test failed.
+#   run      runs the smoke test (Thunar is still running 10 s after launch) and each verify/<issue>.sh, $JOBS at a
+#            time, each with its own Xvfb, xfwm4 and D-Bus session, a fresh HOME and XDG folders, and a $TIMEOUT s
+#            limit. A test that could end after $BUDGET s of the run's wall-clock time is reported as not run, and one
+#            that passes with a before/after pair that has no pair call fails. results.tsv keeps the serial order.
+#            Numbers the shots and makes each pair's 1920px image (verify-shots.py build). Writes the shots,
+#            $OUT/pairs/, the logs, $OUT/results.tsv, $OUT/numbered.json, the manifest $OUT/verify.tsv and, last,
+#            $OUT/complete, and fails if any test failed.
 #   publish  commits the shots, the pair images and the manifest to the shots branch under pr-$PR/
 #            (verify-<test>-<shot>.png, pair-<test>-<what>.png, verify.tsv) through shots.sh, writes the verify
 #            comment through pr-comment.sh and then the summary through pr-summary.py. Run it whether or not run
 #            passed. A failed upload is marked in the comment and in the manifest (file -), and publish then fails.
-# Env: PR, HEAD_SHA, HEAD_REF, GH_REPO, RUN_ID, RUN_URL, OUT, DEBS, TIMEOUT (default 120), BUDGET (default 1500).
+# Env: PR, HEAD_SHA, HEAD_REF, GH_REPO, RUN_ID, RUN_URL, OUT, DEBS, TIMEOUT (default 120), BUDGET (default 1500), JOBS (default 2).
 # DRY_RUN=1 makes publish print the comment instead of uploading and posting it.
 set -euo pipefail
 
@@ -24,6 +25,9 @@ OUT=${OUT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/verify-proof}
 DEBS=${DEBS:-$HOME/verify-debs}
 TIMEOUT=${TIMEOUT:-120}
 BUDGET=${BUDGET:-1500}
+JOBS=${JOBS:-2}
+names=()
+declare -A running=()
 TOOLS=(xvfb xfwm4 xdotool imagemagick x11-utils dbus gvfs gvfs-daemons zorin-desktop-themes)
 mkdir -p "$OUT"
 
@@ -108,6 +112,7 @@ test_one() {  # name, command...
     WORK=$dir/work SHOTS=$OUT/shots/$name XVFB_LOG=$OUT/logs/$name.xvfb.log GTK_THEME=$(theme) NO_AT_BRIDGE=1 \
     timeout -k 5 "$TIMEOUT" dbus-run-session -- "$HERE/verify-proof.sh" session "$@" >"$OUT/logs/$name.log" 2>&1 </dev/null &
   pid=$!
+  echo "$pid" > "$dir.pid"
   wait "$pid" && status=0 || status=$?
   if (( status == 0 )) && ! python3 "$HERE/verify-shots.py" check "$OUT/shots/$name" >>"$OUT/logs/$name.log" 2>&1; then
     status="pairs incomplete"
@@ -119,35 +124,82 @@ test_one() {  # name, command...
     status="exit $status"
   fi
   kill -- -"$pid" 2>/dev/null || true
-  printf '%s\t%s\t%s\n' "$name" "$status" $((SECONDS - start)) >> "$OUT/results.tsv"
+  rm -f "$dir.pid"
+  printf '%s\t%s\t%s\n' "$name" "$status" $((SECONDS - start)) > "$OUT/run/$name.row"
   echo "$name: $status in $((SECONDS - start)) s"
   [[ $status == pass ]] || sed 's/^/  | /' "$OUT/logs/$name.log" | tail -n 30
 }
 
 not_run() {  # name, status, reason
   echo "FAIL: $3" > "$OUT/logs/$1.log"
-  printf '%s\t%s\t0\n' "$1" "$2" >> "$OUT/results.tsv"
+  printf '%s\t%s\t0\n' "$1" "$2" > "$OUT/run/$1.row"
   echo "$1: $2"
 }
 
+collect() {  # [status for tests with no result]
+  local n
+  for n in "${names[@]}"; do
+    if [[ -f $OUT/run/$n.row ]]; then
+      cat "$OUT/run/$n.row"
+    elif (( $# )); then
+      printf '%s\t%s\t0\n' "$n" "$1"
+    fi
+  done > "$OUT/results.tsv.new"
+  mv "$OUT/results.tsv.new" "$OUT/results.tsv"
+}
+
+reap() {
+  local done=''
+  wait -n -p done "${!running[@]}" || true
+  if [[ -z ${done:-} ]]; then
+    running=()
+    return 0
+  fi
+  cat "$OUT/run/${running[$done]}.console"
+  unset "running[$done]"
+  collect
+}
+
 run() {
+  [[ $JOBS =~ ^[1-9][0-9]*$ ]] || { echo "JOBS must be a positive number, not '$JOBS'" >&2; exit 2; }
   rm -rf "$OUT/logs" "$OUT/run" "$OUT/shots" "$OUT/pairs" "$OUT/complete" "$OUT/verify.tsv" "$OUT/numbered.json"
-  mkdir -p "$OUT/logs"
+  mkdir -p "$OUT/logs" "$OUT/run"
   : > "$OUT/results.tsv"
   theme > "$OUT/theme"
-  local script name begin=$SECONDS
-  test_one smoke smoke
+  local script name begin=$SECONDS tests=(smoke) cmd
+  names=(smoke)
+  running=()
+  trap 'kill $(jobs -p) 2>/dev/null || true; for f in "$OUT"/run/*.pid; do [[ -f $f ]] && kill -- -"$(<"$f")" 2>/dev/null || true; done; [[ -e $OUT/complete ]] || collect "cut short"' EXIT
+  trap 'exit 143' TERM
+  trap 'exit 130' INT
   for script in verify/*.sh; do
     [[ -f $script ]] || continue
     name=$(basename "$script" .sh)
     if [[ ! $name =~ ^[0-9]+$ ]]; then
+      names+=("$name.sh")
       not_run "$name.sh" misnamed "$script is not named verify/<issue>.sh, so it was not run"
-    elif (( SECONDS - begin + TIMEOUT > BUDGET )); then
-      not_run "$name" "not run (time budget)" "$script could end after the run's ${BUDGET} s budget, so it was not run"
-    else
-      test_one "$name" bash "$script"
+      continue
     fi
+    names+=("$name")
+    tests+=("$name")
   done
+  for name in "${tests[@]}"; do
+    while (( ${#running[@]} >= JOBS )); do reap; done
+    if [[ $name == smoke ]]; then
+      cmd=(smoke)
+    elif (( SECONDS - begin + TIMEOUT > BUDGET )); then
+      not_run "$name" "not run (time budget)" "verify/$name.sh could end after the run's ${BUDGET} s budget, so it was not run"
+      collect
+      continue
+    else
+      cmd=(bash "verify/$name.sh")
+    fi
+    test_one "$name" "${cmd[@]}" > "$OUT/run/$name.console" 2>&1 &
+    running[$!]=$name
+  done
+  while (( ${#running[@]} > 0 )); do reap; done
+  collect error
+  echo "all tests ended in $((SECONDS - begin)) s, $JOBS at a time"
   python3 "$HERE/verify-shots.py" build "$OUT" || echo "::warning::some pair images could not be made" >&2
   : > "$OUT/complete"
   local failed

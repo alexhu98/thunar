@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #121 Parallel verify</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #121: verify runs its tests two at a time</h1>
+  <p class="lead" data-k="lead">Branch <code>117-parallel-verify</code> → <code>main</code>, closes #117. CI's verify job runs the smoke test and the <code>verify/&lt;issue&gt;.sh</code> scripts two at a time instead of one after another, and local runs go in the background, so they aren't cut off at 10 minutes.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: ready to merge</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro"><code>verify-proof.sh run</code> now keeps up to two tests running at once and checks the budget against wall-clock time, and the <code>build-verify</code> agent runs the suite in the background.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="CI lists the tests, starts up to two at a time if they fit the budget, runs each in its own sandbox, and writes results in serial order; locally, build-verify runs the suite in the background and reports its result">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① verify-proof.sh run (CI and local)</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">List the tests</text>
+      <text x="36" y="114" class="m">smoke, verify/*.sh</text>
+      <text x="36" y="134" class="b">misnamed scripts are</text>
+      <text x="36" y="154" class="b">recorded, not run</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Start up to 2</text>
+      <text x="286" y="114" class="m">JOBS=2</text>
+      <text x="286" y="134" class="b">each start checks the</text>
+      <text x="286" y="154" class="b">wall-clock budget</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Each test alone</text>
+      <text x="536" y="114" class="b">own Xvfb, D-Bus,</text>
+      <text x="536" y="134" class="b">HOME and folders;</text>
+      <text x="536" y="154" class="b">120 s limit</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-merge" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Results in order</text>
+      <text x="786" y="114" class="m">results.tsv</text>
+      <text x="786" y="134" class="b">serial order, rewritten</text>
+      <text x="786" y="154" class="b">as each test ends</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② build-verify agent (cloud container)</text>
+    <g data-k="5">
+      <rect class="box-pr" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Run in background</text>
+      <text x="36" y="314" class="m">run_in_background</text>
+      <text x="36" y="334" class="b">35-minute timeout,</text>
+      <text x="36" y="354" class="b">log and exit to $LOGS</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Report the result</text>
+      <text x="286" y="314" class="b">waits for the notice,</text>
+      <text x="286" y="334" class="b">then each test's line</text>
+      <text x="286" y="354" class="b">and the exit code</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow" d="M230,320 H266" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>a step that runs</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>what it produces</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Every feature PR adds a test script, and CI's verify job runs all of them on every code PR. On PR #116 the smoke test and 17 scripts took about 13 minutes one after another, and the shared 25-minute budget would fill again at about 30 scripts. A local run was worse off: the Bash tool stops a command after 10 minutes, so the full suite was killed before it wrote its results.</p>
+  <div class="note" data-k="note">Each test already ran in its own sandbox (its own virtual screen, D-Bus session, home folder and output folder), so running several at once needed only a pool in the runner script, not changes to the tests.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① verify-proof.sh run (CI and local)</div>
+  <ol class="steps">
+    <li data-k="1"><b>List the tests.</b> The smoke test comes first, then each <code>verify/&lt;digits&gt;.sh</code> in name order. A script with any other name is recorded as <code>misnamed</code> right away and never started.</li>
+    <li data-k="2"><b>Start up to 2.</b> While fewer than <code>$JOBS</code> tests run (default 2, the owner's choice over 3 in R6), the next one starts in the background. Before it starts, a script that could end after the 1500 s budget, counted in wall-clock time from the start of the run, is recorded as <code>not run (time budget)</code>. The smoke test skips that check.</li>
+    <li data-k="3"><b>Each test alone.</b> <code>test_one</code> is unchanged in what it gives a test: its own Xvfb display, xfwm4, D-Bus session, <code>HOME</code>, XDG folders and shot folder, with a 120 s limit. It now writes its result to its own row file and its process id to a pid file.</li>
+    <li data-k="4"><b>Results in order.</b> Each time a test ends, its console output is printed and <code>results.tsv</code> is rewritten from the row files in the serial order, so shot numbering and the verify comment come out as before. A run cut short keeps the rows of the tests that finished.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② build-verify agent (cloud container)</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Run in background.</b> Step 4 of <code>.claude/agents/build-verify.md</code> starts <code>verify-proof.sh run</code> with <code>run_in_background</code> and a 35-minute timeout, writing its log and exit code under <code>$LOGS</code>. <code>/visual-verify run:</code> uses this agent, so it gets the same.</li>
+    <li data-k="6"><b>Report the result.</b> The agent waits for the background completion notice, never a foreground <code>sleep</code>, then reports the exit code and each test's result line, as before.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="parts">
+  <h3 class="sec">A closer look</h3>
+  <div class="grid">
+    <div class="card" data-k="c1"><h3>Same order as a serial run</h3><p>Tests finish in any order, but <code>results.tsv</code> lists smoke, then the scripts in name order, then misnamed ones, so the shot numbers don't move.</p></div>
+    <div class="card" data-k="c2"><h3>Stopped partway</h3><p>An exit trap kills every running test through its pid file. A stop exits 143, Ctrl-C exits 130, and finished rows stay in <code>results.tsv</code>.</p></div>
+    <div class="card" data-k="c3"><h3>One setting</h3><p><code>JOBS</code> must be a positive number, or the run stops with exit 2. <code>JOBS=1</code> runs the tests one at a time, as before.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">.github/scripts/verify-proof.sh        # run: pool of $JOBS tests, wall-clock budget,
+                                       #   results.tsv in serial order, exit trap
+.github/scripts/verify-shots.py        # verify comment: a log's last 30 lines,
+                                       #   "did not start" or "log is empty"
+.claude/agents/build-verify.md         # step 4: run the suite in the background
+.claude/skills/visual-verify/SKILL.md  # Step 2: the capture runs in the background
+CLAUDE.md                              # Verify: two at a time, wall-clock budget,
+                                       #   no state shared between tests
+explainers/117-parallel-verify.html    # this page
+explainers/117-parallel-verify.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo: set <code>JOBS=1</code> on the verify step to run the tests one at a time again, or revert the PR.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The building session ran mock tests of the new runner and the full suite in a cloud container; CI's verify runs on PR #121 then ran the full suite three and then two at a time, and their shots were audited.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>PR #116's serial verify run</h3><p>The smoke test and 17 scripts, one after another, in about 13 minutes on CI, 17 to 81 s each (from issue #117). The time to beat.</p></div>
+    <div class="card" data-k="r2"><h3>The serial runner</h3><p>The old <code>run</code> loop sets the order of <code>results.tsv</code> and the budget rule; the new one keeps both, with the budget on wall-clock time.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Results stay in serial order</td><td>Mock <code>verify-proof.sh run</code> with a stubbed <code>test_one</code>, in a scratch copy (the building session)</td><td class="ok">smoke, scripts, misnamed last</td></tr>
+    <tr data-k="c2"><td>Budget on wall-clock time</td><td>Same mock, with a test that could end after <code>BUDGET</code></td><td class="ok">not run (time budget)</td></tr>
+    <tr data-k="c3"><td>A run stopped partway</td><td>Same mock, sent SIGTERM partway</td><td class="ok">exit 143, rows kept, no test left</td></tr>
+    <tr data-k="c4"><td>A bad <code>JOBS</code></td><td>Same mock with <code>JOBS=0</code></td><td class="ok">refused, exit 2</td></tr>
+    <tr data-k="c5"><td>Full suite, three at a time</td><td><code>build-verify</code> agent in a cloud container on commit d101039, before the CI review fixes: build, install, then the run in the background</td><td class="ok">20 of 20 passed in 333 s</td></tr>
+    <tr data-k="c6"><td>Per-test times</td><td>Same run's result lines</td><td class="ok">12 s (smoke) to 103 s (16)</td></tr>
+    <tr data-k="c7"><td>A local run past 10 minutes</td><td>That run took 333 s, so it never reached the Bash tool's 10-minute limit</td><td class="no">not shown</td></tr>
+    <tr data-k="c8"><td>Thunar screenshots, <code>verify/117.sh</code></td><td>The PR changes only CI and agent files, no Thunar behaviour</td><td class="no">none</td></tr>
+    <tr data-k="c9"><td>Full suite on CI, three at a time</td><td>CI run 43521071177 on head 473f58f31708, after the second review's fixes and before cfe7965</td><td class="ok">20 of 20 passed</td></tr>
+    <tr data-k="c10"><td>Time on CI against the serial run</td><td>That run's “Smoke test and verify/*.sh” step, against PR #116's serial run</td><td class="ok">5 min 55 s (355 s), not about 13 min</td></tr>
+    <tr data-k="c11"><td>Load on the 4-vCPU runner with 3 workers (R6, S2)</td><td>That run's per-test times against the 120 s limit</td><td class="ok">longest 102 s (16), none timed out</td></tr>
+    <tr data-k="c12"><td>Shots not mixed up between tests</td><td><code>/visual-verify pr:121</code> on 473f58f31708: the independent shot-auditor read every shot from the 20 tests</td><td class="ok">187 of 187 OK, VERDICT PASS</td></tr>
+    <tr data-k="c13"><td>Full suite on CI, two at a time</td><td>CI run 43537226215 on head 9defda7, after the owner's R6 decision and the fixes through R31</td><td class="ok">20 of 20 passed</td></tr>
+    <tr data-k="c14"><td>Time on CI with 2 workers</td><td>That run's “Smoke test and verify/*.sh” step, against 3 workers (run 43521071177) and PR #116's serial run</td><td class="ok">8 min 41 s (521 s), against 355 s and about 13 min</td></tr>
+    <tr data-k="c15"><td>Load with 2 workers</td><td>That run's per-test times against the 120 s limit</td><td class="ok">longest 103 s (16), none timed out</td></tr>
+    <tr data-k="c16"><td>Shots on the head</td><td><code>/visual-verify pr:121</code> on 9defda7: the shot-auditor read every shot again</td><td class="ok">187 of 187 OK, VERDICT PASS</td></tr>
+  </table>
+  </div>
+  <div class="note" data-k="note">333 s in the container and about 13 minutes on CI for PR #116 come from different machines, so they don't measure the speed-up. CI's runs on PR #121 do: 355 s with 3 workers and 521 s with 2, against about 13 minutes.</div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh agent reviewed the branch at the high level: 5 findings, 3 fixed, 2 skipped.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed:</b> the background run got a timeout; the smoke test skips the budget check, with its launch code merged; the header comment was re-wrapped.</li>
+    <li data-k="b2"><b>S1, fixed after:</b> nothing stopped running tests if <code>run</code> was killed. The building session added the exit trap and pid files.</li>
+    <li data-k="b3"><b>S2, left to CI:</b> 3 workers on a 4-vCPU runner might make fixed waits in the scripts flaky. CI's runs showed none; the owner chose 2 workers (R6).</li>
+  </ul>
+  <p data-k="ci">CI's review of d101039 (high) found R1–R5 confirmed and R6–R10 plausible and low; all but R6 were fixed in 7ced01e, and R6 in 9defda7. See the code review comment on <a href="https://github.com/alexhu98/thunar/pull/121">PR #121</a>.</p>
+  <ul class="tight">
+    <li data-k="r1"><b>Results kept (R1, R9):</b> <code>results.tsv</code> is rewritten after each test ends, and misnamed scripts and runnable tests are kept in separate lists.</li>
+    <li data-k="r2"><b>Clean stop (R2, R5, R7):</b> the exit trap no longer stops at a failing kill and also kills the test subshells; Ctrl-C exits 130.</li>
+    <li data-k="r3"><b>Agent run (R3, R10):</b> <code>build-verify</code> sets <code>LOGS</code> in the command and waits on the completion notice with a 35-minute timeout.</li>
+    <li data-k="r4"><b>Small ones (R4, R8):</b> a new explanatory comment removed; <code>JOBS</code> must be a positive number.</li>
+    <li data-k="r6"><b>R6, decided by the owner:</b> the same worry as S2, three workers on four vCPUs. The owner chose two at a time, the default since 9defda7.</li>
+  </ul>
+  <p data-k="ci2">CI's second review, of 7ced01e, found R11–R18. All were fixed in 473f58f except R17, which counts as accepted.</p>
+  <ul class="tight">
+    <li data-k="r11"><b>R11 (medium, confirmed):</b> the exit trap dropped tests that had finished but weren't reaped. Now <code>results.tsv</code> is collected on exit, with unfinished tests marked “cut short”.</li>
+    <li data-k="r12"><b>R12–R16, R18:</b> <code>JOBS</code> is checked before old results are wiped, <code>results.tsv</code> is written atomically, and <code>build-verify</code> sets <code>LOGS</code>, may wait with Monitor and reports a missing exit file.</li>
+    <li data-k="r17"><b>R17, accepted:</b> a pid-file race lasting microseconds, there before this PR.</li>
+  </ul>
+  <p data-k="ci3">CI's third review, of 473f58f, found R19–R26, all low.</p>
+  <ul class="tight">
+    <li data-k="r19"><b>R19 (confirmed), fixed in cfe7965:</b> a cut-short test with no log showed an empty log block. The verify comment now says “No log: the test did not start.”</li>
+    <li data-k="r20"><b>R20–R26, not confirmed, accepted:</b> R20 can't happen on bash 5.2; R21's cut-short rows still reach the verify comment; R22's Monitor wait is only a fallback to the completion notice; R23 is wording only; R24 is R17's race; R25's subshells die on TERM before writing a row; the review itself disproved R26.</li>
+  </ul>
+  <p data-k="ci4">CI's next three reviews found R27–R38, all low.</p>
+  <ul class="tight">
+    <li data-k="r27"><b>R27, R28, R30 (confirmed), fixed in 41526ba:</b> the verify comment tells a test with no log (“did not start”) from one with an empty log, and closes the log file. R29 (not confirmed) counts as accepted.</li>
+    <li data-k="r31"><b>R31 (confirmed), fixed in 9defda7:</b> the whole log was read to keep 30 lines. A bounded deque now keeps them and drops trailing blank lines. R32 and R33 count as accepted.</li>
+    <li data-k="r34"><b>R34–R38, from the review of 9defda7, not confirmed, accepted:</b> R34's time is bounded by the test's timeout; R35's simpler form would undo R31 and change the output; R36's whitespace-only log carries no information; the old <code>[-30:]</code> behaved the same (R37); R38's difference doesn't show in the rendered block.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Not shown yet</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a6"><td>The “No log” and “The log is empty” lines (cfe7965, 41526ba) in a real verify comment</td><td>They show only when a failed or cut-short test has no log or an empty one; in CI runs 43521071177 and 43537226215 none had</td><td class="open">the next run that cuts a test short</td></tr>
+    <tr data-k="a5"><td>A local run longer than 10 minutes finishes</td><td>The suite now takes under 10 minutes locally</td><td class="open">first long local run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/121">PR #121</a> → “Files changed”, and its CI comments: summary, code review, verify and this explainer</li>
+    <li data-k="l2">The issue: <a href="https://github.com/alexhu98/thunar/issues/117">#117</a></li>
+    <li data-k="l4">CI's runs: <a href="https://github.com/alexhu98/thunar/actions/runs/43521071177">43521071177</a> (three at a time) and <a href="https://github.com/alexhu98/thunar/actions/runs/43537226215">43537226215</a> (two at a time)</li>
+    <li data-k="l3">The serial reference: <a href="https://github.com/alexhu98/thunar/pull/116">PR #116</a> and its verify comment</li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: ready to merge</h2>
+  <p class="intro" data-k="intro">No open issue says it depends on #117. The owner chose two at a time for R6, so the PR is ready to merge once CI passes on its head; then every later feature PR's run uses it.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="PR #121 runs tests two at a time, as the owner decided on R6; it merges once CI passes on its head; later feature PRs then add scripts under the same budget">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <g data-k="1">
+      <rect class="box-merge" x="20" y="40" width="270" height="120" rx="10"/>
+      <text x="36" y="70" class="t">PR #121 (#117)</text>
+      <text x="36" y="94" class="b">tests two at a time,</text>
+      <text x="36" y="114" class="b">local runs in background</text>
+      <circle class="badge" cx="270" cy="62" r="12"/><text class="badge-n" x="270" y="66.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-you" x="365" y="40" width="270" height="120" rx="10"/>
+      <text x="381" y="70" class="t">Merge</text>
+      <text x="381" y="94" class="b">R6 decided: two at a time;</text>
+      <text x="381" y="114" class="b">merges once CI passes</text>
+      <text x="381" y="134" class="b">on the head; next</text>
+      <circle class="badge" cx="615" cy="62" r="12"/><text class="badge-n" x="615" y="66.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-future" x="710" y="40" width="270" height="120" rx="10"/>
+      <text x="726" y="70" class="t">Later feature PRs</text>
+      <text x="726" y="94" class="b">each adds a script;</text>
+      <text x="726" y="114" class="b">the budget lasts longer</text>
+      <circle class="badge" cx="960" cy="62" r="12"/><text class="badge-n" x="960" y="66.5" text-anchor="middle">3</text>
+    </g>
+    <path class="arrow-future" d="M290,100 H361" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M635,100 H706" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>your step</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not run or built yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="ahead">
+  <h3 class="sec">Next steps</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>This PR.</b> The runner, the agent and <code>CLAUDE.md</code> change together.</li>
+    <li data-k="2"><b>Merge (next).</b> You chose two at a time for R6. CI ran 20 of 20 in 8 min 41 s with 2 workers, against 5 min 55 s with 3 and about 13 minutes serially. The PR is ready to merge once CI passes on its head.</li>
+    <li data-k="3"><b>Later feature PRs.</b> With two running at once, each new script adds roughly half of its own time to the run, not all of it.</li>
+  </ol>
+  </div>
+  <div class="note" data-k="choice">Not done, by choice: the issue's optional idea of running only the changed scripts on a PR. Every code PR still runs every script, so a change that breaks an older feature is caught.</div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="pool"><dt>Worker pool</dt><dd>A fixed number of jobs running at once; a new one starts when one ends.</dd></div>
+    <div data-k="jobs"><dt>JOBS</dt><dd>How many tests <code>verify-proof.sh run</code> keeps running at once; default 2.</dd></div>
+    <div data-k="budget"><dt>BUDGET</dt><dd>The 1500 s (25 minutes) the whole run may take; a test that could end later isn't started.</dd></div>
+    <div data-k="wall"><dt>Wall-clock time</dt><dd>Real time since the run began, not the sum of each test's time.</dd></div>
+    <div data-k="smoke"><dt>Smoke test</dt><dd>Checks that Thunar is still running 10 s after launch.</dd></div>
+    <div data-k="tsv"><dt>results.tsv</dt><dd>One row per test: name, status, seconds. Shot numbers and the verify comment are built from it.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual X screen in memory, so a test can run Thunar with no monitor.</dd></div>
+    <div data-k="trap"><dt>Exit trap</dt><dd>Shell code that runs when the script exits, here to kill tests still running.</dd></div>
+    <div data-k="bg"><dt>run_in_background</dt><dd>Runs a Bash tool command detached, so it isn't stopped at 10 minutes.</dd></div>
+    <div data-k="vcpu"><dt>vCPU</dt><dd>A virtual processor core; GitHub's ubuntu-24.04 runners have 4.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
