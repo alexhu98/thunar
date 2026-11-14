@@ -324,6 +324,13 @@ explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</
     <li data-k="r11"><b>R11, low, fixed:</b> the wildcard check, written twice, is now one if/else.</li>
     <li data-k="r12"><b>R12, low, fixed:</b> a redundant strip and empty-string return left <code>get_paths_for_words</code>; empty or all-space queries still select nothing.</li>
   </ul>
+  <p data-k="ci3">CI's review of ff82070 found nine more, R13–R21, all low:</p>
+  <ul class="tight">
+    <li data-k="r19"><b>R19, confirmed, fixed:</b> without R12's strip, spaces at either end left empty words. <code>g_strstrip</code> is back before the split, as Search does in <code>thunar-list-model.c</code>.</li>
+    <li data-k="r20"><b>R20, R21, accepted:</b> in word mode a pattern with <code>*</code> or <code>?</code> is a plain wildcard pattern that must match the whole name, so several words, <code>!word</code> and <code>\!</code> don't apply. That is the R1 fallback you chose, closed with a <code>Review-accept</code> trailer.</li>
+    <li data-k="r14"><b>R14–R18, unconfirmed, accepted:</b> wildcard fallback details; the label tooltip still says “wildcard pattern”, kept for its translations (R2); the new <code>verify/124.sh</code> step doesn't itself check the box, and adds time (about 34 s of 120 s).</li>
+    <li data-k="r13"><b>R13, confirmed, left for you:</b> Search's shared query splitter can return empty words for some Unicode line separators, so Ctrl+F would match everything. It's an existing Search bug outside these issues; Select by Pattern already selects nothing then. A separate issue is proposed.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
