@@ -318,6 +318,12 @@ explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</
     <li data-k="r3"><b>R3, low, fixed:</b> a query of only Unicode spaces, which splits into empty words, now selects nothing instead of everything.</li>
     <li data-k="r4"><b>R4–R9, low, accepted by you:</b> kept as they are and closed with a <code>Review-accept</code> trailer. R4: a cleared box keeps the saved pattern, as #123 asks. R5: Case sensitive and Match diacritics reset each time, as upstream does; remembering them was out of scope. R6: an empty word query selects nothing while wildcard mode's empty box selects all, as #124's Risks ask; Ctrl+A selects all. R7: repeated setup lines in <code>get_paths_for_words</code>, style only. R8: the show, focus and highlight calls aren't provably redundant, since select-on-focus is a user setting. R9: one PR for two issues, as you asked.</li>
   </ul>
+  <p data-k="ci2">CI's later review of 7e85b26 found three more, R10–R12, all low, and fixed them in commit 9b14e31:</p>
+  <ul class="tight">
+    <li data-k="r10"><b>R10, low, fixed:</b> the word-mode tooltip's translator note now also names the <code>*</code> and <code>?</code> wildcards.</li>
+    <li data-k="r11"><b>R11, low, fixed:</b> the wildcard check, written twice, is now one if/else.</li>
+    <li data-k="r12"><b>R12, low, fixed:</b> a redundant strip and empty-string return left <code>get_paths_for_words</code>; empty or all-space queries still select nothing.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">

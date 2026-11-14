@@ -1,7 +1,7 @@
 {
   "title": "PR #125 · Select by Pattern memory",
   "voice": "af_heart",
-  "page_sha256": "ee7fc4ebb475f8a8787cbaad3c28008964e0ce3ab9cc9d6e92176657a7731e72",
+  "page_sha256": "df270d09a402b14f749b8535742538e6ce1971b18c515b948ab8596093b5b459",
   "lines": [
     {"screen": "title", "keys": [], "caption": "This is a tour of pull request 125, for issues 123 and 124: Select by Pattern remembers your pattern and matches words.", "src": "7fdaf7fbe0df"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "fde0fc287988"},
@@ -48,6 +48,8 @@
     {"screen": "review", "keys": ["r2"], "caption": "R2: three upstream tooltips are back to their original words, so their translations still apply.", "say": "R two: three upstream tooltips are back to their original words, so their translations still apply.", "src": "e8daa33aea49"},
     {"screen": "review", "keys": ["r3"], "caption": "R3: a query of only Unicode spaces now selects nothing instead of everything.", "say": "R three: a query of only Unicode spaces now selects nothing instead of everything.", "src": "6fdd3345ef79"},
     {"screen": "review", "keys": ["r4"], "caption": "You accepted R4 to R9 as they are: each is asked for by an issue, upstream behavior, style only, or your choice.", "say": "You accepted R four to R nine as they are: each is asked for by an issue, upstream behavior, style only, or your choice.", "src": "b2fb73432010"},
+    {"screen": "review", "keys": ["ci2"], "caption": "A later CI review found three more low problems, R10 to R12, and fixed them all.", "say": "A later C I review found three more low problems, R ten to R twelve, and fixed them all.", "src": "8bf77d4a5f1b"},
+    {"screen": "review", "keys": ["r10", "r11", "r12"], "caption": "A translator note now names the wildcards, a repeated check was merged, and a redundant strip was removed.", "from": ["r10", "r11", "r12"], "src": "dc0f95a6c1fb"},
     {"screen": "aftermerge", "keys": ["a1", "a2"], "caption": "CI's build, review and screenshots of the newest commits, with the new wildcard test step, come with the next push.", "src": "46ada0373e08"},
     {"screen": "aftermerge", "keys": ["a3"], "caption": "Using it on your own desktop waits for the next build after the merge.", "src": "9d24188f7f85"},
     {"screen": "see", "keys": [], "from": ["l1", "l2", "l4", "l3"], "caption": "The PR, both issues, CI's run, and a quick way to try it are linked here.", "src": "433101cc677a"},
@@ -117,6 +119,10 @@
     "review/r2": "e8daa33aea49",
     "review/r3": "6fdd3345ef79",
     "review/r4": "b2fb73432010",
+    "review/ci2": "8bf77d4a5f1b",
+    "review/r10": "6f2f8b458dfd",
+    "review/r11": "db52862dd5b9",
+    "review/r12": "7f544129e56c",
     "aftermerge/a1": "4be54e95dbf3",
     "aftermerge/a2": "94a014c9bec8",
     "aftermerge/a3": "9d24188f7f85",
