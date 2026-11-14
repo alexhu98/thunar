@@ -284,7 +284,7 @@ explainers/120-reselect-at-cursor.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The building session built it and ran every test twice in a cloud container, the way CI does: once on the first commit, and again after the local review's fixes. CI then reviewed the PR twice. Its build, all tests and a screenshot audit passed after the first review's fixes. The second review's fixes passed every test in the container, and CI's build and tests passed on its own fix for it; CI's run on the last test change was still to come when this page was written.</p>
+  <p class="intro" data-k="intro">The building session built it and ran every test twice in a cloud container, the way CI does: once on the first commit, and again after the local review's fixes. CI then reviewed the PR three times. Its build, all tests and a screenshot audit passed after the first review's fixes. The second review's fixes passed every test in the container, and CI's build and tests passed on its own fix for it. The third review found 5 small points, all accepted; on that push CI's build passed, and its tests were still running when this page was written.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 references</h3>
@@ -315,7 +315,8 @@ explainers/120-reselect-at-cursor.narration.json  # its narration</pre>
     <tr data-k="c13"><td>Every test (after CI's second review)</td><td>Same agent and build: the smoke test and every <code>verify/*.sh</code>. <code>verify/120.sh</code> took 95 s, too close to its 120 s limit, since CI ran about 25% slower than the container before.</td><td class="ok">21 of 21 pass, 95 s</td></tr>
     <tr data-k="c14"><td><code>verify/120.sh</code> with shorter waits</td><td><code>verify-proof.sh run</code> with only the smoke test and <code>verify/120.sh</code>, twice, on the same build with the test from <code>c9205ca</code>: 40 checks, every blank-space click included. Smoke 12 s.</td><td class="ok">2 of 2 runs pass, 65 s each</td></tr>
     <tr data-k="c15"><td>CI on <code>a1109fa</code></td><td>CI's build and verify on its own fix commit for the second review, run <a href="https://github.com/alexhu98/thunar/actions/runs/43557116135">43557116135</a>, with the test from before <code>c9205ca</code> (no R10 or R13 change). Smoke 17 s, <code>verify/118.sh</code> 49 s, <code>verify/120.sh</code> 85 s. Its review skipped CI's own fix commit; the explainer rendered and the narration was current.</td><td class="ok">build passed, 21 of 21 pass</td></tr>
-    <tr data-k="c16"><td>CI on this push</td><td>CI's build, tests and review on the push that carries <code>c9205ca</code> and this page</td><td class="open">runs after this page was written</td></tr>
+    <tr data-k="c16"><td>CI on <code>1e8e20c</code></td><td>CI on the push that carries <code>c9205ca</code>, run <a href="https://github.com/alexhu98/thunar/actions/runs/43558745256">43558745256</a>: the build passed, the review ran (CI's third review, below), and the explainer rendered with the narration current. Its verify job, with the test from <code>c9205ca</code>, was still running when this page was written.</td><td class="open">build passed, verify still running</td></tr>
+    <tr data-k="c17"><td>CI on this push</td><td>CI on the push that carries only this page edit: the build and tests run again, and the review skips it, since only <code>explainers/</code> changed</td><td class="open">runs after this page was written</td></tr>
   </table>
   </div>
   </section>
@@ -354,9 +355,21 @@ explainers/120-reselect-at-cursor.narration.json  # its narration</pre>
     <li data-k="R8"><b>Fixed, R8 (medium):</b> R3's focus check covered only the shared handler. With Expandable Folders on, the details view's own Up and Down path called the helper with no focus check. Fixed in <code>a1109fa</code>.</li>
     <li data-k="R9"><b>Fixed, R9 (low):</b> the focus check belongs in the helper itself. <code>thunar_standard_view_select_cursor_if_none</code> now returns early unless the file view has the keyboard focus. Fixed in <code>a1109fa</code>.</li>
     <li data-k="R10"><b>Fixed, R10 (low):</b> the blank-space click was checked only once per window and view. Now every <code>deselect</code> checks that nothing is selected. Fixed in <code>c9205ca</code>.</li>
-    <li data-k="R13"><b>Fixed, R13 (low):</b> copying the sentinel before every check was redundant. It is now copied only when the clipboard may still hold a file. The same commit shortened the fixed waits in each check.</li>
+    <li data-k="R13"><b>Fixed, R13 (low):</b> copying the sentinel before every check was redundant. It is now copied only when the clipboard may still hold a file. The same commit shortened the fixed waits in each check. Fixed in <code>c9205ca</code>.</li>
     <li data-k="R11"><b>Accepted, R11:</b> the sentinel is selected with one Ctrl+A and never checked directly. It is in effect: the first blank-click check expects “sentinel” and fails if nothing was copied.</li>
     <li data-k="R12"><b>Accepted, R12:</b> the extra checks could push <code>verify/120.sh</code> past 120 s. With the shorter waits it took 65 s in both container runs, 55 s to spare.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="cireview3">
+  <h3 class="sec">CI's third code review</h3>
+  <p data-k="ci">CI reviewed head <code>1e8e20c</code>, the commits since <code>44c9acb</code> (<code>a1109fa</code> and <code>c9205ca</code>), with Opus at level high in 5 minutes (run <a href="https://github.com/alexhu98/thunar/actions/runs/43558745256">43558745256</a>). It marked R10 resolved and R13 fixed by <code>c9205ca</code>, and found 5 more problems, all low and not confirmed. All 5 are accepted under <code>CLAUDE.md</code>'s CI review rules for later reviews.</p>
+  <ul class="tight">
+    <li data-k="R14"><b>Accepted, R14:</b> the wait after a paste went from 0.3 s to 0.2 s, so a check might read the folder before the copy finishes. The check polls until the expected names appear, and two container runs passed at 65 s.</li>
+    <li data-k="R15"><b>Accepted, R15:</b> the helper builds the list of selected rows before its cheaper focus check. Only the order differs; the result is the same.</li>
+    <li data-k="R16"><b>Accepted, R16:</b> the focus check sits in both the shared handler and the helper. The handler needs it before it runs the view's own key handler and stops the key; the helper needs it for the details view's own Up and Down path.</li>
+    <li data-k="R17"><b>Accepted, R17:</b> the test focuses its window again before Ctrl+C even right after doing so. It is harmless and costs a few milliseconds.</li>
+    <li data-k="R18"><b>Accepted, R18:</b> the helper's name doesn't say it does nothing without the focus. This is naming only.</li>
   </ul>
   </section>
 
@@ -382,6 +395,7 @@ explainers/120-reselect-at-cursor.narration.json  # its narration</pre>
     <li data-k="l6">The screenshot audit: <a href="https://github.com/alexhu98/thunar/pull/122#issuecomment-6871482242">its PR comment</a></li>
     <li data-k="l7">CI's second review, of <code>44c9acb</code>: run <a href="https://github.com/alexhu98/thunar/actions/runs/43556773880">43556773880</a></li>
     <li data-k="l8">CI's build and tests on <code>a1109fa</code>: run <a href="https://github.com/alexhu98/thunar/actions/runs/43557116135">43557116135</a></li>
+    <li data-k="l9">CI's third review, of <code>1e8e20c</code>, with its build and tests: run <a href="https://github.com/alexhu98/thunar/actions/runs/43558745256">43558745256</a></li>
   </ul>
   </section>
   </section>
@@ -440,7 +454,7 @@ explainers/120-reselect-at-cursor.narration.json  # its narration</pre>
     <div data-k="smoke"><dt>Smoke test</dt><dd>CI's basic check that Thunar is still running 10 seconds after it starts.</dd></div>
     <div data-k="vv"><dt><code>/visual-verify</code></dt><dd>A check in which a separate agent looks at every screenshot and says whether it shows what it claims.</dd></div>
     <div data-k="sn"><dt>S1–S6</dt><dd>Findings of the local review, numbered in its report.</dd></div>
-    <div data-k="rn"><dt>R1–R13</dt><dd>Findings of CI's reviews, numbered in its code review comment: R1–R7 from the first review, R8–R13 from the second.</dd></div>
+    <div data-k="rn"><dt>R1–R18</dt><dd>Findings of CI's reviews, numbered in its code review comment: R1–R7 from the first review, R8–R13 from the second, R14–R18 from the third.</dd></div>
     <div data-k="accepted"><dt>Accepted finding</dt><dd>A review finding left as it is on purpose, by the owner or under <code>CLAUDE.md</code>'s CI review rules.</dd></div>
     <div data-k="sentinel"><dt>Sentinel file</dt><dd>A file the test copies whenever the clipboard may still hold another file, so a paste of it means nothing was selected.</dd></div>
   </dl>
