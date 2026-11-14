@@ -271,7 +271,7 @@ explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested in a cloud container from git, then by CI and the screenshot audit on 939a0c7; CI's review fixes haven't been through CI yet.</p>
+  <p class="intro" data-k="intro">Built and tested in a cloud container from git, then by CI on 939a0c7 and again on the newest head, aa93e7a, after every review fix.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -292,13 +292,13 @@ explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</
     <tr data-k="c3"><td>Every test</td><td><code>verify-proof.sh run</code> on this branch's debs, before the review fixes</td><td class="ok">22 of 23 pass, smoke test included</td></tr>
     <tr data-k="c4"><td>Word mode (#124)</td><td><code>verify/124.sh</code> in that run: default on, <code>cp 2post</code>, <code>!1pre</code>, remembered off, Case sensitive</td><td class="ok">pass in 34 s</td></tr>
     <tr data-k="c5"><td>Last pattern (#123)</td><td><code>verify/123.sh</code> in that run: prefill, Enter reuse, Cancel, a second window</td><td class="open">failed only on a shot-naming rule; shot renamed, not re-run</td></tr>
-    <tr data-k="c6"><td>CI build and verify</td><td>CI run 43568921229 on 939a0c7: build, then every verify script on its debs</td><td class="ok">build pass; 23 of 23 pass, <code>123.sh</code> and <code>124.sh</code> included</td></tr>
-    <tr data-k="c7"><td>Screenshot audit</td><td><code>/visual-verify pr:125</code> on CI's shots of 939a0c7</td><td class="ok">PASS, 210 shots OK</td></tr>
-    <tr data-k="c8"><td>CI review</td><td>The review job at <code>high</code> on 939a0c7; the first attempt didn't finish, the one re-run did</td><td class="ok">pass, 9 findings (below)</td></tr>
-    <tr data-k="c9"><td>The newest commits</td><td>CI's fix commit 6d3a777 and the new <code>*1pre*</code> step in <code>verify/124.sh</code> came after that run</td><td class="no">not run yet</td></tr>
+    <tr data-k="c6"><td>CI build and verify</td><td>CI run 43573111854 on aa93e7a: build, then every verify script on its debs</td><td class="ok">build pass; 23 of 23 pass, <code>124.sh</code>'s new wildcard-in-word-mode step included</td></tr>
+    <tr data-k="c7"><td>Screenshot audit</td><td><code>/visual-verify pr:125</code> on CI's shots of 939a0c7, then of aa93e7a</td><td class="open">PASS on 939a0c7, 210 shots OK; aa93e7a's audit still running</td></tr>
+    <tr data-k="c8"><td>CI review</td><td>The review job at <code>high</code> on each code push, last on aa93e7a</td><td class="ok">pass; 23 findings in all, R1–R23 (below)</td></tr>
+    <tr data-k="c9"><td>CI explainer</td><td>The explainer job on aa93e7a: renders this page and checks its narration</td><td class="ok">pass</td></tr>
   </table>
   </div>
-  <div class="note" data-k="caveat">CI's run on 939a0c7 passed every test, after the local review fixes. Its own fixes R1–R3 and the new word-mode wildcard step come later, so CI's next run is the one to trust.</div>
+  <div class="note" data-k="caveat">CI's run on aa93e7a came after every review fix and passed build, verify, review and explainer. Only its screenshot audit is still to come.</div>
   </section>
 
   <section class="sub" id="review">
@@ -326,10 +326,15 @@ explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</
   </ul>
   <p data-k="ci3">CI's review of ff82070 found nine more, R13–R21, all low:</p>
   <ul class="tight">
-    <li data-k="r19"><b>R19, confirmed, fixed:</b> without R12's strip, spaces at either end left empty words. <code>g_strstrip</code> is back before the split, as Search does in <code>thunar-list-model.c</code>.</li>
+    <li data-k="r19"><b>R19, confirmed, tidied:</b> without R12's strip, spaces at either end left empty words, which change no selection. <code>g_strstrip</code> is back before the split, as Search does in <code>thunar-list-model.c</code>.</li>
     <li data-k="r20"><b>R20, R21, accepted:</b> in word mode a pattern with <code>*</code> or <code>?</code> is a plain wildcard pattern that must match the whole name, so several words, <code>!word</code> and <code>\!</code> don't apply. That is the R1 fallback you chose, closed with a <code>Review-accept</code> trailer.</li>
     <li data-k="r14"><b>R14–R18, unconfirmed, accepted:</b> wildcard fallback details; the label tooltip still says “wildcard pattern”, kept for its translations (R2); the new <code>verify/124.sh</code> step doesn't itself check the box, and adds time (about 34 s of 120 s).</li>
     <li data-k="r13"><b>R13, confirmed, left for you:</b> Search's shared query splitter can return empty words for some Unicode line separators, so Ctrl+F would match everything. It's an existing Search bug outside these issues; Select by Pattern already selects nothing then. A separate issue is proposed.</li>
+  </ul>
+  <p data-k="ci4">CI's review of aa93e7a found two more, R22 and R23, both low and plausible, both accepted with a <code>Review-accept</code> trailer:</p>
+  <ul class="tight">
+    <li data-k="r22"><b>R22, accepted:</b> <code>g_strstrip</code> strips only ASCII spaces, so a Unicode line separator at either end still leaves an empty word. It matches everything, so it filters nothing; a query of only those still selects nothing. Search does the same.</li>
+    <li data-k="r23"><b>R23, accepted:</b> R19's commit changes no selection, so it is a tidy-up matching Search, not a bug fix. This page now says so.</li>
   </ul>
   </section>
 
@@ -338,8 +343,7 @@ explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI's build, verify, review and screenshots of the newest commits</td><td>CI's fix commit and the new test step came after CI's last run</td><td class="open">next push of PR #125</td></tr>
-    <tr data-k="a2"><td><code>verify/124.sh</code>'s <code>*1pre*</code> step in word mode</td><td>Added after CI's run; not run here</td><td class="open">CI's verify job on that push</td></tr>
+    <tr data-k="a1"><td>The screenshot audit of aa93e7a</td><td>It reads the shots CI's run on aa93e7a just took</td><td class="open">running now</td></tr>
     <tr data-k="a3"><td>Use on your own desktop</td><td>Needs the next build installed on your machine</td><td class="open">after the merge</td></tr>
   </table>
   </div>
@@ -350,7 +354,7 @@ explainers/123-select-by-pattern-prefill-words.narration.json  # its narration</
   <ul class="tight">
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/125">PR #125</a> → “Files changed”</li>
     <li data-k="l2">The issues: <a href="https://github.com/alexhu98/thunar/issues/123">#123</a> (last pattern) and <a href="https://github.com/alexhu98/thunar/issues/124">#124</a> (match words)</li>
-    <li data-k="l4">CI's run on 939a0c7: <a href="https://github.com/alexhu98/thunar/actions/runs/43568921229">run 43568921229</a></li>
+    <li data-k="l4">CI's run on aa93e7a: <a href="https://github.com/alexhu98/thunar/actions/runs/43573111854">run 43573111854</a></li>
     <li data-k="l3">Try it: Ctrl+S, type <code>cp 2post</code>, Select; Ctrl+S again and press Enter</li>
   </ul>
   </section>
