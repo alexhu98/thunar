@@ -3005,7 +3005,7 @@ thunar_standard_view_select_by_pattern_update_tooltip (GtkToggleButton *match_wo
                                                        GtkWidget       *info_image)
 {
   if (gtk_toggle_button_get_active (match_words_button))
-    /* TRANSLATORS: the ! character and the \! escape are special symbols, and they must not be localized. */
+    /* TRANSLATORS: the ! character, the \! escape and the * and ? wildcards are special symbols, and they must not be localized. */
     gtk_widget_set_tooltip_text (info_image, C_ ("Select by Pattern dialog: tooltips: pattern entry text box in word mode", "Files whose name contains every word you enter, in any order, will be selected.\n!word excludes names that contain word, and \\! stands for a literal !.\n\nFor example: cp-detail 2post, report !draft\n\nWith * or ? wildcards, the pattern is matched as a wildcard pattern."));
   else
     /* TRANSLATORS: the * and ? characters are the ASCII wildcard special symbols, and they must not be localized. */
@@ -3124,11 +3124,7 @@ thunar_standard_view_select_by_pattern (ThunarView *view)
 
       if (pattern != NULL && strpbrk (pattern, "*?") != NULL)
         match_words = FALSE;
-
-      if (!match_words
-          && pattern != NULL
-          && strchr (pattern, '*') == NULL
-          && strchr (pattern, '?') == NULL)
+      else if (!match_words && pattern != NULL)
         {
           /* make file matching pattern */
           pattern_extended = g_strdup_printf ("*%s*", pattern);

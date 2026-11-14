@@ -530,13 +530,6 @@ thunar_standard_view_model_get_paths_for_words (ThunarStandardViewModel *model,
   _thunar_return_val_if_fail (g_utf8_validate (query, -1, NULL), NULL);
 
   normalized_query = thunar_g_utf8_normalize_for_search (query, !match_diacritics, !case_sensitive);
-  g_strstrip (normalized_query);
-  if (*normalized_query == '\0')
-    {
-      g_free (normalized_query);
-      return NULL;
-    }
-
   mf.terms = thunar_util_split_search_query (normalized_query, NULL);
   g_free (normalized_query);
   for (n = 0; mf.terms != NULL && mf.terms[n] != NULL && *mf.terms[n] == '\0'; n++)
