@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #122 Cursor Reselect</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #122: Up, Down, Home and End select the file at the cursor after a blank-space click</h1>
+  <p class="lead" data-k="lead">Branch <code>120-reselect-at-cursor</code> → <code>main</code>, closes #120. After you click blank space to clear the selection, these four keys now always select a file, even when the cursor can't move further, just like PgUp and PgDn already did.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing builds on #120 yet</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">One new rule in the key handler that every view shares: when nothing is selected, a plain Up, Down, Home or End selects the file at the keyboard cursor. The details view calls the same rule from its own handler.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="A plain Up, Down, Home or End with nothing selected reaches the shared key handler, which lets the view move the cursor first and then selects the file at the cursor. In the details view with Expandable Folders on, the details handler takes Up and Down first and calls the same helper.">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Every view: the shared key handler</text>
+    <g data-k="1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Press a key</text>
+      <text x="36" y="114" class="m">Up Down Home End</text>
+      <text x="36" y="134" class="b">no Shift or Ctrl,</text>
+      <text x="36" y="154" class="b">nothing selected</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Shared handler</text>
+      <text x="286" y="114" class="m">key_press_event</text>
+      <text x="286" y="134" class="b">on every view's</text>
+      <text x="286" y="154" class="b">inner widget</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-merge" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">View moves first</text>
+      <text x="536" y="114" class="b">its own key handler</text>
+      <text x="536" y="134" class="b">moves the cursor,</text>
+      <text x="536" y="154" class="b">or not at the edge</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Select the cursor</text>
+      <text x="786" y="114" class="m">select_cursor_if_none</text>
+      <text x="786" y="134" class="b">only a row with a</text>
+      <text x="786" y="154" class="b">file; key stops here</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M125,180 V256" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,320 H875 V184" marker-end="url(#ah-flow)"/>
+    <text x="884" y="240" class="b">same helper</text>
+
+    <text class="lane" x="150" y="244" style="fill:var(--merge)">② Details view, Expandable Folders on</text>
+    <g data-k="5">
+      <rect class="box-merge" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Details first</text>
+      <text x="36" y="314" class="b">its handler runs</text>
+      <text x="36" y="334" class="b">before the shared</text>
+      <text x="36" y="354" class="b">one, takes Up/Down</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Edge: no move</text>
+      <text x="286" y="314" class="b">on the first or last</text>
+      <text x="286" y="334" class="b">row the cursor</text>
+      <text x="286" y="354" class="b">stays, as before</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-pr" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Same helper</text>
+      <text x="536" y="314" class="b">after a plain Up or</text>
+      <text x="536" y="334" class="b">Down, select the</text>
+      <text x="536" y="354" class="b">cursor's file</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <path class="arrow" d="M230,320 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,320 H516" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new or changed in this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>unchanged Thunar code</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Clicking blank space in a folder clears the selection. Before this PR, pressing Up on the first file, Down on the last, Home at the top or End at the bottom then selected nothing at all, so the keyboard seemed dead until you pressed a key that could move. PgUp and PgDn always selected a file, and issue #120 asked for the other four keys to do the same.</p>
+  <div class="note" data-k="note">The keyboard cursor (the row with the focus outline) and the selection are separate. A blank-space click clears the selection but leaves the cursor where it was. GTK selects a row only when the cursor moves, so at the first or last row these keys did nothing.</div>
+  <div class="note" data-k="order">The issue warned that the details view's own key handler runs before the shared one and might swallow Up and Down. It does, with Expandable Folders on, so that handler calls the same helper (lane ②). One helper serves both places.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Every view: the shared key handler</div>
+  <ol class="steps">
+    <li data-k="1"><b>Press a key.</b> Up, Down, Home or End, or their keypad versions, with no Shift or Ctrl, while no file is selected, for example right after a click on blank space.</li>
+    <li data-k="2"><b>Shared handler.</b> <code>thunar_standard_view_key_press_event</code> in <code>thunar-standard-view.c</code> is connected to the inner widget of every view: details, icon and compact. Its new rule fires only for those keys, unmodified, when nothing is selected. Anything else goes on exactly as before.</li>
+    <li data-k="3"><b>View moves first.</b> The rule runs the view's own key handler (GtkTreeView in the details view, ExoIconView in the icon and compact views). Where the cursor can move, that moves it and selects the new row, as it always did. At the first or last row it moves nothing and selects nothing.</li>
+    <li data-k="4"><b>Select the cursor.</b> The new helper <code>thunar_standard_view_select_cursor_if_none</code> then checks again. If still nothing is selected, it reads the cursor row and selects it, but only if that row holds a file, so a Loading… placeholder under an expanded folder is never selected. The handler then stops the key, so it isn't handled twice.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② Details view, Expandable Folders on</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Details first.</b> With Expandable Folders on, <code>thunar-details-view.c</code> handles Up and Down itself, so it can step into and out of opened folders. Its handler is connected before the shared one, and it stops the key, so the shared rule never sees Up or Down here. Home and End still pass through to steps 2 to 4.</li>
+    <li data-k="6"><b>Edge: no move.</b> On the first or last row, its cursor functions return without moving. That part is unchanged.</li>
+    <li data-k="7"><b>Same helper.</b> After a plain Up or Down (no Shift or Ctrl at all), the details handler now calls the same helper as step 4, so the file at the cursor is selected. Shift and Ctrl with Up or Down keep their own selection code from PR #51 (issue #49).</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">What the keys do after a blank-space click</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Situation</th><th>Before (as issue #120 describes)</th><th>Now</th></tr>
+    <tr data-k="k1"><td>Up or Home, cursor on the first file</td><td>Nothing selected</td><td>The first file is selected</td></tr>
+    <tr data-k="k2"><td>Down or End, cursor on the last file</td><td>Nothing selected</td><td>The last file is selected</td></tr>
+    <tr data-k="k3"><td>Any of the four in a folder with one file</td><td>Nothing selected</td><td>That file is selected</td></tr>
+    <tr data-k="k4"><td>A key that can move the cursor</td><td>Moves and selects the new row</td><td>The same</td></tr>
+    <tr data-k="k5"><td>PgUp, PgDn, Shift or Ctrl with a key, or a file already selected</td><td>Their own behaviour</td><td>Unchanged: the new rule doesn't fire</td></tr>
+    <tr data-k="k6"><td>Home or End in an empty folder</td><td>Passed on to the scrolled window</td><td>Stopped: nothing to select or scroll</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="diff">
+  <h3 class="sec">The new rule in the shared handler</h3>
+<pre data-k="code">  if (standard_view-&gt;accel_group != NULL &amp;&amp; xfce_gtk_handle_tab_accels (…))
+    return TRUE;
+
+<span class="add">  if ((event-&gt;state &amp; gtk_accelerator_get_default_mod_mask ()) == 0</span>
+<span class="add">      &amp;&amp; (event-&gt;keyval == GDK_KEY_Up || … GDK_KEY_KP_End)</span>
+<span class="add">      &amp;&amp; !thunar_standard_view_has_selected_items (standard_view))</span>
+<span class="add">    {</span>
+<span class="add">      GTK_WIDGET_GET_CLASS (view)-&gt;key_press_event (view, event);</span>
+<span class="add">      thunar_standard_view_select_cursor_if_none (standard_view);</span>
+<span class="add">      return TRUE;</span>
+<span class="add">    }</span>
+
+  return FALSE;</pre>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+├── thunar-standard-view.c  # the new rule in the shared key handler, and the helper
+├── thunar-standard-view.h  # declares the helper for the details view
+└── thunar-details-view.c   # Expandable Folders: plain Up/Down call the helper
+verify/120.sh               # the test: 21 selection checks, 8 screenshots
+explainers/120-reselect-at-cursor.html            # this page
+explainers/120-reselect-at-cursor.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo it, revert this PR. It adds no setting and stores nothing.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The building session built it and ran every test twice in a cloud container, the way CI does: once on the first commit, and again after the local review's fixes. CI's own build, tests and review run on the PR after this page was written.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Issue #120's cases</h3><p>A one-file folder with all four keys; the first file with Up and Home; the last file with Down and End; Expandable Folders on and off; the icon view. The test runs each one.</p></div>
+    <div class="card" data-k="r2"><h3>PgUp and PgDn</h3><p>They always select the row they land on, even when the cursor can't move. That is the behaviour the four keys now copy.</p></div>
+    <div class="card" data-k="r3"><h3>Copy and paste as a probe</h3><p>The test reads the selection by pressing Ctrl+C in the test window and Ctrl+V in a second Thunar window, then comparing the pasted file names.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>It builds (first commit)</td><td><code>build-verify</code> agent in the building session's cloud container: <code>dpkg-buildpackage</code> from git on <code>8719082</code>, as CI does. Four gtk-doc warnings at <code>thunar-details-view.c:1974</code>, outside this change.</td><td class="ok">build OK</td></tr>
+    <tr data-k="c2"><td>Every test (first commit)</td><td>Same agent: installed the debs, then <code>verify-proof.sh run</code>: the smoke test and every <code>verify/*.sh</code>, each under its own Xvfb. Smoke 12 s, <code>verify/118.sh</code> 44 s, <code>verify/120.sh</code> 62 s.</td><td class="ok">21 of 21 pass</td></tr>
+    <tr data-k="c3"><td>It builds (after the review fixes)</td><td>Same agent, rebuilt on <code>3ca17d4</code></td><td class="ok">build OK, no warnings in changed files</td></tr>
+    <tr data-k="c4"><td>Every test (after the review fixes)</td><td>Same run as on the first commit, against the <code>3ca17d4</code> build. Smoke 11 s, <code>verify/118.sh</code> 43 s, <code>verify/120.sh</code> 69 s.</td><td class="ok">21 of 21 pass</td></tr>
+    <tr data-k="c5"><td>The four keys reselect the cursor's file</td><td><code>verify/120.sh</code> in that run: details view with Expandable Folders on (one-file folder, first and last of three files) and off; icon view; compact view (Up only). It stops at the first wrong selection.</td><td class="ok">21 of 21 checks</td></tr>
+    <tr data-k="c6"><td>Shift and Ctrl selection unchanged</td><td><code>verify/49.sh</code>, the Shift and Ctrl with Up/Down test from PR #51, in the same two runs</td><td class="ok">pass both times</td></tr>
+    <tr data-k="c7"><td>Before the fix</td><td>The old build wasn't run here. The before state comes from issue #120; each screenshot pair shows before and after the key press, on this PR's build.</td><td class="no">not run</td></tr>
+    <tr data-k="c8"><td>Keypad keys, Loading… rows, empty folder</td><td>No test presses the keypad keys, holds a folder in its Loading… state, or presses Home or End in an empty folder; these were only read in review</td><td class="no">not run</td></tr>
+    <tr data-k="c9"><td>CI build and verify</td><td>CI's build and verify jobs on the PR, with <code>verify/120.sh</code> and its screenshots</td><td class="open">runs on the PR after this page was written</td></tr>
+    <tr data-k="c10"><td>Screenshot audit</td><td><code>/visual-verify pr:122</code> on CI's screenshots</td><td class="open">runs on the PR after this page was written</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh agent ran <code>/code-review</code> at level high on the whole branch (<code>origin/main...HEAD</code>). It found 9 problems: the reviewer fixed 2, the building session fixed 2 more, and 5 are accepted as they are. The fixes are in <code>3ca17d4</code>, and the tests above were run again on it.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed, Loading… rows:</b> the helper could select the Loading… placeholder under a just-expanded folder. It now selects a row only if the row holds a file.</li>
+    <li data-k="b2"><b>Fixed, test focus:</b> after each paste into the second window, the test now focuses the test window again, so its screenshots show the right window focused.</li>
+    <li data-k="b3"><b>Fixed, compact view and tidier code:</b> <code>verify/120.sh</code> now checks the compact view too, which the commit message claimed. The new helper's declaration moved next to the other helpers'.</li>
+    <li data-k="b4"><b>Accepted, S1 and S4:</b> hooking GTK's cursor-move signal instead would be a redesign (S1). Reading the cursor by checking the widget type is what <code>thunar_standard_view_highlight_option_changed</code> already does (S4).</li>
+    <li data-k="b5"><b>Accepted, S2 and S3:</b> the “anything selected?” check builds the list of selected rows on each of these key presses, as the selection-changed code already does, and ExoIconView has no cheaper call (S2). The rule always stops these keys, so Home and End in an empty folder no longer reach the scrolled window, which has nothing to scroll (S3).</li>
+    <li data-k="b6"><b>Accepted, S6:</b> an older quirk with Return and Space in the details view. It was there before this PR and is out of its scope.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="cireview">
+  <h3 class="sec">CI's code review</h3>
+  <p data-k="ci">CI reviews every code push to the PR at level high and lists its findings in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/122">PR #122</a>. It runs on the PR after this page was written, so none of its findings are here.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>Daily use on the owner's desktop: real folders, a real mouse and keyboard, the keypad keys</td><td>CI and the container use small test folders on a virtual screen with simulated keys</td><td class="open">when the owner installs the next build</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l0">The PR: <a href="https://github.com/alexhu98/thunar/pull/122">#122</a>, with CI's summary, code review, verify and explainer comments</li>
+    <li data-k="l1">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...120-reselect-at-cursor">main…120-reselect-at-cursor</a>, or this PR's “Files changed”</li>
+    <li data-k="l2">The screenshots of <code>verify/120.sh</code>: CI's verify comment on the PR</li>
+    <li data-k="l3">The issue: <a href="https://github.com/alexhu98/thunar/issues/120">#120</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing builds on #120 yet</h2>
+  <p class="intro" data-k="intro">No open issue says “Depends on #120”, and #120 is the only open issue. A later fix that changes how the views move the cursor can reuse the new helper.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR merges; no open issue builds on it yet.">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">After this PR</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">#120 reselect</text>
+      <text x="36" y="114" class="b">the four keys select</text>
+      <text x="36" y="134" class="b">the cursor's file</text>
+      <text x="36" y="154" class="b">in every view</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Nothing yet</text>
+      <text x="286" y="114" class="b">no open issue</text>
+      <text x="286" y="134" class="b">depends on #120</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="cursor"><dt>Keyboard cursor</dt><dd>The row or icon with the focus outline. Arrow keys move it; it can differ from the selection.</dd></div>
+    <div data-k="blank"><dt>Blank-space click</dt><dd>A click in the empty area of a view, below or beside the files. It clears the selection.</dd></div>
+    <div data-k="details"><dt>Details view</dt><dd>Thunar's detailed list view (Ctrl+2): one row per file, with size, type and date columns.</dd></div>
+    <div data-k="icon"><dt>Icon and compact views</dt><dd>Thunar's grid views (Ctrl+1 and Ctrl+3), both drawn by libexo's ExoIconView.</dd></div>
+    <div data-k="expandable"><dt>Expandable Folders</dt><dd>A details view setting: folders get a triangle that shows their contents as indented rows.</dd></div>
+    <div data-k="loading"><dt>Loading… row</dt><dd>A stand-in row under a just-expanded folder until its files are read. It is not a file.</dd></div>
+    <div data-k="handler"><dt>Key handler</dt><dd>A function GTK calls on each key press; returning TRUE stops the key there.</dd></div>
+    <div data-k="keypad"><dt>Keypad keys</dt><dd>The arrow, Home and End keys on the number pad, with Num Lock off.</dd></div>
+    <div data-k="verify"><dt>Verify script</dt><dd><code>verify/&lt;issue&gt;.sh</code>: drives Thunar with simulated keys and clicks on a virtual screen, checks the result and takes screenshots.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual screen with no monitor, so Thunar can run in CI and the container.</dd></div>
+    <div data-k="smoke"><dt>Smoke test</dt><dd>CI's basic check that Thunar is still running 10 seconds after it starts.</dd></div>
+    <div data-k="vv"><dt><code>/visual-verify</code></dt><dd>A check in which a separate agent looks at every screenshot and says whether it shows what it claims.</dd></div>
+    <div data-k="sn"><dt>S1–S6</dt><dd>Findings of the local review, numbered in its report.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
