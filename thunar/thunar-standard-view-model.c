@@ -60,6 +60,7 @@ struct _MatchForeach
 {
   GList        *paths;
   GPatternSpec *pspec;
+  gchar       **terms;
   gboolean      match_diacritics;
   gboolean      case_sensitive;
 };
@@ -450,7 +451,10 @@ _thunar_standard_view_model_match_pattern_foreach (GtkTreeModel *model,
   normalized_display_name = thunar_g_utf8_normalize_for_search (display_name,
                                                                 !mf->match_diacritics,
                                                                 !mf->case_sensitive);
-  name_matched = g_pattern_spec_match_string (mf->pspec, normalized_display_name);
+  if (mf->terms != NULL)
+    name_matched = thunar_util_search_terms_match (mf->terms, normalized_display_name);
+  else
+    name_matched = g_pattern_spec_match_string (mf->pspec, normalized_display_name);
   g_free (normalized_display_name);
 
   if (name_matched)
@@ -495,6 +499,7 @@ thunar_standard_view_model_get_paths_for_pattern (ThunarStandardViewModel *model
   mf.pspec = g_pattern_spec_new (normalized_pattern);
   g_free (normalized_pattern);
 
+  mf.terms = NULL;
   mf.paths = NULL;
   mf.case_sensitive = case_sensitive;
   mf.match_diacritics = match_diacritics;
@@ -505,6 +510,65 @@ thunar_standard_view_model_get_paths_for_pattern (ThunarStandardViewModel *model
 
   /* release the pattern */
   g_pattern_spec_free (mf.pspec);
+
+  return mf.paths;
+}
+
+
+
+/**
+ * thunar_standard_view_model_get_paths_for_words:
+ * @model            : a #ThunarStandardViewModel instance.
+ * @query            : space-separated words, as in Search.
+ * @case_sensitive   : %TRUE to use case sensitive matching.
+ * @match_diacritics : %TRUE to require accents to match.
+ *
+ * Looks up all rows in the @model whose name contains every word of
+ * @query, or doesn't contain a word written as !word, and returns
+ * a list of #GtkTreePath<!---->s corresponding to the rows. An empty
+ * or whitespace-only @query matches nothing.
+ *
+ * The caller is responsible to free the returned list using:
+ * <informalexample><programlisting>
+ * g_list_free_full (list, (GDestroyNotify) gtk_tree_path_free);
+ * </programlisting></informalexample>
+ *
+ * Return value: the list of #GtkTreePath<!---->s that match @query.
+ **/
+GList *
+thunar_standard_view_model_get_paths_for_words (ThunarStandardViewModel *model,
+                                                const gchar             *query,
+                                                gboolean                 case_sensitive,
+                                                gboolean                 match_diacritics)
+{
+  struct _MatchForeach mf;
+  gchar               *normalized_query;
+
+  _thunar_return_val_if_fail (THUNAR_IS_STANDARD_VIEW_MODEL (model), NULL);
+  _thunar_return_val_if_fail (g_utf8_validate (query, -1, NULL), NULL);
+
+  normalized_query = thunar_g_utf8_normalize_for_search (query, !match_diacritics, !case_sensitive);
+  g_strstrip (normalized_query);
+  if (*normalized_query == '\0')
+    {
+      g_free (normalized_query);
+      return NULL;
+    }
+
+  mf.terms = thunar_util_split_search_query (normalized_query, NULL);
+  g_free (normalized_query);
+  if (mf.terms == NULL)
+    return NULL;
+
+  mf.pspec = NULL;
+  mf.paths = NULL;
+  mf.case_sensitive = case_sensitive;
+  mf.match_diacritics = match_diacritics;
+
+  gtk_tree_model_foreach (GTK_TREE_MODEL (model),
+                          _thunar_standard_view_model_match_pattern_foreach, &mf);
+
+  g_strfreev (mf.terms);
 
   return mf.paths;
 }
