@@ -22,19 +22,6 @@ xfconf-query -c thunar -p /default-view -n -t string -s ThunarDetailsView
 xfconf-query -c thunar -p /last-sort-column -n -t string -s THUNAR_COLUMN_NAME
 xfconf-query -c thunar -p /last-sort-order -n -t string -s GTK_SORT_ASCENDING
 
-title() { xdotool getwindowname "$WID"; }
-
-starts() { [[ $(title) == "$1" || $(title) == "$1 "* ]]; }
-
-wait_start() {  # name
-  local i
-  for ((i = 0; i < 50; i++)); do
-    starts "$1" && return 0
-    sleep 0.2
-  done
-  fail "window title is '$(title)', expected it to start with '$1'"
-}
-
 pane_click() {  # x
   focus "$MAIN"
   xdotool mousemove --window "$MAIN" "$1" $((H - 80))
@@ -46,7 +33,7 @@ pane_click() {  # x
 next_tab() {  # x expected-title
   pane_click "$1"
   xdotool key ctrl+Page_Down
-  wait_start "$2"
+  wait_title "$MAIN" "$2"
   sleep 0.5
 }
 
@@ -57,7 +44,7 @@ first_is_a() {  # x folder
   dest="$WORK/check-$N"
   mkdir -p "$dest"
   pane_click "$1"
-  wait_start "$2"
+  wait_title "$MAIN" "$2"
   xdotool key Home
   sleep 0.3
   xdotool key ctrl+c
@@ -80,7 +67,7 @@ first_is_a() {  # x folder
 open_thunar --split=50 -t "$WORK/alpha" "$WORK/beta" "$WORK/gamma" -T "$WORK/delta" "$WORK/epsilon" "$WORK/zeta"
 MAIN=$WID
 xdotool windowsize --sync "$MAIN" "$W" "$H"
-wait_start alpha
+wait_title "$MAIN" alpha
 sleep 1
 
 first_is_a "$LEFT" alpha
