@@ -1096,6 +1096,7 @@ thunar_standard_view_constructor (GType                  type,
 
   /* apply the default sort column and sort order */
   gtk_tree_sortable_set_sort_column_id (GTK_TREE_SORTABLE (standard_view->model), standard_view->priv->sort_column_default, standard_view->priv->sort_order_default);
+  thunar_standard_view_store_sort_column (standard_view);
 
   /* stay informed about changes to the sort column/order */
   g_signal_connect (G_OBJECT (standard_view->model), "sort-column-changed", G_CALLBACK (thunar_standard_view_sort_column_changed), standard_view);
