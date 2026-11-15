@@ -1478,6 +1478,9 @@ thunar_standard_view_realize (GtkWidget *widget)
   g_signal_connect_swapped (standard_view->preferences, "notify::misc-highlighting-enabled",
                             G_CALLBACK (thunar_standard_view_highlight_option_changed), standard_view);
   thunar_standard_view_highlight_option_changed (standard_view);
+
+  /* store sort information to keep indicators in menu in sync */
+  thunar_standard_view_store_sort_column (standard_view);
 }
 
 
