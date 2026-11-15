@@ -254,7 +254,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The building session built the PR in a cloud container and ran all 24 tests, including the new one. The new test was not run against the old build, and three cases from the issue were not checked.</p>
+  <p class="intro" data-k="intro">The building session and CI each built the PR and ran all 24 tests, including the new one. The latest commit has not been through CI yet. The new test was not run against the old build, and three cases from the issue were not checked.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -269,8 +269,8 @@ explainers/
   <ol class="steps">
     <li data-k="t1"><b>Folders.</b> Six folders, alpha to zeta, each with <code>z.txt</code>, <code>m.txt</code> and <code>a.txt</code> made in that order. The test stops early if the filesystem doesn't record distinct creation times, since then the two sorts would look the same.</li>
     <li data-k="t2"><b>Saved sort.</b> It sets <code>last-sort-column</code> to Name, ascending, then runs <code>thunar --split=50 -t alpha beta gamma -T delta epsilon zeta</code>: three tabs in each pane.</li>
-    <li data-k="t3"><b>Each tab.</b> For all 6 tabs it clicks blank space, presses Home to select the first row, copies it, pastes into a check folder, and requires that the pasted file is <code>a.txt</code>.</li>
-    <li data-k="t4"><b>Shots.</b> It screenshots the last tab of each pane, gamma and zeta, showing the files in name order and the Name header's sort arrow.</li>
+    <li data-k="t3"><b>Each tab.</b> For all 6 tabs it clicks blank space, presses Home to select the first row, copies it, pastes into a check folder, and requires that the pasted file is <code>a.txt</code>. An empty paste fails as a copy or paste failure. It waits for window titles with the shared library's <code>wait_title</code>.</li>
+    <li data-k="t4"><b>Shots.</b> It screenshots the last tab of each pane, gamma and zeta, showing the files in name order and the Name header's sort arrow. In CI's verify comment they are shots 29 and 30.</li>
   </ol>
   </section>
 
@@ -283,7 +283,11 @@ explainers/
     <tr data-k="c2"><td>All tests pass on this build</td><td>Installed the built debs, then <code>verify-proof.sh run</code>, in the same container</td><td class="ok">24 of 24 pass</td></tr>
     <tr data-k="c3"><td>All 6 tabs sort by Name</td><td><code>verify/126.sh</code> in that run</td><td class="ok">pass, 27 s</td></tr>
     <tr data-k="c4"><td>Opening tabs with -t and -T still works</td><td><code>verify/4.sh</code> in that run</td><td class="ok">pass, 19 s</td></tr>
-    <tr data-k="c5"><td>The birth-time guard</td><td>Added by the local review after that run; checked only with <code>bash -n</code>. CI's verify job runs it.</td><td class="open">syntax only</td></tr>
+    <tr data-k="c5"><td>The birth-time guard</td><td>Added by the local review after that run; CI's verify job ran it</td><td class="ok">passed in CI on 86eae58a9de2</td></tr>
+    <tr data-k="c10"><td>CI build, verify, explainer and review</td><td>CI on 86eae58a9de2</td><td class="ok">all 4 pass</td></tr>
+    <tr data-k="c11"><td>All tests pass in CI</td><td>CI's verify job on 86eae58a9de2</td><td class="ok">24 of 24 pass; <code>verify/126.sh</code> in 26 s</td></tr>
+    <tr data-k="c12"><td>Every screenshot shows what it claims</td><td><code>/visual-verify pr:127</code> on 86eae58a9de2</td><td class="ok">214 of 214 shots OK, PASS</td></tr>
+    <tr data-k="c13"><td>The latest commit, b9c49e873</td><td>It restores the draw-time call (R8) and has not been through CI yet</td><td class="open">CI not run yet</td></tr>
     <tr data-k="c6"><td>The test fails without the fix</td><td>Not run against the old build</td><td class="no">not run</td></tr>
     <tr data-k="c7"><td>View → Sort By menu shows Name</td><td>Not checked; the issue lists it as a risk</td><td class="no">not run</td></tr>
     <tr data-k="c8"><td>Folder-specific sort still wins</td><td>Not checked with directory-specific settings on</td><td class="no">not run</td></tr>
@@ -299,7 +303,15 @@ explainers/
     <li data-k="b1"><b>Fixed:</b> the test could pass by luck on a filesystem without creation times, where both sorts give the same order. It now fails early there.</li>
     <li data-k="b2"><b>Skipped, explainer missing:</b> this page, written after the review.</li>
     <li data-k="b3"><b>Skipped, redundant draw-time call:</b> kept so the file stays close to upstream Thunar.</li>
-    <li data-k="b4"><b>Skipped, two copied helpers:</b> the test copies small window-title helpers instead of adding them to the shared test library, which is outside this issue.</li>
+    <li data-k="b4"><b>Skipped, two copied helpers:</b> the test copied small window-title helpers. CI's review later replaced them with the shared library's <code>wait_title</code> (R2).</li>
+  </ul>
+  <p data-k="ci">CI's review found 11 problems over two reviews, listed in its <a href="https://github.com/alexhu98/thunar/pull/127#issuecomment-6890631883">code review comment</a>.</p>
+  <ul class="tight">
+    <li data-k="f1"><b>R1, then R8, the draw-time call:</b> the first review removed it (R1). The second suggested restoring it to stay close to upstream for the weekly upstream merge (R8), and you chose to restore it. It stays.</li>
+    <li data-k="f2"><b>Fixed in the test:</b> shared <code>wait_title</code> instead of copied helpers (R2), an empty paste fails with a clear message (R5), and an unused line was removed (R9).</li>
+    <li data-k="f3"><b>Accepted by you:</b> R3, the sort getters read a cached value, which every current path keeps in sync; R4, a new tab can inherit Trash's Date Deleted sort, which upstream already does, so no issue was opened.</li>
+    <li data-k="f4"><b>Also accepted by you:</b> R6, the test opens a check window per tab, taking 26 s of its 120 s; R7, it fails without birth times, on purpose, since it couldn't detect the bug there.</li>
+    <li data-k="f5"><b>Accepted as later low findings:</b> R10, <code>wait_title</code> matches any part of a title, but no folder name is part of another; R11, a failure path exits anyway after sending ctrl+w.</li>
   </ul>
   </section>
 
@@ -319,6 +331,8 @@ explainers/
     <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/127">PR #127</a> → “Files changed”</li>
     <li data-k="l2">The issue, with the cause traced through the code: <a href="https://github.com/alexhu98/thunar/issues/126">#126</a></li>
     <li data-k="l3">CI's screenshots of both panes: the verify comment on PR #127</li>
+    <li data-k="l4">CI's findings: the <a href="https://github.com/alexhu98/thunar/pull/127#issuecomment-6890631883">code review comment</a></li>
+    <li data-k="l5">The screenshot audit: the <a href="https://github.com/alexhu98/thunar/pull/127#issuecomment-6891349203">visual-verify comment</a></li>
   </ul>
   </section>
   </section>
