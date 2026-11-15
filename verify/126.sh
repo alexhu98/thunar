@@ -61,6 +61,7 @@ first_is_a() {  # x folder
   xdotool key ctrl+w
   sleep 0.5
   WID=$MAIN
+  [[ -n $got ]] || fail "$2: nothing was pasted into check-$N, so the copy or paste failed"
   [[ $got == "a.txt " ]] || fail "$2: the first row is '$got', expected 'a.txt ' (Name ascending; z.txt first means Date Created)"
 }
 
