@@ -1,7 +1,7 @@
 #!/bin/bash
 # Issue #128: Alt+Page Up / Alt+Page Down drop the selection on the previous / next tab, crossing the split boundary;
-# nothing happens past the first or last tab, or with the focus in the location bar; without split view it works
-# across the tabs of the one pane.
+# nothing happens past the first or last tab, or with the focus in the location bar or a rename entry; without split
+# view it works across the tabs of the one pane.
 set -euo pipefail
 . .github/scripts/verify-lib.sh
 
@@ -16,6 +16,8 @@ echo 1 > "$WORK/beta/f1.txt"
 echo g > "$WORK/alpha/g.txt"
 echo h > "$WORK/delta/h.txt"
 echo k > "$WORK/echo/k.txt"
+
+xfconf-query -c thunar -p /default-view -n -t string -s ThunarDetailsView
 
 title() { xdotool getwindowname "$WID"; }
 
@@ -72,7 +74,6 @@ wait_start alpha
 focus "$WID"
 sleep 1
 
-# Alt+Page Down from the left pane's last tab drops on the right pane's first tab
 pane "$LEFT" alpha
 xdotool key ctrl+Page_Down
 wait_start beta
@@ -88,7 +89,6 @@ starts beta || fail "after Alt+Page Down the active tab is '$(title)', expected 
 shot "$WID" after-next "f1.txt is now in gamma in the right pane and gone from beta, which stays active (the script asserts both folders)"
 pair next "In the left pane's last tab, beta, selected f1.txt and pressed Alt+Page Down" "Drop on Next Tab crosses the split: beta's next tab is the right pane's first, gamma" "beta has f1.txt, gamma empty" "gamma has f1.txt, beta empty" "$G"
 
-# Alt+Page Up from the right pane's first tab drops on the left pane's last tab
 pane "$RIGHT" gamma
 select_all
 shot "$WID" before-previous "The right pane is active on its first tab, gamma, with f1.txt selected; the left pane shows beta, empty"
@@ -101,7 +101,6 @@ starts gamma || fail "after Alt+Page Up the active tab is '$(title)', expected f
 shot "$WID" after-previous "f1.txt is back in beta in the left pane and gone from gamma, which stays active (the script asserts both folders)"
 pair previous "In the right pane's first tab, gamma, selected f1.txt and pressed Alt+Page Up" "Drop on Previous Tab crosses the split back: gamma's previous tab is beta" "gamma has f1.txt, beta empty" "beta has f1.txt, gamma empty" "$G"
 
-# Past the first and the last tab nothing happens
 pane "$LEFT" beta
 xdotool key ctrl+Page_Up
 wait_start alpha
@@ -128,7 +127,19 @@ starts delta || fail "Alt+Page Down on the last tab changed the window to '$(tit
 shot "$WID" after-last "1.5 s after Alt+Page Down on the last tab, h.txt is still only in delta (the script asserts it)"
 pair last "On the last tab, delta, selected h.txt and pressed Alt+Page Down" "There is no tab after the last, and no wrap-around: nothing moves" "delta has h.txt selected" "h.txt still only in delta" "$G"
 
-# In the location bar Alt+Page Down moves no file
+pane "$LEFT" alpha
+select_all
+xdotool key F2
+sleep 0.5
+shot "$WID" before-rename "The details view of alpha, with g.txt's Name cell turned into a rename entry by F2"
+xdotool key alt+Page_Down
+sleep 1.5
+only_in g.txt alpha
+shot "$WID" after-rename "1.5 s after Alt+Page Down, the rename entry is still open on g.txt, which is still only in alpha (the script asserts it)"
+pair rename "Pressed F2 on g.txt in alpha, then Alt+Page Down while its name was being edited" "While a rename entry has the focus, Alt+Page Down moves no file" "rename entry open on g.txt in alpha" "entry still open, g.txt still only in alpha" "$G"
+xdotool key Escape
+sleep 0.5
+
 pane "$LEFT" alpha
 select_all
 xdotool key ctrl+l
@@ -145,7 +156,8 @@ wait_start zz
 shot "$WID" after-entry "Alt+Page Down in the location bar moved nothing; Return then opened zz (the script asserts g.txt stayed in alpha)"
 pair entry "Typed the path of zz in the location bar of alpha, pressed Alt+Page Down and Return" "With the focus in a text field, Alt+Page Down moves no file" "location bar holds zz, g.txt in alpha" "left pane on zz, g.txt still only in alpha" "$G"
 
-# Without split view it works across the tabs of the one pane
+xfconf-query -c thunar -p /misc-open-new-windows-in-split-view -n -t bool -s false
+xfconf-query -c thunar -p /misc-always-enable-split-view -n -t bool -s false
 open_thunar -t "$WORK/echo" "$WORK/foxtrot"
 xdotool windowsize --sync "$WID" "$W" "$H"
 wait_start echo
@@ -161,3 +173,12 @@ sleep 1
 starts echo || fail "after Alt+Page Down the active tab is '$(title)', expected focus to stay on echo"
 shot "$WID" after-no-split "k.txt is gone from echo, which stays active; the script asserts it is now in foxtrot"
 pair no-split "Without split view, selected k.txt in the first tab, echo, and pressed Alt+Page Down" "Without split view Drop on Next Tab moves the selection to the pane's next tab" "echo has k.txt, foxtrot empty" "echo empty, k.txt in foxtrot" "$G"
+
+xdotool key ctrl+Page_Down
+wait_start foxtrot
+pane $((W / 2)) foxtrot
+select_all
+xdotool key alt+Page_Down
+sleep 1.5
+[[ -e $WORK/foxtrot/k.txt && $(find "$WORK" "$HOME" -name k.txt | wc -l) == 1 ]] || fail "Alt+Page Down on foxtrot, the last tab of a window without split view, moved k.txt"
+starts foxtrot || fail "Alt+Page Down on the last tab changed the window to '$(title)'"

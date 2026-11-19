@@ -301,7 +301,7 @@ thunar_window_action_drop_on_other_pane (ThunarWindow *window)
 ├── thunar-window.c   # two new actions and keys, the neighbour-tab lookup,
 │                     # Insert's helpers made to take any tab, Edit menu items
 └── thunar-window.h   # the two new action ids
-verify/128.sh         # the test: next, previous, first, last, location bar, no split
+verify/128.sh         # the test: next, previous, first, last, rename, location bar, no split
 explainers/
 ├── 128-drop-on-neighbour-tab.html            # this page
 └── 128-drop-on-neighbour-tab.narration.json  # its narration</pre>
@@ -313,7 +313,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested in the cloud container in this session, then reviewed by a fresh agent, whose one fix was not built or tested here. CI builds, tests and reviews the branch after the first push.</p>
+  <p class="intro" data-k="intro">Built and tested in the cloud container in this session, then reviewed by a fresh agent. Its one fix is now tested by a new rename step, which fails without the fix and passes with it. CI's first review found 3 small problems in the test, all fixed.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -334,10 +334,11 @@ explainers/
     <tr data-k="c3"><td>Previous crosses back</td><td>pair <code>previous</code>: f1.txt selected in gamma, Alt+Page Up</td><td class="ok">back in beta, gone from gamma</td></tr>
     <tr data-k="c4"><td>No wrap-around</td><td>pairs <code>first</code> and <code>last</code>: Alt+Page Up on alpha, Alt+Page Down on delta, then 1.5 s wait</td><td class="ok">nothing moved, both times</td></tr>
     <tr data-k="c5"><td>Location bar keeps the key</td><td>pair <code>entry</code>: a path typed in the location bar, Alt+Page Down, then Return</td><td class="ok">nothing moved, zz opened</td></tr>
-    <tr data-k="c6"><td>Without split view</td><td>pair <code>no-split</code>: k.txt selected in echo, Alt+Page Down</td><td class="ok">moved to foxtrot</td></tr>
+    <tr data-k="c6"><td>Without split view</td><td>pair <code>no-split</code>, made stricter for R2: split view turned off in the settings, k.txt moved from echo with Alt+Page Down, then Alt+Page Down again on the last tab, foxtrot; run in the new-test row below</td><td class="ok">moved to foxtrot, then nowhere</td></tr>
     <tr data-k="c7"><td>Insert and drag still work</td><td>the existing <code>verify/95.sh</code> (Insert) and <code>verify/96.sh</code> (drag focus) on the same build</td><td class="ok">pass in 30 s and 23 s</td></tr>
-    <tr data-k="c8"><td>All tests</td><td><code>verify-proof.sh install</code> and <code>run</code> on c04b66a's build, smoke test included</td><td class="ok">25 of 25 pass, #128 in 33 s</td></tr>
-    <tr data-k="c9"><td>The rename-entry fix</td><td>Commit f8252d9 from the review; reasoned through, not built or tested here</td><td class="no">not run; CI runs it</td></tr>
+    <tr data-k="c8"><td>All tests</td><td><code>verify-proof.sh install</code> and <code>run</code> on c04b66a's build, smoke test included; before CI's review fixes and not re-run after them</td><td class="ok">25 of 25 pass, #128 in 33 s</td></tr>
+    <tr data-k="c9"><td>The new step catches the rename bug</td><td>new pair <code>rename</code> (R1): details view, F2 on g.txt in alpha, Alt+Page Down; <code>verify/128.sh</code> alone in a <code>verify-proof.sh</code> session, against c04b66a's build, which lacks the fix</td><td class="ok">fails: g.txt left alpha</td></tr>
+    <tr data-k="c12"><td>The new test, with the rename fix</td><td><code>make -C thunar</code> on the tree with f8252d9, that binary installed over <code>/usr/bin/thunar</code>, then <code>verify/128.sh</code> alone in a <code>verify-proof.sh</code> session</td><td class="ok">7 of 7 pairs; check exit 0</td></tr>
     <tr data-k="c10"><td>Screenshots audited</td><td><code>/visual-verify</code> on CI's shots, after the first push</td><td class="no">not run yet</td></tr>
     <tr data-k="c11"><td>Same-folder target, unloaded tab, Trash as target</td><td>No test covers them; the code returns nothing for the first two and shares Insert's Trash rule</td><td class="no">not run</td></tr>
   </table>
@@ -348,10 +349,15 @@ explainers/
   <h3 class="sec">Code review</h3>
   <p data-k="summary">Before the first push, a fresh general-purpose agent ran <code>/code-review</code> at level high on the branch against <code>origin/main</code>: 2 findings, 1 fixed, 1 skipped.</p>
   <ul class="tight">
-    <li data-k="b1"><b>Fixed, in f8252d9:</b> Alt+Page Up or Down during an inline rename would have moved the file being renamed. The rename entry sits inside the file view, and a key a text field doesn't use goes on to the window's shortcuts. The keyboard check now also refuses when the focus is a text field. Insert was never affected, because a text field uses Insert itself, to toggle overwrite.</li>
+    <li data-k="b1"><b>Fixed, in f8252d9:</b> Alt+Page Up or Down during an inline rename would have moved the file being renamed. The rename entry sits inside the file view, and a key a text field doesn't use goes on to the window's shortcuts. The keyboard check now also refuses when the focus is a text field. Insert was never affected, because a text field uses Insert itself, to toggle overwrite. The new <code>rename</code> pair now tests it (CI's R1).</li>
     <li data-k="b2"><b>Skipped:</b> the PR had no explainer yet. This page is it.</li>
   </ul>
-  <p data-k="ci">CI reviews every code push at level high and reports in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/130">PR #130</a>, which it posts after its first review.</p>
+  <p data-k="ci">CI reviewed head 702c17e at level high in <a href="https://github.com/alexhu98/thunar/actions/runs/44634237772">run 44634237772</a>, in 5 minutes, and reports in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/130">PR #130</a>: 3 findings, R1 to R3, all low and confirmed, all fixed in the next push, in <code>verify/128.sh</code> only.</p>
+  <ul class="tight">
+    <li data-k="ci1"><b>R1:</b> the text-field check that stops a drop during a rename was untested. The test now uses the details view, where F2 renames in place, and its new <code>rename</code> pair presses Alt+Page Down while renaming g.txt in alpha: g.txt stays in alpha.</li>
+    <li data-k="ci2"><b>R2:</b> the no-split step didn't prove the window had no split view. The script now turns both split-view settings off before opening it, and checks that Alt+Page Down on its last tab, foxtrot, moves k.txt nowhere, where a split window would cross into the other pane.</li>
+    <li data-k="ci3"><b>R3:</b> section comments in the test, which the repo's rules forbid. Removed.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -359,7 +365,7 @@ explainers/
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>The build, tests and review of the head with the rename fix</td><td>The fix came after the local build; CI runs on GitHub</td><td class="open">on the first push</td></tr>
+    <tr data-k="a1"><td>The package build and all 25 tests on the head with the rename fix and the test fixes</td><td>Here only the thunar binary was rebuilt and only <code>verify/128.sh</code> run; CI builds the packages and runs every test</td><td class="open">on this push</td></tr>
     <tr data-k="a2"><td>Audit of the screenshots</td><td>Needs CI's shots of <code>verify/128.sh</code></td><td class="open">after CI's first run</td></tr>
     <tr data-k="a3"><td>Whether GNOME or other desktops grab Alt+Page Up or Down</td><td>The test runs under xfwm4 only; the issue left it unchecked</td><td class="open">after the merge</td></tr>
     <tr data-k="a4"><td>A background tab that hasn't loaded its folder, and the Trash as target</td><td>Handled in code, not exercised by a test</td><td class="open">after the merge, in use</td></tr>
@@ -372,7 +378,7 @@ explainers/
   <ul class="tight">
     <li data-k="l1">The PR: <a href="https://github.com/alexhu98/thunar/pull/130">#130</a>, and its “Files changed”; the issue: <a href="https://github.com/alexhu98/thunar/issues/128">#128</a></li>
     <li data-k="l2">The branch: <a href="https://github.com/alexhu98/thunar/tree/128-drop-on-neighbour-tab">128-drop-on-neighbour-tab</a>, with <code>verify/128.sh</code></li>
-    <li data-k="l3">CI's summary, code review, verify and explainer comments on <a href="https://github.com/alexhu98/thunar/pull/130">PR #130</a>, with the screenshots of all six pairs</li>
+    <li data-k="l3">CI's summary, code review, verify and explainer comments on <a href="https://github.com/alexhu98/thunar/pull/130">PR #130</a>, with the screenshots of all seven pairs</li>
   </ul>
   </section>
   </section>
@@ -452,6 +458,8 @@ explainers/
     <div data-k="editable"><dt>Text field</dt><dd>A box you type into: the location bar, a rename entry or the search box.</dd></div>
     <div data-k="verify"><dt>verify/128.sh</dt><dd>The test script CI runs: it drives Thunar with xdotool and takes screenshots.</dd></div>
     <div data-k="pair"><dt>Pair</dt><dd>A before and after screenshot around one action in a test.</dd></div>
+    <div data-k="details"><dt>Details view</dt><dd>The file list as a table with columns; F2 renames a file right in its row.</dd></div>
+    <div data-k="rid"><dt>R1, R2 …</dt><dd>The IDs CI's code review gives its findings, kept across rounds.</dd></div>
     <div data-k="xfwm"><dt>xfwm4</dt><dd>Xfce's window manager, which the tests run under.</dd></div>
   </dl>
   </section>
