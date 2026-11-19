@@ -156,8 +156,6 @@ wait_start zz
 shot "$WID" after-entry "Alt+Page Down in the location bar moved nothing; Return then opened zz (the script asserts g.txt stayed in alpha)"
 pair entry "Typed the path of zz in the location bar of alpha, pressed Alt+Page Down and Return" "With the focus in a text field, Alt+Page Down moves no file" "location bar holds zz, g.txt in alpha" "left pane on zz, g.txt still only in alpha" "$G"
 
-xfconf-query -c thunar -p /misc-open-new-windows-in-split-view -n -t bool -s false
-xfconf-query -c thunar -p /misc-always-enable-split-view -n -t bool -s false
 open_thunar -t "$WORK/echo" "$WORK/foxtrot"
 xdotool windowsize --sync "$WID" "$W" "$H"
 wait_start echo
