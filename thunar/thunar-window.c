@@ -297,11 +297,24 @@ thunar_window_action_reload (ThunarWindow *window,
                              GtkWidget    *menu_item);
 static gboolean
 thunar_window_action_toggle_split_view (ThunarWindow *window);
+static GtkWidget *
+thunar_window_other_pane_view (ThunarWindow *window);
+static GtkWidget *
+thunar_window_neighbour_tab_view (ThunarWindow *window,
+                                  gint          direction);
 static GList *
-thunar_window_other_pane_drop_files (ThunarWindow *window,
-                                     ThunarFile  **target_return);
+thunar_window_view_drop_files (ThunarWindow *window,
+                               GtkWidget    *target_view,
+                               ThunarFile  **target_return);
+static gboolean
+thunar_window_drop_on_view (ThunarWindow *window,
+                            GtkWidget    *target_view);
 static gboolean
 thunar_window_action_drop_on_other_pane (ThunarWindow *window);
+static gboolean
+thunar_window_action_drop_on_previous_tab (ThunarWindow *window);
+static gboolean
+thunar_window_action_drop_on_next_tab (ThunarWindow *window);
 static void
 thunar_window_split_view_add (ThunarWindow *window,
                               ThunarFile   *directory);
@@ -733,6 +746,8 @@ static XfceGtkActionEntry thunar_window_action_entries[] =
     { THUNAR_WINDOW_ACTION_VIEW_SPLIT,                     "<Actions>/ThunarWindow/toggle-split-view",               "F3",                   XFCE_GTK_CHECK_MENU_ITEM, N_ ("S_plit View"),            N_ ("Open/Close Split View"),                                                        "view-dual",               G_CALLBACK (thunar_window_action_toggle_split_view),  },
     { THUNAR_WINDOW_ACTION_SWITCH_FOCUSED_SPLIT_VIEW_PANE, "<Actions>/ThunarWindow/switch-focused-split-view-pane",  "",                     XFCE_GTK_MENU_ITEM,       N_ ("Switch Focused Split View Pane"), NULL,                                                                        NULL,                      G_CALLBACK (thunar_window_paned_notebooks_switch),    },
     { THUNAR_WINDOW_ACTION_DROP_ON_OTHER_PANE,            "<Actions>/ThunarWindow/drop-on-other-pane",             "Insert",               XFCE_GTK_MENU_ITEM,       N_ ("Drop on Other Pane"),    N_ ("Move or copy the selected files to the other pane, as a drop there would"),     NULL,                      G_CALLBACK (thunar_window_action_drop_on_other_pane), },
+    { THUNAR_WINDOW_ACTION_DROP_ON_PREVIOUS_TAB,          "<Actions>/ThunarWindow/drop-on-previous-tab",           "<Alt>Page_Up",         XFCE_GTK_MENU_ITEM,       N_ ("Drop on Previous Tab"),  N_ ("Move or copy the selected files to the previous tab, as a drop there would"),   NULL,                      G_CALLBACK (thunar_window_action_drop_on_previous_tab), },
+    { THUNAR_WINDOW_ACTION_DROP_ON_NEXT_TAB,              "<Actions>/ThunarWindow/drop-on-next-tab",               "<Alt>Page_Down",       XFCE_GTK_MENU_ITEM,       N_ ("Drop on Next Tab"),      N_ ("Move or copy the selected files to the next tab, as a drop there would"),       NULL,                      G_CALLBACK (thunar_window_action_drop_on_next_tab),   },
     { THUNAR_WINDOW_ACTION_VIEW_LOCATION_SELECTOR_MENU,    "<Actions>/ThunarWindow/view-location-selector-menu",     "",                     XFCE_GTK_MENU_ITEM,       N_ ("Locatio_n Selector"),     NULL,                                                                                NULL,                      NULL,                                                 },
     { THUNAR_WINDOW_ACTION_VIEW_LOCATION_SELECTOR_ENTRY,   "<Actions>/ThunarWindow/view-location-selector-entry",    "",                     XFCE_GTK_CHECK_MENU_ITEM, N_ ("_Text Style"),            N_ ("Traditional text box showing the current path"),                                NULL,                      G_CALLBACK (thunar_window_action_locationbar_entry),  },
     { THUNAR_WINDOW_ACTION_VIEW_LOCATION_SELECTOR_BUTTONS, "<Actions>/ThunarWindow/view-location-selector-buttons",  "",                     XFCE_GTK_CHECK_MENU_ITEM, N_ ("_Buttons Style"),         N_ ("Modern approach with buttons that correspond to folders"),                      NULL,                      G_CALLBACK (thunar_window_action_locationbar_buttons),},
@@ -1581,7 +1596,7 @@ thunar_window_update_edit_menu (ThunarWindow *window,
   GtkWidget                *gtk_menu_item;
   GList                    *thunarx_menu_items;
   GList                    *pp, *lp;
-  GList                    *other_pane_files;
+  GList                    *drop_files;
   const XfceGtkActionEntry *action_entry;
   gchar                    *action_tooltip;
 
@@ -1609,9 +1624,17 @@ thunar_window_update_edit_menu (ThunarWindow *window,
                                                 | THUNAR_MENU_SECTION_COPY_PASTE
                                                 | THUNAR_MENU_SECTION_TRASH_DELETE);
   gtk_menu_item = xfce_gtk_menu_item_new_from_action_entry (get_action_entry (THUNAR_WINDOW_ACTION_DROP_ON_OTHER_PANE), G_OBJECT (window), GTK_MENU_SHELL (menu));
-  other_pane_files = thunar_window_other_pane_drop_files (window, NULL);
-  gtk_widget_set_sensitive (gtk_menu_item, other_pane_files != NULL);
-  thunar_g_list_free_full (other_pane_files);
+  drop_files = thunar_window_view_drop_files (window, thunar_window_other_pane_view (window), NULL);
+  gtk_widget_set_sensitive (gtk_menu_item, drop_files != NULL);
+  thunar_g_list_free_full (drop_files);
+  gtk_menu_item = xfce_gtk_menu_item_new_from_action_entry (get_action_entry (THUNAR_WINDOW_ACTION_DROP_ON_PREVIOUS_TAB), G_OBJECT (window), GTK_MENU_SHELL (menu));
+  drop_files = thunar_window_view_drop_files (window, thunar_window_neighbour_tab_view (window, -1), NULL);
+  gtk_widget_set_sensitive (gtk_menu_item, drop_files != NULL);
+  thunar_g_list_free_full (drop_files);
+  gtk_menu_item = xfce_gtk_menu_item_new_from_action_entry (get_action_entry (THUNAR_WINDOW_ACTION_DROP_ON_NEXT_TAB), G_OBJECT (window), GTK_MENU_SHELL (menu));
+  drop_files = thunar_window_view_drop_files (window, thunar_window_neighbour_tab_view (window, 1), NULL);
+  gtk_widget_set_sensitive (gtk_menu_item, drop_files != NULL);
+  thunar_g_list_free_full (drop_files);
   xfce_gtk_menu_append_separator (GTK_MENU_SHELL (menu));
   if (window->view != NULL)
     {
@@ -3458,26 +3481,67 @@ thunar_window_split_view_is_active (ThunarWindow *window)
 
 
 
-static GList *
-thunar_window_other_pane_drop_files (ThunarWindow *window,
-                                     ThunarFile  **target_return)
+static GtkWidget *
+thunar_window_other_pane_view (ThunarWindow *window)
 {
-  GtkWidget  *other_notebook;
-  GtkWidget  *other_view;
-  ThunarFile *target;
-  GFile      *target_file;
-  GList      *file_list = NULL;
-  GList      *lp;
+  GtkWidget *other_notebook;
 
   if (!thunar_window_split_view_is_active (window) || window->view == NULL)
     return NULL;
 
   other_notebook = (window->notebook_selected == window->notebook_left) ? window->notebook_right : window->notebook_left;
-  other_view = gtk_notebook_get_nth_page (GTK_NOTEBOOK (other_notebook), gtk_notebook_get_current_page (GTK_NOTEBOOK (other_notebook)));
-  if (other_view == NULL)
+  return gtk_notebook_get_nth_page (GTK_NOTEBOOK (other_notebook), gtk_notebook_get_current_page (GTK_NOTEBOOK (other_notebook)));
+}
+
+
+
+static GtkWidget *
+thunar_window_neighbour_tab_view (ThunarWindow *window,
+                                  gint          direction)
+{
+  GtkWidget *notebook = window->notebook_selected;
+  gint       page;
+
+  if (window->view == NULL || notebook == NULL)
     return NULL;
 
-  target = thunar_navigator_get_current_directory (THUNAR_NAVIGATOR (other_view));
+  page = gtk_notebook_page_num (GTK_NOTEBOOK (notebook), window->view);
+  if (page < 0)
+    return NULL;
+  page += direction;
+
+  if (page < 0 && thunar_window_split_view_is_active (window) && notebook == window->notebook_right)
+    {
+      notebook = window->notebook_left;
+      page = gtk_notebook_get_n_pages (GTK_NOTEBOOK (notebook)) - 1;
+    }
+  else if (page >= gtk_notebook_get_n_pages (GTK_NOTEBOOK (notebook)) && thunar_window_split_view_is_active (window) && notebook == window->notebook_left)
+    {
+      notebook = window->notebook_right;
+      page = 0;
+    }
+
+  if (page < 0 || page >= gtk_notebook_get_n_pages (GTK_NOTEBOOK (notebook)))
+    return NULL;
+  return gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook), page);
+}
+
+
+
+static GList *
+thunar_window_view_drop_files (ThunarWindow *window,
+                               GtkWidget    *target_view,
+                               ThunarFile  **target_return)
+{
+  ThunarFile *target;
+  GFile      *target_file;
+  GList      *file_list = NULL;
+  GList      *lp;
+
+  if (target_view == NULL || window->view == NULL || target_view == window->view)
+    return NULL;
+
+  target = thunar_navigator_get_current_directory (THUNAR_NAVIGATOR (target_view));
   if (target == NULL || !thunar_file_is_directory (target) || !thunar_file_is_writable (target))
     return NULL;
 
@@ -3505,7 +3569,8 @@ thunar_window_other_pane_drop_files (ThunarWindow *window,
 
 
 static gboolean
-thunar_window_action_drop_on_other_pane (ThunarWindow *window)
+thunar_window_drop_on_view (ThunarWindow *window,
+                            GtkWidget    *target_view)
 {
   GdkDragAction action;
   GdkEvent     *event;
@@ -3528,7 +3593,7 @@ thunar_window_action_drop_on_other_pane (ThunarWindow *window)
   if (from_key && (focus == NULL || (focus != window->view && !gtk_widget_is_ancestor (focus, window->view))))
     return FALSE;
 
-  file_list = thunar_window_other_pane_drop_files (window, &target);
+  file_list = thunar_window_view_drop_files (window, target_view, &target);
   if (file_list == NULL)
     return FALSE;
 
@@ -3537,6 +3602,30 @@ thunar_window_action_drop_on_other_pane (ThunarWindow *window)
 
   thunar_g_list_free_full (file_list);
   return started;
+}
+
+
+
+static gboolean
+thunar_window_action_drop_on_other_pane (ThunarWindow *window)
+{
+  return thunar_window_drop_on_view (window, thunar_window_other_pane_view (window));
+}
+
+
+
+static gboolean
+thunar_window_action_drop_on_previous_tab (ThunarWindow *window)
+{
+  return thunar_window_drop_on_view (window, thunar_window_neighbour_tab_view (window, -1));
+}
+
+
+
+static gboolean
+thunar_window_action_drop_on_next_tab (ThunarWindow *window)
+{
+  return thunar_window_drop_on_view (window, thunar_window_neighbour_tab_view (window, 1));
 }
 
 
