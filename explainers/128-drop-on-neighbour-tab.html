@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PR for #128 Drop on tab</title>
+<title>PR #130 Drop on tab</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -100,8 +100,8 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">PR for #128: Alt+Page Up and Alt+Page Down drop the selection on the neighbouring tab</h1>
-  <p class="lead" data-k="lead">Branch <code>128-drop-on-neighbour-tab</code> → <code>main</code>, closes #128. Two new keys send the selected files to the previous or next tab's folder, exactly as dragging them there would. In split view the tab order runs through the left pane and on into the right, so the keys cross the split.</p>
+  <h1 data-k="title">PR #130: Alt+Page Up and Alt+Page Down drop the selection on the neighbouring tab</h1>
+  <p class="lead" data-k="lead">Branch <code>128-drop-on-neighbour-tab</code> → <code>main</code>, closes #128, in <a href="https://github.com/alexhu98/thunar/pull/130">PR #130</a>. Two new keys send the selected files to the previous or next tab's folder, exactly as dragging them there would. In split view the tab order runs through the left pane and on into the right, so the keys cross the split.</p>
 
   <nav class="parts" aria-label="Parts of this page">
     <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
@@ -351,7 +351,7 @@ explainers/
     <li data-k="b1"><b>Fixed, in f8252d9:</b> Alt+Page Up or Down during an inline rename would have moved the file being renamed. The rename entry sits inside the file view, and a key a text field doesn't use goes on to the window's shortcuts. The keyboard check now also refuses when the focus is a text field. Insert was never affected, because a text field uses Insert itself, to toggle overwrite.</li>
     <li data-k="b2"><b>Skipped:</b> the PR had no explainer yet. This page is it.</li>
   </ul>
-  <p data-k="ci">CI reviews every code push at level high and reports in the PR's code review comment, which appears after the first push.</p>
+  <p data-k="ci">CI reviews every code push at level high and reports in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/130">PR #130</a>, which it posts after its first review.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -370,9 +370,9 @@ explainers/
   <section class="sub" id="see">
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
-    <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/128">#128</a></li>
+    <li data-k="l1">The PR: <a href="https://github.com/alexhu98/thunar/pull/130">#130</a>, and its “Files changed”; the issue: <a href="https://github.com/alexhu98/thunar/issues/128">#128</a></li>
     <li data-k="l2">The branch: <a href="https://github.com/alexhu98/thunar/tree/128-drop-on-neighbour-tab">128-drop-on-neighbour-tab</a>, with <code>verify/128.sh</code></li>
-    <li data-k="l3">After the first push, CI's summary, code review, verify and explainer comments on the PR, with the screenshots of all six pairs</li>
+    <li data-k="l3">CI's summary, code review, verify and explainer comments on <a href="https://github.com/alexhu98/thunar/pull/130">PR #130</a>, with the screenshots of all six pairs</li>
   </ul>
   </section>
   </section>
