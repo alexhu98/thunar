@@ -3590,7 +3590,7 @@ thunar_window_drop_on_view (ThunarWindow *window,
               && event_widget != NULL && gtk_widget_get_toplevel (event_widget) == GTK_WIDGET (window));
   if (event != NULL)
     gdk_event_free (event);
-  if (from_key && (focus == NULL || (focus != window->view && !gtk_widget_is_ancestor (focus, window->view))))
+  if (from_key && (focus == NULL || GTK_IS_EDITABLE (focus) || (focus != window->view && !gtk_widget_is_ancestor (focus, window->view))))
     return FALSE;
 
   file_list = thunar_window_view_drop_files (window, target_view, &target);
