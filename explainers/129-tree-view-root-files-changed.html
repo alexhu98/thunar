@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PR #130 Root updates</title>
+<title>PR #131 Root updates</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -102,7 +102,7 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">PR #130: The details view updates again when files in its folder change</h1>
+  <h1 data-k="title">PR #131: The details view updates again when files in its folder change</h1>
   <p class="lead" data-k="lead">Branch <code>129-tree-view-root-files-changed</code> → <code>main</code>, closes #129. Once merged, rows in the folder the details view shows re-sort when a file changes, a renamed temp file appears, and Thunar stops flooding its log with “detached node” lines.</p>
 
   <nav class="parts" aria-label="Parts of this page">
@@ -313,7 +313,7 @@ explainers/
     <tr data-k="c2"><td>All tests pass on that build</td><td>Installed the built debs, then <code>verify-proof.sh run</code>, in the same container</td><td class="ok">25 of 25 pass</td></tr>
     <tr data-k="c3"><td>Size re-sort, renamed file, no “detached node”, option off and on</td><td><code>verify/129.sh</code> in that run</td><td class="ok">pass, 34 s</td></tr>
     <tr data-k="c4"><td>The review fix, commit 3</td><td>Not rebuilt in the building session; CI builds and runs every test on each push</td><td class="open">CI on the first push</td></tr>
-    <tr data-k="c5"><td>Every screenshot shows what it claims</td><td><code>/visual-verify pr:130</code> on CI's shots</td><td class="open">after CI's verify run</td></tr>
+    <tr data-k="c5"><td>Every screenshot shows what it claims</td><td><code>/visual-verify pr:131</code> on CI's shots</td><td class="open">after CI's verify run</td></tr>
     <tr data-k="c6"><td>The test fails without the fix</td><td>Not run against a build without it. The owner saw both symptoms on <code>+local39</code>, per the issue</td><td class="no">not run</td></tr>
     <tr data-k="c7"><td>The original freeze</td><td>Not reproduced: it needs stdout to be an unread pipe for hours, as after 27 h on the owner's desktop</td><td class="no">not run</td></tr>
     <tr data-k="c8"><td>The review fix in search mode</td><td>No test searches while a result's folder is expanded</td><td class="no">not run</td></tr>
@@ -323,7 +323,7 @@ explainers/
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">Before the first push, a fresh agent reviewed the branch at level high. It found 1 bug and fixed it, and skipped 3 findings. CI's own review of each push appears in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/130">PR #130</a>.</p>
+  <p data-k="summary">Before the first push, a fresh agent reviewed the branch at level high. It found 1 bug and fixed it, and skipped 3 findings. CI's own review of each push appears in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/131">PR #131</a>.</p>
   <ul class="tight">
     <li data-k="b1"><b>Fixed, search results re-sorted in the wrong folder:</b> letting the root through made this reachable. The handler now skips a file whose row is under another folder (steps 7 and 8).</li>
     <li data-k="b2"><b>Skipped, S1, hidden files shown:</b> with Show Hidden on, a hidden file renamed to a visible name keeps its old row and name. It was there before this PR, so it is offered as a new issue.</li>
@@ -346,10 +346,10 @@ explainers/
   <section class="sub" id="see">
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
-    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/130">PR #130</a> → “Files changed”</li>
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/131">PR #131</a> → “Files changed”</li>
     <li data-k="l2">The issue, with the freeze and the rename traced through the code: <a href="https://github.com/alexhu98/thunar/issues/129">#129</a></li>
     <li data-k="l3">The upstream fix: <a href="https://gitlab.xfce.org/xfce/thunar/-/commit/c2ed7a2f619114cfb16d78f4dd8d51307b431c4d">commit c2ed7a2f6</a> on gitlab.xfce.org</li>
-    <li data-k="l4">CI's screenshots, size and rename with the option off and on: the verify comment on PR #130</li>
+    <li data-k="l4">CI's screenshots, size and rename with the option off and on: the verify comment on PR #131</li>
   </ul>
   </section>
   </section>
