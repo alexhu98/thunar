@@ -2875,8 +2875,8 @@ thunar_tree_view_model_dir_files_changed (Node       *node_parent,
         }
 
       node = thunar_tree_view_model_locate_file (model, file);
-      /* we dont have the file */
-      if (node == NULL)
+      /* we dont have the file under this parent */
+      if (node == NULL || node->parent != node_parent)
         continue;
 
       iter = node->ptr;
