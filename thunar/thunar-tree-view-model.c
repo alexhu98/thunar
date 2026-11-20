@@ -2750,12 +2750,17 @@ thunar_tree_view_model_file_count_callback (ExoJob              *job,
   if (file == NULL)
     return;
 
-  parent = thunar_file_get_parent (file, NULL);
-  if (parent == NULL)
-    return;
+  if (model->root != NULL && model->root->dir == NULL && g_hash_table_contains (model->root->set, file))
+    parent_node = model->root;
+  else
+    {
+      parent = thunar_file_get_parent (file, NULL);
+      if (parent == NULL)
+        return;
 
-  parent_node = g_hash_table_lookup (model->subdirs, parent);
-  g_object_unref (parent);
+      parent_node = g_hash_table_lookup (model->subdirs, parent);
+      g_object_unref (parent);
+    }
 
   if (parent_node == NULL)
     return;
@@ -2872,7 +2877,7 @@ thunar_tree_view_model_dir_files_changed (Node       *node_parent,
         }
 
       /* file is now hidden but still in the visible list */
-      if (g_hash_table_contains (node_parent->set, file) && thunar_file_is_hidden (file))
+      if (node_parent->dir != NULL && g_hash_table_contains (node_parent->set, file) && thunar_file_is_hidden (file))
         {
           if (!model->show_hidden)
             {
