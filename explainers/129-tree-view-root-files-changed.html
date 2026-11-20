@@ -254,7 +254,7 @@
   </ol>
   <div class="lane-h" style="color:var(--merge)">③ Review fixes, now that the root gets through</div>
   <ol class="steps" start="7" style="counter-reset: s 6">
-    <li data-k="7"><b>Search mode.</b> While searching, the root's handler is called for each changed result. A result can sit inside a folder that is itself an expanded result, so its row is not one of the root's rows. A result renamed to a hidden name now stays listed, since the search root has no folder to hide it in; before CI's R8 fix it was removed for good.</li>
+    <li data-k="7"><b>Search mode.</b> While searching, the root's handler is called for each changed result. A result can sit inside a folder that is itself an expanded result, so its row is not one of the root's rows. A result renamed to a hidden name now stays listed, since the search root has no folder to hide it in; before CI's R8 fix it was removed for good. It stays even with Show Hidden off, as in 4.20.10 (R12, accepted).</li>
     <li data-k="8"><b>Only its own rows.</b> The handler now looks each file up in the handled folder's own rows and skips the rest. Without this, it would re-sort a file among another folder's rows and send a reorder sized for the root. This is CI's R4 fix, and it supersedes the local review's check of the row's parent: that check looked files up through the whole model, which doesn't list the root in search mode, so it found no results at all.</li>
     <li data-k="9"><b>Visible again.</b> With Show Hidden on, a hidden file renamed to a visible name already has a row. The handler used to stop once it took the file off the hidden list; now it re-sorts and redraws that row (CI's R1).</li>
     <li data-k="10"><b>Root reorder.</b> When the shown folder's rows re-sort, the view now gets the empty root path that <code>dir_sort</code> uses, not the first row's path, which made GTK reorder row 0's children, or nothing. The building session found this; upstream's 4.20 branch is the same.</li>
@@ -272,7 +272,7 @@
   …
 <span class="del">-     path = gtk_tree_path_new_first ();</span>
 <span class="add">+     path = gtk_tree_path_new ();</span></pre>
-  <p data-k="more">The same commit also resets a per-file flag that sent extra expander updates (R3), tells the status bar its item count changed when rows come or go (R2), and lets top-level folders' item counts refresh (R5). CI's fix commit e46b3a5 does the same for a top-level folder result in search mode (R9).</p>
+  <p data-k="more">The same commit also resets a per-file flag that sent extra expander updates (R3), tells the status bar its item count changed when rows come or go (R2), and lets top-level folders' item counts refresh (R5). CI's fix commit e46b3a5 does the same for a top-level folder result in search mode (R9), and 1f09887 also refreshes that folder's row under an expanded folder result (R11).</p>
   </section>
 
   <section class="sub" id="views">
@@ -305,7 +305,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The building session built the PR before the review fixes and ran all 25 tests, including the new one. CI then built head e46b3a5, with every fix, and passed all 26 tests. The old build and the original freeze were not run.</p>
+  <p class="intro" data-k="intro">The building session built the PR before the review fixes and ran all 25 tests, including the new one. CI then built head e46b3a5, with every fix but R11, and passed all 26 tests; its run on 1f09887, with the R11 fix, is still going. The old build and the original freeze were not run.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -335,11 +335,12 @@ explainers/
     <tr data-k="c2"><td>All tests pass on that build</td><td>Installed the built debs, then <code>verify-proof.sh run</code>, in the same container</td><td class="ok">25 of 25 pass</td></tr>
     <tr data-k="c3"><td>Size re-sort, renamed file, no “detached node”, option off and on</td><td><code>verify/129.sh</code> in that run</td><td class="ok">pass, 34 s</td></tr>
     <tr data-k="c4"><td>The review fixes, 45f68b2 and CI's e46b3a5</td><td>CI's build and verify jobs on head e46b3a5, every test including <code>verify/129.sh</code>; not run locally</td><td class="ok">built, 26 of 26 pass</td></tr>
+    <tr data-k="c10"><td>CI's R11 fix, 1f09887</td><td>CI's build and verify jobs on head 1f09887</td><td class="open">still running</td></tr>
     <tr data-k="c9"><td>45f68b2's changed file compiles</td><td><code>make thunar-thunar-tree-view-model.o</code> in the building session's configured tree</td><td class="ok">no warnings</td></tr>
     <tr data-k="c5"><td>Every screenshot shows what it claims</td><td><code>/visual-verify pr:131</code> on CI's shots</td><td class="open">after CI's verify run</td></tr>
     <tr data-k="c6"><td>The test fails without the fix</td><td>Not run against a build without it. The owner saw both symptoms on <code>+local39</code>, per the issue</td><td class="no">not run</td></tr>
     <tr data-k="c7"><td>The original freeze</td><td>Not reproduced: it needs stdout to be an unread pipe for hours, as after 27 h on the owner's desktop</td><td class="no">not run</td></tr>
-    <tr data-k="c8"><td>The fixes in search mode and with Show Hidden on (steps 7 to 9, R8, R9)</td><td>No test searches while a result's folder is expanded, and <code>verify/129.sh</code> runs with Show Hidden off</td><td class="no">not run</td></tr>
+    <tr data-k="c8"><td>The fixes in search mode and with Show Hidden on (steps 7 to 9, R8, R9, R11)</td><td>No test searches while a result's folder is expanded, and <code>verify/129.sh</code> runs with Show Hidden off</td><td class="no">not run</td></tr>
   </table>
   </div>
   </section>
@@ -355,7 +356,10 @@ explainers/
   </ul>
   <p data-k="ci">CI run 44634900027 reviewed head d5eb25a at level high and found 7 findings. Its fix commit was never pushed: the review-report job failed while pushing it. Commit 45f68b2 fixes R1 to R6 instead.</p>
   <p data-k="ci2">CI run 44643284078 reviewed that fix round, 8da47cc, at level high and found R8 to R10. Its review-report job pushed commit e46b3a5, which fixes R8 and R9. CI skipped reviewing e46b3a5 itself, because it is CI's own fix commit.</p>
-  <p data-k="accepted">Accepted, not fixed: R7 and R10, both about the guard's stale comment and log message. You chose to keep those lines as upstream's c2ed7a2f6 has them, so the next upstream merge doesn't conflict. A <code>Review-accept: R7, R10</code> trailer on this page's commit closes them.</p>
+  <p data-k="accepted">Accepted, not fixed: R7 and R10, both about the guard's stale comment and log message. You chose to keep those lines as upstream's c2ed7a2f6 has them, so the next upstream merge doesn't conflict. The <code>Review-accept: R7, R10</code> trailer on commit 7625793 closed R10. R7 comes from the first review, so CI still lists it as unconfirmed; your acceptance is recorded in a PR comment.</p>
+  <p data-k="ci3">CI run 44651110281 reviewed 7625793, the commits since 8da47cc including e46b3a5, at level high. It found R11 to R13. Its review-report job pushed commit 1f09887, which fixes R11.</p>
+  <p data-k="accepted2">Also accepted: R12, a search result renamed to a hidden name that stays listed with Show Hidden off. You accepted it because it behaves as 4.20.10 does, and your guidance for the rest of this PR is to match upstream unless a finding is a showstopper.</p>
+  <p data-k="accepted3">R13 is a low finding from a later review that isn't confirmed, so it is accepted under the CI review rules. The reviewer's own detail says the row's file is always the file that sent the change, so behavior is unchanged. A <code>Review-accept: R12, R13</code> trailer on this page's commit closes both.</p>
   <div class="table-wrap">
   <table>
     <tr><th>ID</th><th>Finding</th><th>Result</th></tr>
@@ -369,6 +373,9 @@ explainers/
     <tr data-k="R8"><td>R8, medium, confirmed</td><td>In search mode, a result renamed to a hidden name was removed and could never come back (step 7)</td><td class="ok">fixed by CI</td></tr>
     <tr data-k="R9"><td>R9, low, confirmed</td><td>In search mode, a top-level folder result's item count never refreshed</td><td class="ok">fixed by CI</td></tr>
     <tr data-k="R10"><td>R10, low, plausible</td><td>The same as R7</td><td class="ok">accepted</td></tr>
+    <tr data-k="R11"><td>R11, low, confirmed</td><td>In search mode, a counted folder's item count refreshed only its top-level result row, not its row under an expanded folder result</td><td class="ok">fixed by CI</td></tr>
+    <tr data-k="R12"><td>R12, low, confirmed</td><td>In search mode, a result renamed to a hidden name stays listed with Show Hidden off, as in 4.20.10 (step 7)</td><td class="ok">accepted</td></tr>
+    <tr data-k="R13"><td>R13, low, plausible</td><td>The search terms are tested against the row's file, not the file that sent the change; the reviewer found they are always the same</td><td class="ok">accepted</td></tr>
     <tr data-k="R0"><td>not from the review</td><td>A root reorder sent the first row's path, not the root path (step 10)</td><td class="ok">fixed</td></tr>
   </table>
   </div>
@@ -456,10 +463,11 @@ explainers/
   </section>
 
   <section class="sub" id="followups">
-  <h3 class="sec">Your decision: R7 and R10 accepted</h3>
+  <h3 class="sec">Your decisions: R7, R10 and R12 accepted</h3>
   <div class="panel">
   <ol class="steps">
     <li data-k="1"><b>R7 and R10, the guard's comment.</b> The comment above the guard and its “detached node” message no longer describe the <code>node_parent == NULL</code> check. You decided to keep them as upstream's c2ed7a2f6 has them, so the next upstream merge doesn't conflict. R10 repeats R7, so both are accepted.</li>
+    <li data-k="2"><b>R12, hidden search results.</b> A search result renamed to a hidden name stays listed with Show Hidden off, as in 4.20.10. Removing it would disconnect its watch, so it could never come back; hiding it properly needs new handling for search results. You accepted it, and asked that the rest of this PR match upstream unless a finding is a showstopper.</li>
   </ol>
   </div>
   <div class="note" data-k="gone">The Show Hidden follow-up (S1) and the root reorder follow-up are gone: this PR now fixes both, in steps 9 and 10.</div>
@@ -480,7 +488,7 @@ explainers/
     <div data-k="pipe"><dt>Pipe</dt><dd>A buffer between two programs; when it is full and nobody reads, the writer waits forever.</dd></div>
     <div data-k="cherry"><dt>Cherry-pick -x</dt><dd>Copies one commit onto this branch and notes the original commit in its message.</dd></div>
     <div data-k="mirror"><dt>xfce-4.20</dt><dd>Upstream's 4.20 maintenance branch; this fork keeps a read-only mirror of it.</dd></div>
-    <div data-k="rid"><dt>R1 … R10</dt><dd>IDs of the findings in CI's code review comment on the PR.</dd></div>
+    <div data-k="rid"><dt>R1 … R13</dt><dd>IDs of the findings in CI's code review comment on the PR.</dd></div>
     <div data-k="accept"><dt>Review-accept</dt><dd>A commit trailer that closes listed review findings as kept on purpose.</dd></div>
     <div data-k="count"><dt>Item count</dt><dd>The number of items the status bar shows, which the model reports as it changes.</dd></div>
     <div data-k="rootpath"><dt>Root path</dt><dd>An empty tree path, which names the view's top level rather than any one row.</dd></div>
