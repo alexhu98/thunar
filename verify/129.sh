@@ -30,7 +30,8 @@ paste_names() {
     [[ $got == "$want " ]] && break
     sleep 0.1
   done
-  sleep 0.2
+  [[ $got == "$want " ]] && sleep 0.2 || sleep 2
+  got=$(ls -A "$DEST_DIR" | tr '\n' ' ')
   rm -f "$DEST_DIR"/*
   focus "$CUR"
   NAMES=$got
