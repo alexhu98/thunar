@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #130 Drop on tab</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #130: Alt+Page Up and Alt+Page Down drop the selection on the neighbouring tab</h1>
+  <p class="lead" data-k="lead">Branch <code>128-drop-on-neighbour-tab</code> → <code>main</code>, closes #128, in <a href="https://github.com/alexhu98/thunar/pull/130">PR #130</a>. Two new keys send the selected files to the previous or next tab's folder, exactly as dragging them there would. In split view the tab order runs through the left pane and on into the right, so the keys cross the split.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing depends on #128</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">Two new window actions, Drop on Previous Tab and Drop on Next Tab, bound to Alt+Page Up and Alt+Page Down and listed in the Edit menu. They reuse Insert's code from #95, which now takes any tab as its target instead of only the other pane.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="You press Alt+Page Up or Down, the window finds the neighbouring tab, builds the list of files for that tab's folder, and drops them there as Insert does; the Edit menu and Insert use the same pieces">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Alt+Page Up / Down — files go to the neighbouring tab</text>
+    <g data-k="1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">You press a key</text>
+      <text x="36" y="114" class="b">Alt+Page Down: next</text>
+      <text x="36" y="134" class="b">Alt+Page Up: previous</text>
+      <text x="36" y="154" class="b">focus in the file view</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Find the tab</text>
+      <text x="286" y="114" class="m">neighbour_tab_view</text>
+      <text x="286" y="134" class="b">one tab over; crosses</text>
+      <text x="286" y="154" class="b">the split, no wrap</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-merge" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Which files?</text>
+      <text x="536" y="114" class="m">view_drop_files</text>
+      <text x="536" y="134" class="b">into the tab's folder;</text>
+      <text x="536" y="154" class="b">skips files there</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-merge" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Drop, as Insert</text>
+      <text x="786" y="114" class="m">drop_on_view</text>
+      <text x="786" y="134" class="b">move or copy; focus</text>
+      <text x="786" y="154" class="b">stays on this tab</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② Same pieces, other ways in</text>
+    <g data-k="5">
+      <rect class="box-pr" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Edit menu items</text>
+      <text x="36" y="314" class="b">Drop on Previous Tab</text>
+      <text x="36" y="334" class="b">and Next Tab, greyed</text>
+      <text x="36" y="354" class="b">out if nothing moves</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Insert, as before</text>
+      <text x="536" y="314" class="m">other_pane_view</text>
+      <text x="536" y="334" class="b">picks the other pane,</text>
+      <text x="536" y="354" class="b">then the same steps</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow" d="M230,320 H375 V184" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M625,260 V184" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new in this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>Insert's code from #95, now shared</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Insert (#95) already sends the selection to the other pane in split view. But a window often has several tabs in each pane, and getting files into a tab next to the current one still took a drag. Now Alt+Page Up and Alt+Page Down do it, mirroring Ctrl+Page Up and Ctrl+Page Down, which switch to those same tabs.</p>
+  <div class="note" data-k="note">The new keys don't have a transfer of their own. Insert's two helpers were changed to take the target tab as an argument, so Insert, the two new keys and their menu items all go through the same checks and the same move-or-copy rule as a drop.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Alt+Page Up / Down</div>
+  <ol class="steps">
+    <li data-k="1"><b>You press a key.</b> Alt+Page Down drops on the next tab, Alt+Page Up on the previous one. Files are selected in the current tab and keyboard focus is in its file view. In a text field, such as the location bar or a rename entry, or outside the file view, nothing moves and the key goes on.</li>
+    <li data-k="2"><b>Find the tab.</b> The new <code>thunar_window_neighbour_tab_view</code> in <code>thunar/thunar-window.c</code> takes the current tab's position in its pane and adds or subtracts one. In split view, next from the left pane's last tab is the right pane's first, and previous from the right pane's first is the left pane's last. Past the very first or last tab there is nothing: no wrap-around.</li>
+    <li data-k="3"><b>Which files?</b> <code>thunar_window_view_drop_files</code>, Insert's file-list helper renamed and given the target tab, takes the folder that tab shows now, which must be loaded and writable. Selected files already in that folder are skipped, so a tab showing the same folder gets nothing, and a drop's refusals apply.</li>
+    <li data-k="4"><b>Drop, as Insert.</b> <code>thunar_window_drop_on_view</code>, Insert's old action body, keeps its keyboard check and calls <code>thunar_file_drop_copy_or_move</code>: move on the same filesystem, copy across filesystems, always move into the Trash. The transfer is a normal job with progress and undo, and focus stays on the tab you started from.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② Same pieces, other ways in</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Edit menu items.</b> Drop on Previous Tab and Drop on Next Tab sit right after Drop on Other Pane, each greyed out unless it would really move something. Both keys can be changed in <code>accels.scm</code> or the shortcuts editor, like any other action.</li>
+    <li data-k="6"><b>Insert, as before.</b> Drop on Other Pane now asks <code>thunar_window_other_pane_view</code> for its target, then runs steps 3 and 4. Its behaviour is unchanged: the review's new text-field check below never stops it, because a text field uses Insert itself.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="order">
+  <h3 class="sec">The tab order</h3>
+  <div class="diagram" role="img" aria-label="Left pane tabs alpha and beta, right pane tabs gamma and delta; next goes alpha, beta, gamma, delta; previous goes back; nothing happens past either end">
+  <svg viewBox="0 0 1000 280" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-order" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+      <marker id="ah-order-x" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+      </marker>
+    </defs>
+    <g data-k="tabs">
+      <rect x="20" y="30" width="460" height="110" rx="12" fill="none" stroke="var(--line)" stroke-width="2"/>
+      <text class="lane" x="36" y="54" style="fill:var(--muted)">Left pane</text>
+      <rect class="box-merge" x="40" y="70" width="200" height="50" rx="8"/>
+      <text x="140" y="100" class="t" text-anchor="middle">alpha</text>
+      <rect class="box-merge" x="260" y="70" width="200" height="50" rx="8"/>
+      <text x="360" y="100" class="t" text-anchor="middle">beta</text>
+      <rect x="520" y="30" width="460" height="110" rx="12" fill="none" stroke="var(--line)" stroke-width="2"/>
+      <text class="lane" x="536" y="54" style="fill:var(--muted)">Right pane</text>
+      <rect class="box-merge" x="540" y="70" width="200" height="50" rx="8"/>
+      <text x="640" y="100" class="t" text-anchor="middle">gamma</text>
+      <rect class="box-merge" x="760" y="70" width="200" height="50" rx="8"/>
+      <text x="860" y="100" class="t" text-anchor="middle">delta</text>
+    </g>
+    <g data-k="steps">
+      <path class="arrow" d="M150,170 H350" marker-end="url(#ah-order)"/>
+      <path class="arrow" d="M650,170 H850" marker-end="url(#ah-order)"/>
+      <path class="arrow" d="M350,205 H150" marker-end="url(#ah-order)"/>
+      <path class="arrow" d="M850,205 H650" marker-end="url(#ah-order)"/>
+      <text x="20" y="174" class="b">Alt+Page Down</text>
+      <text x="20" y="209" class="b">Alt+Page Up</text>
+    </g>
+    <g data-k="cross">
+      <path d="M370,170 H630" stroke="var(--accent)" stroke-width="3" fill="none" marker-end="url(#ah-order-x)"/>
+      <path d="M630,205 H370" stroke="var(--accent)" stroke-width="3" fill="none" marker-end="url(#ah-order-x)"/>
+      <text x="500" y="192" class="b" text-anchor="middle" style="fill:var(--accent)">crosses the split</text>
+    </g>
+    <g data-k="ends">
+      <text x="140" y="250" class="b" text-anchor="middle">first tab: Alt+Page Up</text>
+      <text x="140" y="270" class="b" text-anchor="middle">does nothing</text>
+      <text x="860" y="250" class="b" text-anchor="middle">last tab: Alt+Page Down</text>
+      <text x="860" y="270" class="b" text-anchor="middle">does nothing</text>
+    </g>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>a tab, named after the folder it shows in the test</span>
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>the step that crosses from one pane to the other</span>
+  </div>
+  <p data-k="nosplit">Without split view there is only one pane, so the order is just its tabs from left to right.</p>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">What the keys do, case by case</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>When you press Alt+Page Up or Down and …</th><th>It does</th></tr>
+    <tr data-k="k1"><td>files are selected, focus is in the file view, and there is a tab in that direction</td><td>moves or copies them into that tab's folder; focus stays</td></tr>
+    <tr data-k="k2"><td>split view is on and you are on the left pane's last tab (Down) or the right pane's first (Up)</td><td>crosses to the other pane's first or last tab</td></tr>
+    <tr data-k="k3"><td>you are on the very first tab (Up) or the very last (Down)</td><td>nothing; no wrap-around</td></tr>
+    <tr data-k="k4"><td>a text field has focus, such as the location bar or a rename entry, or focus is outside the file view</td><td>nothing moves; the key goes on</td></tr>
+    <tr data-k="k5"><td>the target tab shows the same folder, a read-only one, or hasn't loaded its folder yet</td><td>nothing</td></tr>
+    <tr data-k="k6"><td>the target tab shows the Trash</td><td>moves them to the Trash</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="code">
+  <h3 class="sec">The key change</h3>
+<pre data-k="diff">static gboolean
+thunar_window_action_drop_on_other_pane (ThunarWindow *window)
+{
+<span class="add">  return thunar_window_drop_on_view (window, thunar_window_other_pane_view (window));</span>
+}
+<span class="add">… drop_on_previous_tab: drop_on_view (window, neighbour_tab_view (window, -1));</span>
+<span class="add">… drop_on_next_tab:     drop_on_view (window, neighbour_tab_view (window, 1));</span></pre>
+  <p data-k="diff-note">Each of the three actions is now one line: pick a target tab, then hand it to the shared drop. Only the way the target is found differs.</p>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+├── thunar-window.c   # two new actions and keys, the neighbour-tab lookup,
+│                     # Insert's helpers made to take any tab, Edit menu items
+└── thunar-window.h   # the two new action ids
+verify/128.sh         # the test: next, previous, first, last, rename, location bar, no split
+explainers/
+├── 128-drop-on-neighbour-tab.html            # this page
+└── 128-drop-on-neighbour-tab.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo it, revert this PR. It stores no setting. If you rebound either key, that saved binding just stops matching an action.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built and tested in the cloud container in this session, then reviewed by a fresh agent. Its one fix is now tested by a new rename step, which fails without the fix and passes with it. CI's first review found 3 small problems in the test, all fixed; its second fixed 1 more itself and raised 2 that were accepted.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Insert (#95)</h3><p>Drop on Other Pane's file-list helper and action body, given a target tab as an argument rather than copied.</p></div>
+    <div class="card" data-k="r2"><h3>Ctrl+Page Up / Down</h3><p>The keys mirror <code>switch-previous-tab</code> and <code>switch-next-tab</code>. No Thunar shortcut used Alt+Page Up or Down.</p></div>
+    <div class="card" data-k="r3"><h3>The window's notebooks</h3><p>Each pane's tabs are a GTK notebook; the neighbour is found by page number, as tab switching does.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage</code> in the cloud container, by the build-verify agent in this session, on commit c04b66a, before the review fix</td><td class="ok">built; 0 warnings in changed files</td></tr>
+    <tr data-k="c2"><td>Next crosses the split</td><td><code>verify/128.sh</code>, pair <code>next</code>: f1.txt selected in beta, Alt+Page Down</td><td class="ok">in gamma, gone from beta</td></tr>
+    <tr data-k="c3"><td>Previous crosses back</td><td>pair <code>previous</code>: f1.txt selected in gamma, Alt+Page Up</td><td class="ok">back in beta, gone from gamma</td></tr>
+    <tr data-k="c4"><td>No wrap-around</td><td>pairs <code>first</code> and <code>last</code>: Alt+Page Up on alpha, Alt+Page Down on delta, then 1.5 s wait</td><td class="ok">nothing moved, both times</td></tr>
+    <tr data-k="c5"><td>Location bar keeps the key</td><td>pair <code>entry</code>: a path typed in the location bar, Alt+Page Down, then Return</td><td class="ok">nothing moved, zz opened</td></tr>
+    <tr data-k="c6"><td>Without split view</td><td>pair <code>no-split</code>, made stricter for R2: k.txt moved from echo with Alt+Page Down, then Alt+Page Down again on the last tab, foxtrot, where a split window would cross into the other pane; run in the new-test row below</td><td class="ok">moved to foxtrot, then nowhere</td></tr>
+    <tr data-k="c7"><td>Insert and drag still work</td><td>the existing <code>verify/95.sh</code> (Insert) and <code>verify/96.sh</code> (drag focus) on the same build</td><td class="ok">pass in 30 s and 23 s</td></tr>
+    <tr data-k="c8"><td>All tests</td><td><code>verify-proof.sh install</code> and <code>run</code> on c04b66a's build, smoke test included; before CI's review fixes and not re-run after them</td><td class="ok">25 of 25 pass, #128 in 33 s</td></tr>
+    <tr data-k="c9"><td>The new step catches the rename bug</td><td>new pair <code>rename</code> (R1): details view, F2 on g.txt in alpha, Alt+Page Down; <code>verify/128.sh</code> alone in a <code>verify-proof.sh</code> session, against c04b66a's build, which lacks the fix</td><td class="ok">fails: g.txt left alpha</td></tr>
+    <tr data-k="c12"><td>The new test, with the rename fix</td><td><code>make -C thunar</code> on the tree with f8252d9, that binary installed over <code>/usr/bin/thunar</code>, then <code>verify/128.sh</code> alone in a <code>verify-proof.sh</code> session, as of bd51801, with the two settings lines CI later removed (R4)</td><td class="ok">7 of 7 pairs; check exit 0</td></tr>
+    <tr data-k="c10"><td>Screenshots audited</td><td><code>/visual-verify</code> on CI's shots, after the first push</td><td class="no">not run yet</td></tr>
+    <tr data-k="c11"><td>Same-folder target, unloaded tab, Trash as target</td><td>No test covers them; the code returns nothing for the first two and shares Insert's Trash rule</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh general-purpose agent ran <code>/code-review</code> at level high on the branch against <code>origin/main</code>: 2 findings, 1 fixed, 1 skipped.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed, in f8252d9:</b> Alt+Page Up or Down during an inline rename would have moved the file being renamed. The rename entry sits inside the file view, and a key a text field doesn't use goes on to the window's shortcuts. The keyboard check now also refuses when the focus is a text field. Insert was never affected, because a text field uses Insert itself, to toggle overwrite. The new <code>rename</code> pair now tests it (CI's R1).</li>
+    <li data-k="b2"><b>Skipped:</b> the PR had no explainer yet. This page is it.</li>
+  </ul>
+  <p data-k="ci">CI reviewed head 702c17e at level high in <a href="https://github.com/alexhu98/thunar/actions/runs/44634237772">run 44634237772</a>, in 5 minutes, and reports in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/130">PR #130</a>: 3 findings, R1 to R3, all low and confirmed, all fixed in the next push, in <code>verify/128.sh</code> only.</p>
+  <ul class="tight">
+    <li data-k="ci1"><b>R1:</b> the text-field check that stops a drop during a rename was untested. The test now uses the details view, where F2 renames in place, and its new <code>rename</code> pair presses Alt+Page Down while renaming g.txt in alpha: g.txt stays in alpha.</li>
+    <li data-k="ci2"><b>R2:</b> the no-split step didn't prove the window had no split view. The script now checks that Alt+Page Down on its last tab, foxtrot, moves k.txt nowhere, where a split window would cross into the other pane. CI's second review confirmed this proves there is no split.</li>
+    <li data-k="ci3"><b>R3:</b> section comments in the test, which the repo's rules forbid. Removed.</li>
+  </ul>
+  <p data-k="ci-r2">CI's second review, of bd51801 in <a href="https://github.com/alexhu98/thunar/actions/runs/44635770314">run 44635770314</a>, at level high in 5 minutes, found R1 to R3 resolved and raised 3 more, all low: 1 fixed by CI itself, 2 accepted.</p>
+  <ul class="tight">
+    <li data-k="ci4"><b>R4, confirmed, fixed:</b> two lines that turned split view off in the settings did nothing, because both settings are off by default and a window opened with tabs only has no split. CI removed them in its own commit 0e692a3, so the last-tab check alone proves there is no split.</li>
+    <li data-k="ci5"><b>R5, plausible, accepted:</b> the test doesn't check that F2 opened the in-place entry rather than the Rename dialog. The script sets the details view, where renaming in place is on by default, as <code>verify/16.sh</code> tests, and the step failed on the build without the fix, which only an in-place entry could cause.</li>
+    <li data-k="ci6"><b>R6, plausible, accepted:</b> Escape is pressed after the rename step whatever happened. The next step clicks the pane and selects everything again before it acts.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the push or the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>The package build and all 25 tests on the head with the rename fix and the test fixes</td><td>Here only the thunar binary was rebuilt and only <code>verify/128.sh</code> run; CI builds the packages and runs every test</td><td class="open">on this push</td></tr>
+    <tr data-k="a2"><td>Audit of the screenshots</td><td>Needs CI's shots of <code>verify/128.sh</code></td><td class="open">after CI's first run</td></tr>
+    <tr data-k="a3"><td>Whether GNOME or other desktops grab Alt+Page Up or Down</td><td>The test runs under xfwm4 only; the issue left it unchecked</td><td class="open">after the merge</td></tr>
+    <tr data-k="a4"><td>A background tab that hasn't loaded its folder, and the Trash as target</td><td>Handled in code, not exercised by a test</td><td class="open">after the merge, in use</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR: <a href="https://github.com/alexhu98/thunar/pull/130">#130</a>, and its “Files changed”; the issue: <a href="https://github.com/alexhu98/thunar/issues/128">#128</a></li>
+    <li data-k="l2">The branch: <a href="https://github.com/alexhu98/thunar/tree/128-drop-on-neighbour-tab">128-drop-on-neighbour-tab</a>, with <code>verify/128.sh</code></li>
+    <li data-k="l3">CI's summary, code review, verify and explainer comments on <a href="https://github.com/alexhu98/thunar/pull/130">PR #130</a>, with the screenshots of all seven pairs</li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing depends on #128</h2>
+  <p class="intro" data-k="intro">No open issue says "Depends on #128". The ideas below are only ideas, not issues, in case you want them.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR adds drop on previous and next tab; two possible ideas would build on its tab lookup">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--merge)">#128 Drop on neighbouring tab</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">Alt+Page Up / Down</text>
+      <text x="36" y="134" class="b">drop on the previous</text>
+      <text x="36" y="154" class="b">or next tab</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Idea: by number</text>
+      <text x="286" y="114" class="b">drop on any tab,</text>
+      <text x="286" y="134" class="b">not just a neighbour</text>
+      <text x="286" y="154" class="b">(no issue yet)</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Idea: copy, move</text>
+      <text x="536" y="114" class="b">always copy or always</text>
+      <text x="536" y="134" class="b">move, for tabs and</text>
+      <text x="536" y="154" class="b">panes (no issue yet)</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M230,150 H250 V195 H625 V184" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>an idea only: no issue, not planned</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-a">
+  <h3 class="sec">Possible follow-ups</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Nothing waits on #128.</b> No open issue depends on it, so merging this PR unblocks nothing else.</li>
+    <li data-k="2"><b>Idea: drop on a tab by number.</b> The shared drop now takes any tab, so a key that drops on tab 3, say, would only need a new way to pick the target.</li>
+    <li data-k="3"><b>Idea: always copy or always move.</b> #95's dropped copy and move keys could come back, under keys not yet taken, for both panes and tabs.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="tab"><dt>Tab</dt><dd>One folder view among several in a pane, picked by its label at the top.</dd></div>
+    <div data-k="split"><dt>Split view</dt><dd>F3: two panes side by side in one window, each with its own tabs.</dd></div>
+    <div data-k="notebook"><dt>Notebook</dt><dd>GTK's name for a row of tabs and the pages behind them; each pane has one.</dd></div>
+    <div data-k="neighbour"><dt>Neighbouring tab</dt><dd>The tab just before or after the current one, in the order left pane then right pane.</dd></div>
+    <div data-k="wrap"><dt>Wrap-around</dt><dd>Going from the last tab back to the first; these keys don't.</dd></div>
+    <div data-k="drop"><dt>Drop</dt><dd>Letting go of dragged files over a folder.</dd></div>
+    <div data-k="rule"><dt>Drop rule</dt><dd>Thunar's choice between move and copy when you drop with no modifier key.</dd></div>
+    <div data-k="fs"><dt>Same filesystem</dt><dd>On the same disk or partition, so a move is just a rename.</dd></div>
+    <div data-k="action"><dt>Window action</dt><dd>An entry in Thunar's action table: a name, a default key and a handler.</dd></div>
+    <div data-k="accels"><dt>accels.scm</dt><dd>The file where Thunar keeps your changed keyboard shortcuts.</dd></div>
+    <div data-k="focus"><dt>Keyboard focus</dt><dd>The one widget that gets key presses, such as the file view or the location bar.</dd></div>
+    <div data-k="editable"><dt>Text field</dt><dd>A box you type into: the location bar, a rename entry or the search box.</dd></div>
+    <div data-k="verify"><dt>verify/128.sh</dt><dd>The test script CI runs: it drives Thunar with xdotool and takes screenshots.</dd></div>
+    <div data-k="pair"><dt>Pair</dt><dd>A before and after screenshot around one action in a test.</dd></div>
+    <div data-k="details"><dt>Details view</dt><dd>The file list as a table with columns; F2 renames a file right in its row.</dd></div>
+    <div data-k="rid"><dt>R1, R2 …</dt><dd>The IDs CI's code review gives its findings, kept across rounds.</dd></div>
+    <div data-k="xfwm"><dt>xfwm4</dt><dd>Xfce's window manager, which the tests run under.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
