@@ -2740,6 +2740,7 @@ thunar_tree_view_model_file_count_callback (ExoJob              *job,
   ThunarFile *parent;
   GHashTable *files;
   Node       *parent_node;
+  gboolean    in_search_root;
 
   if (job == NULL)
     return;
@@ -2750,24 +2751,23 @@ thunar_tree_view_model_file_count_callback (ExoJob              *job,
   if (file == NULL)
     return;
 
-  if (model->root != NULL && model->root->dir == NULL && g_hash_table_contains (model->root->set, file))
-    parent_node = model->root;
-  else
-    {
-      parent = thunar_file_get_parent (file, NULL);
-      if (parent == NULL)
-        return;
-
-      parent_node = g_hash_table_lookup (model->subdirs, parent);
-      g_object_unref (parent);
-    }
-
-  if (parent_node == NULL)
-    return;
-
   files = g_hash_table_new (g_direct_hash, NULL);
   g_hash_table_add (files, file);
-  thunar_tree_view_model_dir_files_changed (parent_node, files);
+
+  in_search_root = model->root != NULL && model->root->dir == NULL && g_hash_table_contains (model->root->set, file);
+  if (in_search_root)
+    thunar_tree_view_model_dir_files_changed (model->root, files);
+
+  parent = thunar_file_get_parent (file, NULL);
+  if (parent != NULL)
+    {
+      parent_node = g_hash_table_lookup (model->subdirs, parent);
+      g_object_unref (parent);
+
+      if (parent_node != NULL && !(in_search_root && parent_node == model->root))
+        thunar_tree_view_model_dir_files_changed (parent_node, files);
+    }
+
   g_hash_table_destroy (files);
 }
 
