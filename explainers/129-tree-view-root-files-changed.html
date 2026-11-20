@@ -305,7 +305,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The building session built the PR before the review fixes and ran all 25 tests, including the new one. CI then built head e46b3a5, with every fix but R11 and R15, and passed all 26 tests; its run on 80d186e, with those two fixes, is still going. The old build and the original freeze were not run.</p>
+  <p class="intro" data-k="intro">The building session built the PR before the review fixes and ran all 25 tests, including the new one. CI then built head e46b3a5, with every fix but R11 and R15, and passed all 26 tests in CI's last completed full run. CI's later fix commits, 1f09887 and 80d186e, are built and verified on the PR's final head, whose results are in the PR's verify comment. The old build and the original freeze were not run.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -335,7 +335,7 @@ explainers/
     <tr data-k="c2"><td>All tests pass on that build</td><td>Installed the built debs, then <code>verify-proof.sh run</code>, in the same container</td><td class="ok">25 of 25 pass</td></tr>
     <tr data-k="c3"><td>Size re-sort, renamed file, no “detached node”, option off and on</td><td><code>verify/129.sh</code> in that run</td><td class="ok">pass, 34 s</td></tr>
     <tr data-k="c4"><td>The review fixes, 45f68b2 and CI's e46b3a5</td><td>CI's build and verify jobs on head e46b3a5, every test including <code>verify/129.sh</code>; not run locally</td><td class="ok">built, 26 of 26 pass</td></tr>
-    <tr data-k="c10"><td>CI's R11 and R15 fixes, 1f09887 and 80d186e</td><td>CI's build and verify jobs on head 80d186e</td><td class="open">still running</td></tr>
+    <tr data-k="c10"><td>CI's R11 and R15 fixes, 1f09887 and 80d186e</td><td>CI's build and verify jobs on the PR's final head; not recorded on this page</td><td class="open">in the PR's verify comment</td></tr>
     <tr data-k="c9"><td>45f68b2's changed file compiles</td><td><code>make thunar-thunar-tree-view-model.o</code> in the building session's configured tree</td><td class="ok">no warnings</td></tr>
     <tr data-k="c5"><td>Every screenshot shows what it claims</td><td><code>/visual-verify pr:131</code> on CI's shots</td><td class="open">after CI's verify run</td></tr>
     <tr data-k="c6"><td>The test fails without the fix</td><td>Not run against a build without it. The owner saw both symptoms on <code>+local39</code>, per the issue</td><td class="no">not run</td></tr>
@@ -381,6 +381,8 @@ explainers/
     <tr data-k="R14"><td>R14, medium, confirmed</td><td>In search mode, one folder can show as two expanded rows, but the model keeps one entry for it: a count refresh reaches only one row, and collapsing either row removes the entry the other still uses. Already in upstream</td><td class="ok">accepted</td></tr>
     <tr data-k="R15"><td>R15, low, confirmed</td><td>A check in the item-count code could never be true, because the search root is never in the model's folder list; removed</td><td class="ok">fixed by CI</td></tr>
     <tr data-k="R16"><td>R16, low, confirmed</td><td>In search mode, one count result now redraws both rows of a folder (from the R11 fix), so about twice as many count jobs run while the folder changed this second; short-lived</td><td class="ok">accepted</td></tr>
+    <tr data-k="R17"><td>R17, medium, confirmed</td><td>The agent added the <code>Review-accept: R14, R16</code> trailer, which closes confirmed findings; that needs your own decision</td><td class="open">brought to the owner</td></tr>
+    <tr data-k="R18"><td>R18, low, confirmed</td><td>This page said CI's run on 80d186e was still running after later pushes replaced it; it now points to the PR's verify comment</td><td class="ok">fixed</td></tr>
     <tr data-k="R0"><td>not from the review</td><td>A root reorder sent the first row's path, not the root path (step 10)</td><td class="ok">fixed</td></tr>
   </table>
   </div>
@@ -513,7 +515,7 @@ explainers/
     <div data-k="pipe"><dt>Pipe</dt><dd>A buffer between two programs; when it is full and nobody reads, the writer waits forever.</dd></div>
     <div data-k="cherry"><dt>Cherry-pick -x</dt><dd>Copies one commit onto this branch and notes the original commit in its message.</dd></div>
     <div data-k="mirror"><dt>xfce-4.20</dt><dd>Upstream's 4.20 maintenance branch; this fork keeps a read-only mirror of it.</dd></div>
-    <div data-k="rid"><dt>R1 … R16</dt><dd>IDs of the findings in CI's code review comment on the PR.</dd></div>
+    <div data-k="rid"><dt>R1 … R18</dt><dd>IDs of the findings in CI's code review comment on the PR.</dd></div>
     <div data-k="accept"><dt>Review-accept</dt><dd>A commit trailer that closes listed review findings as kept on purpose.</dd></div>
     <div data-k="count"><dt>Item count</dt><dd>The number of items the status bar shows, which the model reports as it changes.</dd></div>
     <div data-k="rootpath"><dt>Root path</dt><dd>An empty tree path, which names the view's top level rather than any one row.</dd></div>
