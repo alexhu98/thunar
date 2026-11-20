@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #131 Root updates</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  .del { color: var(--warn); }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+  .box-old { fill: var(--panel); stroke: var(--warn); stroke-width: 2; }
+  .arrow-old { stroke: var(--warn); stroke-width: 2; fill: none; stroke-dasharray: 4 4; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #131: The details view updates again when files in its folder change</h1>
+  <p class="lead" data-k="lead">Branch <code>129-tree-view-root-files-changed</code> → <code>main</code>, closes #129. Once merged, rows in the folder the details view shows re-sort when a file changes, a renamed temp file appears, and Thunar stops flooding its log with “detached node” lines.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: the next upstream release merge</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">A one-line upstream fix lets file changes in the shown folder reach the details view again. Review fixes then make the rest of that handler work for the shown folder, in search mode and with Show Hidden on. All are in <code>thunar/thunar-tree-view-model.c</code>; <code>verify/129.sh</code> tests the main cases.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="A file change in the shown folder now passes the root guard and updates its row; before, it was dropped and logged; review fixes look files up in the folder's own rows, redraw a file that turns visible, and reorder the top level.">
+  <svg viewBox="0 0 1000 610" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+      <marker id="aho-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--warn)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① A file changes in the shown folder</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">A file changes</text>
+      <text x="36" y="114" class="b">grow.txt gets bigger,</text>
+      <text x="36" y="134" class="b">or .tmp-x is renamed</text>
+      <text x="36" y="154" class="b">to x.txt</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">files-changed</text>
+      <text x="286" y="114" class="b">the folder tells its</text>
+      <text x="286" y="134" class="b">views; a rename</text>
+      <text x="286" y="154" class="b">arrives as a change</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-merge" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Root guard</text>
+      <text x="536" y="114" class="m">node_parent == NULL</text>
+      <text x="536" y="134" class="b">only a missing node</text>
+      <text x="536" y="154" class="b">is dropped now</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-merge" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">The row updates</text>
+      <text x="786" y="114" class="b">it re-sorts by its</text>
+      <text x="786" y="134" class="b">new size, or x.txt</text>
+      <text x="786" y="154" class="b">leaves the hidden list</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow-old" d="M625,180 V256" marker-end="url(#aho-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--warn)">② Before this PR (4.20.10)</text>
+    <g data-k="5">
+      <rect class="box-old" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Dropped</text>
+      <text x="536" y="314" class="b">the root has no row</text>
+      <text x="536" y="334" class="b">and no parent, so it</text>
+      <text x="536" y="354" class="b">looked detached</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-old" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Log flood</text>
+      <text x="786" y="314" class="b">one log line per drop;</text>
+      <text x="786" y="334" class="b">an unread pipe filled</text>
+      <text x="786" y="354" class="b">and Thunar froze</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow-old" d="M730,320 H766" marker-end="url(#aho-flow)"/>
+
+    <text class="lane" x="20" y="444" style="fill:var(--merge)">③ Review fixes, now that the root gets through</text>
+    <g data-k="7">
+      <rect class="box-pr" x="20" y="460" width="210" height="120" rx="10"/>
+      <text x="36" y="490" class="t">Search mode</text>
+      <text x="36" y="514" class="b">the root handler gets</text>
+      <text x="36" y="534" class="b">each changed result,</text>
+      <text x="36" y="554" class="b">even one in a folder</text>
+      <circle class="badge" cx="210" cy="482" r="12"/><text class="badge-n" x="210" y="486.5" text-anchor="middle">7</text>
+    </g>
+    <g data-k="8">
+      <rect class="box-merge" x="270" y="460" width="210" height="120" rx="10"/>
+      <text x="286" y="490" class="t">Only its own rows</text>
+      <text x="286" y="514" class="b">looked up in this</text>
+      <text x="286" y="534" class="b">folder's own rows;</text>
+      <text x="286" y="554" class="b">others are skipped</text>
+      <circle class="badge" cx="460" cy="482" r="12"/><text class="badge-n" x="460" y="486.5" text-anchor="middle">8</text>
+    </g>
+    <g data-k="9">
+      <rect class="box-merge" x="520" y="460" width="210" height="120" rx="10"/>
+      <text x="536" y="490" class="t">Visible again</text>
+      <text x="536" y="514" class="b">with Show Hidden on,</text>
+      <text x="536" y="534" class="b">an existing row now</text>
+      <text x="536" y="554" class="b">re-sorts and redraws</text>
+      <circle class="badge" cx="710" cy="482" r="12"/><text class="badge-n" x="710" y="486.5" text-anchor="middle">9</text>
+    </g>
+    <g data-k="10">
+      <rect class="box-merge" x="770" y="460" width="210" height="120" rx="10"/>
+      <text x="786" y="490" class="t">Root reorder</text>
+      <text x="786" y="514" class="b">the view gets the</text>
+      <text x="786" y="534" class="b">root's empty path,</text>
+      <text x="786" y="554" class="b">as dir_sort sends</text>
+      <circle class="badge" cx="960" cy="482" r="12"/><text class="badge-n" x="960" y="486.5" text-anchor="middle">10</text>
+    </g>
+    <path class="arrow" d="M230,520 H266" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>what happens anyway</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>changed by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--warn)"></span>the old behaviour this PR removes</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Upstream Thunar 4.20.10 added a safety check against renamed folders. It also stopped every file change in the folder the details view shows, and logged a line each time. In a busy folder those lines filled an unread pipe, and Thunar froze. Upstream already fixed the check on its 4.20 branch, and this PR takes that fix early.</p>
+  <div class="note" data-k="note">The folder a view shows is the model's root node. It has no row of its own and no parent, so the old check took it for a detached folder and dropped all of its changes.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① A file changes in the shown folder</div>
+  <ol class="steps">
+    <li data-k="1"><b>A file changes.</b> An app writes to a file, so its size and date change, or saves under a hidden temp name like <code>.tmp-x</code> and renames it to <code>x.txt</code>.</li>
+    <li data-k="2"><b>files-changed.</b> The folder's monitor sends <code>files-changed</code> to its views. A rename is a remove and an add of the same file, and the add cancels the remove, so only a change arrives.</li>
+    <li data-k="3"><b>Root guard.</b> <code>thunar_tree_view_model_dir_files_changed</code> now drops only a missing node. This is upstream's commit c2ed7a2f6, cherry-picked unchanged.</li>
+    <li data-k="4"><b>The row updates.</b> The handler re-sorts the file's row, so a sort by size follows the new size. A file no longer hidden leaves the folder's hidden list and is added, so <code>x.txt</code> appears.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--warn)">② Before this PR (4.20.10)</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Dropped.</b> The old check also dropped a node with no row and no parent, which is always true for the root. Every change in the shown folder was lost, with Expandable Folders off or on.</li>
+    <li data-k="6"><b>Log flood.</b> Each drop logged “Caught and ignored files_changed on a detached node”. On Nov 16 at 8:48 PM PST, 633 of them filled a 64 KiB pipe nobody read, and Thunar hung.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">③ Review fixes, now that the root gets through</div>
+  <ol class="steps" start="7" style="counter-reset: s 6">
+    <li data-k="7"><b>Search mode.</b> While searching, the root's handler is called for each changed result. A result can sit inside a folder that is itself an expanded result, so its row is not one of the root's rows. A result renamed to a hidden name now stays listed, since the search root has no folder to hide it in; before CI's R8 fix it was removed for good. It stays even with Show Hidden off, as in 4.20.10 (R12, accepted).</li>
+    <li data-k="8"><b>Only its own rows.</b> The handler now looks each file up in the handled folder's own rows and skips the rest. Without this, it would re-sort a file among another folder's rows and send a reorder sized for the root. This is CI's R4 fix, and it supersedes the local review's check of the row's parent: that check looked files up through the whole model, which doesn't list the root in search mode, so it found no results at all.</li>
+    <li data-k="9"><b>Visible again.</b> With Show Hidden on, a hidden file renamed to a visible name already has a row. The handler used to stop once it took the file off the hidden list; now it re-sorts and redraws that row (CI's R1).</li>
+    <li data-k="10"><b>Root reorder.</b> When the shown folder's rows re-sort, the view now gets the empty root path that <code>dir_sort</code> uses, not the first row's path, which made GTK reorder row 0's children, or nothing. The building session found this; upstream's 4.20 branch is the same.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="diff">
+  <h3 class="sec">The change</h3>
+<pre data-k="code"><span class="del">- if (node_parent == NULL || (node_parent->ptr == NULL &amp;&amp; node_parent->parent == NULL))</span>
+<span class="add">+ if (node_parent == NULL)</span>
+  …
+<span class="del">-     node = thunar_tree_view_model_locate_file (model, file);</span>
+<span class="add">+     iter = g_hash_table_lookup (node_parent->set, file);</span>
+  …
+<span class="del">-     path = gtk_tree_path_new_first ();</span>
+<span class="add">+     path = gtk_tree_path_new ();</span></pre>
+  <p data-k="more">The same commit also resets a per-file flag that sent extra expander updates (R3), tells the status bar its item count changed when rows come or go (R2), and lets top-level folders' item counts refresh (R5). CI's fix commit e46b3a5 does the same for a top-level folder result in search mode (R9), and 1f09887 also refreshes that folder's row under an expanded folder result (R11). CI's 80d186e removes a check there that could never be true (R15).</p>
+  </section>
+
+  <section class="sub" id="views">
+  <h3 class="sec">Which views were affected</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>View</th><th>Model it uses</th><th>Before this PR</th><th>After</th></tr>
+    <tr data-k="v1"><td>Details view, Expandable Folders off</td><td><code>ThunarTreeViewModel</code></td><td>changes in the shown folder lost</td><td>applied</td></tr>
+    <tr data-k="v2"><td>Details view, Expandable Folders on</td><td><code>ThunarTreeViewModel</code></td><td>lost in the shown folder; expanded subfolders were fine</td><td>applied</td></tr>
+    <tr data-k="v3"><td>Icon and compact views</td><td><code>ThunarListModel</code></td><td>not affected</td><td>unchanged</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+└── thunar-tree-view-model.c   # guard narrowed (upstream c2ed7a2f6); handler and item-count review fixes
+verify/
+├── 129.sh                     # size re-sort and hidden-rename cases, Expandable Folders off and on;
+│                              # waits 2 s more before clearing a slow paste (R6)
+└── 15.sh                      # renames file-01.txt to file-00.txt, which sorts first either way,
+                               # so End and Home don't depend on when the re-sort lands (R19, R20)
+explainers/
+├── 129-tree-view-root-files-changed.html            # this page
+└── 129-tree-view-root-files-changed.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo, revert this PR's squash commit. The details view then drops its folder's changes again. The guard line matches upstream's 4.20 branch, so the next release merge brings the same line.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The building session built the PR before the review fixes and ran all 25 tests, including the new one. CI then built head e46b3a5, with every fix but R11 and R15, and passed all 26 tests in CI's last completed full run. CI's later fix commits, 1f09887 and 80d186e, are built and verified on the PR's final head, whose results are in the PR's verify comment. The old build and the original freeze were not run.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Upstream c2ed7a2f6</h3><p>“Relax tree-view sanity check”, upstream issue #1884, on the <code>xfce-4.20</code> branch. Cherry-picked with <code>-x</code> from this fork's mirror of that branch.</p></div>
+    <div class="card" data-k="r2"><h3>The owner's reproduction</h3><p>Per the issue, on <code>4.20.10-1~bpo24.04+local39</code> under Xvfb: the details view lacked the renamed file, the icon view had it.</p></div>
+    <div class="card" data-k="r3"><h3>The icon view's model</h3><p><code>ThunarListModel</code> already unhides a renamed file on <code>files-changed</code>. The tree model does the same once the guard lets the root through.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="test">
+  <h3 class="sec">The new test, verify/129.sh</h3>
+  <ol class="steps">
+    <li data-k="t1"><b>Setup.</b> Details view, sorted by Size ascending. It runs twice, with Expandable Folders off and then on, each in its own folder holding <code>a.txt</code> (2000 bytes) and <code>grow.txt</code> (1 byte).</li>
+    <li data-k="t2"><b>Size.</b> <code>grow.txt</code> is the first row. The test appends 5000 bytes and requires the first row to become <code>a.txt</code>. It reads a row by pressing Home, copying it and pasting it into a second window's folder.</li>
+    <li data-k="t3"><b>Rename.</b> It creates the hidden <code>.tmp-x</code>, waits 2 s and renames it to <code>x.txt</code>. Ctrl+A must then copy <code>a.txt</code>, <code>grow.txt</code> and <code>x.txt</code>.</li>
+    <li data-k="t4"><b>Log.</b> Thunar's own output goes to a log file, which must have no “detached node” line. The test takes 8 shots: before and after pairs for size and rename, with the option off and on.</li>
+  </ol>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>The PR builds</td><td><code>dpkg-buildpackage</code> in the building session's cloud container, at commit 2, before the review fixes</td><td class="ok">built</td></tr>
+    <tr data-k="c2"><td>All tests pass on that build</td><td>Installed the built debs, then <code>verify-proof.sh run</code>, in the same container</td><td class="ok">25 of 25 pass</td></tr>
+    <tr data-k="c3"><td>Size re-sort, renamed file, no “detached node”, option off and on</td><td><code>verify/129.sh</code> in that run</td><td class="ok">pass, 34 s</td></tr>
+    <tr data-k="c4"><td>The review fixes, 45f68b2 and CI's e46b3a5</td><td>CI's build and verify jobs on head e46b3a5, every test including <code>verify/129.sh</code>; not run locally</td><td class="ok">built, 26 of 26 pass</td></tr>
+    <tr data-k="c10"><td>CI's R11 and R15 fixes, 1f09887 and 80d186e</td><td>CI's build and verify jobs on the PR's final head; not recorded on this page</td><td class="open">in the PR's verify comment</td></tr>
+    <tr data-k="c9"><td>45f68b2's changed file compiles</td><td><code>make thunar-thunar-tree-view-model.o</code> in the building session's configured tree</td><td class="ok">no warnings</td></tr>
+    <tr data-k="c5"><td>Every screenshot shows what it claims</td><td><code>/visual-verify pr:131</code> on CI's shots</td><td class="open">after CI's verify run</td></tr>
+    <tr data-k="c11"><td>CI's shots for 0392a40ec match their intents</td><td><code>/visual-verify pr:131</code>, posted on the PR: 236 shots from 26 tests, all passing. The 4 that didn't match (#53, #54) are all in <code>verify/15.sh</code>, caused by this PR's fix: it renames <code>file-01.txt</code> to <code>renamed-01.txt</code>, which the details view used to drop, so that row stayed first. Now it re-sorts to the end and Home selects <code>file-02.txt</code>. The shots still prove what #15 tests; only the file name in four intents was stale. Commit 25c600540 named <code>file-02.txt</code> in them; this commit replaces that: the test renames <code>file-01.txt</code> to <code>file-00.txt</code>, which sorts first whether or not the view re-sorts, so Home selects the renamed row and End selects <code>file-40.txt</code> (R19, R20). The audit of the final head is still open</td><td class="no">232 of 236 match: FAIL</td></tr>
+    <tr data-k="c6"><td>The test fails without the fix</td><td>Not run against a build without it. The owner saw both symptoms on <code>+local39</code>, per the issue</td><td class="no">not run</td></tr>
+    <tr data-k="c7"><td>The original freeze</td><td>Not reproduced: it needs stdout to be an unread pipe for hours, as after 27 h on the owner's desktop</td><td class="no">not run</td></tr>
+    <tr data-k="c8"><td>The fixes in search mode and with Show Hidden on (steps 7 to 9, R8, R9, R11)</td><td>No test searches while a result's folder is expanded, and <code>verify/129.sh</code> runs with Show Hidden off</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh agent reviewed the branch at level high. It found 1 bug and fixed it, and skipped 3 findings. CI's own review of each push appears in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/131">PR #131</a>.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed, search results re-sorted in the wrong folder:</b> letting the root through made this reachable. The handler skipped a file whose row is under another folder. CI's R4 fix replaces that check (step 8).</li>
+    <li data-k="b2"><b>Skipped, S1, hidden files shown:</b> with Show Hidden on, a hidden file renamed to a visible name kept its old row and name. CI's review found it too, as R1, and this PR now fixes it (step 9).</li>
+    <li data-k="b3"><b>Skipped, S2, stale comment:</b> the comment above the guard still talks about detached nodes. It is left as upstream has it, to avoid merge conflicts.</li>
+    <li data-k="b4"><b>Skipped, S3, explainer missing:</b> this page, written after the review.</li>
+  </ul>
+  <p data-k="ci">CI run 44634900027 reviewed head d5eb25a at level high and found 7 findings. Its fix commit was never pushed: the review-report job failed while pushing it. Commit 45f68b2 fixes R1 to R6 instead.</p>
+  <p data-k="ci2">CI run 44643284078 reviewed that fix round, 8da47cc, at level high and found R8 to R10. Its review-report job pushed commit e46b3a5, which fixes R8 and R9. CI skipped reviewing e46b3a5 itself, because it is CI's own fix commit.</p>
+  <p data-k="accepted">Accepted, not fixed: R7 and R10, both about the guard's stale comment and log message. You chose to keep those lines as upstream's c2ed7a2f6 has them, so the next upstream merge doesn't conflict. The <code>Review-accept: R7, R10</code> trailer on commit 7625793 closed R10. R7 comes from the first review, so CI still lists it as unconfirmed; your acceptance is recorded in a PR comment.</p>
+  <p data-k="ci3">CI run 44651110281 reviewed 7625793, the commits since 8da47cc including e46b3a5, at level high. It found R11 to R13. Its review-report job pushed commit 1f09887, which fixes R11.</p>
+  <p data-k="accepted2">Also accepted: R12, a search result renamed to a hidden name that stays listed with Show Hidden off. You accepted it because it behaves as 4.20.10 does, and your guidance for the rest of this PR is to match upstream unless a finding is a showstopper.</p>
+  <p data-k="accepted3">R13 is a low finding from a later review that isn't confirmed, so it is accepted under the CI review rules. The reviewer's own detail says the row's file is always the file that sent the change, so behavior is unchanged. A <code>Review-accept: R12, R13</code> trailer on commit bc0e6ff closed both.</p>
+  <p data-k="ci4">CI run 44652416934 reviewed the commits since 7625793, including 1f09887, at level high. It found R14 to R16. Its review-report job pushed commit 80d186e, which fixes R15.</p>
+  <p data-k="accepted4">R14 and R16 are accepted under your guidance to match upstream unless a finding is a showstopper. R14 is already in upstream, not added by this PR; fixing it changes how the model owns its folder entries, a design change outside #129, so it may become its own issue. R16 is short-lived and harmless. A <code>Review-accept: R14, R16</code> trailer on this page's commit closes both.</p>
+  <p data-k="ci5">CI's review of 25c600540 found R19 and R20, both in <code>verify/15.sh</code>. Now that a rename re-sorts the folder, <code>renamed-01.txt</code> moved to the end about 25 ms after the rename, so End right after it selected <code>file-40.txt</code> only if the re-sort hadn't landed yet. This commit renames to <code>file-00.txt</code> instead, which fixes both.</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>ID</th><th>Finding</th><th>Result</th></tr>
+    <tr data-k="R1"><td>R1, medium</td><td>With Show Hidden on, a file turning visible that already had a row skipped the re-sort and redraw (step 9)</td><td class="ok">fixed</td></tr>
+    <tr data-k="R2"><td>R2, medium</td><td>Rows added or removed when a file's hidden state changed left the status bar's item count stale</td><td class="ok">fixed</td></tr>
+    <tr data-k="R3"><td>R3, low</td><td>A flag was never reset per file, so later files sent extra expander updates</td><td class="ok">fixed</td></tr>
+    <tr data-k="R4"><td>R4, low</td><td>In search mode, the file lookup found no result rows at all (step 8)</td><td class="ok">fixed</td></tr>
+    <tr data-k="R5"><td>R5, low</td><td>Item counts of top-level folders never refreshed, because the counted folder's parent was the root</td><td class="ok">fixed</td></tr>
+    <tr data-k="R6"><td>R6, low</td><td><code>verify/129.sh</code> cleared the second folder right after a slow paste; it now waits 2 s more</td><td class="ok">fixed</td></tr>
+    <tr data-k="R7"><td>R7, low, plausible</td><td>The guard's comment and “detached node” message no longer describe its check; left as upstream has it</td><td class="ok">accepted</td></tr>
+    <tr data-k="R8"><td>R8, medium, confirmed</td><td>In search mode, a result renamed to a hidden name was removed and could never come back (step 7)</td><td class="ok">fixed by CI</td></tr>
+    <tr data-k="R9"><td>R9, low, confirmed</td><td>In search mode, a top-level folder result's item count never refreshed</td><td class="ok">fixed by CI</td></tr>
+    <tr data-k="R10"><td>R10, low, plausible</td><td>The same as R7</td><td class="ok">accepted</td></tr>
+    <tr data-k="R11"><td>R11, low, confirmed</td><td>In search mode, a counted folder's item count refreshed only its top-level result row, not its row under an expanded folder result</td><td class="ok">fixed by CI</td></tr>
+    <tr data-k="R12"><td>R12, low, confirmed</td><td>In search mode, a result renamed to a hidden name stays listed with Show Hidden off, as in 4.20.10 (step 7)</td><td class="ok">accepted</td></tr>
+    <tr data-k="R13"><td>R13, low, plausible</td><td>The search terms are tested against the row's file, not the file that sent the change; the reviewer found they are always the same</td><td class="ok">accepted</td></tr>
+    <tr data-k="R14"><td>R14, medium, confirmed</td><td>In search mode, one folder can show as two expanded rows, but the model keeps one entry for it: a count refresh reaches only one row, and collapsing either row removes the entry the other still uses. Already in upstream</td><td class="ok">accepted</td></tr>
+    <tr data-k="R15"><td>R15, low, confirmed</td><td>A check in the item-count code could never be true, because the search root is never in the model's folder list; removed</td><td class="ok">fixed by CI</td></tr>
+    <tr data-k="R16"><td>R16, low, confirmed</td><td>In search mode, one count result now redraws both rows of a folder (from the R11 fix), so about twice as many count jobs run while the folder changed this second; short-lived</td><td class="ok">accepted</td></tr>
+    <tr data-k="R17"><td>R17, medium, confirmed</td><td>The agent added the <code>Review-accept: R14, R16</code> trailer, which closes confirmed findings; that needs your own decision</td><td class="open">brought to the owner</td></tr>
+    <tr data-k="R18"><td>R18, low, confirmed</td><td>This page said CI's run on 80d186e was still running after later pushes replaced it; it now points to the PR's verify comment</td><td class="ok">fixed</td></tr>
+    <tr data-k="R19"><td>R19, medium, confirmed</td><td>In <code>verify/15.sh</code>, End right after the rename selected <code>file-40.txt</code> only if the re-sort hadn't moved <code>renamed-01.txt</code> to the end yet, so the check depended on timing</td><td class="ok">fixed</td></tr>
+    <tr data-k="R20"><td>R20, low, plausible</td><td>The End section's intents said <code>file-40.txt</code> is the last row, but <code>renamed-01.txt</code> could already be below it</td><td class="ok">fixed</td></tr>
+    <tr data-k="R0"><td>not from the review</td><td>A root reorder sent the first row's path, not the root path (step 10)</td><td class="ok">fixed</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>Your <code>watch/</code> tabs and apps that save through a temp file</td><td>They need your folders, your apps and the next installed build</td><td class="open">when you install the next build</td></tr>
+    <tr data-k="a2"><td>No freeze over days of use</td><td>The freeze took 27 h of desktop use to appear</td><td class="open">days after you install it</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/131">PR #131</a> → “Files changed”</li>
+    <li data-k="l2">The issue, with the freeze and the rename traced through the code: <a href="https://github.com/alexhu98/thunar/issues/129">#129</a></li>
+    <li data-k="l3">The upstream fix: <a href="https://gitlab.xfce.org/xfce/thunar/-/commit/c2ed7a2f619114cfb16d78f4dd8d51307b431c4d">commit c2ed7a2f6</a> on gitlab.xfce.org</li>
+    <li data-k="l4">CI's screenshots, size and rename with the option off and on: the verify comment on PR #131</li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: the next upstream release merge</h2>
+  <p class="intro" data-k="intro">No open issue depends on #129. The next upstream release already contains the guard fix; the review fixes are this fork's own. You accepted R7 and R10, so the guard's lines still match upstream. R14, a search mode bug already in upstream, may become its own issue.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR merges; the next upstream release merge already contains its guard fix; accepting R7 and R10 keeps the guard's lines matching upstream for that merge; R14 may become its own follow-up issue, not built yet.">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">#30 Upstream release merge</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">#129 root updates</text>
+      <text x="36" y="114" class="b">the shown folder's</text>
+      <text x="36" y="134" class="b">changes reach the</text>
+      <text x="36" y="154" class="b">details view</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Next release</text>
+      <text x="286" y="114" class="b">the weekly watcher</text>
+      <text x="286" y="134" class="b">merges it; it has</text>
+      <text x="286" y="154" class="b">the same guard line</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+
+    <text class="lane" x="520" y="44" style="fill:var(--merge)">Your decision, made</text>
+    <g data-k="n3">
+      <rect class="box-merge" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">R7, R10 accepted</text>
+      <text x="536" y="114" class="b">the guard's comment</text>
+      <text x="536" y="134" class="b">and log line stay as</text>
+      <text x="536" y="154" class="b">upstream has them</text>
+    </g>
+    <path class="arrow-future" d="M520,120 H484" marker-end="url(#ahf-next)"/>
+
+    <text class="lane" x="770" y="44" style="fill:var(--future)">Possible follow-up</text>
+    <g data-k="n4">
+      <rect class="box-future" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">R14 follow-up</text>
+      <text x="786" y="114" class="b">a folder shown twice</text>
+      <text x="786" y="134" class="b">in search gets one</text>
+      <text x="786" y="154" class="b">entry per row</text>
+    </g>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built or settled by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="release">
+  <h3 class="sec">#30 The next upstream release merge (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>The watcher finds the release.</b> The weekly upstream watcher opens an issue and a PR that merges the new Thunar release into <code>main</code>.</li>
+    <li data-k="2"><b>The guard line already matches.</b> The release is cut from the <code>xfce-4.20</code> branch, which has c2ed7a2f6, so that line should merge without a conflict.</li>
+    <li data-k="3"><b>The review fixes stay ours.</b> Steps 8 to 10 and the item-count fixes are in this fork only. They conflict only if upstream edits those lines.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="r14">
+  <h3 class="sec">Possible follow-up: R14, a folder shown twice in search (not opened)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>What it would fix.</b> In search mode, a folder that shows as two expanded rows would get an entry per row, so both rows' item counts refresh and collapsing one leaves the other working.</li>
+    <li data-k="2"><b>How it uses this PR.</b> It changes how the model owns folder entries (<code>load_dir</code>, <code>node_destroy</code> and the unload timeout), on top of this PR's count refresh for search results.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="followups">
+  <h3 class="sec">Your decisions: R7, R10, R12, R14 and R16 accepted</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>R7 and R10, the guard's comment.</b> The comment above the guard and its “detached node” message no longer describe the <code>node_parent == NULL</code> check. You decided to keep them as upstream's c2ed7a2f6 has them, so the next upstream merge doesn't conflict. R10 repeats R7, so both are accepted.</li>
+    <li data-k="2"><b>R12, hidden search results.</b> A search result renamed to a hidden name stays listed with Show Hidden off, as in 4.20.10. Removing it would disconnect its watch, so it could never come back; hiding it properly needs new handling for search results. You accepted it, and asked that the rest of this PR match upstream unless a finding is a showstopper.</li>
+    <li data-k="3"><b>R14 and R16, under that guidance.</b> R14 is already in upstream, and fixing it is a design change outside #129, so it may become its own issue. R16 only runs extra count jobs for a moment. Both are accepted, not fixed.</li>
+  </ol>
+  </div>
+  <div class="note" data-k="gone">The Show Hidden follow-up (S1) and the root reorder follow-up are gone: this PR now fixes both, in steps 9 and 10.</div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="details"><dt>Details view</dt><dd>The list view with columns such as Name, Size and Date; Ctrl+2 switches to it.</dd></div>
+    <div data-k="expandable"><dt>Expandable Folders</dt><dd>A details view option that shows a triangle to open a subfolder in place.</dd></div>
+    <div data-k="model"><dt>ThunarTreeViewModel</dt><dd>The code that holds the details view's rows; it is used with Expandable Folders off or on.</dd></div>
+    <div data-k="listmodel"><dt>ThunarListModel</dt><dd>The rows of the icon and compact views, which this bug never affected.</dd></div>
+    <div data-k="root"><dt>Root node</dt><dd>The model's entry for the folder the view shows; its files are the top-level rows.</dd></div>
+    <div data-k="fc"><dt>files-changed</dt><dd>The signal a folder sends its views when files in it change on disk.</dd></div>
+    <div data-k="hidden"><dt>Hidden list</dt><dd>Files whose names start with a dot; the model keeps them aside until Show Hidden is on.</dd></div>
+    <div data-k="gmsg"><dt>g_message</dt><dd>A GLib call that writes a line to Thunar's standard output or error.</dd></div>
+    <div data-k="pipe"><dt>Pipe</dt><dd>A buffer between two programs; when it is full and nobody reads, the writer waits forever.</dd></div>
+    <div data-k="cherry"><dt>Cherry-pick -x</dt><dd>Copies one commit onto this branch and notes the original commit in its message.</dd></div>
+    <div data-k="mirror"><dt>xfce-4.20</dt><dd>Upstream's 4.20 maintenance branch; this fork keeps a read-only mirror of it.</dd></div>
+    <div data-k="rid"><dt>R1 … R20</dt><dd>IDs of the findings in CI's code review comment on the PR.</dd></div>
+    <div data-k="accept"><dt>Review-accept</dt><dd>A commit trailer that closes listed review findings as kept on purpose.</dd></div>
+    <div data-k="count"><dt>Item count</dt><dd>The number of items the status bar shows, which the model reports as it changes.</dd></div>
+    <div data-k="rootpath"><dt>Root path</dt><dd>An empty tree path, which names the view's top level rather than any one row.</dd></div>
+    <div data-k="search"><dt>Search mode</dt><dd>Typing a search in Thunar lists matching files from subfolders in one view.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual screen that tests draw Thunar on, with no monitor.</dd></div>
+    <div data-k="verify"><dt>verify script</dt><dd>A test that drives Thunar on a virtual screen in CI and takes screenshots.</dd></div>
+    <div data-k="upstream"><dt>Upstream</dt><dd>The original Xfce Thunar project this fork follows.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
