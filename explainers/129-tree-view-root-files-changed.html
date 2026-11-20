@@ -292,8 +292,9 @@
 <pre data-k="tree">thunar/
 └── thunar-tree-view-model.c   # guard narrowed (upstream c2ed7a2f6); handler and item-count review fixes
 verify/
-└── 129.sh                     # size re-sort and hidden-rename cases, Expandable Folders off and on;
-                               # waits 2 s more before clearing a slow paste (R6)
+├── 129.sh                     # size re-sort and hidden-rename cases, Expandable Folders off and on;
+│                              # waits 2 s more before clearing a slow paste (R6)
+└── 15.sh                      # shot intents: the first row after the rename is now file-02.txt
 explainers/
 ├── 129-tree-view-root-files-changed.html            # this page
 └── 129-tree-view-root-files-changed.narration.json  # its narration</pre>
@@ -338,6 +339,7 @@ explainers/
     <tr data-k="c10"><td>CI's R11 and R15 fixes, 1f09887 and 80d186e</td><td>CI's build and verify jobs on the PR's final head; not recorded on this page</td><td class="open">in the PR's verify comment</td></tr>
     <tr data-k="c9"><td>45f68b2's changed file compiles</td><td><code>make thunar-thunar-tree-view-model.o</code> in the building session's configured tree</td><td class="ok">no warnings</td></tr>
     <tr data-k="c5"><td>Every screenshot shows what it claims</td><td><code>/visual-verify pr:131</code> on CI's shots</td><td class="open">after CI's verify run</td></tr>
+    <tr data-k="c11"><td>CI's shots for 0392a40ec match their intents</td><td><code>/visual-verify pr:131</code>, posted on the PR: 236 shots from 26 tests, all passing. The 4 that didn't match (#53, #54) are all in <code>verify/15.sh</code>, caused by this PR's fix: it renames <code>file-01.txt</code> to <code>renamed-01.txt</code>, which the details view used to drop, so that row stayed first. Now it re-sorts to the end and Home selects <code>file-02.txt</code>. The shots still prove what #15 tests; only the file name in four intents was stale, and commit 25c600540 updates them. The audit of the final head is still open</td><td class="no">232 of 236 match: FAIL</td></tr>
     <tr data-k="c6"><td>The test fails without the fix</td><td>Not run against a build without it. The owner saw both symptoms on <code>+local39</code>, per the issue</td><td class="no">not run</td></tr>
     <tr data-k="c7"><td>The original freeze</td><td>Not reproduced: it needs stdout to be an unread pipe for hours, as after 27 h on the owner's desktop</td><td class="no">not run</td></tr>
     <tr data-k="c8"><td>The fixes in search mode and with Show Hidden on (steps 7 to 9, R8, R9, R11)</td><td>No test searches while a result's folder is expanded, and <code>verify/129.sh</code> runs with Show Hidden off</td><td class="no">not run</td></tr>
