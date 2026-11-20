@@ -272,7 +272,7 @@
   …
 <span class="del">-     path = gtk_tree_path_new_first ();</span>
 <span class="add">+     path = gtk_tree_path_new ();</span></pre>
-  <p data-k="more">The same commit also resets a per-file flag that sent extra expander updates (R3), tells the status bar its item count changed when rows come or go (R2), and lets top-level folders' item counts refresh (R5). CI's fix commit e46b3a5 does the same for a top-level folder result in search mode (R9), and 1f09887 also refreshes that folder's row under an expanded folder result (R11).</p>
+  <p data-k="more">The same commit also resets a per-file flag that sent extra expander updates (R3), tells the status bar its item count changed when rows come or go (R2), and lets top-level folders' item counts refresh (R5). CI's fix commit e46b3a5 does the same for a top-level folder result in search mode (R9), and 1f09887 also refreshes that folder's row under an expanded folder result (R11). CI's 80d186e removes a check there that could never be true (R15).</p>
   </section>
 
   <section class="sub" id="views">
@@ -305,7 +305,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The building session built the PR before the review fixes and ran all 25 tests, including the new one. CI then built head e46b3a5, with every fix but R11, and passed all 26 tests; its run on 1f09887, with the R11 fix, is still going. The old build and the original freeze were not run.</p>
+  <p class="intro" data-k="intro">The building session built the PR before the review fixes and ran all 25 tests, including the new one. CI then built head e46b3a5, with every fix but R11 and R15, and passed all 26 tests; its run on 80d186e, with those two fixes, is still going. The old build and the original freeze were not run.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -335,7 +335,7 @@ explainers/
     <tr data-k="c2"><td>All tests pass on that build</td><td>Installed the built debs, then <code>verify-proof.sh run</code>, in the same container</td><td class="ok">25 of 25 pass</td></tr>
     <tr data-k="c3"><td>Size re-sort, renamed file, no “detached node”, option off and on</td><td><code>verify/129.sh</code> in that run</td><td class="ok">pass, 34 s</td></tr>
     <tr data-k="c4"><td>The review fixes, 45f68b2 and CI's e46b3a5</td><td>CI's build and verify jobs on head e46b3a5, every test including <code>verify/129.sh</code>; not run locally</td><td class="ok">built, 26 of 26 pass</td></tr>
-    <tr data-k="c10"><td>CI's R11 fix, 1f09887</td><td>CI's build and verify jobs on head 1f09887</td><td class="open">still running</td></tr>
+    <tr data-k="c10"><td>CI's R11 and R15 fixes, 1f09887 and 80d186e</td><td>CI's build and verify jobs on head 80d186e</td><td class="open">still running</td></tr>
     <tr data-k="c9"><td>45f68b2's changed file compiles</td><td><code>make thunar-thunar-tree-view-model.o</code> in the building session's configured tree</td><td class="ok">no warnings</td></tr>
     <tr data-k="c5"><td>Every screenshot shows what it claims</td><td><code>/visual-verify pr:131</code> on CI's shots</td><td class="open">after CI's verify run</td></tr>
     <tr data-k="c6"><td>The test fails without the fix</td><td>Not run against a build without it. The owner saw both symptoms on <code>+local39</code>, per the issue</td><td class="no">not run</td></tr>
@@ -359,7 +359,9 @@ explainers/
   <p data-k="accepted">Accepted, not fixed: R7 and R10, both about the guard's stale comment and log message. You chose to keep those lines as upstream's c2ed7a2f6 has them, so the next upstream merge doesn't conflict. The <code>Review-accept: R7, R10</code> trailer on commit 7625793 closed R10. R7 comes from the first review, so CI still lists it as unconfirmed; your acceptance is recorded in a PR comment.</p>
   <p data-k="ci3">CI run 44651110281 reviewed 7625793, the commits since 8da47cc including e46b3a5, at level high. It found R11 to R13. Its review-report job pushed commit 1f09887, which fixes R11.</p>
   <p data-k="accepted2">Also accepted: R12, a search result renamed to a hidden name that stays listed with Show Hidden off. You accepted it because it behaves as 4.20.10 does, and your guidance for the rest of this PR is to match upstream unless a finding is a showstopper.</p>
-  <p data-k="accepted3">R13 is a low finding from a later review that isn't confirmed, so it is accepted under the CI review rules. The reviewer's own detail says the row's file is always the file that sent the change, so behavior is unchanged. A <code>Review-accept: R12, R13</code> trailer on this page's commit closes both.</p>
+  <p data-k="accepted3">R13 is a low finding from a later review that isn't confirmed, so it is accepted under the CI review rules. The reviewer's own detail says the row's file is always the file that sent the change, so behavior is unchanged. A <code>Review-accept: R12, R13</code> trailer on commit bc0e6ff closed both.</p>
+  <p data-k="ci4">CI run 44652416934 reviewed the commits since 7625793, including 1f09887, at level high. It found R14 to R16. Its review-report job pushed commit 80d186e, which fixes R15.</p>
+  <p data-k="accepted4">R14 and R16 are accepted under your guidance to match upstream unless a finding is a showstopper. R14 is already in upstream, not added by this PR; fixing it changes how the model owns its folder entries, a design change outside #129, so it may become its own issue. R16 is short-lived and harmless. A <code>Review-accept: R14, R16</code> trailer on this page's commit closes both.</p>
   <div class="table-wrap">
   <table>
     <tr><th>ID</th><th>Finding</th><th>Result</th></tr>
@@ -376,6 +378,9 @@ explainers/
     <tr data-k="R11"><td>R11, low, confirmed</td><td>In search mode, a counted folder's item count refreshed only its top-level result row, not its row under an expanded folder result</td><td class="ok">fixed by CI</td></tr>
     <tr data-k="R12"><td>R12, low, confirmed</td><td>In search mode, a result renamed to a hidden name stays listed with Show Hidden off, as in 4.20.10 (step 7)</td><td class="ok">accepted</td></tr>
     <tr data-k="R13"><td>R13, low, plausible</td><td>The search terms are tested against the row's file, not the file that sent the change; the reviewer found they are always the same</td><td class="ok">accepted</td></tr>
+    <tr data-k="R14"><td>R14, medium, confirmed</td><td>In search mode, one folder can show as two expanded rows, but the model keeps one entry for it: a count refresh reaches only one row, and collapsing either row removes the entry the other still uses. Already in upstream</td><td class="ok">accepted</td></tr>
+    <tr data-k="R15"><td>R15, low, confirmed</td><td>A check in the item-count code could never be true, because the search root is never in the model's folder list; removed</td><td class="ok">fixed by CI</td></tr>
+    <tr data-k="R16"><td>R16, low, confirmed</td><td>In search mode, one count result now redraws both rows of a folder (from the R11 fix), so about twice as many count jobs run while the folder changed this second; short-lived</td><td class="ok">accepted</td></tr>
     <tr data-k="R0"><td>not from the review</td><td>A root reorder sent the first row's path, not the root path (step 10)</td><td class="ok">fixed</td></tr>
   </table>
   </div>
@@ -407,10 +412,10 @@ explainers/
   <section class="part" id="later">
   <p class="part-label" data-k="label">Part 3</p>
   <h2 data-k="heading">What comes later: the next upstream release merge</h2>
-  <p class="intro" data-k="intro">No open issue depends on #129. The next upstream release already contains the guard fix; the review fixes are this fork's own. You accepted R7 and R10, so the guard's lines still match upstream.</p>
+  <p class="intro" data-k="intro">No open issue depends on #129. The next upstream release already contains the guard fix; the review fixes are this fork's own. You accepted R7 and R10, so the guard's lines still match upstream. R14, a search mode bug already in upstream, may become its own issue.</p>
 
   <section class="sub" id="next">
-  <div class="diagram" role="img" aria-label="This PR merges; the next upstream release merge already contains its guard fix; accepting R7 and R10 keeps the guard's lines matching upstream for that merge.">
+  <div class="diagram" role="img" aria-label="This PR merges; the next upstream release merge already contains its guard fix; accepting R7 and R10 keeps the guard's lines matching upstream for that merge; R14 may become its own follow-up issue, not built yet.">
   <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -443,6 +448,15 @@ explainers/
       <text x="536" y="154" class="b">upstream has them</text>
     </g>
     <path class="arrow-future" d="M520,120 H484" marker-end="url(#ahf-next)"/>
+
+    <text class="lane" x="770" y="44" style="fill:var(--future)">Possible follow-up</text>
+    <g data-k="n4">
+      <rect class="box-future" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">R14 follow-up</text>
+      <text x="786" y="114" class="b">a folder shown twice</text>
+      <text x="786" y="134" class="b">in search gets one</text>
+      <text x="786" y="154" class="b">entry per row</text>
+    </g>
   </svg>
   </div>
   <div class="legend">
@@ -462,12 +476,23 @@ explainers/
   </div>
   </section>
 
+  <section class="sub" id="r14">
+  <h3 class="sec">Possible follow-up: R14, a folder shown twice in search (not opened)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>What it would fix.</b> In search mode, a folder that shows as two expanded rows would get an entry per row, so both rows' item counts refresh and collapsing one leaves the other working.</li>
+    <li data-k="2"><b>How it uses this PR.</b> It changes how the model owns folder entries (<code>load_dir</code>, <code>node_destroy</code> and the unload timeout), on top of this PR's count refresh for search results.</li>
+  </ol>
+  </div>
+  </section>
+
   <section class="sub" id="followups">
-  <h3 class="sec">Your decisions: R7, R10 and R12 accepted</h3>
+  <h3 class="sec">Your decisions: R7, R10, R12, R14 and R16 accepted</h3>
   <div class="panel">
   <ol class="steps">
     <li data-k="1"><b>R7 and R10, the guard's comment.</b> The comment above the guard and its “detached node” message no longer describe the <code>node_parent == NULL</code> check. You decided to keep them as upstream's c2ed7a2f6 has them, so the next upstream merge doesn't conflict. R10 repeats R7, so both are accepted.</li>
     <li data-k="2"><b>R12, hidden search results.</b> A search result renamed to a hidden name stays listed with Show Hidden off, as in 4.20.10. Removing it would disconnect its watch, so it could never come back; hiding it properly needs new handling for search results. You accepted it, and asked that the rest of this PR match upstream unless a finding is a showstopper.</li>
+    <li data-k="3"><b>R14 and R16, under that guidance.</b> R14 is already in upstream, and fixing it is a design change outside #129, so it may become its own issue. R16 only runs extra count jobs for a moment. Both are accepted, not fixed.</li>
   </ol>
   </div>
   <div class="note" data-k="gone">The Show Hidden follow-up (S1) and the root reorder follow-up are gone: this PR now fixes both, in steps 9 and 10.</div>
@@ -488,7 +513,7 @@ explainers/
     <div data-k="pipe"><dt>Pipe</dt><dd>A buffer between two programs; when it is full and nobody reads, the writer waits forever.</dd></div>
     <div data-k="cherry"><dt>Cherry-pick -x</dt><dd>Copies one commit onto this branch and notes the original commit in its message.</dd></div>
     <div data-k="mirror"><dt>xfce-4.20</dt><dd>Upstream's 4.20 maintenance branch; this fork keeps a read-only mirror of it.</dd></div>
-    <div data-k="rid"><dt>R1 … R13</dt><dd>IDs of the findings in CI's code review comment on the PR.</dd></div>
+    <div data-k="rid"><dt>R1 … R16</dt><dd>IDs of the findings in CI's code review comment on the PR.</dd></div>
     <div data-k="accept"><dt>Review-accept</dt><dd>A commit trailer that closes listed review findings as kept on purpose.</dd></div>
     <div data-k="count"><dt>Item count</dt><dd>The number of items the status bar shows, which the model reports as it changes.</dd></div>
     <div data-k="rootpath"><dt>Root path</dt><dd>An empty tree path, which names the view's top level rather than any one row.</dd></div>
