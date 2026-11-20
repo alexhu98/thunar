@@ -294,7 +294,8 @@
 verify/
 ├── 129.sh                     # size re-sort and hidden-rename cases, Expandable Folders off and on;
 │                              # waits 2 s more before clearing a slow paste (R6)
-└── 15.sh                      # shot intents: the first row after the rename is now file-02.txt
+└── 15.sh                      # renames file-01.txt to file-00.txt, which sorts first either way,
+                               # so End and Home don't depend on when the re-sort lands (R19, R20)
 explainers/
 ├── 129-tree-view-root-files-changed.html            # this page
 └── 129-tree-view-root-files-changed.narration.json  # its narration</pre>
@@ -339,7 +340,7 @@ explainers/
     <tr data-k="c10"><td>CI's R11 and R15 fixes, 1f09887 and 80d186e</td><td>CI's build and verify jobs on the PR's final head; not recorded on this page</td><td class="open">in the PR's verify comment</td></tr>
     <tr data-k="c9"><td>45f68b2's changed file compiles</td><td><code>make thunar-thunar-tree-view-model.o</code> in the building session's configured tree</td><td class="ok">no warnings</td></tr>
     <tr data-k="c5"><td>Every screenshot shows what it claims</td><td><code>/visual-verify pr:131</code> on CI's shots</td><td class="open">after CI's verify run</td></tr>
-    <tr data-k="c11"><td>CI's shots for 0392a40ec match their intents</td><td><code>/visual-verify pr:131</code>, posted on the PR: 236 shots from 26 tests, all passing. The 4 that didn't match (#53, #54) are all in <code>verify/15.sh</code>, caused by this PR's fix: it renames <code>file-01.txt</code> to <code>renamed-01.txt</code>, which the details view used to drop, so that row stayed first. Now it re-sorts to the end and Home selects <code>file-02.txt</code>. The shots still prove what #15 tests; only the file name in four intents was stale, and commit 25c600540 updates them. The audit of the final head is still open</td><td class="no">232 of 236 match: FAIL</td></tr>
+    <tr data-k="c11"><td>CI's shots for 0392a40ec match their intents</td><td><code>/visual-verify pr:131</code>, posted on the PR: 236 shots from 26 tests, all passing. The 4 that didn't match (#53, #54) are all in <code>verify/15.sh</code>, caused by this PR's fix: it renames <code>file-01.txt</code> to <code>renamed-01.txt</code>, which the details view used to drop, so that row stayed first. Now it re-sorts to the end and Home selects <code>file-02.txt</code>. The shots still prove what #15 tests; only the file name in four intents was stale. Commit 25c600540 named <code>file-02.txt</code> in them; this commit replaces that: the test renames <code>file-01.txt</code> to <code>file-00.txt</code>, which sorts first whether or not the view re-sorts, so Home selects the renamed row and End selects <code>file-40.txt</code> (R19, R20). The audit of the final head is still open</td><td class="no">232 of 236 match: FAIL</td></tr>
     <tr data-k="c6"><td>The test fails without the fix</td><td>Not run against a build without it. The owner saw both symptoms on <code>+local39</code>, per the issue</td><td class="no">not run</td></tr>
     <tr data-k="c7"><td>The original freeze</td><td>Not reproduced: it needs stdout to be an unread pipe for hours, as after 27 h on the owner's desktop</td><td class="no">not run</td></tr>
     <tr data-k="c8"><td>The fixes in search mode and with Show Hidden on (steps 7 to 9, R8, R9, R11)</td><td>No test searches while a result's folder is expanded, and <code>verify/129.sh</code> runs with Show Hidden off</td><td class="no">not run</td></tr>
@@ -364,6 +365,7 @@ explainers/
   <p data-k="accepted3">R13 is a low finding from a later review that isn't confirmed, so it is accepted under the CI review rules. The reviewer's own detail says the row's file is always the file that sent the change, so behavior is unchanged. A <code>Review-accept: R12, R13</code> trailer on commit bc0e6ff closed both.</p>
   <p data-k="ci4">CI run 44652416934 reviewed the commits since 7625793, including 1f09887, at level high. It found R14 to R16. Its review-report job pushed commit 80d186e, which fixes R15.</p>
   <p data-k="accepted4">R14 and R16 are accepted under your guidance to match upstream unless a finding is a showstopper. R14 is already in upstream, not added by this PR; fixing it changes how the model owns its folder entries, a design change outside #129, so it may become its own issue. R16 is short-lived and harmless. A <code>Review-accept: R14, R16</code> trailer on this page's commit closes both.</p>
+  <p data-k="ci5">CI's review of 25c600540 found R19 and R20, both in <code>verify/15.sh</code>. Now that a rename re-sorts the folder, <code>renamed-01.txt</code> moved to the end about 25 ms after the rename, so End right after it selected <code>file-40.txt</code> only if the re-sort hadn't landed yet. This commit renames to <code>file-00.txt</code> instead, which fixes both.</p>
   <div class="table-wrap">
   <table>
     <tr><th>ID</th><th>Finding</th><th>Result</th></tr>
@@ -385,6 +387,8 @@ explainers/
     <tr data-k="R16"><td>R16, low, confirmed</td><td>In search mode, one count result now redraws both rows of a folder (from the R11 fix), so about twice as many count jobs run while the folder changed this second; short-lived</td><td class="ok">accepted</td></tr>
     <tr data-k="R17"><td>R17, medium, confirmed</td><td>The agent added the <code>Review-accept: R14, R16</code> trailer, which closes confirmed findings; that needs your own decision</td><td class="open">brought to the owner</td></tr>
     <tr data-k="R18"><td>R18, low, confirmed</td><td>This page said CI's run on 80d186e was still running after later pushes replaced it; it now points to the PR's verify comment</td><td class="ok">fixed</td></tr>
+    <tr data-k="R19"><td>R19, medium, confirmed</td><td>In <code>verify/15.sh</code>, End right after the rename selected <code>file-40.txt</code> only if the re-sort hadn't moved <code>renamed-01.txt</code> to the end yet, so the check depended on timing</td><td class="ok">fixed</td></tr>
+    <tr data-k="R20"><td>R20, low, plausible</td><td>The End section's intents said <code>file-40.txt</code> is the last row, but <code>renamed-01.txt</code> could already be below it</td><td class="ok">fixed</td></tr>
     <tr data-k="R0"><td>not from the review</td><td>A root reorder sent the first row's path, not the root path (step 10)</td><td class="ok">fixed</td></tr>
   </table>
   </div>
@@ -517,7 +521,7 @@ explainers/
     <div data-k="pipe"><dt>Pipe</dt><dd>A buffer between two programs; when it is full and nobody reads, the writer waits forever.</dd></div>
     <div data-k="cherry"><dt>Cherry-pick -x</dt><dd>Copies one commit onto this branch and notes the original commit in its message.</dd></div>
     <div data-k="mirror"><dt>xfce-4.20</dt><dd>Upstream's 4.20 maintenance branch; this fork keeps a read-only mirror of it.</dd></div>
-    <div data-k="rid"><dt>R1 … R18</dt><dd>IDs of the findings in CI's code review comment on the PR.</dd></div>
+    <div data-k="rid"><dt>R1 … R20</dt><dd>IDs of the findings in CI's code review comment on the PR.</dd></div>
     <div data-k="accept"><dt>Review-accept</dt><dd>A commit trailer that closes listed review findings as kept on purpose.</dd></div>
     <div data-k="count"><dt>Item count</dt><dd>The number of items the status bar shows, which the model reports as it changes.</dd></div>
     <div data-k="rootpath"><dt>Root path</dt><dd>An empty tree path, which names the view's top level rather than any one row.</dd></div>
