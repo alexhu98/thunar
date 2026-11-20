@@ -160,9 +160,9 @@ done
 xdotool mouseup 1
 xdotool mousemove --window "$MAIN" 500 400
 sleep 0.8
-shot "$MAIN" before-scroll-into-view "Home selected renamed-01.txt, the first row, and a drag on the scroll bar moved the view by part of a row, so the row is partly out of view at the top"
+shot "$MAIN" before-scroll-into-view "Home selected file-02.txt, the first row, and a drag on the scroll bar moved the view by part of a row, so the row is partly out of view at the top"
 f2
-shot "$MAIN" after-scroll-into-view "F2 scrolled renamed-01.txt fully into view and the popover points at it, just below its name"
+shot "$MAIN" after-scroll-into-view "F2 scrolled file-02.txt fully into view and the popover points at it, just below its name"
 pair scroll-into-view "Selected the first row with Home, dragged the scroll bar a few pixels, pressed F2" "F2 on a row partly out of view scrolls it in first, and the popover points at it" "first row partly out of view" "row scrolled in, popover points at it" "$P"
 xdotool key Escape
 sleep 0.5
@@ -172,9 +172,9 @@ for i in 1 2 3 4 5 6; do
   sleep 0.1
 done
 sleep 0.8
-shot "$MAIN" before-far-out-of-view "The mouse wheel scrolled the view down until the selected renamed-01.txt is far out of view above it"
+shot "$MAIN" before-far-out-of-view "The mouse wheel scrolled the view down until the selected file-02.txt is far out of view above it"
 f2
-shot "$MAIN" after-far-out-of-view "F2 scrolled renamed-01.txt back to the top and the popover points at it, just below its name"
+shot "$MAIN" after-far-out-of-view "F2 scrolled file-02.txt back to the top and the popover points at it, just below its name"
 pair far-out-of-view "Scrolled the selected first row far out of view with the mouse wheel, pressed F2" "F2 on a row far out of view scrolls it back in, and the popover points at it" "selected row far out of view" "row scrolled in, popover points at it" "$P"
 xdotool key Escape
 sleep 0.5
