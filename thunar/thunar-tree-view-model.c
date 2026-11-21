@@ -3005,6 +3005,9 @@ _thunar_tree_view_model_dir_unload_timeout (Node *node)
   GtkTreePath   *path;
   Node          *_node;
 
+  if (node->dir != NULL && !node->loaded)
+    thunar_tree_view_model_set_loading (node->model, FALSE);
+
   node->loaded = FALSE;
 
   if (node->dir != NULL)

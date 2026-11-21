@@ -1938,6 +1938,11 @@ thunar_standard_view_set_loading (ThunarStandardView *standard_view,
       thunar_standard_view_cancel_statusbar_job (standard_view);
       thunar_standard_view_set_statusbar_info_text (standard_view, NULL);
       g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_INFO_TEXT]);
+      if (!THUNAR_IS_DETAILS_VIEW (standard_view))
+        {
+          thunar_standard_view_set_statusbar_text (standard_view, "");
+          g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_TEXT]);
+        }
     }
   else if (!THUNAR_IS_DETAILS_VIEW (standard_view))
     {
@@ -1950,10 +1955,13 @@ thunar_standard_view_set_loading (ThunarStandardView *standard_view,
     {
       gchar *statusbar_text;
 
-      statusbar_text = g_strdup (_("Loading folder contents..."));
-      thunar_standard_view_set_statusbar_text (standard_view, statusbar_text);
-      g_free (statusbar_text);
-      g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_TEXT]);
+      if (loading)
+        {
+          statusbar_text = g_strdup (_("Loading folder contents..."));
+          thunar_standard_view_set_statusbar_text (standard_view, statusbar_text);
+          g_free (statusbar_text);
+          g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_TEXT]);
+        }
 
       if (G_UNLIKELY (!loading))
         {
@@ -2796,9 +2804,6 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
 
   standard_view->priv->statusbar_text_idle_id = 0;
 
-  if (standard_view->loading)
-    return FALSE;
-
   thunar_standard_view_cancel_statusbar_job (standard_view);
 
   /* query the selected items */
@@ -2847,6 +2852,9 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
           return FALSE;
         }
 
+      if (standard_view->loading)
+        return FALSE;
+
       job = thunar_io_jobs_load_statusbar_text (standard_view, folder, NULL, NULL, NULL);
     }
   else if (selected_items_tree_path_list->next == NULL) /* only one item selected */
@@ -2868,7 +2876,7 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
               g_free (info_text);
               g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_INFO_TEXT]);
             }
-          else if (folder != NULL)
+          else if (folder != NULL && !standard_view->loading)
             job = thunar_io_jobs_load_statusbar_text (standard_view, folder, NULL, statusbar_text, NULL);
 
           thunar_standard_view_set_statusbar_text (standard_view, statusbar_text);
@@ -2896,7 +2904,7 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
             }
         }
 
-      job = thunar_io_jobs_load_statusbar_text (standard_view, searching ? NULL : folder, selected_g_files, NULL, free_space_text);
+      job = thunar_io_jobs_load_statusbar_text (standard_view, (searching || standard_view->loading) ? NULL : folder, selected_g_files, NULL, free_space_text);
       g_hash_table_destroy (selected_g_files);
       g_free (free_space_text);
     }
