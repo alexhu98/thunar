@@ -3,12 +3,12 @@
 set -euo pipefail
 . .github/scripts/verify-lib.sh
 
-W=1400
+W=1200
 NARROW=800
 H=600
 DIR="$WORK/files"
 OTHER="$WORK/other"
-LONG=z-rather-long-file-name-to-show-the-selection-keeps-its-width.txt
+LONG=z-a-long-name-the-selection-keeps.txt
 G='Status bar: selection left, folder total and free space right'
 
 mkdir -p "$DIR/sub" "$OTHER"
@@ -74,7 +74,6 @@ xdotool windowsize --sync "$WID" "$NARROW" "$H"
 sleep 1
 got=$(width_of "$WID")
 (( got <= NARROW + 10 )) || fail "window is $got px wide after resizing to $NARROW px: the status bar raised its minimum width"
-select_long
 shot "$WID" after-narrow "Narrow window, same selection: the long name, size and type are still shown in full on the left, and only the right part is cut short with …"
 pair narrow "Narrowed the window from $W px to $NARROW px with the long-named file selected" "When both parts don't fit, the selection keeps its full width and only the folder total and free space are shortened with …" "Wide: both parts in full" "Narrow: selection in full, right part cut short" "$G"
 

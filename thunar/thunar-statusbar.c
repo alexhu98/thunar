@@ -140,12 +140,6 @@ thunar_statusbar_class_init (ThunarStatusbarClass *klass)
                                                         NULL,
                                                         EXO_PARAM_WRITABLE));
 
-  /**
-   * ThunarStatusbar:info-text:
-   *
-   * The folder total and free space, displayed at the right edge of
-   * the statusbar. This property can only be written.
-   **/
   g_object_class_install_property (gobject_class,
                                    PROP_INFO_TEXT,
                                    g_param_spec_string ("info-text",
@@ -188,6 +182,7 @@ thunar_statusbar_init (ThunarStatusbar *statusbar)
   gtk_label_set_ellipsize (GTK_LABEL (statusbar->info_label), PANGO_ELLIPSIZE_END);
   gtk_label_set_single_line_mode (GTK_LABEL (statusbar->info_label), TRUE);
   gtk_label_set_xalign (GTK_LABEL (statusbar->info_label), 1.0f);
+  gtk_widget_set_margin_start (statusbar->info_label, 24);
   gtk_box_pack_end (GTK_BOX (message_area), statusbar->info_label, FALSE, FALSE, 0);
   gtk_widget_show (statusbar->info_label);
 

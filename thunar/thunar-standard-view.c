@@ -910,11 +910,6 @@ thunar_standard_view_class_init (ThunarStandardViewClass *klass)
                        NULL,
                        EXO_PARAM_READABLE);
 
-  /**
-   * ThunarStandardView:statusbar-info-text:
-   *
-   * The folder total and free space to be displayed on the right of the status bar.
-   **/
   standard_view_props[PROP_STATUSBAR_INFO_TEXT] =
   g_param_spec_string ("statusbar-info-text",
                        "statusbar-info-text",
