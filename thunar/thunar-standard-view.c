@@ -2796,6 +2796,9 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
 
   standard_view->priv->statusbar_text_idle_id = 0;
 
+  if (standard_view->loading)
+    return FALSE;
+
   thunar_standard_view_cancel_statusbar_job (standard_view);
 
   /* query the selected items */

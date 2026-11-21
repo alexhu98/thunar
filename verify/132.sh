@@ -96,5 +96,12 @@ go "$EMPTY" empty
 sleep 1
 shot "$WID" status-empty "Empty folder: the left of the status bar is empty, and the right part reads 0 items | Free space: …"
 
+focus "$WID"
+xdotool key ctrl+1
+sleep 1
+go "$DIR" files
+sleep 1
+shot "$WID" status-icon-view "Icon view, back on folder files with nothing selected: the left of the status bar is empty, and the right part reads 1 folder, 3 files: … | Free space: …"
+
 kill -0 "$THUNAR_PID" 2>/dev/null || fail "Thunar is no longer running"
 exit 0
