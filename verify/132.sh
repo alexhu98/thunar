@@ -76,7 +76,7 @@ got=$(width_of "$WID")
 (( got <= NARROW + 10 )) || fail "window is $got px wide after resizing to $NARROW px: the status bar raised its minimum width"
 select_long
 shot "$WID" after-narrow "Narrow window, same selection: the long name, size and type are still shown in full on the left, and only the right part is cut short with …"
-pair narrow "Narrowed the window from $W px to $NARROW px with the long-named file selected" "When both parts don't fit, the selection keeps its full width and only the folder total and free space are shortened with …" "Wide: both parts in full" "Narrow: selection in full, right part ends in …" "$G"
+pair narrow "Narrowed the window from $W px to $NARROW px with the long-named file selected" "When both parts don't fit, the selection keeps its full width and only the folder total and free space are shortened with …" "Wide: both parts in full" "Narrow: selection in full, right part cut short" "$G"
 
 xdotool windowsize --sync "$WID" "$W" "$H"
 sleep 1
