@@ -216,8 +216,8 @@
   <div class="panel">
   <div class="lane-h" style="color:var(--accent)">① The view: build two texts</div>
   <ol class="steps">
-    <li data-k="1"><b>Selection changes.</b> When the selection changes, the view's idle update in <code>thunar-standard-view.c</code> starts the status bar job, as before. In a search, it sets the texts itself: the found count goes on the right with the free space, and a selected result goes on the left.</li>
-    <li data-k="2"><b>Job splits text.</b> <code>_thunar_job_load_statusbar_text</code> in <code>thunar-io-jobs.c</code> now keeps the selection as a separate left text. The folder counts and the free space are joined into the right text. The folder total no longer starts with “Total:”: that prefix is dropped in <code>thunar-util.c</code>. With nothing selected, the left text is empty and the old folder summary moves to the right.</li>
+    <li data-k="1"><b>Selection changes.</b> When the selection changes, the view's idle update in <code>thunar-standard-view.c</code> starts the status bar job, as before. While a folder loads, the view clears the right part next to “Loading folder contents...”, so the previous folder's total doesn't stay. In a search, it sets the texts itself: the found count goes on the right with the free space, and a selected result goes on the left.</li>
+    <li data-k="2"><b>Job splits text.</b> <code>_thunar_job_load_statusbar_text</code> in <code>thunar-io-jobs.c</code> now keeps the selection as a separate left text. The folder counts and the free space are joined into the right text. The folder total no longer starts with “Total:”: that prefix is dropped in <code>thunar-util.c</code>. With nothing selected, the left text is empty and the right text is the same total and free space, in the same format. An empty folder's right part reads “0 items”.</li>
     <li data-k="3"><b>Two properties.</b> The view gets a new read-only property, <code>statusbar-info-text</code>, beside <code>statusbar-text</code>. It is stored under the same lock, and only by the job that is still current, so a slow, older job can't overwrite a newer selection's text.</li>
     <li data-k="4"><b>Window binds both.</b> <code>thunar-window.c</code> binds the new property to the status bar's new <code>info-text</code> in the same two places it binds the old one: when the window opens and when the active view changes, so the right part follows the tab or split pane you're in.</li>
   </ol>
@@ -240,28 +240,29 @@
   <div class="sbar-wrap"><div class="sbar"><span class="l">"2_extract_srt.sh"  |  877 bytes  |  Shell script</span><span class="r">1 folder, 13 files: 22.8 KiB  |  Free space: 11.4 TiB</span></div></div>
   </div>
   <div data-k="s3">
-  <p class="sbar-cap">After, nothing selected: the left is empty</p>
-  <div class="sbar-wrap"><div class="sbar"><span class="l"></span><span class="r">1 folder  |  13 files: 22.8 KiB  |  Free space: 11.4 TiB</span></div></div>
+  <p class="sbar-cap">After, nothing selected: the left is empty, and the right part reads as it does with a selection</p>
+  <div class="sbar-wrap"><div class="sbar"><span class="l"></span><span class="r">1 folder, 13 files: 22.8 KiB  |  Free space: 11.4 TiB</span></div></div>
   </div>
   <div data-k="s4">
   <p class="sbar-cap">After, a narrow window: the selection stays whole, only the right part is cut</p>
   <div class="sbar-wrap"><div class="sbar narrow"><span class="l">"2_extract_srt.sh"  |  877 bytes  |  Shell script</span><span class="r">1 folder, 13 files:…</span></div></div>
   </div>
-  <div class="note warn" data-k="fmt">With nothing selected the right part reads “1 folder | 13 files”, and with a selection “1 folder, 13 files”. The issue moves the old folder summary to the right as it is, so the two formats stay different for now.</div>
+  <div class="note warn" data-k="fmt">The right part has one format, with or without a selection, as the owner chose after CI's review. So with nothing selected, the Last Modified option no longer shows in the status bar: it was part of the old no-selection summary.</div>
   </section>
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">thunar/
-├── thunar-io-jobs.c        # the job returns a left text and a right text
+├── thunar-io-jobs.c        # left text and right text; one format for the right
 ├── thunar-util.c           # the folder total drops its "Total:" prefix
-├── thunar-standard-view.c  # new statusbar-info-text property; search fills it
+├── thunar-standard-view.c  # new statusbar-info-text property; search fills it,
+│                           #   loading clears it
 ├── thunar-standard-view.h  # set_statusbar_text_for_job takes the right text too
 ├── thunar-statusbar.c      # second label, 24 px gap, left-first width split
 └── thunar-window.c         # binds the new property where the old one is bound
 verify/
 ├── 132.sh                  # new test: empty, one file, narrow window, tabs
-└── 74.sh                   # shot texts updated: no more "Total:"
+└── 74.sh                   # shot texts updated: no "Total:", comma format
 explainers/
 ├── 132-statusbar-right.html            # this page
 └── 132-statusbar-right.narration.json  # its narration</pre>
@@ -273,7 +274,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The building session built and tested the first commit in a cloud container and audited the screenshots three times. The 24 px gap and the review fixes came later and were not re-run there: CI's verify on PR #136 covers them.</p>
+  <p class="intro" data-k="intro">The building session built and tested the first commit in a cloud container and audited the screenshots three times. The 24 px gap, the review fixes and the changes after CI's review came later and were not built or run there: CI's build and verify on PR #136 cover them.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -305,8 +306,8 @@ explainers/
     <tr data-k="c3"><td>Why 132 failed there</td><td>One pair's state text was over the 48-character limit. It was shortened, with no code change.</td><td class="ok">label fixed</td></tr>
     <tr data-k="c4"><td><code>verify/132.sh</code> on its own</td><td>Re-run with the smoke test three times against the same build, including the 810 px minimum-width check</td><td class="ok">3 of 3 pass</td></tr>
     <tr data-k="c5"><td>Screenshot audit</td><td><code>/visual-verify</code> three times. First: the 1400 px window was wider than the capture, and re-selecting selected every file, so the test now uses 1200 px and keeps the selection. Second: the long name alone was wider than 800 px, so it was cut as designed; the name was shortened.</td><td class="ok">3rd: 6 of 6 OK, PASS</td></tr>
-    <tr data-k="c6"><td>Audit advisories</td><td>The right part's two formats (see Part 1), and the right text touching the left one in the narrow window, which led to the 24 px gap</td><td class="ok">gap added</td></tr>
-    <tr data-k="c7"><td>The 24 px gap and the review fixes</td><td>Pushed after the local runs; CI's build and verify on PR #136 run them</td><td class="no">not run here</td></tr>
+    <tr data-k="c6"><td>Audit advisories</td><td>The right part's two formats (see Part 1), and the right text touching the left one in the narrow window, which led to the 24 px gap</td><td class="ok">gap added; one format later</td></tr>
+    <tr data-k="c7"><td>The 24 px gap, the review fixes, and clearing on load and one format</td><td>Pushed after the local runs; CI's build and verify on PR #136 run them. CI's verify results on a10bc23 aren't known to the session that made these changes.</td><td class="no">not run here</td></tr>
     <tr data-k="c8"><td>Split view, menu tooltips, “Loading folder contents...”, right-to-left</td><td>No test drives them; the binding code for split view is the one the tab test exercises</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -317,10 +318,11 @@ explainers/
   <p data-k="summary">Before the first push, a fresh agent ran <code>/code-review high --fix origin/main...HEAD</code>. It made 2 fixes and skipped 3 findings. One fix was kept and one undone.</p>
   <ul class="tight">
     <li data-k="b1"><b>Kept:</b> the two new property doc comments were removed, under <code>CLAUDE.md</code>'s rule against new explanatory comments.</li>
-    <li data-k="b2"><b>Undone:</b> clearing the right part while “Loading folder contents...” shows. The issue says that path must leave the right part alone.</li>
-    <li data-k="b3"><b>Skipped:</b> S1, the right part's format differs with and without a selection, kept as the issue's approach says. S2, the missing explainer, is this page. S3, uncommitted test edits, has since been committed.</li>
+    <li data-k="b2"><b>Undone, then restored:</b> clearing the right part while “Loading folder contents...” shows. It was undone because the issue said to leave the right part alone; after CI's review found the same problem, the owner chose clearing.</li>
+    <li data-k="b3"><b>Skipped:</b> S1, the right part's format differs with and without a selection, at first kept as the issue's approach said, now one format. S2, the missing explainer, is this page. S3, uncommitted test edits, has since been committed.</li>
   </ul>
-  <p data-k="ci">CI reviews every push at high and reports in the <a href="https://github.com/alexhu98/thunar/pull/136">code review comment on PR #136</a>, the second of CI's four comments. Its results weren't known when this page was written.</p>
+  <p data-k="ci">CI reviews every push at high and reports in the <a href="https://github.com/alexhu98/thunar/pull/136">code review comment on PR #136</a>, the second of CI's four comments. Its review of 895cdfe found three: R1 (medium, confirmed), the right part kept the previous folder's total while a folder loads; R2 (low), the two formats; R3 (low), the missing explainer, since pushed. The owner chose to clear the right part while loading and to use one format; both are fixed on the next push, which CI reviews.</p>
+  <div class="note warn" data-k="notrun">These two fixes were not built or run before pushing. CI's build and verify on the next push are their first run.</div>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -347,10 +349,10 @@ explainers/
   <section class="part" id="later">
   <p class="part-label" data-k="label">Part 3</p>
   <h2 data-k="heading">What comes later: nothing depends on it</h2>
-  <p class="intro" data-k="intro">No open issue depends on #132. #133 runs next in the same batch, but it doesn't build on this PR. One possible follow-up is an idea, not an issue.</p>
+  <p class="intro" data-k="intro">No open issue depends on #132. #133 runs next in the same batch, but it doesn't build on this PR. The one-format idea once listed here as a follow-up is now part of this PR.</p>
 
   <section class="sub" id="next">
-  <div class="diagram" role="img" aria-label="This PR merges; #133 runs next in the batch without depending on it; a possible follow-up would give the right part one format, not built yet.">
+  <div class="diagram" role="img" aria-label="This PR merges; #133 runs next in the batch without depending on it.">
   <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -374,14 +376,6 @@ explainers/
       <text x="286" y="154" class="b">dependency on #132</text>
     </g>
     <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
-    <text class="lane" x="520" y="44" style="fill:var(--future)">Possible follow-up</text>
-    <g data-k="n3">
-      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
-      <text x="536" y="90" class="t">One format</text>
-      <text x="536" y="114" class="b">the right part reads</text>
-      <text x="536" y="134" class="b">the same with and</text>
-      <text x="536" y="154" class="b">without a selection</text>
-    </g>
   </svg>
   </div>
   <div class="legend">
@@ -390,15 +384,6 @@ explainers/
   </div>
   </section>
 
-  <section class="sub" id="followup">
-  <h3 class="sec">Possible follow-up: one format for the right part (an idea, not an issue)</h3>
-  <div class="panel">
-  <ol class="steps">
-    <li data-k="1"><b>What it would change.</b> With nothing selected the right part would read “1 folder, 13 files: …” like it does with a selection, instead of “1 folder | 13 files: …”.</li>
-    <li data-k="2"><b>How it uses this PR.</b> The job would build the right text from the folder total in both cases, the same call this PR already uses when something is selected.</li>
-  </ol>
-  </div>
-  </section>
   </section>
 
   <section class="sub" id="glossary">
