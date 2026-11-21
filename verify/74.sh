@@ -67,7 +67,7 @@ xdotool key ctrl+2
 sleep 1
 
 clear_selection
-shot "$WID" after-status-none "Default settings, nothing selected: the status bar's right part reads 1 folder | 3 files: 6.0 MiB | Free space: …, with no (… bytes)"
+shot "$WID" after-status-none "Default settings, nothing selected: the status bar's right part reads 1 folder, 3 files: 6.0 MiB | Free space: …, with no (… bytes)"
 select_one
 shot "$WID" after-status-one "Default settings, a.bin selected: \"a.bin\" | 1.0 MiB | its type on the left, 1 folder, 3 files: 6.0 MiB | Free space: … on the right"
 select_two

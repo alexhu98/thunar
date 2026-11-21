@@ -1987,23 +1987,12 @@ _thunar_job_load_statusbar_text (ThunarJob *job,
     {
       left_text = g_strdup (selection_text);
     }
-  else if (folder_g_files != NULL)
-    {
-      text_list = g_list_append (text_list, thunar_util_get_statusbar_text_for_files (folder_g_files,
-                                                                                      show_hidden,
-                                                                                      show_file_size_binary_format,
-                                                                                      date_style,
-                                                                                      date_custom_style,
-                                                                                      status_bar_active_info,
-                                                                                      exo_job_get_cancellable (EXO_JOB (job))));
-    }
 
-  if (left_text != NULL && folder_g_files != NULL)
+  if (folder_g_files != NULL)
     {
       temp_string = thunar_util_get_statusbar_total_text_for_files (folder_g_files, show_hidden, show_file_size_binary_format, status_bar_active_info,
                                                                     exo_job_get_cancellable (EXO_JOB (job)));
-      if (temp_string != NULL)
-        text_list = g_list_append (text_list, temp_string);
+      text_list = g_list_append (text_list, temp_string != NULL ? temp_string : g_strdup (_ ("0 items")));
     }
 
   if (exo_job_set_error_if_cancelled (EXO_JOB (job), error))

@@ -63,7 +63,7 @@ xdotool key ctrl+2
 sleep 1
 
 clear_selection
-shot "$WID" status-none "Nothing selected: the left of the status bar is empty, and 1 folder | 3 files: … | Free space: … sits against the right edge"
+shot "$WID" status-none "Nothing selected: the left of the status bar is empty, and 1 folder, 3 files: … | Free space: … sits against the right edge"
 
 select_first_file
 shot "$WID" status-one "b.bin selected: \"b.bin\" | 1.0 MiB | its type on the left, and 1 folder, 3 files: 3.0 MiB | Free space: … on the right, with no word Total"
@@ -88,7 +88,7 @@ shot "$WID" status-tab-other "New tab on folder other: the right part follows th
 xdotool key ctrl+Page_Up
 wait_title "$WID" files
 sleep 1
-shot "$WID" status-tab-back "Back on the first tab, nothing selected: the right part reads the files folder's 1 folder | 3 files: … | Free space: … again"
+shot "$WID" status-tab-back "Back on the first tab, nothing selected: the right part reads the files folder's 1 folder, 3 files: … | Free space: … again, in the same format as with a selection"
 
 kill -0 "$THUNAR_PID" 2>/dev/null || fail "Thunar is no longer running"
 exit 0
