@@ -1939,6 +1939,8 @@ thunar_standard_view_set_loading (ThunarStandardView *standard_view,
     {
       gchar *statusbar_text;
 
+      if (loading)
+        thunar_standard_view_cancel_statusbar_job (standard_view);
       statusbar_text = g_strdup (_("Loading folder contents..."));
       thunar_standard_view_set_statusbar_text (standard_view, statusbar_text);
       thunar_standard_view_set_statusbar_info_text (standard_view, NULL);
