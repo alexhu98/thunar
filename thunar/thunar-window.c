@@ -1361,7 +1361,10 @@ thunar_window_init (ThunarWindow *window)
 
   thunar_statusbar_setup_event (THUNAR_STATUSBAR (window->statusbar), event_box);
   if (G_LIKELY (window->view != NULL))
-    thunar_window_binding_create (window, THUNAR_STANDARD_VIEW (window->view), "statusbar-text", window->statusbar, "text", G_BINDING_SYNC_CREATE);
+    {
+      thunar_window_binding_create (window, THUNAR_STANDARD_VIEW (window->view), "statusbar-text", window->statusbar, "text", G_BINDING_SYNC_CREATE);
+      thunar_window_binding_create (window, THUNAR_STANDARD_VIEW (window->view), "statusbar-info-text", window->statusbar, "info-text", G_BINDING_SYNC_CREATE);
+    }
 
   /* load the bookmarks file and monitor */
   window->bookmarks = NULL;
@@ -2596,6 +2599,9 @@ thunar_window_switch_current_view (ThunarWindow *window,
     {
       thunar_window_binding_create (window, THUNAR_STANDARD_VIEW (new_view), "statusbar-text",
                                     window->statusbar, "text",
+                                    G_BINDING_SYNC_CREATE);
+      thunar_window_binding_create (window, THUNAR_STANDARD_VIEW (new_view), "statusbar-info-text",
+                                    window->statusbar, "info-text",
                                     G_BINDING_SYNC_CREATE);
     }
 
