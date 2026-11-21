@@ -185,6 +185,9 @@ thunar_standard_view_get_statusbar_text (ThunarView *view);
 static gchar *
 thunar_standard_view_get_statusbar_info_text (ThunarStandardView *standard_view);
 static void
+thunar_standard_view_set_statusbar_info_text (ThunarStandardView *standard_view,
+                                              const gchar        *info_text);
+static void
 thunar_standard_view_cancel_statusbar_job (ThunarStandardView *standard_view);
 static void
 thunar_standard_view_clear_search_free_space (ThunarStandardView *standard_view);
@@ -1938,8 +1941,10 @@ thunar_standard_view_set_loading (ThunarStandardView *standard_view,
 
       statusbar_text = g_strdup (_("Loading folder contents..."));
       thunar_standard_view_set_statusbar_text (standard_view, statusbar_text);
+      thunar_standard_view_set_statusbar_info_text (standard_view, NULL);
       g_free (statusbar_text);
       g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_TEXT]);
+      g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_INFO_TEXT]);
 
       if (G_UNLIKELY (!loading))
         {
