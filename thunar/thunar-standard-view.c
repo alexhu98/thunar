@@ -1933,20 +1933,27 @@ thunar_standard_view_set_loading (ThunarStandardView *standard_view,
   if (!loading && standard_view->priv->rename_text != NULL && standard_view->priv->rename_entry == NULL)
     thunar_standard_view_rename_queue (standard_view);
 
+  if (loading)
+    {
+      thunar_standard_view_cancel_statusbar_job (standard_view);
+      thunar_standard_view_set_statusbar_info_text (standard_view, NULL);
+      g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_INFO_TEXT]);
+    }
+  else if (!THUNAR_IS_DETAILS_VIEW (standard_view))
+    {
+      thunar_standard_view_update_statusbar_text (standard_view);
+    }
+
   /* check if we're done loading and have a scheduled scroll_to_file
    * scrolling after loading circumvents the scroll caused by gtk_tree_view_set_cell */
   if (THUNAR_IS_DETAILS_VIEW (standard_view))
     {
       gchar *statusbar_text;
 
-      if (loading)
-        thunar_standard_view_cancel_statusbar_job (standard_view);
       statusbar_text = g_strdup (_("Loading folder contents..."));
       thunar_standard_view_set_statusbar_text (standard_view, statusbar_text);
-      thunar_standard_view_set_statusbar_info_text (standard_view, NULL);
       g_free (statusbar_text);
       g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_TEXT]);
-      g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_INFO_TEXT]);
 
       if (G_UNLIKELY (!loading))
         {
