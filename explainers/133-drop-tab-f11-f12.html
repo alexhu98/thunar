@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Issue #133 F11 F12</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">This PR for #133: F11 and F12 drop the selection on the previous and next tab</h1>
+  <p class="lead" data-k="lead">Branch <code>133-drop-tab-f11-f12</code> → <code>main</code>, closes #133. F11 now does what Alt+Page Up does, and F12 what Alt+Page Down does: send the selected files to the previous or next tab's folder, as a drop there would. The Alt keys keep working.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing depends on #133</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">Two extra window actions with no menu label, bound to F11 and F12. They call the same handlers as #128's Drop on Previous Tab and Drop on Next Tab, so nothing about the drop itself changes.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="You press F11 or F12, a second menu-less action entry catches the key and calls the same handler as Alt+Page Up or Down, which drops the files on the neighbouring tab as before; the Alt keys still reach the same handler">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① F11 / F12 — the new keys</text>
+    <g data-k="1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">You press a key</text>
+      <text x="36" y="114" class="b">F12: next tab</text>
+      <text x="36" y="134" class="b">F11: previous tab</text>
+      <text x="36" y="154" class="b">focus in the file view</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Second entry</text>
+      <text x="286" y="114" class="m">*-tab-alt-1</text>
+      <text x="286" y="134" class="b">no menu label, like</text>
+      <text x="286" y="154" class="b">F5 for Reload</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-merge" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Same handler</text>
+      <text x="536" y="114" class="m">drop_on_*_tab</text>
+      <text x="536" y="134" class="b">#128's two actions,</text>
+      <text x="536" y="154" class="b">unchanged</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-merge" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Drop, as before</text>
+      <text x="786" y="114" class="m">drop_on_view</text>
+      <text x="786" y="134" class="b">move or copy; nothing</text>
+      <text x="786" y="154" class="b">in a text field</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② The old keys, unchanged</text>
+    <g data-k="5">
+      <rect class="box-merge" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Alt+Page keys</text>
+      <text x="36" y="314" class="b">Up and Down keep</text>
+      <text x="36" y="334" class="b">their entries and</text>
+      <text x="36" y="354" class="b">Edit menu items</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <path class="arrow" d="M230,320 H625 V184" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new in this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>already there from #128, unchanged</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">#128 added Drop on Previous Tab and Drop on Next Tab on Alt+Page Up and Alt+Page Down. Those are two-key chords; F11 and F12 are single keys that Thunar didn't use at all, so they make the same drops quicker to reach.</p>
+  <div class="note" data-k="note">A GTK shortcut path holds only one key. So, as Thunar already does for F5 (a second key for Reload), each action gets a second entry in the action table, with its own path, its own key and the same handler.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① F11 / F12</div>
+  <ol class="steps">
+    <li data-k="1"><b>You press a key.</b> F12 drops the selected files on the next tab, F11 on the previous one. In split view the order runs through the left pane's tabs and on into the right pane's, so both keys cross the split, exactly as the Alt keys do.</li>
+    <li data-k="2"><b>Second entry.</b> <code>thunar/thunar-window.c</code> gains <code>drop-on-previous-tab-alt-1</code> with F11 and <code>drop-on-next-tab-alt-1</code> with F12, and <code>thunar/thunar-window.h</code> their two ids. They have no label, so they add nothing to the Edit menu. The window connects every entry of the table to its shortcuts, so no other wiring was needed.</li>
+    <li data-k="3"><b>Same handler.</b> Each new entry points at #128's existing <code>thunar_window_action_drop_on_previous_tab</code> or <code>_next_tab</code>. No handler code changed.</li>
+    <li data-k="4"><b>Drop, as before.</b> The handler finds the neighbouring tab and calls <code>thunar_window_drop_on_view</code>, which moves or copies as a drop would. Its keyboard check still applies: with the focus in a text field, such as the location bar, F11 and F12 move nothing.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② The old keys</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Alt+Page keys.</b> Alt+Page Up and Alt+Page Down keep their own entries, keys and Edit menu items. Each of the four keys can be changed on its own in <code>accels.scm</code> or the shortcuts editor.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="code">
+  <h3 class="sec">The key change</h3>
+<pre data-k="diff">{ …DROP_ON_PREVIOUS_TAB, ".../drop-on-previous-tab", "&lt;Alt&gt;Page_Up", …, drop_on_previous_tab },
+<span class="add">{ …DROP_ON_PREVIOUS_TAB_ALT_1, ".../drop-on-previous-tab-alt-1", "F11", …, NULL label, drop_on_previous_tab },</span>
+{ …DROP_ON_NEXT_TAB, ".../drop-on-next-tab", "&lt;Alt&gt;Page_Down", …, drop_on_next_tab },
+<span class="add">{ …DROP_ON_NEXT_TAB_ALT_1, ".../drop-on-next-tab-alt-1", "F12", …, NULL label, drop_on_next_tab },</span></pre>
+  <p data-k="diff-note">Each new line copies its neighbour, with a new path, a new key, no label and the same handler. That is the whole code change.</p>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+├── thunar-window.c   # two menu-less action entries: F11 and F12
+└── thunar-window.h   # their two action ids
+verify/133.sh         # the test: F12, F11, both Alt keys, location bar
+explainers/
+├── 133-drop-tab-f11-f12.html            # this page
+└── 133-drop-tab-f11-f12.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo it, revert this PR. It stores no setting. If you rebound F11 or F12 for these actions, that saved binding just stops matching an action. A desktop that binds F11 (fullscreen) or F12 (a drop-down terminal) for itself wins over Thunar; change one of the two bindings to use these keys.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built and tested in the cloud container in this session, then reviewed by a fresh agent, whose two fixes to the test were re-run. CI hasn't run yet: it builds, tests and reviews after the first push.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Reload's F5</h3><p><code>reload-alt-1</code>: a second, menu-less entry with its own key and Reload's handler. Zoom, Back and Delete use the same pattern.</p></div>
+    <div class="card" data-k="r2"><h3>#128's drop actions</h3><p>Drop on Previous Tab and Drop on Next Tab, with their handlers and keyboard check, reused as they are.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage</code> in the cloud container, by the build-verify agent in this session, on the first commit, before the review fixes to the test</td><td class="ok">built; 0 warnings in changed files</td></tr>
+    <tr data-k="c2"><td>All tests</td><td><code>verify-proof.sh install</code> and <code>run</code> on that build, smoke test included, before the review fixes</td><td class="ok">28 of 28 pass; #133 in 24 s, #128 in 43 s</td></tr>
+    <tr data-k="c3"><td>F12 crosses the split</td><td><code>verify/133.sh</code>, pair <code>f12</code>: f1.txt selected in beta, the left pane's last tab, then F12</td><td class="ok">in gamma, gone from beta</td></tr>
+    <tr data-k="c4"><td>F11 crosses back</td><td>pair <code>f11</code>: f1.txt selected in gamma, the right pane's first tab, then F11</td><td class="ok">back in beta, gone from gamma</td></tr>
+    <tr data-k="c5"><td>The Alt keys still work</td><td>pairs <code>alt-next</code> and <code>alt-previous</code>, added by the review fix: Alt+Page Down from beta, Alt+Page Up from gamma; the active tab is checked each time</td><td class="ok">f1.txt moved both ways; the tab stayed active</td></tr>
+    <tr data-k="c6"><td>Location bar keeps the keys</td><td>pair <code>entry</code>: a path typed in the location bar, then F12, F11 (F11 added by the review fix) and Return</td><td class="ok">nothing moved, zz opened</td></tr>
+    <tr data-k="c7"><td>The test after the review fixes</td><td><code>verify-proof.sh run</code> with only the smoke test and <code>verify/133.sh</code>, on the same build</td><td class="ok">2 of 2 pass; #133 in 28 s</td></tr>
+    <tr data-k="c8"><td>Screenshots audited</td><td><code>/visual-verify</code> on CI's shots, after the first push</td><td class="no">not run yet</td></tr>
+    <tr data-k="c9"><td>A desktop that grabs F11 or F12</td><td>The test runs under xfwm4 only, which binds neither key</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh general-purpose agent ran <code>/code-review</code> at level high on the branch against <code>origin/main</code>: 4 findings, 2 fixed, 2 skipped. Both fixes are in <code>verify/133.sh</code>; the code itself drew none.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed:</b> the Alt+Page Down and Alt+Page Up check was one pair whose before and after shots looked the same. It is now two pairs, <code>alt-next</code> and <code>alt-previous</code>, and each checks that the tab you started on stays active.</li>
+    <li data-k="b2"><b>Fixed:</b> the location-bar step pressed only F12. It now presses F11 too.</li>
+    <li data-k="b3"><b>Skipped:</b> the PR had no explainer yet. This page is it.</li>
+    <li data-k="b4"><b>Skipped, for a separate issue:</b> an older bug outside this diff. The handler for shortcuts typed in a tab gets the count of action ids rather than the table's real length, so it never checks the last entry, F10. It doesn't touch F11 or F12.</li>
+  </ul>
+  <p data-k="ci">CI reviews every code push at level high and reports in the code review comment on this PR. It hasn't run yet.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the push or the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>CI's build and all the tests on the head with the review fixes</td><td>Here the full run was on the first commit; after the fixes only the smoke test and <code>verify/133.sh</code> ran</td><td class="open">on the first push</td></tr>
+    <tr data-k="a2"><td>CI's code review</td><td>It reviews pushed commits only</td><td class="open">on the first push</td></tr>
+    <tr data-k="a3"><td>Audit of the screenshots</td><td>Needs CI's shots of <code>verify/133.sh</code></td><td class="open">after CI's first run</td></tr>
+    <tr data-k="a4"><td>F11 and F12 under a desktop that binds them</td><td>The test runs under xfwm4 only</td><td class="open">after the merge, in use</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/133">#133</a>; the earlier keys: <a href="https://github.com/alexhu98/thunar/issues/128">#128</a></li>
+    <li data-k="l2">The branch: <a href="https://github.com/alexhu98/thunar/tree/133-drop-tab-f11-f12">133-drop-tab-f11-f12</a>, with <code>verify/133.sh</code></li>
+    <li data-k="l3">CI's summary, code review, verify and explainer comments on this PR, with the screenshots of all five pairs</li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing depends on #133</h2>
+  <p class="intro" data-k="intro">No open issue says "Depends on #133". The batch runs #135 next, a search-bar change that doesn't build on this one.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR adds F11 and F12; the batch runs issue 135 next, which doesn't depend on it; one idea is a follow-up issue for the F10 bug the review found">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--merge)">#133 and what follows</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">F11 / F12 drop on</text>
+      <text x="36" y="134" class="b">the previous or</text>
+      <text x="36" y="154" class="b">next tab</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">#135, next</text>
+      <text x="286" y="114" class="b">search bar: Enter</text>
+      <text x="286" y="134" class="b">goes to the file list</text>
+      <text x="286" y="154" class="b">(not dependent)</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Idea: F10 fix</text>
+      <text x="536" y="114" class="b">tab-shortcut handler</text>
+      <text x="536" y="134" class="b">misses the last entry</text>
+      <text x="536" y="154" class="b">(no issue yet)</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet; arrows show order, not dependency</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-a">
+  <h3 class="sec">Next steps</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Nothing waits on #133.</b> No open issue depends on it, so merging this PR unblocks nothing else.</li>
+    <li data-k="2"><b>Next in the batch: #135.</b> In the search bar, Enter moves the focus to the file list. It touches the location and path entries, not the window's actions.</li>
+    <li data-k="3"><b>Idea: the F10 bug.</b> The review's skipped finding could become its own issue: pass the action table's real length, so F10 is checked too.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="tab"><dt>Tab</dt><dd>One folder view among several in a pane, picked by its label at the top.</dd></div>
+    <div data-k="split"><dt>Split view</dt><dd>F3: two panes side by side in one window, each with its own tabs.</dd></div>
+    <div data-k="drop"><dt>Drop on Previous / Next Tab</dt><dd>#128's actions: send the selection to the neighbouring tab's folder, as a drop would.</dd></div>
+    <div data-k="action"><dt>Window action</dt><dd>An entry in Thunar's action table: a path, a default key, a label and a handler.</dd></div>
+    <div data-k="path"><dt>Shortcut path</dt><dd>The name GTK stores a key under; each holds one key.</dd></div>
+    <div data-k="alt1"><dt>-alt-1 entry</dt><dd>A menu-less copy of an action with another key, such as F5 for Reload.</dd></div>
+    <div data-k="accels"><dt>accels.scm</dt><dd>The file where Thunar keeps your changed keyboard shortcuts.</dd></div>
+    <div data-k="focus"><dt>Keyboard focus</dt><dd>The one widget that gets key presses, such as the file view or the location bar.</dd></div>
+    <div data-k="editable"><dt>Text field</dt><dd>A box you type into: the location bar, a rename entry or the search box.</dd></div>
+    <div data-k="verify"><dt>verify/133.sh</dt><dd>The test script CI runs: it drives Thunar with xdotool and takes screenshots.</dd></div>
+    <div data-k="pair"><dt>Pair</dt><dd>A before and after screenshot around one action in a test.</dd></div>
+    <div data-k="xfwm"><dt>xfwm4</dt><dd>Xfce's window manager, which the tests run under.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
