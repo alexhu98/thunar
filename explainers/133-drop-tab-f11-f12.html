@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Issue #133 F11 F12</title>
+<title>PR #137 F11 F12</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -100,8 +100,8 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">This PR for #133: F11 and F12 drop the selection on the previous and next tab</h1>
-  <p class="lead" data-k="lead">Branch <code>133-drop-tab-f11-f12</code> → <code>main</code>, closes #133. F11 now does what Alt+Page Up does, and F12 what Alt+Page Down does: send the selected files to the previous or next tab's folder, as a drop there would. The Alt keys keep working.</p>
+  <h1 data-k="title">PR #137: F11 and F12 drop the selection on the previous and next tab</h1>
+  <p class="lead" data-k="lead"><a href="https://github.com/alexhu98/thunar/pull/137">PR #137</a>: branch <code>133-drop-tab-f11-f12</code> → <code>main</code>, closes #133. F11 now does what Alt+Page Up does, and F12 what Alt+Page Down does: send the selected files to the previous or next tab's folder, as a drop there would. The Alt keys keep working.</p>
 
   <nav class="parts" aria-label="Parts of this page">
     <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
@@ -230,7 +230,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested in the cloud container in this session, then reviewed by a fresh agent, whose two fixes to the test were re-run. CI hasn't run yet: it builds, tests and reviews after the first push.</p>
+  <p class="intro" data-k="intro">Built and tested in the cloud container, then reviewed by a fresh agent, whose two fixes to the test were re-run. Then CI built, tested and reviewed both heads of <a href="https://github.com/alexhu98/thunar/pull/137">PR #137</a>, and its screenshots passed the audit.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -252,7 +252,9 @@ explainers/
     <tr data-k="c5"><td>The Alt keys still work</td><td>pairs <code>alt-next</code> and <code>alt-previous</code>, added by the review fix: Alt+Page Down from beta, Alt+Page Up from gamma; the active tab is checked each time</td><td class="ok">f1.txt moved both ways; the tab stayed active</td></tr>
     <tr data-k="c6"><td>Location bar keeps the keys</td><td>pair <code>entry</code>: a path typed in the location bar, then F12, F11 (F11 added by the review fix) and Return</td><td class="ok">nothing moved, zz opened</td></tr>
     <tr data-k="c7"><td>The test after the review fixes</td><td><code>verify-proof.sh run</code> with only the smoke test and <code>verify/133.sh</code>, on the same build</td><td class="ok">2 of 2 pass; #133 in 28 s</td></tr>
-    <tr data-k="c8"><td>Screenshots audited</td><td><code>/visual-verify</code> on CI's shots, after the first push</td><td class="no">not run yet</td></tr>
+    <tr data-k="c10"><td>CI on the first head</td><td><a href="https://github.com/alexhu98/thunar/actions/runs/44978129337">CI run 44978129337</a> on <code>2ad421c</code>: build, explainer, code review at high</td><td class="ok">build and explainer pass; review: 2 low findings</td></tr>
+    <tr data-k="c11"><td>CI on the fixed head</td><td>CI on <code>87a6ea4</code>, with R2's fix: build, verify, explainer, code review</td><td class="ok">all pass; every test passes, 254 shots; no new findings</td></tr>
+    <tr data-k="c8"><td>Screenshots audited</td><td><code>/visual-verify pr:137</code> on CI's shots of <code>87a6ea4</code>; #133's are shots 49–53, the smoke test 170</td><td class="ok">PASS; 254 of 254 shots OK</td></tr>
     <tr data-k="c9"><td>A desktop that grabs F11 or F12</td><td>The test runs under xfwm4 only, which binds neither key</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -265,19 +267,21 @@ explainers/
     <li data-k="b1"><b>Fixed:</b> the Alt+Page Down and Alt+Page Up check was one pair whose before and after shots looked the same. It is now two pairs, <code>alt-next</code> and <code>alt-previous</code>, and each checks that the tab you started on stays active.</li>
     <li data-k="b2"><b>Fixed:</b> the location-bar step pressed only F12. It now presses F11 too.</li>
     <li data-k="b3"><b>Skipped:</b> the PR had no explainer yet. This page is it.</li>
-    <li data-k="b4"><b>Skipped, for a separate issue:</b> an older bug outside this diff. The handler for shortcuts typed in a tab gets the count of action ids rather than the table's real length, so it never checks the last entry, F10. It doesn't touch F11 or F12.</li>
+    <li data-k="b4"><b>Skipped:</b> an older bug outside this diff. The handler for shortcuts typed in a tab gets the count of action ids rather than the table's real length, so it never checks the last entry, F10. It doesn't touch F11 or F12. CI found it too, as R1.</li>
   </ul>
-  <p data-k="ci">CI reviews every code push at level high and reports in the code review comment on this PR. It hasn't run yet.</p>
+  <p data-k="ci">CI reviewed the first head at level high and reported 2 low, plausible findings in the code review comment on <a href="https://github.com/alexhu98/thunar/pull/137">PR #137</a>.</p>
+  <ul class="tight">
+    <li data-k="r2"><b>R2, fixed in <code>87a6ea4</code>:</b> <code>verify/133.sh</code> had explanatory comments, which <code>CLAUDE.md</code> rules out. They are gone.</li>
+    <li data-k="r1"><b>R1, accepted by the owner:</b> the F10 bug above. Two places, <code>thunar-window.c:5548</code> and the shortcuts editor at <code>thunar-preferences-dialog.c:1492</code>, pass a length one short. It predates this PR and is outside #133, so it has no follow-up issue.</li>
+    <li data-k="r3"><b>Second head:</b> CI's review of <code>87a6ea4</code> found nothing new.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
-  <h3 class="sec">Checked only after the push or the merge</h3>
+  <h3 class="sec">Checked only after the merge</h3>
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI's build and all the tests on the head with the review fixes</td><td>Here the full run was on the first commit; after the fixes only the smoke test and <code>verify/133.sh</code> ran</td><td class="open">on the first push</td></tr>
-    <tr data-k="a2"><td>CI's code review</td><td>It reviews pushed commits only</td><td class="open">on the first push</td></tr>
-    <tr data-k="a3"><td>Audit of the screenshots</td><td>Needs CI's shots of <code>verify/133.sh</code></td><td class="open">after CI's first run</td></tr>
     <tr data-k="a4"><td>F11 and F12 under a desktop that binds them</td><td>The test runs under xfwm4 only</td><td class="open">after the merge, in use</td></tr>
   </table>
   </div>
@@ -288,7 +292,8 @@ explainers/
   <ul class="tight">
     <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/133">#133</a>; the earlier keys: <a href="https://github.com/alexhu98/thunar/issues/128">#128</a></li>
     <li data-k="l2">The branch: <a href="https://github.com/alexhu98/thunar/tree/133-drop-tab-f11-f12">133-drop-tab-f11-f12</a>, with <code>verify/133.sh</code></li>
-    <li data-k="l3">CI's summary, code review, verify and explainer comments on this PR, with the screenshots of all five pairs</li>
+    <li data-k="l3"><a href="https://github.com/alexhu98/thunar/pull/137">PR #137</a>: CI's summary, code review, verify and explainer comments, with the screenshots of all five pairs, and the visual-verify verdict</li>
+    <li data-k="l4">CI on the first head: <a href="https://github.com/alexhu98/thunar/actions/runs/44978129337">run 44978129337</a></li>
   </ul>
   </section>
   </section>
@@ -300,7 +305,7 @@ explainers/
   <p class="intro" data-k="intro">No open issue says "Depends on #133". The batch runs #135 next, a search-bar change that doesn't build on this one.</p>
 
   <section class="sub" id="next">
-  <div class="diagram" role="img" aria-label="This PR adds F11 and F12; the batch runs issue 135 next, which doesn't depend on it; one idea is a follow-up issue for the F10 bug the review found">
+  <div class="diagram" role="img" aria-label="This PR adds F11 and F12; the batch runs issue 135 next, which doesn't depend on it">
   <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -322,15 +327,7 @@ explainers/
       <text x="286" y="134" class="b">goes to the file list</text>
       <text x="286" y="154" class="b">(not dependent)</text>
     </g>
-    <g data-k="n3">
-      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
-      <text x="536" y="90" class="t">Idea: F10 fix</text>
-      <text x="536" y="114" class="b">tab-shortcut handler</text>
-      <text x="536" y="134" class="b">misses the last entry</text>
-      <text x="536" y="154" class="b">(no issue yet)</text>
-    </g>
     <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
-    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
   </svg>
   </div>
   <div class="legend">
@@ -345,7 +342,7 @@ explainers/
   <ol class="steps">
     <li data-k="1"><b>Nothing waits on #133.</b> No open issue depends on it, so merging this PR unblocks nothing else.</li>
     <li data-k="2"><b>Next in the batch: #135.</b> In the search bar, Enter moves the focus to the file list. It touches the location and path entries, not the window's actions.</li>
-    <li data-k="3"><b>Idea: the F10 bug.</b> The review's skipped finding could become its own issue: pass the action table's real length, so F10 is checked too.</li>
+    <li data-k="3"><b>The F10 bug stays.</b> The owner accepted R1, an older upstream bug outside #133, without a follow-up issue.</li>
   </ol>
   </div>
   </section>
