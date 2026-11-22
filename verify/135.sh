@@ -116,3 +116,20 @@ sleep 0.5
 xdotool key ctrl+c
 sleep 0.5
 pasted_is typed apple1.txt
+
+xfconf-query -c thunar -p /last-location-bar -n -t string -s ThunarLocationEntry
+sleep 1
+go "$DIR"
+focus "$WID"
+xdotool key ctrl+l
+sleep 0.5
+xdotool key ctrl+a
+xdotool type --delay 20 "Search: apple"
+sleep 2
+xdotool key Return
+sleep 0.5
+xdotool key Down
+sleep 0.5
+xdotool key ctrl+c
+sleep 0.5
+pasted_is typed-entry apple1.txt
