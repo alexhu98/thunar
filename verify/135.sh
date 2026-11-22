@@ -57,6 +57,34 @@ copy_all() {
   sleep 0.5
 }
 
+typed_search() {
+  focus "$WID"
+  xdotool key ctrl+l
+  sleep 0.5
+  xdotool key ctrl+a
+  xdotool type --delay 20 "Search: apple"
+  sleep 2
+  xdotool key Return
+  sleep 0.5
+}
+
+typed_checks() {  # check name
+  go "$DIR"
+  typed_search
+  xdotool key Down
+  sleep 0.5
+  xdotool key ctrl+c
+  sleep 0.5
+  pasted_is "$1-first" apple1.txt
+
+  go "$DIR"
+  copy_all
+  typed_search
+  xdotool key ctrl+a ctrl+c
+  sleep 0.5
+  pasted_is "$1" apple1.txt apple2.txt
+}
+
 open_thunar "$DIR"
 xdotool windowsize --sync "$WID" "$W" "$H"
 wait_title "$WID" files
@@ -90,6 +118,7 @@ pasted_is results apple1.txt apple2.txt
 xfconf-query -c thunar -p /last-location-bar -n -t string -s ThunarLocationButtons
 sleep 1
 go "$DIR"
+copy_all
 focus "$WID"
 xdotool key ctrl+l
 sleep 0.5
@@ -110,32 +139,8 @@ xdotool key Return Down
 sleep 1
 kill -0 "$THUNAR_PID" || fail "Thunar exited after Enter on a search with no matches"
 
-go "$DIR"
-copy_all
-focus "$WID"
-xdotool key ctrl+l
-sleep 0.5
-xdotool key ctrl+a
-xdotool type --delay 20 "Search: apple"
-sleep 2
-xdotool key Return
-sleep 0.5
-xdotool key ctrl+a ctrl+c
-sleep 0.5
-pasted_is typed apple1.txt apple2.txt
+typed_checks typed
 
 xfconf-query -c thunar -p /last-location-bar -n -t string -s ThunarLocationEntry
 sleep 1
-go "$DIR"
-copy_all
-focus "$WID"
-xdotool key ctrl+l
-sleep 0.5
-xdotool key ctrl+a
-xdotool type --delay 20 "Search: apple"
-sleep 2
-xdotool key Return
-sleep 0.5
-xdotool key ctrl+a ctrl+c
-sleep 0.5
-pasted_is typed-entry apple1.txt apple2.txt
+typed_checks typed-entry
