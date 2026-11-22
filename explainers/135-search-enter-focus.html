@@ -138,15 +138,15 @@
       <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
       <text x="286" y="90" class="t">Enter</text>
       <text x="286" y="114" class="m">location-entry.c</text>
-      <text x="286" y="134" class="b">searching, and text</text>
-      <text x="286" y="154" class="b">is a query: branch</text>
+      <text x="286" y="134" class="b">text is a search</text>
+      <text x="286" y="154" class="b">query: new branch</text>
       <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
     </g>
     <g data-k="3">
       <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
       <text x="536" y="90" class="t">Keep the bar</text>
-      <text x="536" y="114" class="b">disarm the focus-out</text>
-      <text x="536" y="134" class="b">edit-done handler</text>
+      <text x="536" y="114" class="b">if searching, disarm</text>
+      <text x="536" y="134" class="b">focus-out edit-done</text>
       <text x="536" y="154" class="b">bar stays a search</text>
       <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
     </g>
@@ -201,9 +201,9 @@
   <div class="lane-h" style="color:var(--accent)">① Enter in the search box</div>
   <ol class="steps">
     <li data-k="1"><b>You search.</b> Ctrl+F opens the search box and each letter you type updates the results, as before.</li>
-    <li data-k="2"><b>Enter.</b> <code>thunar_location_entry_activate</code> is the box's Enter handler. It finds no file for the text, and now checks two things: <code>thunar_window_is_searching</code>, a new getter in <code>thunar-window.c</code>, says the window is in search mode, and <code>thunar_util_is_a_search_query</code> says the text is a search. Only when both hold does it take the new branch, so a hand-typed “Search:” text in a path box is left alone (CI's review finding R1).</li>
-    <li data-k="3"><b>Keep the bar.</b> The branch disconnects the box's pending “edit done on focus-out” handler. Without that, with the path-buttons style of location bar, moving the focus away would swap the bar back to buttons in the middle of the search.</li>
-    <li data-k="4"><b>Focus to list.</b> It finds the window and calls <code>gtk_widget_grab_focus</code> on <code>thunar_window_get_view</code>, the same call the location bar already makes after selecting a file (#93).</li>
+    <li data-k="2"><b>Enter.</b> <code>thunar_location_entry_activate</code> is the box's Enter handler. It finds no file for the text, and now asks <code>thunar_util_is_a_search_query</code> whether the text is a search. When it is, it takes the new branch, whether you came through Ctrl+F or typed “Search: apple” into the location bar yourself (CI's review finding R4).</li>
+    <li data-k="3"><b>Keep the bar.</b> Only when <code>thunar_window_is_searching</code>, a new getter in <code>thunar-window.c</code>, says the window is in search mode, the branch disconnects the box's pending “edit done on focus-out” handler. Without that, with the path-buttons style of location bar, moving the focus away would swap the bar back to buttons in the middle of the search. A hand-typed query in a temporary path box keeps the handler, so the box still closes (R1).</li>
+    <li data-k="4"><b>Focus to list.</b> In every case it then calls <code>gtk_widget_grab_focus</code> on <code>thunar_window_get_view</code>, the same call the location bar already makes after selecting a file (#93).</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② After Enter, and what stays the same</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
@@ -218,10 +218,10 @@
 <pre data-k="diff"><span class="add">else</span>
 <span class="add">  {</span>
 <span class="add">    window = get_toplevel (location_entry);</span>
-<span class="add">    if (THUNAR_IS_WINDOW (window) &amp;&amp; is_searching (window)</span>
-<span class="add">        &amp;&amp; is_a_search_query (text))</span>
+<span class="add">    if (THUNAR_IS_WINDOW (window) &amp;&amp; is_a_search_query (text))</span>
 <span class="add">      {</span>
-<span class="add">        disconnect (path_entry, edit_done);</span>
+<span class="add">        if (is_searching (window))</span>
+<span class="add">          disconnect (path_entry, edit_done);</span>
 <span class="add">        grab_focus (get_view (window));</span>
 <span class="add">      }</span>
 <span class="add">  }</span>
@@ -239,7 +239,7 @@
 ├── thunar-window.c           # new getter thunar_window_is_searching
 └── thunar-window.h           # its declaration
 verify/
-└── 135.sh                    # Enter, Down, search kept, buttons bar, no matches
+└── 135.sh                    # Enter, Down, search kept, buttons bar, no matches, typed query
 explainers/
 ├── 135-search-enter-focus.html            # this page
 └── 135-search-enter-focus.narration.json  # its narration</pre>
@@ -251,7 +251,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built from an existing focus call, tested by a new verify script under Xvfb in the cloud container and in CI, reviewed locally and by CI, and its screenshots audited: PASS.</p>
+  <p class="intro" data-k="intro">Built from an existing focus call, tested by a new verify script under Xvfb in the cloud container and in CI, reviewed locally and twice by CI, and its screenshots audited: PASS, on an earlier head.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -266,15 +266,16 @@ explainers/
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr data-k="c1"><td>Build and full verify suite</td><td>build-verify agent in the cloud container: built the debs, installed them, ran <code>verify-proof.sh</code> (smoke test and every verify script), twice: before and after the S1 fix, both before CI's R1 fix</td><td class="ok">29 of 29 pass, both times</td></tr>
+    <tr data-k="c1"><td>Build and full verify suite</td><td>build-verify agent in the cloud container: built the debs, installed them, ran <code>verify-proof.sh</code> (smoke test and every verify script), twice: before and after the S1 fix, both before CI's R1 and R4 fixes</td><td class="ok">29 of 29 pass, both times</td></tr>
     <tr data-k="c2"><td>Enter, Down selects the first match</td><td><code>verify/135.sh</code>: search apple, Enter, Down, Ctrl+C, paste into an empty folder</td><td class="ok">exactly apple1.txt</td></tr>
     <tr data-k="c3"><td>The search stays after Enter</td><td><code>verify/135.sh</code>: Enter, then Ctrl+A, Ctrl+C, paste</td><td class="ok">apple1.txt and apple2.txt</td></tr>
     <tr data-k="c4"><td>Path-buttons location bar</td><td><code>verify/135.sh</code>: buttons-style bar, Ctrl+L, Ctrl+F apple, Enter, shot, Ctrl+A, Ctrl+C, paste. The script doesn't assert that the text box stays; shot #55 shows it (R2)</td><td class="ok">both apple files</td></tr>
     <tr data-k="c5"><td>Enter with no matches</td><td><code>verify/135.sh</code>: search zzz, Enter, Down, then check the process</td><td class="ok">Thunar still running</td></tr>
     <tr data-k="c6"><td>Ctrl+F back to the search</td><td>Read in <code>thunar_window_action_search</code>: Ctrl+F during a search turns it off; not tested by the script</td><td class="no">toggles off</td></tr>
-    <tr data-k="c7"><td>CI build and verify</td><td>CI run 44998634849 on head <code>21793c3</code>, with CI's R1 fix: built the debs, ran the smoke test and every verify script; <code>verify/135.sh</code> took 32 s and took shots #54 (before-enter / after-enter) and #55 (buttons-bar)</td><td class="ok">build passed, 29 of 29 pass</td></tr>
-    <tr data-k="c8"><td>Screenshot audit</td><td><code>/visual-verify pr:138</code> on CI's shots: the independent shot-auditor read every shot</td><td class="ok">PASS, 172 of 172 OK</td></tr>
-    <tr data-k="c9"><td>Explainer</td><td>CI run 44998634849: rendered this page and ran <code>make-video.py status</code></td><td class="ok">rendered, narration current</td></tr>
+    <tr data-k="c7"><td>CI build and verify</td><td>CI run 44998634849 on head <code>21793c3</code>, before R4's fix, with CI's R1 fix: built the debs, ran the smoke test and every verify script; <code>verify/135.sh</code> took 32 s and took shots #54 (before-enter / after-enter) and #55 (buttons-bar)</td><td class="ok">build passed, 29 of 29 pass</td></tr>
+    <tr data-k="c8"><td>Screenshot audit</td><td><code>/visual-verify pr:138</code> on CI's shots on head <code>21793c3</code>, before R4's fix: the independent shot-auditor read every shot</td><td class="ok">PASS, 172 of 172 OK</td></tr>
+    <tr data-k="c9"><td>Explainer</td><td>CI run 44998634849 on head <code>21793c3</code>, before R4's fix: rendered an earlier version of this page and ran <code>make-video.py status</code></td><td class="ok">rendered, narration current</td></tr>
+    <tr data-k="c11"><td>Enter on a hand-typed “Search:” query</td><td><code>verify/135.sh</code>, new last step (R6): Ctrl+L, Ctrl+A, type “Search: apple”, Enter, Down, Ctrl+C, paste; runs in CI on the next push and in a local build-verify run under way</td><td class="open">pending, expects exactly apple1.txt</td></tr>
     <tr data-k="c10"><td>Narrated video</td><td>Needs Kokoro, which is on your machine</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -294,6 +295,14 @@ explainers/
     <li data-k="r2"><b>R2, low, confirmed, accepted by you:</b> the script's buttons-bar part doesn't assert that the text box stays. Shot #55 shows it, and the audit passed it.</li>
     <li data-k="r3"><b>R3, low, plausible, accepted by you:</b> the location bar's own edit-done handler may stay connected. CI's verifier found no visible effect.</li>
   </ul>
+  <p data-k="ci2">CI's second review, at high level on <code>d9abdac</code> (run 45003563923), found 4 more:</p>
+  <ul class="tight">
+    <li data-k="r4"><b>R4, medium, confirmed, fixed by CI:</b> R1's search-mode check also gated the focus move, so Enter on a hand-typed “Search:” query left the keyboard in the box. CI's commit <code>43a5747</code> moves the focus for any search query and only skips the disconnect when not searching.</li>
+    <li data-k="r5"><b>R5, low, confirmed, accepted by you:</b> a hand-typed “Search:” query filters the list but never turns on search mode, so Escape or deleting the prefix can't cancel it. This is old upstream behaviour; no follow-up issue.</li>
+    <li data-k="r6"><b>R6, low, confirmed, fixed:</b> nothing tested Enter on a hand-typed query. Commit <code>854321c</code> adds that step to the script.</li>
+    <li data-k="r7"><b>R7, low, plausible, accepted under the repo's rule:</b> the first accept commit had its accept line in the wrong paragraph, so an empty commit carried it. No effect on the code; CLAUDE.md accepts later-review low findings that aren't confirmed.</li>
+  </ul>
+  <p data-k="accepted">Accepted, not fixed: R2 and R3 by you earlier, R5 by you, and R7 under the rule. R1, R4 and R6 are fixed.</p>
   </section>
 
   <section class="sub" id="aftermerge">
