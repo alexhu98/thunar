@@ -1936,15 +1936,12 @@ thunar_standard_view_set_loading (ThunarStandardView *standard_view,
   if (loading)
     {
       thunar_standard_view_cancel_statusbar_job (standard_view);
+      thunar_standard_view_set_statusbar_text (standard_view, "");
       thunar_standard_view_set_statusbar_info_text (standard_view, NULL);
+      g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_TEXT]);
       g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_INFO_TEXT]);
-      if (!THUNAR_IS_DETAILS_VIEW (standard_view))
-        {
-          thunar_standard_view_set_statusbar_text (standard_view, "");
-          g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_TEXT]);
-        }
     }
-  else if (!THUNAR_IS_DETAILS_VIEW (standard_view))
+  else
     {
       thunar_standard_view_update_statusbar_text (standard_view);
     }
@@ -1953,21 +1950,8 @@ thunar_standard_view_set_loading (ThunarStandardView *standard_view,
    * scrolling after loading circumvents the scroll caused by gtk_tree_view_set_cell */
   if (THUNAR_IS_DETAILS_VIEW (standard_view))
     {
-      gchar *statusbar_text;
-
-      if (loading)
-        {
-          statusbar_text = g_strdup (_("Loading folder contents..."));
-          thunar_standard_view_set_statusbar_text (standard_view, statusbar_text);
-          g_free (statusbar_text);
-          g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_TEXT]);
-        }
-
       if (G_UNLIKELY (!loading))
         {
-          /* update the statusbar text after loading is finished */
-          thunar_standard_view_update_statusbar_text (standard_view);
-
           if (standard_view->priv->scroll_to_file != NULL)
             {
               /* remember and reset the scroll_to_file reference */
