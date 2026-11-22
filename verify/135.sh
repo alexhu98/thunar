@@ -49,6 +49,14 @@ pasted_is() {  # check name, the files the clipboard must hold
   fail "the clipboard held '$got', expected '$want'"
 }
 
+copy_all() {
+  focus "$WID"
+  xdotool mousemove --window "$WID" $((W / 2)) $((H - 100)) click 1
+  sleep 0.5
+  xdotool key ctrl+a ctrl+c
+  sleep 0.5
+}
+
 open_thunar "$DIR"
 xdotool windowsize --sync "$WID" "$W" "$H"
 wait_title "$WID" files
@@ -103,6 +111,7 @@ sleep 1
 kill -0 "$THUNAR_PID" || fail "Thunar exited after Enter on a search with no matches"
 
 go "$DIR"
+copy_all
 focus "$WID"
 xdotool key ctrl+l
 sleep 0.5
@@ -111,15 +120,14 @@ xdotool type --delay 20 "Search: apple"
 sleep 2
 xdotool key Return
 sleep 0.5
-xdotool key Down
+xdotool key ctrl+a ctrl+c
 sleep 0.5
-xdotool key ctrl+c
-sleep 0.5
-pasted_is typed apple1.txt
+pasted_is typed apple1.txt apple2.txt
 
 xfconf-query -c thunar -p /last-location-bar -n -t string -s ThunarLocationEntry
 sleep 1
 go "$DIR"
+copy_all
 focus "$WID"
 xdotool key ctrl+l
 sleep 0.5
