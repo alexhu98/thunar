@@ -101,3 +101,18 @@ focus "$WID"
 xdotool key Return Down
 sleep 1
 kill -0 "$THUNAR_PID" || fail "Thunar exited after Enter on a search with no matches"
+
+go "$DIR"
+focus "$WID"
+xdotool key ctrl+l
+sleep 0.5
+xdotool key ctrl+a
+xdotool type --delay 20 "Search: apple"
+sleep 2
+xdotool key Return
+sleep 0.5
+xdotool key Down
+sleep 0.5
+xdotool key ctrl+c
+sleep 0.5
+pasted_is typed apple1.txt
