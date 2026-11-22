@@ -128,8 +128,6 @@ xdotool type --delay 20 "Search: apple"
 sleep 2
 xdotool key Return
 sleep 0.5
-xdotool key Down
+xdotool key ctrl+a ctrl+c
 sleep 0.5
-xdotool key ctrl+c
-sleep 0.5
-pasted_is typed-entry apple1.txt
+pasted_is typed-entry apple1.txt apple2.txt
