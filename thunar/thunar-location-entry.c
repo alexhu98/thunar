@@ -513,10 +513,10 @@ thunar_location_entry_activate (GtkWidget           *path_entry,
   else
     {
       window = gtk_widget_get_toplevel (GTK_WIDGET (location_entry));
-      if (THUNAR_IS_WINDOW (window) && thunar_window_is_searching (THUNAR_WINDOW (window))
-          && thunar_util_is_a_search_query (gtk_entry_get_text (GTK_ENTRY (path_entry))))
+      if (THUNAR_IS_WINDOW (window) && thunar_util_is_a_search_query (gtk_entry_get_text (GTK_ENTRY (path_entry))))
         {
-          g_signal_handlers_disconnect_by_func (path_entry, G_CALLBACK (thunar_location_entry_emit_edit_done), location_entry);
+          if (thunar_window_is_searching (THUNAR_WINDOW (window)))
+            g_signal_handlers_disconnect_by_func (path_entry, G_CALLBACK (thunar_location_entry_emit_edit_done), location_entry);
           gtk_widget_grab_focus (thunar_window_get_view (THUNAR_WINDOW (window)));
         }
     }
