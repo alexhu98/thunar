@@ -639,7 +639,8 @@ thunar_path_entry_changed (GtkEditable *editable)
       if (path_entry->search_mode == TRUE)
         {
           GtkWidget *window = gtk_widget_get_toplevel (GTK_WIDGET (editable));
-          thunar_window_action_cancel_search (THUNAR_WINDOW (window));
+          if (THUNAR_IS_WINDOW (window))
+            thunar_window_action_cancel_search (THUNAR_WINDOW (window));
         }
 
       /* location/folder-path code */

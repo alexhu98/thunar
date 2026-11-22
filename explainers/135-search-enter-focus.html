@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #138 Search Enter focus</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #138: Enter in the search box jumps to the results</h1>
+  <p class="lead" data-k="lead"><a href="https://github.com/alexhu98/thunar/pull/138">PR #138</a>, branch <code>135-search-enter-focus</code> → <code>main</code>, closes #135. After Ctrl+F and a search word, Enter puts the keyboard in the file list, so Down selects the first match, just like Enter, Down in the location bar.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing builds on it; Ctrl+F stays as is</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">Enter in the search box now moves the focus to the search results and leaves the search as it is. The change is a new branch in <code>thunar/thunar-location-entry.c</code> a small getter in <code>thunar/thunar-window.c</code> and a crash guard in <code>thunar/thunar-path-entry.c</code>, tested by <code>verify/135.sh</code>.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="You search, press Enter, the bar stays a search, the focus moves to the file list, and Down selects the first match">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Enter in the search box — the new branch</text>
+    <g data-k="1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">You search</text>
+      <text x="36" y="114" class="m">Ctrl+F, apple</text>
+      <text x="36" y="134" class="b">results update as</text>
+      <text x="36" y="154" class="b">you type</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Enter</text>
+      <text x="286" y="114" class="m">location-entry.c</text>
+      <text x="286" y="134" class="b">text is a search</text>
+      <text x="286" y="154" class="b">query: new branch</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Keep the bar</text>
+      <text x="536" y="114" class="b">if searching, disarm</text>
+      <text x="536" y="134" class="b">focus-out edit-done</text>
+      <text x="536" y="154" class="b">bar stays a search</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Focus to list</text>
+      <text x="786" y="114" class="m">grab_focus (view)</text>
+      <text x="786" y="134" class="b">keyboard is now in</text>
+      <text x="786" y="154" class="b">the file list</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② After Enter, and what stays the same</text>
+    <g data-k="5">
+      <rect class="box-merge" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Down: 1st match</text>
+      <text x="786" y="314" class="b">existing view keys</text>
+      <text x="786" y="334" class="b">select apple1.txt</text>
+      <text x="786" y="354" class="b">search still shown</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Path Enter</text>
+      <text x="536" y="314" class="b">a folder path still</text>
+      <text x="536" y="334" class="b">opens it; a file</text>
+      <text x="536" y="354" class="b">path selects it</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new in this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>existing Thunar behaviour, unchanged</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Before, after Ctrl+F and a search word, Enter did nothing and the keyboard stayed in the search box. Down did nothing either: you had to press Tab twice to reach the results. In the location bar, Enter on a folder already moves you into the file list. Now the search box does the same.</p>
+  <div class="note" data-k="note">Search and the location bar are the same text box. The search runs on every keystroke, so in search mode Enter had nothing left to do. Its only new job is to move the keyboard to the results.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Enter in the search box</div>
+  <ol class="steps">
+    <li data-k="1"><b>You search.</b> Ctrl+F opens the search box and each letter you type updates the results, as before.</li>
+    <li data-k="2"><b>Enter.</b> <code>thunar_location_entry_activate</code> is the box's Enter handler. It finds no file for the text, and now asks <code>thunar_util_is_a_search_query</code> whether the text is a search. When it is, it takes the new branch, whether you came through Ctrl+F or typed “Search: apple” into the location bar yourself (CI's review finding R4).</li>
+    <li data-k="3"><b>Keep the bar.</b> Only when <code>thunar_window_is_searching</code>, a new getter in <code>thunar-window.c</code>, says the window is in search mode, the branch disconnects the box's pending “edit done on focus-out” handler. Without that, with the path-buttons style of location bar, moving the focus away would swap the bar back to buttons in the middle of the search. A hand-typed query in a temporary path box keeps the handler, so the box still closes (R1).</li>
+    <li data-k="4"><b>Focus to list.</b> In every case it then calls <code>gtk_widget_grab_focus</code> on <code>thunar_window_get_view</code>, the same call the location bar already makes after selecting a file (#93).</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② After Enter, and what stays the same</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Down: 1st match.</b> With the file list focused and nothing selected, the list's own Down key selects the first match. The search and its results stay on screen.</li>
+    <li data-k="6"><b>Path Enter.</b> Enter on a folder or file path takes the old branch, before the new one, so it is unchanged.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="parts">
+  <h3 class="sec">The change (names shortened)</h3>
+<pre data-k="diff"><span class="add">else</span>
+<span class="add">  {</span>
+<span class="add">    window = get_toplevel (location_entry);</span>
+<span class="add">    if (THUNAR_IS_WINDOW (window) &amp;&amp; is_a_search_query (text))</span>
+<span class="add">      {</span>
+<span class="add">        if (is_searching (window))</span>
+<span class="add">          disconnect (path_entry, edit_done);</span>
+<span class="add">        grab_focus (get_view (window));</span>
+<span class="add">      }</span>
+<span class="add">  }</span>
+
+/* thunar-window.c: the new getter */
+<span class="add">gboolean thunar_window_is_searching (window)</span>
+<span class="add">{ return window-&gt;is_searching; }</span></pre>
+  <h3 class="sec">The crash guard (thunar-path-entry.c)</h3>
+<pre data-k="guard">/* changed handler: part of "Search: " was deleted */
+if (path_entry-&gt;search_mode == TRUE)
+  {
+    window = get_toplevel (editable);
+<span class="add">    if (THUNAR_IS_WINDOW (window))</span>
+      cancel_search (THUNAR_WINDOW (window));
+  }</pre>
+  <div class="note" data-k="crash">Why the guard: after Enter on a hand-typed “Search: ” query in a temporary path box (the R4 path), the bar swaps that box for path buttons. The old box, still in search mode but no longer inside the window, had its text set on the next folder change, treated its toplevel as a window, and Thunar crashed. Commit <code>ad4906311</code> now cancels the search only when the toplevel is a Thunar window.</div>
+  <div class="note warn" data-k="ctrlf">Not as the issue assumed: the issue says Ctrl+F should bring you back to the search box with the query intact. In Thunar, Ctrl+F while a search is open turns the search off, before and after this PR. Clicking the search box does return to it. You decided to keep Ctrl+F as it is, so there is no follow-up issue (Part 3).</div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+├── thunar-location-entry.c   # search-mode branch in the Enter handler (+10 lines)
+├── thunar-window.c           # new getter thunar_window_is_searching
+├── thunar-window.h           # its declaration
+└── thunar-path-entry.c       # crash guard: cancel search only in a window
+verify/
+└── 135.sh                    # Enter, Down, search kept, buttons bar, no matches, typed query on both bars
+explainers/
+├── 135-search-enter-focus.html            # this page
+└── 135-search-enter-focus.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo: revert the PR. Nothing else depends on the new branch, and no settings or files change.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built from an existing focus call, tested by a new verify script under Xvfb in the cloud container and in CI, reviewed locally and six times by CI, and its screenshots audited: PASS, on an earlier head. The script's hand-typed step found a crash, fixed in <code>ad4906311</code>.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>#93's focus call</h3><p><code>thunar_location_entry_open_or_launch</code> already moves the focus to the file list after Enter selects a file. The new branch makes the same call.</p></div>
+    <div class="card" data-k="r2"><h3>The issue's measurement</h3><p>Tab, Tab, Down already selected the first match in search results, so the list's Down key works once it has the focus.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Build and full verify suite</td><td>build-verify agent in the cloud container: built the debs, installed them, ran <code>verify-proof.sh</code> (smoke test and every verify script), twice: before and after the S1 fix, both before CI's R1 and R4 fixes</td><td class="ok">29 of 29 pass, both times</td></tr>
+    <tr data-k="c2"><td>Enter, Down selects the first match</td><td><code>verify/135.sh</code>: search apple, Enter, Down, Ctrl+C, paste into an empty folder</td><td class="ok">exactly apple1.txt</td></tr>
+    <tr data-k="c3"><td>The search stays after Enter</td><td><code>verify/135.sh</code>: Enter, then Ctrl+A, Ctrl+C, paste</td><td class="ok">apple1.txt and apple2.txt</td></tr>
+    <tr data-k="c4"><td>Path-buttons location bar</td><td><code>verify/135.sh</code>: buttons-style bar, copy all three files first (R14), then Ctrl+L, Ctrl+F apple, Enter, shot, Ctrl+A, Ctrl+C, paste. The script doesn't assert that the text box stays; shot #55 shows it (R2)</td><td class="ok">both apple files</td></tr>
+    <tr data-k="c5"><td>Enter with no matches</td><td><code>verify/135.sh</code>: search zzz, Enter, Down, then check the process</td><td class="ok">Thunar still running</td></tr>
+    <tr data-k="c6"><td>Ctrl+F back to the search</td><td>Read in <code>thunar_window_action_search</code>: Ctrl+F during a search turns it off; not tested by the script</td><td class="no">toggles off</td></tr>
+    <tr data-k="c7"><td>CI build and verify</td><td>CI run 45014420392 on head <code>096cbe9</code>, with CI's R11 fix but before the R12 change: built the debs, ran the smoke test and every verify script</td><td class="ok">build passed, 29 of 29 pass</td></tr>
+    <tr data-k="c8"><td>Screenshot audit</td><td><code>/visual-verify pr:138</code> on CI's shots on head <code>dad4b1c</code>, before the R11 and R12 script changes: the independent shot-auditor read every shot. The audit of the next head runs after CI</td><td class="ok">PASS, 172 of 172 OK</td></tr>
+    <tr data-k="c9"><td>Explainer</td><td>CI run 45005912725 on head <code>dad4b1c</code>: rendered an earlier version of this page and ran <code>make-video.py status</code></td><td class="ok">rendered, narration current</td></tr>
+    <tr data-k="c12"><td>Full suite before the crash fix</td><td>build-verify agent in the cloud container, debs built from <code>854321c</code>: <code>verify/135.sh</code> failed in its new hand-typed step with “Segmentation fault” in thunar and “window title is '', expected it to contain 'check-typed'”</td><td class="no">28 of 29 pass</td></tr>
+    <tr data-k="c13"><td>Where it crashed</td><td>gdb backtrace of the crash (stripped binary): inside a path entry's changed handler, reached from <code>gtk_entry_set_text</code> after a window property notify</td><td class="no">the path entry's changed handler</td></tr>
+    <tr data-k="c11"><td>Enter on a hand-typed “Search:” query</td><td><code>verify/135.sh</code>, new hand-typed step (R6): Ctrl+L, Ctrl+A, type “Search: apple”, Enter, Down, Ctrl+C, paste (the step as it was then). Run with the fix on an incremental build (<code>make -C thunar</code>) of <code>thunar/.libs/thunar</code>, under the same Xvfb session harness</td><td class="ok" style="white-space:normal">passed locally with the fix (incremental build); the installed debs without it crashed</td></tr>
+    <tr data-k="c14"><td>Full suite with the crash fix</td><td>CI run 45005912725 on head <code>dad4b1c</code>: the smoke test and every verify script, including the hand-typed step with both the path-buttons bar and the entry-style bar (R10)</td><td class="ok">29 of 29 pass</td></tr>
+    <tr data-k="c15"><td>Hand-typed steps reach the view and show the filter (R11 to R14)</td><td><code>verify/135.sh</code> at the head, as CI's commit <code>8a1ea80</code> left it: on both bars, two rounds. First Ctrl+L, type “Search: apple”, Enter, Down, Ctrl+C, paste: exactly apple1.txt. Then copy all three files, type the query again, Enter, Ctrl+A, Ctrl+C, paste: exactly the two apple files. Run locally with the current thunar build, under the same Xvfb session harness; CI's run on the final head is pending</td><td class="ok" style="white-space:normal">passed locally (exit 0), all seven checks; CI: pending</td></tr>
+    <tr data-k="c16"><td>Same steps before CI's R13 and R14 fix</td><td>The step that copied all three files, then Enter, Ctrl+A, Ctrl+C, run locally with the current thunar build, under the same Xvfb session harness, before <code>8a1ea80</code></td><td class="ok" style="white-space:normal">passed locally (exit 0): exactly the two apple files</td></tr>
+    <tr data-k="c10"><td>Narrated video</td><td>Needs Kokoro, which is on your machine</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">A local review at high level, of everything on the branch against main, before the first push: 3 findings, none fixed by the review itself, 1 fixed by hand after reading the code.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>S1, fixed:</b> with the path-buttons bar, Ctrl+L then Ctrl+F left the focus-out handler armed, so Enter would swap the bar back to buttons mid-search. The branch now disconnects it, and the script tests that layout.</li>
+    <li data-k="b2"><b>S2, skipped:</b> no NULL check on the view, a nit. The same file's existing call has none either.</li>
+    <li data-k="b3"><b>S3:</b> the explainer was missing; this page is it.</li>
+  </ul>
+  <p data-k="ci">CI's own review, at high level on <code>e8f80ff</code>, found 3 more, reported in its code review comment on the PR:</p>
+  <ul class="tight">
+    <li data-k="r1"><b>R1, medium, confirmed, fixed by CI:</b> a hand-typed “Search:” text in a temporary path box would take the new branch and get stuck. CI's commit <code>21793c3</code> adds the <code>thunar_window_is_searching</code> check.</li>
+    <li data-k="r2"><b>R2, low, confirmed, accepted by you:</b> the script's buttons-bar part doesn't assert that the text box stays. Shot #55 shows it, and the audit passed it.</li>
+    <li data-k="r3"><b>R3, low, plausible, accepted by you:</b> the location bar's own edit-done handler may stay connected. CI's verifier found no visible effect.</li>
+  </ul>
+  <p data-k="ci2">CI's second review, at high level on <code>d9abdac</code> (run 45003563923), found 4 more:</p>
+  <ul class="tight">
+    <li data-k="r4"><b>R4, medium, confirmed, fixed by CI:</b> R1's search-mode check also gated the focus move, so Enter on a hand-typed “Search:” query left the keyboard in the box. CI's commit <code>43a5747</code> moves the focus for any search query and only skips the disconnect when not searching.</li>
+    <li data-k="r5"><b>R5, low, confirmed, accepted by you:</b> a hand-typed “Search:” query filters the list but never turns on search mode, so Escape or deleting the prefix can't cancel it. This is old upstream behaviour; no follow-up issue.</li>
+    <li data-k="r6"><b>R6, low, confirmed, fixed:</b> nothing tested Enter on a hand-typed query. Commit <code>854321c</code> adds that step to the script, and that step found the crash fixed in <code>ad4906311</code>.</li>
+    <li data-k="r7"><b>R7, low, plausible, accepted under the repo's rule:</b> the first accept commit had its accept line in the wrong paragraph, so an empty commit carried it. No effect on the code; CLAUDE.md accepts later-review low findings that aren't confirmed.</li>
+  </ul>
+  <p data-k="ci3">CI's third review, at high level on <code>28da39b</code> (run 45005553591), resolved R6 and found 3 more:</p>
+  <ul class="tight">
+    <li data-k="r8"><b>R8, medium, plausible, accepted by you:</b> with the path-buttons bar, Enter on a hand-typed “Search: apple” closes the temporary box and leaves results Escape can't cancel. CI's verifier found it isn't new: Tab, a click or Escape already led there, and changing folder clears it. The root cause is R5.</li>
+    <li data-k="r9"><b>R9, low, plausible, accepted under the repo's rule:</b> the path box's Escape handler treats its toplevel as a window without checking. It's old code, and CI's verifier found only a box inside the window can get the key press.</li>
+    <li data-k="r10"><b>R10, low, confirmed, fixed by CI:</b> the hand-typed step ran only with the path-buttons bar. CI's commit <code>dad4b1c</code> runs it again with the entry-style bar.</li>
+  </ul>
+  <p data-k="ci4">CI's fourth review, at high level on <code>cf4b465</code> (run 45014044062), found 2 more, both in the script:</p>
+  <ul class="tight">
+    <li data-k="r11"><b>R11, medium, confirmed, fixed by CI:</b> the entry-bar hand-typed step passed even if Enter left the focus in the box, because the step before had left apple1.txt on the clipboard. CI's commit <code>096cbe9</code> makes it Ctrl+A, Ctrl+C and expects both apple files.</li>
+    <li data-k="r12"><b>R12, low, confirmed, fixed, then resolved by CI:</b> the hand-typed steps copied only apple1.txt, which is also first in the unfiltered folder, so they couldn't show the view was filtered. Both steps now copy all three files first, then expect exactly the two apple files after Enter, Ctrl+A, Ctrl+C. Focus left in the box or an unfiltered view fails them.</li>
+  </ul>
+  <p data-k="ci5">CI's fifth review, at high level on <code>e7d82fc</code> (run 45016506401), resolved R12 and found 3 more, all in the script:</p>
+  <ul class="tight">
+    <li data-k="r13"><b>R13, low, confirmed, fixed by CI:</b> after Enter, the hand-typed steps sent only Ctrl+A and Ctrl+C, which work anywhere in the window, so they no longer proved the focus reached the view. CI's commit <code>8a1ea80</code> adds a round per bar where Enter, Down, Ctrl+C must copy exactly apple1.txt.</li>
+    <li data-k="r14"><b>R14, low, confirmed, fixed by CI:</b> the path-buttons step could pass on the clipboard the step before left behind. The same commit copies all three files first.</li>
+    <li data-k="r15"><b>R15, low, plausible, accepted under the repo's rule:</b> the copy-all helper never checks that it copied all three files. CI's verifier found no realistic way for that to hide a failure.</li>
+  </ul>
+  <p data-k="ci6">CI's sixth review, at high level on <code>db54cd7</code> (run 45017396313), covered CI's fix <code>8a1ea80</code> and found 2 more, both low and plausible:</p>
+  <ul class="tight">
+    <li data-k="r16"><b>R16, low, plausible, accepted under the repo's rule:</b> the first half of the hand-typed check doesn't prime the clipboard before Down, Ctrl+C, so after a reorder it would depend on the step before. In today's order the clipboard holds both apple files there, so the check still fails correctly; CI's verifier found it hypothetical.</li>
+    <li data-k="r17"><b>R17, low, plausible, accepted under the repo's rule:</b> the hand-typed check's helper carries a two-word argument tag, the same style as the script's existing helpers.</li>
+  </ul>
+  <p data-k="accepted">Accepted, not fixed: R2, R3, R5 and R8 by you, and R7, R9, R15, R16 and R17 under the rule. Fixed: R1, R4, R10, R11, R13 and R14; resolved: R6 and R12.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>The change in your installed Thunar</td><td>It reaches your machine only in a package built from main</td><td class="open">next package build</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR: <a href="https://github.com/alexhu98/thunar/pull/138">#138</a>, with its “Files changed”</li>
+    <li data-k="l2">The issue: <a href="https://github.com/alexhu98/thunar/issues/135">#135</a></li>
+    <li data-k="l3">The shots: CI's verify comment on the PR, shots #54 and #55; the CI runs: <a href="https://github.com/alexhu98/thunar/actions/runs/45005912725">45005912725</a> (shots) and <a href="https://github.com/alexhu98/thunar/actions/runs/45014420392">45014420392</a> (latest)</li>
+    <li data-k="l4">The screenshot audit: <a href="https://github.com/alexhu98/thunar/pull/138#issuecomment-7077581332">visual-verify comment</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing builds on it; Ctrl+F stays as is</h2>
+  <p class="intro" data-k="intro">No open issue says it depends on #135, and the Ctrl+F question is settled: you kept it as is.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR, then your decision to keep Ctrl+F as it is">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--muted)">#135, then your Ctrl+F decision</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">#135 this PR</text>
+      <text x="36" y="114" class="b">Enter moves to the</text>
+      <text x="36" y="134" class="b">results; Down picks</text>
+      <text x="36" y="154" class="b">the first match</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Keep Ctrl+F</text>
+      <text x="286" y="114" class="b">your decision: it</text>
+      <text x="286" y="134" class="b">turns a search off;</text>
+      <text x="286" y="154" class="b">a click returns</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>your decision</span>
+  </div>
+  </section>
+
+  <section class="sub" id="question">
+  <h3 class="sec">The Ctrl+F decision (settled)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Today.</b> After Enter, a click on the search box returns to it with the query. Ctrl+F turns the search off, as it did before this PR.</li>
+    <li data-k="2"><b>You decided to keep it.</b> Ctrl+F stays a toggle, a click returns to the search box, and no follow-up issue is filed.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="focus"><dt>Focus</dt><dd>The widget that receives your key presses.</dd></div>
+    <div data-k="entry"><dt>Location entry</dt><dd>The text box at the top of the window; it holds a path, or a search after Ctrl+F.</dd></div>
+    <div data-k="buttons"><dt>Path-buttons bar</dt><dd>The location bar style that shows the path as buttons and swaps in a text box only while you type.</dd></div>
+    <div data-k="editdone"><dt>Edit done</dt><dd>The signal that tells the buttons bar the typing is over, so it swaps back to buttons.</dd></div>
+    <div data-k="view"><dt>View</dt><dd>The file list: icons, details or compact list.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>An invisible X display, used to run Thunar for tests without a screen.</dd></div>
+    <div data-k="verify"><dt>verify script</dt><dd><code>verify/&lt;issue&gt;.sh</code>: drives Thunar with xdotool, checks the result and takes screenshots.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>

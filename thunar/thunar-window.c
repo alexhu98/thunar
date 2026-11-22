@@ -4262,6 +4262,16 @@ thunar_window_reset_view_type_idle_destroyed (gpointer data)
 
 
 gboolean
+thunar_window_is_searching (ThunarWindow *window)
+{
+  _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);
+
+  return window->is_searching;
+}
+
+
+
+gboolean
 thunar_window_action_cancel_search (ThunarWindow *window)
 {
   ThunarApplication *application;

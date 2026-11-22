@@ -199,6 +199,8 @@ thunar_window_restart_search (ThunarWindow *window);
 gboolean
 thunar_window_action_cancel_search (ThunarWindow *window);
 gboolean
+thunar_window_is_searching (ThunarWindow *window);
+gboolean
 thunar_window_action_search (ThunarWindow *window);
 void
 thunar_window_update_statusbar (ThunarWindow *window);
