@@ -216,7 +216,7 @@
   <div class="panel">
   <div class="lane-h" style="color:var(--accent)">① The view: build two texts</div>
   <ol class="steps">
-    <li data-k="1"><b>Selection changes.</b> When the selection changes, the view's idle update in <code>thunar-standard-view.c</code> starts the status bar job, as before. When any view starts loading a folder, it cancels the old folder's status bar job and clears the right part, so the previous folder's total doesn't stay or come back. When loading ends, every view fills the status bar again. In a search, it sets the texts itself: the found count goes on the right with the free space, and a selected result goes on the left.</li>
+    <li data-k="1"><b>Selection changes.</b> When the selection changes, the view's idle update in <code>thunar-standard-view.c</code> starts the status bar job, as before. When any view starts loading a folder, it cancels the old folder's status bar job and clears both sides of the status bar, as the owner chose. While it loads, no folder total is counted, so neither the old folder's total nor a partial count shows; a selection made during the load still shows on the left. When loading ends, every view fills the status bar again. In a search, it sets the texts itself: the found count goes on the right with the free space, and a selected result goes on the left.</li>
     <li data-k="2"><b>Job splits text.</b> <code>_thunar_job_load_statusbar_text</code> in <code>thunar-io-jobs.c</code> now keeps the selection as a separate left text. The folder counts and the free space are joined into the right text. The folder total no longer starts with “Total:”: that prefix is dropped in <code>thunar-util.c</code>. With nothing selected, the left text is empty and the right text is the same total and free space, in the same format. An empty folder's right part reads “0 items”.</li>
     <li data-k="3"><b>Two properties.</b> The view gets a new read-only property, <code>statusbar-info-text</code>, beside <code>statusbar-text</code>. It is stored under the same lock, and only by the job that is still current, so a slow, older job can't overwrite a newer selection's text.</li>
     <li data-k="4"><b>Window binds both.</b> <code>thunar-window.c</code> binds the new property to the status bar's new <code>info-text</code> in the same two places it binds the old one: when the window opens and when the active view changes, so the right part follows the tab or split pane you're in.</li>
@@ -256,13 +256,15 @@
 ├── thunar-io-jobs.c        # left text and right text; one format for the right
 ├── thunar-util.c           # the folder total drops its "Total:" prefix
 ├── thunar-standard-view.c  # new statusbar-info-text property; search fills it;
-│                           #   loading cancels the old job and clears it
+│                           #   loading cancels the old job, clears both sides
+├── thunar-tree-view-model.c # CI's R12 fix: collapsing a loading subfolder
+│                           #   ends its loading state
 ├── thunar-standard-view.h  # set_statusbar_text_for_job takes the right text too
 ├── thunar-statusbar.c      # second label, 24 px gap, left-first width split
 └── thunar-window.c         # binds the new property where the old one is bound
 verify/
 ├── 132.sh                  # new test: no selection, one file, narrow, tabs,
-│                           #   empty folder
+│                           #   empty folder, icon view
 └── 74.sh                   # shot texts updated: no "Total:", comma format
 explainers/
 ├── 132-statusbar-right.html            # this page
@@ -294,6 +296,7 @@ explainers/
     <li data-k="t3"><b>Narrow window.</b> With the long-named file selected, the window goes from 1200 to 800 px. The test fails if the window stays wider than 810 px, which would mean the new label raised the minimum width. The before/after pair shows the selection whole and the right part cut.</li>
     <li data-k="t4"><b>Tabs.</b> A new tab on another folder shows that folder's total; back on the first tab, the first folder's total returns.</li>
     <li data-k="t5"><b>Empty folder.</b> Added by CI's review fix for R5: an empty folder shows nothing on the left and “0 items | Free space: …” on the right.</li>
+    <li data-k="t6"><b>Icon view.</b> Added for R10: back on the first folder in the icon view, with nothing selected, the left is empty and the right part shows the folder total and free space.</li>
   </ol>
   </div>
   </section>
@@ -311,8 +314,11 @@ explainers/
     <tr data-k="c6"><td>Audit advisories</td><td>The right part's two formats (see Part 1), and the right text touching the left one in the narrow window, which led to the 24 px gap</td><td class="ok">gap added; one format later</td></tr>
     <tr data-k="c7"><td>The 24 px gap, the review fixes, and clearing on load and one format</td><td>Pushed after the local runs; CI's build and verify on PR #136 run them.</td><td class="no">not run here</td></tr>
     <tr data-k="c9"><td>CI's verify on a10bc23</td><td>The smoke test and every <code>verify/*.sh</code>, per the PR digest. Later pushes replaced that head, so its shots weren't audited.</td><td class="ok">27 of 27 pass</td></tr>
-    <tr data-k="c10"><td>The fixes for R4, R7 and R8</td><td>Compiled here (<code>thunar-standard-view.o</code>, no warnings), not built into debs or run. CI's next build and verify are their first run.</td><td class="no">compile only</td></tr>
-    <tr data-k="c8"><td>Split view, menu tooltips, “Loading folder contents...”, right-to-left</td><td>No test drives them; the binding code for split view is the one the tab test exercises</td><td class="no">not run</td></tr>
+    <tr data-k="c10"><td>The fixes for R4, R7 and R8</td><td>Compiled here (<code>thunar-standard-view.o</code>, no warnings), not built into debs or run here. CI's later builds include them.</td><td class="no">compile only here</td></tr>
+    <tr data-k="c11"><td>CI on afd0dc2 (R9 fix, icon-view shot, CI's fixes for R11–R14 and R16)</td><td>CI's build, verify (smoke test and every <code>verify/*.sh</code>), explainer and review jobs, per the PR digest</td><td class="ok">all 4 pass</td></tr>
+    <tr data-k="c12"><td>Screenshot audit of afd0dc2</td><td><code>/visual-verify pr:136</code> on CI's shots, posted on the PR</td><td class="ok">244 of 244 OK, PASS</td></tr>
+    <tr data-k="c13"><td>Clearing both sides while a folder loads (the latest commit)</td><td>Compiled only, no warnings. CI's build and verify on it are its first run.</td><td class="no">compile only</td></tr>
+    <tr data-k="c8"><td>Split view, menu tooltips, the bar while a folder loads, right-to-left</td><td>No test drives them; the binding code for split view is the one the tab test exercises. The test folders load in milliseconds, so a loading state can't be caught (R15).</td><td class="no">not run</td></tr>
   </table>
   </div>
   </section>
@@ -322,14 +328,17 @@ explainers/
   <p data-k="summary">Before the first push, a fresh agent ran <code>/code-review high --fix origin/main...HEAD</code>. It made 2 fixes and skipped 3 findings. One fix was kept and one undone.</p>
   <ul class="tight">
     <li data-k="b1"><b>Kept:</b> the two new property doc comments were removed, under <code>CLAUDE.md</code>'s rule against new explanatory comments.</li>
-    <li data-k="b2"><b>Undone, then restored:</b> clearing the right part while “Loading folder contents...” shows. It was undone because the issue said to leave the right part alone; after CI's review found the same problem, the owner chose clearing.</li>
+    <li data-k="b2"><b>Undone, then restored:</b> clearing the right part while a folder loads. It was undone because the issue said to leave the right part alone; after CI's review found the same problem, the owner chose clearing, and later clearing both sides.</li>
     <li data-k="b3"><b>Skipped:</b> S1, the right part's format differs with and without a selection, at first kept as the issue's approach said, now one format. S2, the missing explainer, is this page. S3, uncommitted test edits, has since been committed.</li>
   </ul>
   <p data-k="ci">CI reviews every push at high and reports in the <a href="https://github.com/alexhu98/thunar/pull/136">code review comment on PR #136</a>, the second of CI's four comments. Its review of 895cdfe found three: R1 (medium, confirmed), the right part kept the previous folder's total while a folder loads; R2 (low), the two formats; R3 (low), the missing explainer, since pushed. The owner chose to clear the right part while loading and to use one format; both were fixed on the next push.</p>
   <p data-k="ci2">CI's review of 105e5de resolved R1 and R3 and found five more. R4 (medium, confirmed): a new load cleared the right part but left the old folder's job running, which could refill it; CI's fix commit cancels the job. R5 (low): no shot of an empty folder; CI added one.</p>
   <p data-k="ci3">R7 (medium, plausible): the right part was cleared only in the details view. R8 (low, plausible): it was also cleared when loading ended, so it blinked. Both are fixed: every view now cancels the job and clears the right part when loading starts, and none clears it when loading ends.</p>
-  <div class="note" data-k="r6">R6 (low, confirmed), Last Modified no longer shows with nothing selected, is accepted with a <code>Review-accept: R6</code> trailer: the owner chose one format knowing this, as the option said.</div>
-  <div class="note warn" data-k="notrun">None of these fixes were built or run before pushing; the fixes for R7 and R8 were only compiled. CI's build and verify on the next push are their first run.</div>
+  <p data-k="ci4">CI's review of ce1d388 found R9 (medium, confirmed): while loading, the right part refilled with partial counts. It was fixed with a guard against status bar updates while loading. R10 (low): an icon-view shot was added.</p>
+  <p data-k="ci5">CI's review of cf3817f found R11 to R16, and CI's own fix commit fixed five: the old selection stayed in icon views, a collapsed subfolder stuck loading, expanding one dropped selection updates, search during a load, and a loading message flash.</p>
+  <p data-k="ci6">Then the owner chose to clear both sides of the status bar while a folder loads. The latest commit does this in every view, drops the “Loading folder contents...” message, and refreshes the bar in every view when loading ends.</p>
+  <div class="note" data-k="r6">Two findings are accepted with a <code>Review-accept: R6, R15</code> trailer on this page's commit, as the owner chose. R6 (low, confirmed): Last Modified no longer shows with nothing selected, a result of one format. R15 (low, confirmed): no test catches the loading state, which would need a folder that stays loading, such as a slow mount.</div>
+  <div class="note warn" data-k="notrun">The latest commit, clearing both sides, was only compiled, with no warnings. CI's build and verify on it are its first run.</div>
   </section>
 
   <section class="sub" id="aftermerge">
