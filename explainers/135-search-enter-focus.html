@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Search Enter focus</title>
+<title>PR #138 Search Enter focus</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -100,13 +100,13 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">Search Enter focus: Enter in the search box jumps to the results</h1>
-  <p class="lead" data-k="lead">Branch <code>135-search-enter-focus</code> → <code>main</code>, closes #135. After Ctrl+F and a search word, Enter puts the keyboard in the file list, so Down selects the first match, just like Enter, Down in the location bar.</p>
+  <h1 data-k="title">PR #138: Enter in the search box jumps to the results</h1>
+  <p class="lead" data-k="lead"><a href="https://github.com/alexhu98/thunar/pull/138">PR #138</a>, branch <code>135-search-enter-focus</code> → <code>main</code>, closes #135. After Ctrl+F and a search word, Enter puts the keyboard in the file list, so Down selects the first match, just like Enter, Down in the location bar.</p>
 
   <nav class="parts" aria-label="Parts of this page">
     <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
     <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
-    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: no issue builds on it; one open question</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing builds on it; Ctrl+F stays as is</a>
   </nav>
   </header>
 
@@ -114,7 +114,7 @@
   <section class="part" id="adds">
   <p class="part-label" data-k="label">Part 1</p>
   <h2 data-k="heading">What this PR adds</h2>
-  <p class="intro" data-k="intro">Enter in the search box now moves the focus to the search results and leaves the search as it is. The change is seven lines in <code>thunar/thunar-location-entry.c</code>, tested by <code>verify/135.sh</code>.</p>
+  <p class="intro" data-k="intro">Enter in the search box now moves the focus to the search results and leaves the search as it is. The change is a new branch in <code>thunar/thunar-location-entry.c</code> and a small getter in <code>thunar/thunar-window.c</code>, tested by <code>verify/135.sh</code>.</p>
 
   <section class="sub" id="flow">
   <div class="diagram" role="img" aria-label="You search, press Enter, the bar stays a search, the focus moves to the file list, and Down selects the first match">
@@ -138,8 +138,8 @@
       <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
       <text x="286" y="90" class="t">Enter</text>
       <text x="286" y="114" class="m">location-entry.c</text>
-      <text x="286" y="134" class="b">text is a search</text>
-      <text x="286" y="154" class="b">query: new branch</text>
+      <text x="286" y="134" class="b">searching, and text</text>
+      <text x="286" y="154" class="b">is a query: branch</text>
       <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
     </g>
     <g data-k="3">
@@ -201,7 +201,7 @@
   <div class="lane-h" style="color:var(--accent)">① Enter in the search box</div>
   <ol class="steps">
     <li data-k="1"><b>You search.</b> Ctrl+F opens the search box and each letter you type updates the results, as before.</li>
-    <li data-k="2"><b>Enter.</b> <code>thunar_location_entry_activate</code> is the box's Enter handler. It finds no file for the text, and now checks <code>thunar_util_is_a_search_query</code>: if the text is a search, it takes the new branch.</li>
+    <li data-k="2"><b>Enter.</b> <code>thunar_location_entry_activate</code> is the box's Enter handler. It finds no file for the text, and now checks two things: <code>thunar_window_is_searching</code>, a new getter in <code>thunar-window.c</code>, says the window is in search mode, and <code>thunar_util_is_a_search_query</code> says the text is a search. Only when both hold does it take the new branch, so a hand-typed “Search:” text in a path box is left alone (CI's review finding R1).</li>
     <li data-k="3"><b>Keep the bar.</b> The branch disconnects the box's pending “edit done on focus-out” handler. Without that, with the path-buttons style of location bar, moving the focus away would swap the bar back to buttons in the middle of the search.</li>
     <li data-k="4"><b>Focus to list.</b> It finds the window and calls <code>gtk_widget_grab_focus</code> on <code>thunar_window_get_view</code>, the same call the location bar already makes after selecting a file (#93).</li>
   </ol>
@@ -215,20 +215,29 @@
 
   <section class="sub" id="parts">
   <h3 class="sec">The change (names shortened)</h3>
-<pre data-k="diff">else if (is_a_search_query (text))
-  {
-<span class="add">    disconnect (path_entry, edit_done);</span>
+<pre data-k="diff"><span class="add">else</span>
+<span class="add">  {</span>
 <span class="add">    window = get_toplevel (location_entry);</span>
-<span class="add">    if (THUNAR_IS_WINDOW (window))</span>
-<span class="add">      grab_focus (get_view (window));</span>
-  }</pre>
-  <div class="note warn" data-k="ctrlf">Not as the issue assumed: the issue says Ctrl+F should bring you back to the search box with the query intact. In Thunar, Ctrl+F while a search is open turns the search off, before and after this PR. Clicking the search box does return to it. This PR leaves Ctrl+F alone; it is an open question for you (Part 3).</div>
+<span class="add">    if (THUNAR_IS_WINDOW (window) &amp;&amp; is_searching (window)</span>
+<span class="add">        &amp;&amp; is_a_search_query (text))</span>
+<span class="add">      {</span>
+<span class="add">        disconnect (path_entry, edit_done);</span>
+<span class="add">        grab_focus (get_view (window));</span>
+<span class="add">      }</span>
+<span class="add">  }</span>
+
+/* thunar-window.c: the new getter */
+<span class="add">gboolean thunar_window_is_searching (window)</span>
+<span class="add">{ return window-&gt;is_searching; }</span></pre>
+  <div class="note warn" data-k="ctrlf">Not as the issue assumed: the issue says Ctrl+F should bring you back to the search box with the query intact. In Thunar, Ctrl+F while a search is open turns the search off, before and after this PR. Clicking the search box does return to it. You decided to keep Ctrl+F as it is, so there is no follow-up issue (Part 3).</div>
   </section>
 
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">thunar/
-└── thunar-location-entry.c   # search-mode branch in the Enter handler (+7 lines)
+├── thunar-location-entry.c   # search-mode branch in the Enter handler (+10 lines)
+├── thunar-window.c           # new getter thunar_window_is_searching
+└── thunar-window.h           # its declaration
 verify/
 └── 135.sh                    # Enter, Down, search kept, buttons bar, no matches
 explainers/
@@ -242,7 +251,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built from an existing focus call, tested by a new verify script under Xvfb in the cloud container, and reviewed locally. CI has not run yet.</p>
+  <p class="intro" data-k="intro">Built from an existing focus call, tested by a new verify script under Xvfb in the cloud container and in CI, reviewed locally and by CI, and its screenshots audited: PASS.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -257,14 +266,16 @@ explainers/
   <div class="table-wrap">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
-    <tr data-k="c1"><td>Build and full verify suite</td><td>build-verify agent in the cloud container: built the debs, installed them, ran <code>verify-proof.sh</code> (smoke test and every verify script), twice: before and after the S1 fix</td><td class="ok">29 of 29 pass, both times</td></tr>
+    <tr data-k="c1"><td>Build and full verify suite</td><td>build-verify agent in the cloud container: built the debs, installed them, ran <code>verify-proof.sh</code> (smoke test and every verify script), twice: before and after the S1 fix, both before CI's R1 fix</td><td class="ok">29 of 29 pass, both times</td></tr>
     <tr data-k="c2"><td>Enter, Down selects the first match</td><td><code>verify/135.sh</code>: search apple, Enter, Down, Ctrl+C, paste into an empty folder</td><td class="ok">exactly apple1.txt</td></tr>
     <tr data-k="c3"><td>The search stays after Enter</td><td><code>verify/135.sh</code>: Enter, then Ctrl+A, Ctrl+C, paste</td><td class="ok">apple1.txt and apple2.txt</td></tr>
-    <tr data-k="c4"><td>Path-buttons location bar</td><td><code>verify/135.sh</code>: buttons-style bar, Ctrl+L, Ctrl+F apple, Enter, shot, Ctrl+A, Ctrl+C, paste</td><td class="ok">both apple files</td></tr>
+    <tr data-k="c4"><td>Path-buttons location bar</td><td><code>verify/135.sh</code>: buttons-style bar, Ctrl+L, Ctrl+F apple, Enter, shot, Ctrl+A, Ctrl+C, paste. The script doesn't assert that the text box stays; shot #55 shows it (R2)</td><td class="ok">both apple files</td></tr>
     <tr data-k="c5"><td>Enter with no matches</td><td><code>verify/135.sh</code>: search zzz, Enter, Down, then check the process</td><td class="ok">Thunar still running</td></tr>
     <tr data-k="c6"><td>Ctrl+F back to the search</td><td>Read in <code>thunar_window_action_search</code>: Ctrl+F during a search turns it off; not tested by the script</td><td class="no">toggles off</td></tr>
-    <tr data-k="c7"><td>CI and its screenshot audit</td><td>Not pushed yet; CI's build, verify and review run on the first push, then the visual check of its shots</td><td class="no">not run</td></tr>
-    <tr data-k="c8"><td>Narrated video</td><td>Needs Kokoro, which is on your machine</td><td class="no">not run</td></tr>
+    <tr data-k="c7"><td>CI build and verify</td><td>CI run 44998634849 on head <code>21793c3</code>, with CI's R1 fix: built the debs, ran the smoke test and every verify script; <code>verify/135.sh</code> took 32 s and took shots #54 (before-enter / after-enter) and #55 (buttons-bar)</td><td class="ok">build passed, 29 of 29 pass</td></tr>
+    <tr data-k="c8"><td>Screenshot audit</td><td><code>/visual-verify pr:138</code> on CI's shots: the independent shot-auditor read every shot</td><td class="ok">PASS, 172 of 172 OK</td></tr>
+    <tr data-k="c9"><td>Explainer</td><td>CI run 44998634849: rendered this page and ran <code>make-video.py status</code></td><td class="ok">rendered, narration current</td></tr>
+    <tr data-k="c10"><td>Narrated video</td><td>Needs Kokoro, which is on your machine</td><td class="no">not run</td></tr>
   </table>
   </div>
   </section>
@@ -277,7 +288,12 @@ explainers/
     <li data-k="b2"><b>S2, skipped:</b> no NULL check on the view, a nit. The same file's existing call has none either.</li>
     <li data-k="b3"><b>S3:</b> the explainer was missing; this page is it.</li>
   </ul>
-  <p data-k="ci">CI reviews every code push and reports in its code review comment on the PR.</p>
+  <p data-k="ci">CI's own review, at high level on <code>e8f80ff</code>, found 3 more, reported in its code review comment on the PR:</p>
+  <ul class="tight">
+    <li data-k="r1"><b>R1, medium, confirmed, fixed by CI:</b> a hand-typed “Search:” text in a temporary path box would take the new branch and get stuck. CI's commit <code>21793c3</code> adds the <code>thunar_window_is_searching</code> check.</li>
+    <li data-k="r2"><b>R2, low, confirmed, accepted by you:</b> the script's buttons-bar part doesn't assert that the text box stays. Shot #55 shows it, and the audit passed it.</li>
+    <li data-k="r3"><b>R3, low, plausible, accepted by you:</b> the location bar's own edit-done handler may stay connected. CI's verifier found no visible effect.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -293,9 +309,10 @@ explainers/
   <section class="sub" id="see">
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
-    <li data-k="l1">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...135-search-enter-focus">main…135-search-enter-focus</a>, and the PR's “Files changed” once it is open</li>
+    <li data-k="l1">The PR: <a href="https://github.com/alexhu98/thunar/pull/138">#138</a>, with its “Files changed”</li>
     <li data-k="l2">The issue: <a href="https://github.com/alexhu98/thunar/issues/135">#135</a></li>
-    <li data-k="l3">The shots: CI's verify comment on the PR, after the first push</li>
+    <li data-k="l3">The shots: CI's verify comment on the PR, shots #54 and #55; the CI run: <a href="https://github.com/alexhu98/thunar/actions/runs/44998634849">44998634849</a></li>
+    <li data-k="l4">The screenshot audit: <a href="https://github.com/alexhu98/thunar/pull/138#issuecomment-7076279523">visual-verify comment</a></li>
   </ul>
   </section>
   </section>
@@ -303,21 +320,18 @@ explainers/
   <!-- ============================== PART 3 ============================== -->
   <section class="part" id="later">
   <p class="part-label" data-k="label">Part 3</p>
-  <h2 data-k="heading">What comes later: no issue builds on it; one open question</h2>
-  <p class="intro" data-k="intro">No open issue says it depends on #135. What is left is your call on Ctrl+F after Enter.</p>
+  <h2 data-k="heading">What comes later: nothing builds on it; Ctrl+F stays as is</h2>
+  <p class="intro" data-k="intro">No open issue says it depends on #135, and the Ctrl+F question is settled: you kept it as is.</p>
 
   <section class="sub" id="next">
-  <div class="diagram" role="img" aria-label="This PR, then your decision on Ctrl+F, then a possible follow-up issue">
+  <div class="diagram" role="img" aria-label="This PR, then your decision to keep Ctrl+F as it is">
   <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
         <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
       </marker>
-      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
-      </marker>
     </defs>
-    <text class="lane" x="20" y="44" style="fill:var(--muted)">#135, then the open Ctrl+F question</text>
+    <text class="lane" x="20" y="44" style="fill:var(--muted)">#135, then your Ctrl+F decision</text>
     <g data-k="n1">
       <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
       <text x="36" y="90" class="t">#135 this PR</text>
@@ -327,35 +341,26 @@ explainers/
     </g>
     <g data-k="n2">
       <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
-      <text x="286" y="90" class="t">Your call</text>
-      <text x="286" y="114" class="b">Ctrl+F after Enter:</text>
-      <text x="286" y="134" class="b">keep the toggle, or</text>
-      <text x="286" y="154" class="b">go back to search?</text>
-    </g>
-    <g data-k="n3">
-      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
-      <text x="536" y="90" class="t">Maybe an issue</text>
-      <text x="536" y="114" class="b">only if you want</text>
-      <text x="536" y="134" class="b">Ctrl+F to return</text>
-      <text x="536" y="154" class="b">to the search box</text>
+      <text x="286" y="90" class="t">Keep Ctrl+F</text>
+      <text x="286" y="114" class="b">your decision: it</text>
+      <text x="286" y="134" class="b">turns a search off;</text>
+      <text x="286" y="154" class="b">a click returns</text>
     </g>
     <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
-    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
   </svg>
   </div>
   <div class="legend">
     <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
-    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
-    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet, not filed</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>your decision</span>
   </div>
   </section>
 
   <section class="sub" id="question">
-  <h3 class="sec">The open Ctrl+F question (next)</h3>
+  <h3 class="sec">The Ctrl+F decision (settled)</h3>
   <div class="panel">
   <ol class="steps">
     <li data-k="1"><b>Today.</b> After Enter, a click on the search box returns to it with the query. Ctrl+F turns the search off, as it did before this PR.</li>
-    <li data-k="2"><b>If you want Ctrl+F to return instead,</b> that changes Thunar's search toggle for everyone, so it would be its own issue and PR, not this one.</li>
+    <li data-k="2"><b>You decided to keep it.</b> Ctrl+F stays a toggle, a click returns to the search box, and no follow-up issue is filed.</li>
   </ol>
   </div>
   </section>
