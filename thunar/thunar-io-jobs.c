@@ -1951,6 +1951,7 @@ _thunar_job_load_statusbar_text (ThunarJob *job,
   const gchar        *free_space_text;
   gchar              *text_for_files;
   gchar              *temp_string;
+  gchar              *left_text = NULL;
   GList              *text_list = NULL;
   guint               status_bar_active_info;
   guint64             size;
@@ -1979,34 +1980,24 @@ _thunar_job_load_statusbar_text (ThunarJob *job,
                                                                  date_custom_style,
                                                                  status_bar_active_info,
                                                                  exo_job_get_cancellable (EXO_JOB (job)));
-      text_list = g_list_append (text_list, g_strdup_printf (_ ("Selection: %s"), text_for_files));
+      left_text = g_strdup_printf (_ ("Selection: %s"), text_for_files);
       g_free (text_for_files);
     }
   else if (selection_text != NULL)
     {
-      text_list = g_list_append (text_list, g_strdup (selection_text));
-    }
-  else if (folder_g_files != NULL)
-    {
-      text_list = g_list_append (text_list, thunar_util_get_statusbar_text_for_files (folder_g_files,
-                                                                                      show_hidden,
-                                                                                      show_file_size_binary_format,
-                                                                                      date_style,
-                                                                                      date_custom_style,
-                                                                                      status_bar_active_info,
-                                                                                      exo_job_get_cancellable (EXO_JOB (job))));
+      left_text = g_strdup (selection_text);
     }
 
-  if ((selected_g_files != NULL || selection_text != NULL) && folder_g_files != NULL)
+  if (folder_g_files != NULL)
     {
       temp_string = thunar_util_get_statusbar_total_text_for_files (folder_g_files, show_hidden, show_file_size_binary_format, status_bar_active_info,
                                                                     exo_job_get_cancellable (EXO_JOB (job)));
-      if (temp_string != NULL)
-        text_list = g_list_append (text_list, temp_string);
+      text_list = g_list_append (text_list, temp_string != NULL ? temp_string : g_strdup (_ ("0 items")));
     }
 
   if (exo_job_set_error_if_cancelled (EXO_JOB (job), error))
     {
+      g_free (left_text);
       g_list_free_full (text_list, g_free);
       return FALSE;
     }
@@ -2024,7 +2015,8 @@ _thunar_job_load_statusbar_text (ThunarJob *job,
   temp_string = thunar_util_strjoin_list (text_list, "  |  ");
   g_list_free_full (text_list, g_free);
 
-  thunar_standard_view_set_statusbar_text_for_job (standard_view, job, temp_string);
+  thunar_standard_view_set_statusbar_text_for_job (standard_view, job, left_text != NULL ? left_text : "", temp_string);
+  g_free (left_text);
   g_free (temp_string);
 
   return TRUE;

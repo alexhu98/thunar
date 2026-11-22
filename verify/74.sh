@@ -67,13 +67,13 @@ xdotool key ctrl+2
 sleep 1
 
 clear_selection
-shot "$WID" after-status-none "Default settings, nothing selected: the status bar reads 1 folder | 3 files: 6.0 MiB | Free space: …, with no (… bytes)"
+shot "$WID" after-status-none "Default settings, nothing selected: the status bar's right part reads 1 folder, 3 files: 6.0 MiB | Free space: …, with no (… bytes)"
 select_one
-shot "$WID" after-status-one "Default settings, a.bin selected: \"a.bin\" | 1.0 MiB | its type | Total: 1 folder, 3 files: 6.0 MiB | Free space: …"
+shot "$WID" after-status-one "Default settings, a.bin selected: \"a.bin\" | 1.0 MiB | its type on the left, 1 folder, 3 files: 6.0 MiB | Free space: … on the right"
 select_two
-shot "$WID" after-status-many "Default settings, a.bin and b.bin selected: Selection: 2 files: 3.0 MiB | Total: 1 folder, 3 files: 6.0 MiB | Free space: …"
+shot "$WID" after-status-many "Default settings, a.bin and b.bin selected: Selection: 2 files: 3.0 MiB on the left, 1 folder, 3 files: 6.0 MiB | Free space: … on the right"
 search
-shot "$WID" status-search "Searching for bin: the status bar reads 3 files found: 6.0 MiB | Free space: …, with no Total part"
+shot "$WID" status-search "Searching for bin: the status bar reads 3 files found: 6.0 MiB | Free space: … on the right, with no separate folder total"
 cancel_search
 go "$DIR" files
 
@@ -84,10 +84,10 @@ shot "$WID" before-status-none "Size in bytes switched on, as in the old default
 pair status-none "Compared Size in bytes on (the old default) with the new default" "With nothing selected the new default drops the byte count and keeps the folder totals and free space" "Old default: 6.0 MiB (6291456 bytes)" "New default: 6.0 MiB, no byte count" "$G"
 select_one
 shot "$WID" before-status-one "Size in bytes on, a.bin selected: its size reads 1.0 MiB (1048576 bytes)"
-pair status-one "Selected a.bin, with Size in bytes on and with the new default" "One selected file keeps Total and Free space, and the new default drops its byte count" "Old default: 1.0 MiB (1048576 bytes)" "New default: 1.0 MiB | Total | Free space" "$G"
+pair status-one "Selected a.bin, with Size in bytes on and with the new default" "One selected file keeps the folder total and Free space, and the new default drops its byte count" "Old default: 1.0 MiB (1048576 bytes)" "New default: 1.0 MiB, total and free space" "$G"
 select_two
 shot "$WID" before-status-many "Size in bytes on, a.bin and b.bin selected: Selection: 2 files: 3.0 MiB (3145728 bytes)"
-pair status-many "Selected a.bin and b.bin, with Size in bytes on and with the new default" "A multi-file selection keeps Total and Free space, and the new default drops the byte count" "Old default: 3.0 MiB (3145728 bytes)" "New default: 3.0 MiB | Total | Free space" "$G"
+pair status-many "Selected a.bin and b.bin, with Size in bytes on and with the new default" "A multi-file selection keeps the folder total and Free space, and the new default drops the byte count" "Old default: 3.0 MiB (3145728 bytes)" "New default: 3.0 MiB, total and free space" "$G"
 search
 shot "$WID" status-bytes-on "Size in bytes switched back on while searching: 3 files found: 6.0 MiB (6291456 bytes) | Free space: …"
 cancel_search
@@ -100,7 +100,7 @@ xfconf-query -c thunar -p /misc-status-bar-active-info -n -t uint -s 1
 xdotool windowmove --sync "$WID" 0 0
 xdotool windowsize --sync "$WID" 1270 "$H"
 select_one
-shot "$WID" status-trash "Trash with trashed.txt selected and only the Size part switched on: 6 bytes | Original Path: … | Total: 1 file: 6 bytes, with Free space only if the trash reports it, and no error"
+shot "$WID" status-trash "Trash with trashed.txt selected and only the Size part switched on: 6 bytes | Original Path: … on the left, 1 file: 6 bytes on the right, with Free space only if the trash reports it, and no error"
 kill -0 "$THUNAR_PID" 2>/dev/null || fail "Thunar quit after selecting a file in the trash"
 xdotool windowsize --sync "$WID" "$W" "$H"
 xfconf-query -c thunar -p /misc-status-bar-active-info -r || true
@@ -111,6 +111,6 @@ xdotool key ctrl+a
 sleep 0.3
 xdotool key --delay 15 Home Down Down Down Up Down Up
 sleep 3
-shot "$WID" status-rapid "After quick selection changes ending on b.bin: \"b.bin\" | 2.0 MiB | its type | Total: … | Free space: …, nothing from an earlier selection"
+shot "$WID" status-rapid "After quick selection changes ending on b.bin: \"b.bin\" | 2.0 MiB | its type on the left, the folder total and Free space: … on the right, nothing from an earlier selection"
 kill -0 "$THUNAR_PID" 2>/dev/null || fail "Thunar is no longer running"
 exit 0

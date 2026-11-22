@@ -40,6 +40,7 @@ enum
 {
   PROP_0,
   PROP_TEXT,
+  PROP_INFO_TEXT,
 };
 
 
@@ -54,6 +55,10 @@ thunar_statusbar_set_property (GObject      *object,
 static void
 thunar_statusbar_set_text (ThunarStatusbar *statusbar,
                            const gchar     *text);
+static void
+thunar_statusbar_message_area_size_allocate (GtkWidget       *message_area,
+                                             GtkAllocation   *allocation,
+                                             ThunarStatusbar *statusbar);
 static GtkWidget *
 thunar_statusbar_context_menu (ThunarStatusbar *statusbar);
 static gboolean
@@ -85,6 +90,8 @@ struct _ThunarStatusbar
 {
   GtkStatusbar __parent__;
   guint        context_id;
+  GtkWidget   *label;
+  GtkWidget   *info_label;
 
   ThunarPreferences *preferences;
 };
@@ -133,6 +140,14 @@ thunar_statusbar_class_init (ThunarStatusbarClass *klass)
                                                         NULL,
                                                         EXO_PARAM_WRITABLE));
 
+  g_object_class_install_property (gobject_class,
+                                   PROP_INFO_TEXT,
+                                   g_param_spec_string ("info-text",
+                                                        "info-text",
+                                                        "info-text",
+                                                        NULL,
+                                                        EXO_PARAM_WRITABLE));
+
   if (!style_initialized)
     {
       gtk_widget_class_install_style_property (GTK_WIDGET_CLASS (gobject_class),
@@ -153,7 +168,26 @@ thunar_statusbar_class_init (ThunarStatusbarClass *klass)
 static void
 thunar_statusbar_init (ThunarStatusbar *statusbar)
 {
+  GtkWidget *message_area;
+  GList     *children;
+
   statusbar->context_id = gtk_statusbar_get_context_id (GTK_STATUSBAR (statusbar), "Main text");
+
+  message_area = gtk_statusbar_get_message_area (GTK_STATUSBAR (statusbar));
+  children = gtk_container_get_children (GTK_CONTAINER (message_area));
+  statusbar->label = children != NULL ? children->data : NULL;
+  g_list_free (children);
+
+  statusbar->info_label = gtk_label_new (NULL);
+  gtk_label_set_ellipsize (GTK_LABEL (statusbar->info_label), PANGO_ELLIPSIZE_END);
+  gtk_label_set_single_line_mode (GTK_LABEL (statusbar->info_label), TRUE);
+  gtk_label_set_xalign (GTK_LABEL (statusbar->info_label), 1.0f);
+  gtk_widget_set_margin_start (statusbar->info_label, 24);
+  gtk_box_pack_end (GTK_BOX (message_area), statusbar->info_label, FALSE, FALSE, 0);
+  gtk_widget_show (statusbar->info_label);
+
+  if (statusbar->label != NULL)
+    g_signal_connect_after (G_OBJECT (message_area), "size-allocate", G_CALLBACK (thunar_statusbar_message_area_size_allocate), statusbar);
 
   /* make the status thinner */
   gtk_widget_set_margin_top (GTK_WIDGET (statusbar), 0);
@@ -222,6 +256,10 @@ thunar_statusbar_set_property (GObject      *object,
       thunar_statusbar_set_text (statusbar, g_value_get_string (value));
       break;
 
+    case PROP_INFO_TEXT:
+      gtk_label_set_text (GTK_LABEL (statusbar->info_label), g_value_get_string (value) != NULL ? g_value_get_string (value) : "");
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -246,6 +284,47 @@ thunar_statusbar_set_text (ThunarStatusbar *statusbar,
 
   gtk_statusbar_pop (GTK_STATUSBAR (statusbar), statusbar->context_id);
   gtk_statusbar_push (GTK_STATUSBAR (statusbar), statusbar->context_id, text);
+}
+
+
+
+static void
+thunar_statusbar_message_area_size_allocate (GtkWidget       *message_area,
+                                             GtkAllocation   *allocation,
+                                             ThunarStatusbar *statusbar)
+{
+  GtkAllocation left;
+  GtkAllocation right;
+  gint          left_minimum;
+  gint          left_natural;
+  gint          right_minimum;
+  gint          spacing;
+
+  if (!gtk_widget_get_visible (statusbar->label) || !gtk_widget_get_visible (statusbar->info_label))
+    return;
+
+  gtk_widget_get_allocation (statusbar->label, &left);
+  gtk_widget_get_allocation (statusbar->info_label, &right);
+  gtk_widget_get_preferred_width (statusbar->label, &left_minimum, &left_natural);
+  gtk_widget_get_preferred_width (statusbar->info_label, &right_minimum, NULL);
+  spacing = gtk_box_get_spacing (GTK_BOX (message_area));
+
+  left.width = MAX (left_minimum, MIN (left_natural, allocation->width - spacing - right_minimum));
+  right.width = MAX (right_minimum, allocation->width - spacing - left.width);
+
+  if (gtk_widget_get_direction (message_area) == GTK_TEXT_DIR_RTL)
+    {
+      left.x = allocation->x + allocation->width - left.width;
+      right.x = allocation->x;
+    }
+  else
+    {
+      left.x = allocation->x;
+      right.x = allocation->x + allocation->width - right.width;
+    }
+
+  gtk_widget_size_allocate_with_baseline (statusbar->label, &left, gtk_widget_get_allocated_baseline (statusbar->label));
+  gtk_widget_size_allocate_with_baseline (statusbar->info_label, &right, gtk_widget_get_allocated_baseline (statusbar->info_label));
 }
 
 

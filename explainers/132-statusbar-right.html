@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #136 Status bar split</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+  .sbar-wrap { overflow-x: auto; margin: 4px 0 14px; }
+  .sbar { display: flex; justify-content: space-between; gap: 24px; background: var(--code-bg);
+          border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; white-space: nowrap;
+          font: 13px/1.4 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+  .sbar .l { flex: none; }
+  .sbar .r { color: var(--accent); }
+  .sbar.old .l { flex: 1 1 auto; white-space: normal; }
+  .sbar.narrow { width: max-content; }
+  p.sbar-cap { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #136: The status bar shows the selection on the left, the folder total and free space on the right</h1>
+  <p class="lead" data-k="lead">Branch <code>132-statusbar-right</code> → <code>main</code>, closes #132. Once merged, the folder total and free space always sit at the right edge of the status bar, and the selection on the left keeps its full width.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing depends on it</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">The status bar now has two parts: the selection on the left, and the folder total and free space on a second label at the right edge, without the word “Total:”.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="A selection change starts a job that builds two texts; the view stores them in two properties; the window binds both to the status bar; the status bar's second label shows the right text, and the left label gets its full width first.">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① The view: build two texts</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Selection changes</text>
+      <text x="36" y="114" class="m">standard-view.c</text>
+      <text x="36" y="134" class="b">an idle update</text>
+      <text x="36" y="154" class="b">starts a job</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Job splits text</text>
+      <text x="286" y="114" class="m">thunar-io-jobs.c</text>
+      <text x="286" y="134" class="b">left: the selection</text>
+      <text x="286" y="154" class="b">right: total + free</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Two properties</text>
+      <text x="536" y="114" class="m">statusbar-info-text</text>
+      <text x="536" y="134" class="b">next to the old one,</text>
+      <text x="536" y="154" class="b">same lock and guard</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Window binds both</text>
+      <text x="786" y="114" class="m">thunar-window.c</text>
+      <text x="786" y="134" class="b">follows the active</text>
+      <text x="786" y="154" class="b">tab or split pane</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② The status bar: draw them</text>
+    <g data-k="5">
+      <rect class="box-merge" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Second label</text>
+      <text x="786" y="314" class="m">thunar-statusbar.c</text>
+      <text x="786" y="334" class="b">right-aligned, cut</text>
+      <text x="786" y="354" class="b">with … when short</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Left goes first</text>
+      <text x="536" y="314" class="m">size-allocate</text>
+      <text x="536" y="334" class="b">the selection gets</text>
+      <text x="536" y="354" class="b">its full width</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
+    <g data-k="bar">
+      <rect class="box-you" x="20" y="290" width="460" height="60" rx="6"/>
+      <text x="36" y="325" class="m">"b.bin" | 1.0 MiB</text>
+      <text x="464" y="325" class="m" text-anchor="end" style="fill:var(--accent)">3 files | Free: …</text>
+    </g>
+    <path class="arrow" d="M520,320 H484" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>the view and window: work out the texts</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>the status bar widget: lay them out</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>what you see</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">The status bar at the bottom of a Thunar window used to be one left-aligned line: the selection, then “Total:” and the folder's counts, then the free space. With a long name selected, the folder total and free space ran off the end, and their position jumped with every selection. Now each has its own place: what you selected on the left, what the folder holds and how much space is left on the right.</p>
+  <div class="note" data-k="note">GTK's status bar has one label. This PR adds a second label to the same bar and decides itself how the width is shared, so a short bar cuts the right part, never the selection.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① The view: build two texts</div>
+  <ol class="steps">
+    <li data-k="1"><b>Selection changes.</b> When the selection changes, the view's idle update in <code>thunar-standard-view.c</code> starts the status bar job, as before. When any view starts loading a folder, it cancels the old folder's status bar job and clears both sides of the status bar, as the owner chose. The bar then refills as files arrive, so the right part's totals grow, and a selection made during the load shows on the left as usual. When loading ends, every view refreshes the bar. “Loading folder contents...” is no longer shown. In a search, it sets the texts itself: the found count goes on the right with the free space, and a selected result goes on the left.</li>
+    <li data-k="2"><b>Job splits text.</b> <code>_thunar_job_load_statusbar_text</code> in <code>thunar-io-jobs.c</code> now keeps the selection as a separate left text. The folder counts and the free space are joined into the right text. The folder total no longer starts with “Total:”: that prefix is dropped in <code>thunar-util.c</code>. With nothing selected, the left text is empty and the right text is the same total and free space, in the same format. An empty folder's right part reads “0 items”.</li>
+    <li data-k="3"><b>Two properties.</b> The view gets a new read-only property, <code>statusbar-info-text</code>, beside <code>statusbar-text</code>. It is stored under the same lock, and only by the job that is still current, so a slow, older job can't overwrite a newer selection's text.</li>
+    <li data-k="4"><b>Window binds both.</b> <code>thunar-window.c</code> binds the new property to the status bar's new <code>info-text</code> in the same two places it binds the old one: when the window opens and when the active view changes, so the right part follows the tab or split pane you're in.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② The status bar: draw them</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Second label.</b> <code>ThunarStatusbar</code> packs a second label at the end of the bar's message area. It is right-aligned, on one line, ends with “…” when cut, and keeps a 24 px gap from the left text.</li>
+    <li data-k="6"><b>Left goes first.</b> A plain GTK box would cut both labels when space runs short. A <code>size-allocate</code> handler gives the left label its natural width first and the right label what is left. The left label is cut only when it alone is wider than the bar. Right-to-left languages get the mirror image.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="bars">
+  <h3 class="sec">What the bar shows (the issue's example)</h3>
+  <div data-k="s1">
+  <p class="sbar-cap">Before, with <code>2_extract_srt.sh</code> selected: one line, all on the left</p>
+  <div class="sbar-wrap"><div class="sbar old"><span class="l">"2_extract_srt.sh"  |  877 bytes  |  Shell script  |  Total: 1 folder, 13 files: 22.8 KiB  |  Free space: 11.4 TiB</span></div></div>
+  </div>
+  <div data-k="s2">
+  <p class="sbar-cap">After, same selection: the selection on the left, the total (no “Total:”) and free space on the right</p>
+  <div class="sbar-wrap"><div class="sbar"><span class="l">"2_extract_srt.sh"  |  877 bytes  |  Shell script</span><span class="r">1 folder, 13 files: 22.8 KiB  |  Free space: 11.4 TiB</span></div></div>
+  </div>
+  <div data-k="s3">
+  <p class="sbar-cap">After, nothing selected: the left is empty, and the right part reads as it does with a selection</p>
+  <div class="sbar-wrap"><div class="sbar"><span class="l"></span><span class="r">1 folder, 13 files: 22.8 KiB  |  Free space: 11.4 TiB</span></div></div>
+  </div>
+  <div data-k="s4">
+  <p class="sbar-cap">After, a narrow window: the selection stays whole, only the right part is cut</p>
+  <div class="sbar-wrap"><div class="sbar narrow"><span class="l">"2_extract_srt.sh"  |  877 bytes  |  Shell script</span><span class="r">1 folder, 13 files:…</span></div></div>
+  </div>
+  <div class="note warn" data-k="fmt">The right part has one format, with or without a selection, as the owner chose after CI's review. So with nothing selected, the Last Modified option no longer shows in the status bar: it was part of the old no-selection summary. CI's review flagged this as R6, which is accepted.</div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+├── thunar-io-jobs.c        # left text and right text; one format for the right
+├── thunar-util.c           # the folder total drops its "Total:" prefix
+├── thunar-standard-view.c  # new statusbar-info-text property; search fills it;
+│                           #   a load clears both sides, files refill them
+├── thunar-standard-view.h  # set_statusbar_text_for_job takes the right text too
+├── thunar-statusbar.c      # second label, 24 px gap, left-first width split
+└── thunar-window.c         # binds the new property where the old one is bound
+verify/
+├── 132.sh                  # new test: no selection, one file, narrow, tabs,
+│                           #   empty folder, icon view
+└── 74.sh                   # shot texts updated: no "Total:", comma format
+explainers/
+├── 132-statusbar-right.html            # this page
+└── 132-statusbar-right.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo, revert the PR's squash commit. Nothing is stored or migrated: the status bar simply goes back to one line.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The building session built and tested the first commit in a cloud container and audited the screenshots three times. The 24 px gap, the review fixes and the changes after CI's reviews came later and were not built or run there: CI's build and verify on PR #136 cover them.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Issue #132</h3><p>Its example bar, its four-step approach and its three test cases are what the code and <code>verify/132.sh</code> follow.</p></div>
+    <div class="card" data-k="r2"><h3>#74's status bar totals</h3><p>#74 made the folder total and free space always show. Its test, <code>verify/74.sh</code>, still passes with its shot texts updated.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="test">
+  <h3 class="sec">The new test, verify/132.sh</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="t1"><b>Nothing selected.</b> A folder with one subfolder and three files at 1200 px: the left is empty and the folder total and free space sit at the right edge.</li>
+    <li data-k="t2"><b>One file selected.</b> <code>b.bin</code> on the left; on the right the total, with no “Total:”, and the free space.</li>
+    <li data-k="t3"><b>Narrow window.</b> With the long-named file selected, the window goes from 1200 to 800 px. The test fails if the window stays wider than 810 px, which would mean the new label raised the minimum width. The before/after pair shows the selection whole and the right part cut.</li>
+    <li data-k="t4"><b>Tabs.</b> A new tab on another folder shows that folder's total; back on the first tab, the first folder's total returns.</li>
+    <li data-k="t5"><b>Empty folder.</b> Added by CI's review fix for R5: an empty folder shows nothing on the left and “0 items | Free space: …” on the right.</li>
+    <li data-k="t6"><b>Icon view.</b> Added for R10: back on the first folder in the icon view, with nothing selected, the left is empty and the right part shows the folder total and free space.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Build and install</td><td><code>dpkg-buildpackage</code> of the first commit, then the debs installed, in a cloud container by the building session's build-verify agent</td><td class="ok">build OK, install OK</td></tr>
+    <tr data-k="c2"><td>The whole verify suite</td><td>The smoke test and all 26 <code>verify/*.sh</code> scripts against that build, same session</td><td class="ok">26 of 27 pass</td></tr>
+    <tr data-k="c3"><td>Why 132 failed there</td><td>One pair's state text was over the 48-character limit. It was shortened, with no code change.</td><td class="ok">label fixed</td></tr>
+    <tr data-k="c4"><td><code>verify/132.sh</code> on its own</td><td>Re-run with the smoke test three times against the same build, including the 810 px minimum-width check</td><td class="ok">3 of 3 pass</td></tr>
+    <tr data-k="c5"><td>Screenshot audit</td><td><code>/visual-verify</code> three times. First: the 1400 px window was wider than the capture, and re-selecting selected every file, so the test now uses 1200 px and keeps the selection. Second: the long name alone was wider than 800 px, so it was cut as designed; the name was shortened.</td><td class="ok">3rd: 6 of 6 OK, PASS</td></tr>
+    <tr data-k="c6"><td>Audit advisories</td><td>The right part's two formats (see Part 1), and the right text touching the left one in the narrow window, which led to the 24 px gap</td><td class="ok">gap added; one format later</td></tr>
+    <tr data-k="c7"><td>The 24 px gap, the review fixes, and clearing on load and one format</td><td>Pushed after the local runs; CI's build and verify on PR #136 run them.</td><td class="no">not run here</td></tr>
+    <tr data-k="c9"><td>CI's verify on a10bc23</td><td>The smoke test and every <code>verify/*.sh</code>, per the PR digest. Later pushes replaced that head, so its shots weren't audited.</td><td class="ok">27 of 27 pass</td></tr>
+    <tr data-k="c10"><td>The fixes for R4, R7 and R8</td><td>Compiled here (<code>thunar-standard-view.o</code>, no warnings), not built into debs or run here. CI's later builds include them.</td><td class="no">compile only here</td></tr>
+    <tr data-k="c11"><td>CI on afd0dc2 (R9 fix, icon-view shot, CI's fixes for R11–R14 and R16)</td><td>CI's build, verify (smoke test and every <code>verify/*.sh</code>), explainer and review jobs, per the PR digest</td><td class="ok">all 4 pass</td></tr>
+    <tr data-k="c12"><td>Screenshot audit of afd0dc2</td><td><code>/visual-verify pr:136</code> on CI's shots, posted on the PR</td><td class="ok">244 of 244 OK, PASS</td></tr>
+    <tr data-k="c13"><td>Clearing when a load starts and refilling as files arrive (2523ec9, the latest commit)</td><td>Compiled only, no warnings. CI's build and verify on it are its first run.</td><td class="no">compile only</td></tr>
+    <tr data-k="c8"><td>Split view, menu tooltips, the bar while a folder loads, right-to-left</td><td>No test drives them; the binding code for split view is the one the tab test exercises. The test folders load in milliseconds, so a loading state can't be caught (R15).</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh agent ran <code>/code-review high --fix origin/main...HEAD</code>. It made 2 fixes and skipped 3 findings. One fix was kept and one undone.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Kept:</b> the two new property doc comments were removed, under <code>CLAUDE.md</code>'s rule against new explanatory comments.</li>
+    <li data-k="b2"><b>Undone, then restored:</b> clearing the right part while a folder loads. It was undone because the issue said to leave the right part alone; after CI's review found the same problem, the owner chose clearing, and later clearing both sides.</li>
+    <li data-k="b3"><b>Skipped:</b> S1, the right part's format differs with and without a selection, at first kept as the issue's approach said, now one format. S2, the missing explainer, is this page. S3, uncommitted test edits, has since been committed.</li>
+  </ul>
+  <p data-k="ci">CI reviews every push at high and reports in the <a href="https://github.com/alexhu98/thunar/pull/136">code review comment on PR #136</a>, the second of CI's four comments. Its review of 895cdfe found three: R1 (medium, confirmed), the right part kept the previous folder's total while a folder loads; R2 (low), the two formats; R3 (low), the missing explainer, since pushed. The owner chose to clear the right part while loading and to use one format; both were fixed on the next push.</p>
+  <p data-k="ci2">CI's review of 105e5de resolved R1 and R3 and found five more. R4 (medium, confirmed): a new load cleared the right part but left the old folder's job running, which could refill it; CI's fix commit cancels the job. R5 (low): no shot of an empty folder; CI added one.</p>
+  <p data-k="ci3">R7 (medium, plausible): the right part was cleared only in the details view. R8 (low, plausible): it was also cleared when loading ended, so it blinked. Both are fixed: every view now cancels the job and clears the right part when loading starts, and none clears it when loading ends.</p>
+  <p data-k="ci4">CI's review of ce1d388 found R9 (medium, confirmed): while loading, the right part refilled with partial counts. It was fixed with a guard against status bar updates while loading, which was later dropped (see below). R10 (low): an icon-view shot was added.</p>
+  <p data-k="ci5">CI's review of cf3817f found R11 to R16, and CI's own fix commit fixed five: the old selection stayed in icon views, a collapsed subfolder stuck loading, expanding one dropped selection updates, search during a load, and a loading message flash.</p>
+  <p data-k="ci6">Then the owner chose to clear both sides of the status bar while a folder loads. Commit 8153422 did this in every view, dropped the “Loading folder contents...” message, and refreshed the bar in every view when loading ended.</p>
+  <p data-k="ci7">CI's review of 8153422 found R17 to R21. The view's one loading flag is fed both by the open folder and by the details view's tree model while a subfolder expands, so the guard that held the bar blank kept hitting new cases. R17 (medium, confirmed): the tree model's loading flag could stay stuck, so the bar stopped updating. R18 (medium, confirmed): a file deselected during a load kept its text on the bar. R19 (low, confirmed, older than this PR): re-expanding a still-loading subfolder counted it twice. R20 (low, plausible): expanding a subfolder blanks the bar of a loaded parent. R21 (low, plausible): a race on the one loading flag.</p>
+  <p data-k="ci8">So the owner chose to clear the bar when a load starts and let it refill as files arrive, with no follow-up issue. Commit 2523ec9 drops the guard and reverts CI's change to <code>thunar-tree-view-model.c</code>, so this PR no longer touches that file. It fixes R18 and R21: the code they flagged is gone.</p>
+  <p data-k="ci9">CI's review of 2523ec9 kept R17 and R19 open. Both are in <code>thunar-tree-view-model.c</code>, now identical to <code>main</code>, so they are upstream behavior outside this PR: R17, collapsing a subfolder while it loads can leave the loading flag stuck on; R19, re-expanding a still-loading subfolder connects its handlers twice. It also found R22 (low, confirmed): expanding a subfolder in the details view clears both sides of the bar briefly, a direct result of the owner's loading choice. R23 (low, plausible): a claimed full status job per file batch while loading; CI's verifier found it runs about once per load, as upstream does.</p>
+  <div class="note" data-k="r6">Seven findings are accepted. R6 and R15 have a <code>Review-accept: R6, R15</code> trailer on an earlier commit of this page, as the owner chose. R6 (low, confirmed): Last Modified no longer shows with nothing selected, a result of one format. R15 (low, confirmed): no test catches the loading state, which would need a folder that stays loading, such as a slow mount. R20 (low, plausible, from a later review) is accepted under the CI review rules: expanding a subfolder still clears the bar briefly, and it refills as the files arrive.</div>
+  <div class="note" data-k="r17">The owner accepted R17, R19 and R22 at 6:01 PM PST on 11/21, with no issue opened for R17 and R19, since they are upstream's. R23 is accepted under the CI review rules, as a later-review low finding that isn't confirmed. The commit with this page edit carries <code>Review-accept: R17, R19, R22, R23</code>.</div>
+  <div class="note warn" data-k="notrun">The latest commit, 2523ec9, which clears the bar when a load starts and lets it refill, was only compiled, with no warnings. CI's build and verify on it are its first run.</div>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>Your own folders, window sizes and theme</td><td>The tests use a small folder under Xvfb, not your desktop</td><td class="open">your next install</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The PR and its changes: <a href="https://github.com/alexhu98/thunar/pull/136">PR #136</a> → “Files changed”</li>
+    <li data-k="l2">The issue: <a href="https://github.com/alexhu98/thunar/issues/132">#132</a></li>
+    <li data-k="l3">CI's screenshots and the shots table: the verify comment on PR #136</li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing depends on it</h2>
+  <p class="intro" data-k="intro">No open issue depends on #132. #133 runs next in the same batch, but it doesn't build on this PR. The one-format idea once listed here as a follow-up is now part of this PR.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR merges; #133 runs next in the batch without depending on it.">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--merge)">This PR</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">#132 split bar</text>
+      <text x="36" y="114" class="b">selection on the left,</text>
+      <text x="36" y="134" class="b">total and free space</text>
+      <text x="36" y="154" class="b">on the right</text>
+    </g>
+    <text class="lane" x="270" y="44" style="fill:var(--future)">Batch #134, next</text>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">#133 F11 / F12</text>
+      <text x="286" y="114" class="b">second shortcuts for</text>
+      <text x="286" y="134" class="b">drop on a tab; no</text>
+      <text x="286" y="154" class="b">dependency on #132</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="statusbar"><dt>Status bar</dt><dd>The strip along the bottom of a Thunar window that describes the folder and the selection.</dd></div>
+    <div data-k="total"><dt>Folder total</dt><dd>How many folders and files the shown folder holds, and their size.</dd></div>
+    <div data-k="free"><dt>Free space</dt><dd>How much room is left on the drive that holds the folder.</dd></div>
+    <div data-k="job"><dt>Job</dt><dd>Work Thunar does in the background, here counting the folder's files for the status bar.</dd></div>
+    <div data-k="prop"><dt>Property and binding</dt><dd>A named value on a GTK object; a binding copies one object's value to another whenever it changes.</dd></div>
+    <div data-k="label"><dt>Label</dt><dd>A GTK widget that shows one piece of text.</dd></div>
+    <div data-k="alloc"><dt>size-allocate</dt><dd>The GTK step that gives each widget its final position and width.</dd></div>
+    <div data-k="ellip"><dt>Ellipsize</dt><dd>Cut text that doesn't fit and end it with “…”.</dd></div>
+    <div data-k="rtl"><dt>Right-to-left</dt><dd>Languages such as Arabic or Hebrew, where GTK mirrors the layout.</dd></div>
+    <div data-k="split"><dt>Split view</dt><dd>Two folder panes side by side in one window; the status bar follows the active one.</dd></div>
+    <div data-k="verify"><dt>verify script</dt><dd>A test in <code>verify/</code> that drives Thunar with xdotool under Xvfb and takes screenshots.</dd></div>
+    <div data-k="pair"><dt>Pair</dt><dd>A before and an after screenshot that CI joins into one image.</dd></div>
+    <div data-k="vv"><dt>/visual-verify</dt><dd>A check where a separate agent looks at every screenshot and says whether it shows what it claims.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>A screen that exists only in memory, so Thunar can run in CI without a monitor.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>

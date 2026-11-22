@@ -1464,18 +1464,13 @@ thunar_util_get_statusbar_total_text_for_files (GHashTable   *files,
 {
   ThunarStatusbarCounts counts;
   GList                *text_list;
-  gchar                *joined;
   gchar                *text = NULL;
 
   thunar_util_count_files (files, cancellable, FALSE, &counts);
 
   text_list = thunar_util_get_statusbar_count_texts (&counts, show_hidden, show_file_size_binary_format, status_bar_active_info);
   if (text_list != NULL)
-    {
-      joined = thunar_util_strjoin_list (text_list, ", ");
-      text = g_strdup_printf (_ ("Total: %s"), joined);
-      g_free (joined);
-    }
+    text = thunar_util_strjoin_list (text_list, ", ");
   g_list_free_full (text_list, g_free);
   return text;
 }
