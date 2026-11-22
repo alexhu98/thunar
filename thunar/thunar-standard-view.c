@@ -2836,9 +2836,6 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
           return FALSE;
         }
 
-      if (standard_view->loading)
-        return FALSE;
-
       job = thunar_io_jobs_load_statusbar_text (standard_view, folder, NULL, NULL, NULL);
     }
   else if (selected_items_tree_path_list->next == NULL) /* only one item selected */
@@ -2860,7 +2857,7 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
               g_free (info_text);
               g_object_notify_by_pspec (G_OBJECT (standard_view), standard_view_props[PROP_STATUSBAR_INFO_TEXT]);
             }
-          else if (folder != NULL && !standard_view->loading)
+          else if (folder != NULL)
             job = thunar_io_jobs_load_statusbar_text (standard_view, folder, NULL, statusbar_text, NULL);
 
           thunar_standard_view_set_statusbar_text (standard_view, statusbar_text);
@@ -2888,7 +2885,7 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
             }
         }
 
-      job = thunar_io_jobs_load_statusbar_text (standard_view, (searching || standard_view->loading) ? NULL : folder, selected_g_files, NULL, free_space_text);
+      job = thunar_io_jobs_load_statusbar_text (standard_view, searching ? NULL : folder, selected_g_files, NULL, free_space_text);
       g_hash_table_destroy (selected_g_files);
       g_free (free_space_text);
     }
