@@ -99,22 +99,27 @@ pair f11 "In the right pane's first tab, gamma, selected f1.txt and pressed F11"
 
 pane "$LEFT" beta
 select_all
-shot "$WID" before-alt "The left pane is active on beta with f1.txt selected; gamma in the right pane is empty"
+shot "$WID" before-alt-next "The left pane is active on beta with f1.txt selected; gamma in the right pane is empty"
 xdotool key alt+Page_Down
 wait_file "$WORK/gamma/f1.txt" present
 wait_file "$WORK/beta/f1.txt" absent
 sleep 1
 only_in f1.txt gamma
+starts beta || fail "after Alt+Page Down the active tab is '$(title)', expected focus to stay on beta"
+shot "$WID" after-alt-next "f1.txt is now in gamma in the right pane and gone from beta, which stays active (the script asserts both folders)"
+pair alt-next "In the left pane's last tab, beta, selected f1.txt and pressed Alt+Page Down" "The original Alt+Page Down still works alongside F12" "beta has f1.txt, gamma empty" "gamma has f1.txt, beta empty" "$G"
+
 pane "$RIGHT" gamma
 select_all
+shot "$WID" before-alt-previous "The right pane is active on gamma with f1.txt selected; beta in the left pane is empty"
 xdotool key alt+Page_Up
 wait_file "$WORK/beta/f1.txt" present
 wait_file "$WORK/gamma/f1.txt" absent
 sleep 1
 only_in f1.txt beta
 starts gamma || fail "after Alt+Page Up the active tab is '$(title)', expected focus to stay on gamma"
-shot "$WID" after-alt "f1.txt went to gamma with Alt+Page Down and back to beta with Alt+Page Up (the script asserts both moves)"
-pair alt "Selected f1.txt in beta, pressed Alt+Page Down, then selected it in gamma and pressed Alt+Page Up" "The original shortcuts Alt+Page Down / Alt+Page Up still work alongside F12 / F11" "beta has f1.txt, gamma empty" "after both moves f1.txt is back in beta" "$G"
+shot "$WID" after-alt-previous "f1.txt is back in beta in the left pane and gone from gamma, which stays active (the script asserts both folders)"
+pair alt-previous "In the right pane's first tab, gamma, selected f1.txt and pressed Alt+Page Up" "The original Alt+Page Up still works alongside F11" "gamma has f1.txt, beta empty" "beta has f1.txt, gamma empty" "$G"
 
 pane "$LEFT" beta
 select_all
@@ -127,7 +132,10 @@ shot "$WID" before-entry "The left pane's location bar holds the path of zz whil
 xdotool key F12
 sleep 1.5
 only_in f1.txt beta
+xdotool key F11
+sleep 1.5
+only_in f1.txt beta
 xdotool key Return
 wait_start zz
-shot "$WID" after-entry "F12 in the location bar moved nothing; Return then opened zz (the script asserts f1.txt stayed in beta)"
-pair entry "Typed the path of zz in the location bar of beta, pressed F12 and Return" "With the focus in a text field, F12 moves no file" "location bar holds zz, f1.txt in beta" "left pane on zz, f1.txt still only in beta" "$G"
+shot "$WID" after-entry "F12 and F11 in the location bar moved nothing; Return then opened zz (the script asserts f1.txt stayed in beta)"
+pair entry "Typed the path of zz in the location bar of beta, pressed F12, F11 and Return" "With the focus in a text field, F12 and F11 move no file" "location bar holds zz, f1.txt in beta" "left pane on zz, f1.txt still only in beta" "$G"
