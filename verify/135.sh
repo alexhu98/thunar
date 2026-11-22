@@ -79,6 +79,22 @@ xdotool key ctrl+a ctrl+c
 sleep 0.5
 pasted_is results apple1.txt apple2.txt
 
+xfconf-query -c thunar -p /last-location-bar -n -t string -s ThunarLocationButtons
+sleep 1
+go "$DIR"
+focus "$WID"
+xdotool key ctrl+l
+sleep 0.5
+search apple
+focus "$WID"
+xdotool key Return
+sleep 1
+shot "$WID" buttons-bar "With the path-buttons location bar, after Ctrl+L, Ctrl+F, apple and Enter, the search box still shows Search: apple above the two apple results"
+focus "$WID"
+xdotool key ctrl+a ctrl+c
+sleep 0.5
+pasted_is buttons apple1.txt apple2.txt
+
 go "$DIR"
 search zzz
 focus "$WID"
