@@ -249,7 +249,7 @@ if (path_entry-&gt;search_mode == TRUE)
 ├── thunar-window.h           # its declaration
 └── thunar-path-entry.c       # crash guard: cancel search only in a window
 verify/
-└── 135.sh                    # Enter, Down, search kept, buttons bar, no matches, typed query
+└── 135.sh                    # Enter, Down, search kept, buttons bar, no matches, typed query on both bars
 explainers/
 ├── 135-search-enter-focus.html            # this page
 └── 135-search-enter-focus.narration.json  # its narration</pre>
@@ -261,7 +261,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built from an existing focus call, tested by a new verify script under Xvfb in the cloud container and in CI, reviewed locally and twice by CI, and its screenshots audited: PASS, on an earlier head. The script's newest step found a crash, fixed in <code>ad4906311</code>.</p>
+  <p class="intro" data-k="intro">Built from an existing focus call, tested by a new verify script under Xvfb in the cloud container and in CI, reviewed locally and three times by CI, and its screenshots audited: PASS, on the head. The script's hand-typed step found a crash, fixed in <code>ad4906311</code>.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -282,13 +282,13 @@ explainers/
     <tr data-k="c4"><td>Path-buttons location bar</td><td><code>verify/135.sh</code>: buttons-style bar, Ctrl+L, Ctrl+F apple, Enter, shot, Ctrl+A, Ctrl+C, paste. The script doesn't assert that the text box stays; shot #55 shows it (R2)</td><td class="ok">both apple files</td></tr>
     <tr data-k="c5"><td>Enter with no matches</td><td><code>verify/135.sh</code>: search zzz, Enter, Down, then check the process</td><td class="ok">Thunar still running</td></tr>
     <tr data-k="c6"><td>Ctrl+F back to the search</td><td>Read in <code>thunar_window_action_search</code>: Ctrl+F during a search turns it off; not tested by the script</td><td class="no">toggles off</td></tr>
-    <tr data-k="c7"><td>CI build and verify</td><td>CI run 44998634849 on head <code>21793c3</code>, before R4's fix, with CI's R1 fix: built the debs, ran the smoke test and every verify script; <code>verify/135.sh</code> took 32 s and took shots #54 (before-enter / after-enter) and #55 (buttons-bar)</td><td class="ok">build passed, 29 of 29 pass</td></tr>
-    <tr data-k="c8"><td>Screenshot audit</td><td><code>/visual-verify pr:138</code> on CI's shots on head <code>21793c3</code>, before R4's fix: the independent shot-auditor read every shot</td><td class="ok">PASS, 172 of 172 OK</td></tr>
-    <tr data-k="c9"><td>Explainer</td><td>CI run 44998634849 on head <code>21793c3</code>, before R4's fix: rendered an earlier version of this page and ran <code>make-video.py status</code></td><td class="ok">rendered, narration current</td></tr>
+    <tr data-k="c7"><td>CI build and verify</td><td>CI run 45005912725 on head <code>dad4b1c</code>, with every fix and both hand-typed steps: built the debs, ran the smoke test and every verify script; <code>verify/135.sh</code> took shots #54 (before-enter / after-enter) and #55 (buttons-bar)</td><td class="ok">build passed, 29 of 29 pass</td></tr>
+    <tr data-k="c8"><td>Screenshot audit</td><td><code>/visual-verify pr:138</code> on CI's shots on head <code>dad4b1c</code>: the independent shot-auditor read every shot</td><td class="ok">PASS, 172 of 172 OK</td></tr>
+    <tr data-k="c9"><td>Explainer</td><td>CI run 45005912725 on head <code>dad4b1c</code>: rendered an earlier version of this page and ran <code>make-video.py status</code></td><td class="ok">rendered, narration current</td></tr>
     <tr data-k="c12"><td>Full suite before the crash fix</td><td>build-verify agent in the cloud container, debs built from <code>854321c</code>: <code>verify/135.sh</code> failed in its new hand-typed step with “Segmentation fault” in thunar and “window title is '', expected it to contain 'check-typed'”</td><td class="no">28 of 29 pass</td></tr>
     <tr data-k="c13"><td>Where it crashed</td><td>gdb backtrace of the crash (stripped binary): inside a path entry's changed handler, reached from <code>gtk_entry_set_text</code> after a window property notify</td><td class="no">the path entry's changed handler</td></tr>
-    <tr data-k="c11"><td>Enter on a hand-typed “Search:” query</td><td><code>verify/135.sh</code>, new last step (R6): Ctrl+L, Ctrl+A, type “Search: apple”, Enter, Down, Ctrl+C, paste. Run with the fix on an incremental build (<code>make -C thunar</code>) of <code>thunar/.libs/thunar</code>, under the same Xvfb session harness</td><td class="ok" style="white-space:normal">passed locally with the fix (incremental build); the installed debs without it crashed</td></tr>
-    <tr data-k="c14"><td>Full suite with the crash fix</td><td>CI's build and verify run on the next push</td><td class="no">not run yet</td></tr>
+    <tr data-k="c11"><td>Enter on a hand-typed “Search:” query</td><td><code>verify/135.sh</code>, new hand-typed step (R6): Ctrl+L, Ctrl+A, type “Search: apple”, Enter, Down, Ctrl+C, paste. Run with the fix on an incremental build (<code>make -C thunar</code>) of <code>thunar/.libs/thunar</code>, under the same Xvfb session harness</td><td class="ok" style="white-space:normal">passed locally with the fix (incremental build); the installed debs without it crashed</td></tr>
+    <tr data-k="c14"><td>Full suite with the crash fix</td><td>CI run 45005912725 on head <code>dad4b1c</code>: the smoke test and every verify script, including the hand-typed step with both the path-buttons bar and the entry-style bar (R10)</td><td class="ok">29 of 29 pass</td></tr>
     <tr data-k="c10"><td>Narrated video</td><td>Needs Kokoro, which is on your machine</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -315,7 +315,13 @@ explainers/
     <li data-k="r6"><b>R6, low, confirmed, fixed:</b> nothing tested Enter on a hand-typed query. Commit <code>854321c</code> adds that step to the script, and that step found the crash fixed in <code>ad4906311</code>.</li>
     <li data-k="r7"><b>R7, low, plausible, accepted under the repo's rule:</b> the first accept commit had its accept line in the wrong paragraph, so an empty commit carried it. No effect on the code; CLAUDE.md accepts later-review low findings that aren't confirmed.</li>
   </ul>
-  <p data-k="accepted">Accepted, not fixed: R2 and R3 by you earlier, R5 by you, and R7 under the rule. R1, R4 and R6 are fixed.</p>
+  <p data-k="ci3">CI's third review, at high level on <code>28da39b</code> (run 45005553591), resolved R6 and found 3 more:</p>
+  <ul class="tight">
+    <li data-k="r8"><b>R8, medium, plausible, accepted by you:</b> with the path-buttons bar, Enter on a hand-typed “Search: apple” closes the temporary box and leaves results Escape can't cancel. CI's verifier found it isn't new: Tab, a click or Escape already led there, and changing folder clears it. The root cause is R5.</li>
+    <li data-k="r9"><b>R9, low, plausible, accepted under the repo's rule:</b> the path box's Escape handler treats its toplevel as a window without checking. It's old code, and CI's verifier found only a box inside the window can get the key press.</li>
+    <li data-k="r10"><b>R10, low, confirmed, fixed by CI:</b> the hand-typed step ran only with the path-buttons bar. CI's commit <code>dad4b1c</code> runs it again with the entry-style bar.</li>
+  </ul>
+  <p data-k="accepted">Accepted, not fixed: R2, R3, R5 and R8 by you, and R7 and R9 under the rule. R1, R4, R6 and R10 are fixed.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -333,8 +339,8 @@ explainers/
   <ul class="tight">
     <li data-k="l1">The PR: <a href="https://github.com/alexhu98/thunar/pull/138">#138</a>, with its “Files changed”</li>
     <li data-k="l2">The issue: <a href="https://github.com/alexhu98/thunar/issues/135">#135</a></li>
-    <li data-k="l3">The shots: CI's verify comment on the PR, shots #54 and #55; the CI run: <a href="https://github.com/alexhu98/thunar/actions/runs/44998634849">44998634849</a></li>
-    <li data-k="l4">The screenshot audit: <a href="https://github.com/alexhu98/thunar/pull/138#issuecomment-7076279523">visual-verify comment</a></li>
+    <li data-k="l3">The shots: CI's verify comment on the PR, shots #54 and #55; the CI run: <a href="https://github.com/alexhu98/thunar/actions/runs/45005912725">45005912725</a></li>
+    <li data-k="l4">The screenshot audit: <a href="https://github.com/alexhu98/thunar/pull/138#issuecomment-7077581332">visual-verify comment</a></li>
   </ul>
   </section>
   </section>
