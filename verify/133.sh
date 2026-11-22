@@ -1,6 +1,4 @@
 #!/bin/bash
-# Issue #133: F11 / F12 are second shortcuts for Drop on Previous / Next Tab (#128): they cross the split boundary like
-# Alt+Page Up / Alt+Page Down, which still work, and do nothing with the focus in the location bar.
 set -euo pipefail
 . .github/scripts/verify-lib.sh
 
@@ -19,7 +17,7 @@ title() { xdotool getwindowname "$WID"; }
 
 starts() { [[ $(title) == "$1" || $(title) == "$1 "* ]]; }
 
-wait_start() {  # name
+wait_start() {
   local i
   for ((i = 0; i < 50; i++)); do
     starts "$1" && return 0
@@ -28,7 +26,7 @@ wait_start() {  # name
   fail "window title is '$(title)', expected it to start with '$1'"
 }
 
-wait_file() {  # path present|absent
+wait_file() {
   local i
   for ((i = 0; i < 50; i++)); do
     if [[ $2 == present ]]; then [[ -e $1 ]] && return 0; else [[ ! -e $1 ]] && return 0; fi
@@ -37,7 +35,7 @@ wait_file() {  # path present|absent
   fail "expected $1 to be $2"
 }
 
-only_in() {  # file folder
+only_in() {
   local d
   for d in alpha beta gamma delta; do
     if [[ $d == "$2" ]]; then
@@ -50,7 +48,7 @@ only_in() {  # file folder
 
 park() { xdotool mousemove --window "$WID" $((W / 2)) 5; }
 
-pane() {  # x expected-title
+pane() {
   xdotool mousemove --window "$WID" "$1" $((H - 80))
   sleep 0.2
   xdotool click 1
