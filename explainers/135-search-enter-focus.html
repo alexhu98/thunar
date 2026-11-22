@@ -114,7 +114,7 @@
   <section class="part" id="adds">
   <p class="part-label" data-k="label">Part 1</p>
   <h2 data-k="heading">What this PR adds</h2>
-  <p class="intro" data-k="intro">Enter in the search box now moves the focus to the search results and leaves the search as it is. The change is a new branch in <code>thunar/thunar-location-entry.c</code> and a small getter in <code>thunar/thunar-window.c</code>, tested by <code>verify/135.sh</code>.</p>
+  <p class="intro" data-k="intro">Enter in the search box now moves the focus to the search results and leaves the search as it is. The change is a new branch in <code>thunar/thunar-location-entry.c</code> a small getter in <code>thunar/thunar-window.c</code> and a crash guard in <code>thunar/thunar-path-entry.c</code>, tested by <code>verify/135.sh</code>.</p>
 
   <section class="sub" id="flow">
   <div class="diagram" role="img" aria-label="You search, press Enter, the bar stays a search, the focus moves to the file list, and Down selects the first match">
@@ -229,6 +229,15 @@
 /* thunar-window.c: the new getter */
 <span class="add">gboolean thunar_window_is_searching (window)</span>
 <span class="add">{ return window-&gt;is_searching; }</span></pre>
+  <h3 class="sec">The crash guard (thunar-path-entry.c)</h3>
+<pre data-k="guard">/* changed handler: part of "Search: " was deleted */
+if (path_entry-&gt;search_mode == TRUE)
+  {
+    window = get_toplevel (editable);
+<span class="add">    if (THUNAR_IS_WINDOW (window))</span>
+      cancel_search (THUNAR_WINDOW (window));
+  }</pre>
+  <div class="note" data-k="crash">Why the guard: after Enter on a hand-typed “Search: ” query in a temporary path box (the R4 path), the bar swaps that box for path buttons. The old box, still in search mode but no longer inside the window, had its text set on the next folder change, treated its toplevel as a window, and Thunar crashed. Commit <code>ad4906311</code> now cancels the search only when the toplevel is a Thunar window.</div>
   <div class="note warn" data-k="ctrlf">Not as the issue assumed: the issue says Ctrl+F should bring you back to the search box with the query intact. In Thunar, Ctrl+F while a search is open turns the search off, before and after this PR. Clicking the search box does return to it. You decided to keep Ctrl+F as it is, so there is no follow-up issue (Part 3).</div>
   </section>
 
@@ -237,7 +246,8 @@
 <pre data-k="tree">thunar/
 ├── thunar-location-entry.c   # search-mode branch in the Enter handler (+10 lines)
 ├── thunar-window.c           # new getter thunar_window_is_searching
-└── thunar-window.h           # its declaration
+├── thunar-window.h           # its declaration
+└── thunar-path-entry.c       # crash guard: cancel search only in a window
 verify/
 └── 135.sh                    # Enter, Down, search kept, buttons bar, no matches, typed query
 explainers/
@@ -251,7 +261,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built from an existing focus call, tested by a new verify script under Xvfb in the cloud container and in CI, reviewed locally and twice by CI, and its screenshots audited: PASS, on an earlier head.</p>
+  <p class="intro" data-k="intro">Built from an existing focus call, tested by a new verify script under Xvfb in the cloud container and in CI, reviewed locally and twice by CI, and its screenshots audited: PASS, on an earlier head. The script's newest step found a crash, fixed in <code>ad4906311</code>.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -275,7 +285,10 @@ explainers/
     <tr data-k="c7"><td>CI build and verify</td><td>CI run 44998634849 on head <code>21793c3</code>, before R4's fix, with CI's R1 fix: built the debs, ran the smoke test and every verify script; <code>verify/135.sh</code> took 32 s and took shots #54 (before-enter / after-enter) and #55 (buttons-bar)</td><td class="ok">build passed, 29 of 29 pass</td></tr>
     <tr data-k="c8"><td>Screenshot audit</td><td><code>/visual-verify pr:138</code> on CI's shots on head <code>21793c3</code>, before R4's fix: the independent shot-auditor read every shot</td><td class="ok">PASS, 172 of 172 OK</td></tr>
     <tr data-k="c9"><td>Explainer</td><td>CI run 44998634849 on head <code>21793c3</code>, before R4's fix: rendered an earlier version of this page and ran <code>make-video.py status</code></td><td class="ok">rendered, narration current</td></tr>
-    <tr data-k="c11"><td>Enter on a hand-typed “Search:” query</td><td><code>verify/135.sh</code>, new last step (R6): Ctrl+L, Ctrl+A, type “Search: apple”, Enter, Down, Ctrl+C, paste; runs in CI on the next push and in a local build-verify run under way</td><td class="open">pending, expects exactly apple1.txt</td></tr>
+    <tr data-k="c12"><td>Full suite before the crash fix</td><td>build-verify agent in the cloud container, debs built from <code>854321c</code>: <code>verify/135.sh</code> failed in its new hand-typed step with “Segmentation fault” in thunar and “window title is '', expected it to contain 'check-typed'”</td><td class="no">28 of 29 pass</td></tr>
+    <tr data-k="c13"><td>Where it crashed</td><td>gdb backtrace of the crash (stripped binary): inside a path entry's changed handler, reached from <code>gtk_entry_set_text</code> after a window property notify</td><td class="no">the path entry's changed handler</td></tr>
+    <tr data-k="c11"><td>Enter on a hand-typed “Search:” query</td><td><code>verify/135.sh</code>, new last step (R6): Ctrl+L, Ctrl+A, type “Search: apple”, Enter, Down, Ctrl+C, paste. Run with the fix on an incremental build (<code>make -C thunar</code>) of <code>thunar/.libs/thunar</code>, under the same Xvfb session harness</td><td class="ok" style="white-space:normal">passed locally with the fix (incremental build); the installed debs without it crashed</td></tr>
+    <tr data-k="c14"><td>Full suite with the crash fix</td><td>CI's build and verify run on the next push</td><td class="no">not run yet</td></tr>
     <tr data-k="c10"><td>Narrated video</td><td>Needs Kokoro, which is on your machine</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -299,7 +312,7 @@ explainers/
   <ul class="tight">
     <li data-k="r4"><b>R4, medium, confirmed, fixed by CI:</b> R1's search-mode check also gated the focus move, so Enter on a hand-typed “Search:” query left the keyboard in the box. CI's commit <code>43a5747</code> moves the focus for any search query and only skips the disconnect when not searching.</li>
     <li data-k="r5"><b>R5, low, confirmed, accepted by you:</b> a hand-typed “Search:” query filters the list but never turns on search mode, so Escape or deleting the prefix can't cancel it. This is old upstream behaviour; no follow-up issue.</li>
-    <li data-k="r6"><b>R6, low, confirmed, fixed:</b> nothing tested Enter on a hand-typed query. Commit <code>854321c</code> adds that step to the script.</li>
+    <li data-k="r6"><b>R6, low, confirmed, fixed:</b> nothing tested Enter on a hand-typed query. Commit <code>854321c</code> adds that step to the script, and that step found the crash fixed in <code>ad4906311</code>.</li>
     <li data-k="r7"><b>R7, low, plausible, accepted under the repo's rule:</b> the first accept commit had its accept line in the wrong paragraph, so an empty commit carried it. No effect on the code; CLAUDE.md accepts later-review low findings that aren't confirmed.</li>
   </ul>
   <p data-k="accepted">Accepted, not fixed: R2 and R3 by you earlier, R5 by you, and R7 under the rule. R1, R4 and R6 are fixed.</p>
