@@ -4588,13 +4588,13 @@ thunar_window_action_reload (ThunarWindow *window,
 static gboolean
 thunar_window_action_switch_focused_split_view_pane (ThunarWindow *window)
 {
+  GtkWidget *notebook_selected;
+
   _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);
 
-  if (!thunar_window_split_view_is_active (window))
-    return FALSE;
-
+  notebook_selected = window->notebook_selected;
   thunar_window_paned_notebooks_switch (window);
-  return TRUE;
+  return window->notebook_selected != notebook_selected;
 }
 
 
