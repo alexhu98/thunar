@@ -73,7 +73,11 @@ sleep 1
 xdotool key Down
 sleep 0.5
 xdotool key Return
-sleep 1.5
+for ((i = 0; i < 50; i++)); do
+  starts leftdir || break
+  sleep 0.2
+done
+sleep 0.5
 if starts leftdir || starts sub; then
   fail "with split view off, F6 then Down and Return left the window at '$(title)': F6 did not move the focus to the side pane"
 fi
