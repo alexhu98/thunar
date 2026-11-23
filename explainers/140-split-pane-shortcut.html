@@ -118,7 +118,7 @@
   <p class="intro" data-k="intro">The action behind “Switch Focused Split View Pane” now tells GTK whether it used the key. The change is one new function in <code>thunar/thunar-window.c</code>, tested by <code>verify/140.sh</code>.</p>
 
   <section class="sub" id="flow">
-  <div class="diagram" role="img" aria-label="In split view, F6 runs the new callback, which switches panes and returns TRUE so GTK stops the key. Before this PR the callback returned no value, GTK passed the key on, and the split view's own F6 binding moved focus back. With split view off the new callback returns FALSE and F6 keeps its GTK meaning.">
+  <div class="diagram" role="img" aria-label="In split view, F6 runs the new callback, which notes the selected pane, switches panes and returns TRUE because the pane changed, so GTK stops the key. Before this PR the callback returned no value, GTK passed the key on, and the split view's own F6 binding moved focus back. With split view off no pane changes, so the new callback returns FALSE and F6 keeps its GTK meaning.">
   <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -138,9 +138,9 @@
     <g data-k="2">
       <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
       <text x="286" y="90" class="t">New callback</text>
-      <text x="286" y="114" class="b">split view is on,</text>
-      <text x="286" y="134" class="b">so it asks for the</text>
-      <text x="286" y="154" class="b">panes to switch</text>
+      <text x="286" y="114" class="b">notes the selected</text>
+      <text x="286" y="134" class="b">pane, then asks for</text>
+      <text x="286" y="154" class="b">the panes to switch</text>
       <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
     </g>
     <g data-k="3">
@@ -154,9 +154,9 @@
     <g data-k="4">
       <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
       <text x="786" y="90" class="t">Returns TRUE</text>
-      <text x="786" y="114" class="b">GTK sees the key as</text>
-      <text x="786" y="134" class="b">handled and stops</text>
-      <text x="786" y="154" class="b">it there</text>
+      <text x="786" y="114" class="b">the pane changed, so</text>
+      <text x="786" y="134" class="b">GTK sees the key as</text>
+      <text x="786" y="154" class="b">handled and stops it</text>
       <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
     </g>
     <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
@@ -213,9 +213,9 @@
   <div class="lane-h" style="color:var(--accent)">① F6 in split view — with this PR</div>
   <ol class="steps">
     <li data-k="1"><b>You press F6.</b> F6 is bound to “Switch Focused Split View Pane”, and split view is open. The binding lives in Thunar's <code>accels.scm</code>, which the shortcut editor writes.</li>
-    <li data-k="2"><b>New callback.</b> The action entry now points at the new <code>thunar_window_action_switch_focused_split_view_pane</code>. It checks <code>thunar_window_split_view_is_active</code>, then calls <code>thunar_window_paned_notebooks_switch</code>.</li>
+    <li data-k="2"><b>New callback.</b> The action entry now points at the new <code>thunar_window_action_switch_focused_split_view_pane</code>. It notes which pane is selected, then calls <code>thunar_window_paned_notebooks_switch</code>.</li>
     <li data-k="3"><b>Panes switch.</b> <code>thunar_window_paned_notebooks_switch</code> is unchanged: it makes the other pane the selected one, so the window title, location bar and keyboard follow it. Its other callers inside Thunar keep using it as before.</li>
-    <li data-k="4"><b>Returns TRUE.</b> The new callback returns TRUE after the switch, so GTK treats F6 as handled and gives it to no other widget.</li>
+    <li data-k="4"><b>Returns TRUE.</b> The new callback returns whether the selected pane changed. After a switch that is TRUE, so GTK treats F6 as handled and gives it to no other widget.</li>
   </ol>
   <div class="lane-h" style="color:var(--warn)">② Before this PR (main)</div>
   <ol class="steps" start="5" style="counter-reset: s 4">
@@ -224,7 +224,7 @@
   </ol>
   <div class="lane-h" style="color:var(--accent)">③ Split view off — with this PR</div>
   <ol class="steps" start="7" style="counter-reset: s 6">
-    <li data-k="7"><b>Returns FALSE.</b> With one pane there is nothing to switch, so the callback returns FALSE without doing anything, and F6 keeps whatever GTK does with it there, such as moving focus to the side pane. This was the more natural choice the issue's Risks section suggested.</li>
+    <li data-k="7"><b>Returns FALSE.</b> With one pane, <code>thunar_window_paned_notebooks_switch</code> changes nothing, so the selected pane is the same and the callback returns FALSE. F6 then keeps whatever GTK does with it there, such as moving focus to the side pane. The callback returns FALSE whenever no switch happened, not only with split view off. This was the more natural choice the issue's Risks section suggested.</li>
   </ol>
   </div>
   </section>
@@ -234,13 +234,13 @@
 <pre data-k="diff"><span class="add">static gboolean</span>
 <span class="add">thunar_window_action_switch_focused_split_view_pane (ThunarWindow *window)</span>
 <span class="add">{</span>
+<span class="add">  GtkWidget *notebook_selected;</span>
+<span class="add"></span>
 <span class="add">  _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);</span>
 <span class="add"></span>
-<span class="add">  if (!thunar_window_split_view_is_active (window))</span>
-<span class="add">    return FALSE;</span>
-<span class="add"></span>
+<span class="add">  notebook_selected = window->notebook_selected;</span>
 <span class="add">  thunar_window_paned_notebooks_switch (window);</span>
-<span class="add">  return TRUE;</span>
+<span class="add">  return window->notebook_selected != notebook_selected;</span>
 <span class="add">}</span></pre>
   <div class="table-wrap" style="margin-top:14px">
   <table>
@@ -259,7 +259,8 @@
 └── thunar-window.c                     # new switch_focused_split_view_pane callback;
                                         # the action entry points at it
 verify/
-└── 140.sh                              # binds F6, presses it twice in split view: 1 pair, 1 shot
+└── 140.sh                              # binds F6; presses it with split view off, then three
+                                        # times in split view, and renames a file: 1 pair, 3 shots
 explainers/
 ├── 140-split-pane-shortcut.html        # this page
 └── 140-split-pane-shortcut.narration.json   # its narration</pre>
@@ -271,7 +272,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The new test was run first against main's code, where it failed as the issue predicted, then against the fix, where every test passed. All of it ran in a cloud container by the building session; CI hasn't run yet.</p>
+  <p class="intro" data-k="intro">The new test was run first against main's code, where it failed as the issue predicted, then against the fix, where every test passed. After CI's review the test grew two checks and the callback changed; the longer test passed against the earlier build, and the changed callback is built only by CI.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -284,7 +285,8 @@ explainers/
 
   <section class="sub" id="checks">
   <h3 class="sec">What was checked</h3>
-  <div class="table-wrap">
+  <div class="note" data-k="when">All of these ran in a cloud container by the building session. The first seven rows ran on the fix as first written (commit <code>158bf93</code>) with the first <code>verify/140.sh</code>. After CI's review, the longer <code>verify/140.sh</code> ran alone under Xvfb against that same build: exit 0, 5 shots. The callback change from the review (R3, commit <code>22909e8</code>) hasn't been built here.</div>
+  <div class="table-wrap" style="margin-top:14px">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>The bug shows on main</td><td><code>build-verify</code> agent: main's code plus <code>verify/140.sh</code>, built with <code>dpkg-buildpackage</code>, tests run by <code>verify-proof.sh run</code> under Xvfb</td><td class="ok">30 of 31 pass; 140 fails, as predicted</td></tr>
@@ -294,9 +296,11 @@ explainers/
     <tr data-k="c5"><td>All verify tests pass</td><td>Same agent: <code>verify-proof.sh run</code>, the smoke test and every <code>verify/*.sh</code>, each under its own Xvfb</td><td class="ok">31 of 31 pass</td></tr>
     <tr data-k="c6"><td>F6 switches left to right</td><td><code>verify/140.sh</code>: bind F6, open split view on <code>leftdir</code> and <code>rightdir</code>, click the left pane, press F6; the title must start with rightdir (pair f6)</td><td class="ok">pass (140 took 11 s)</td></tr>
     <tr data-k="c7"><td>F6 again switches back</td><td><code>verify/140.sh</code>: a second F6; the title must start with leftdir (shot f6-again)</td><td class="ok">pass</td></tr>
-    <tr data-k="c8"><td>F6 with split view off keeps GTK's meaning</td><td>Not tested: the FALSE return is read from the code</td><td class="no">not run</td></tr>
-    <tr data-k="c9"><td>CI build, verify, review and explainer</td><td>CI's jobs on this PR</td><td class="no">not run yet: not pushed</td></tr>
-    <tr data-k="c10"><td>Screenshot audit</td><td><code>/visual-verify</code> of CI's shots from the <code>shots</code> branch</td><td class="no">not run yet: after CI's first run</td></tr>
+    <tr data-k="c8"><td>F6 with split view off keeps GTK's meaning</td><td>The longer <code>verify/140.sh</code>: with split view off, click the file list, press F6, then Down and Return; the title must be neither leftdir nor sub, because F6 moved the focus to the side pane (shot split-off)</td><td class="ok">pass: it opened Computer</td></tr>
+    <tr data-k="c11"><td>After F6 the keyboard is in the right pane</td><td>The longer <code>verify/140.sh</code>: a third F6, then End, F2 and typing renamed; rightdir must hold renamed and not b2.txt, and b1.txt and leftdir/sub must remain (shot focus-right)</td><td class="ok">pass</td></tr>
+    <tr data-k="c12"><td>The R3 callback change builds and passes</td><td>Not built here; CI builds commit <code>22909e8</code> and runs every test on it</td><td class="no">not run yet: CI pending</td></tr>
+    <tr data-k="c9"><td>CI on the first head, <code>141eb5d</code></td><td>CI run 45141926439: Launchpad's PPA returned 503 Service Unavailable during the build, so verify didn't run; review and explainer ran</td><td class="no">build failed (PPA 503); verify not run</td></tr>
+    <tr data-k="c10"><td>Screenshot audit</td><td><code>/visual-verify</code> of CI's shots from the <code>shots</code> branch</td><td class="no">not run yet: CI has taken no shots yet</td></tr>
   </table>
   </div>
   </section>
@@ -307,7 +311,13 @@ explainers/
   <ul class="tight">
     <li data-k="b1"><b>Skipped, S1:</b> the explainer page and its narration were missing. This page and its narration resolve it.</li>
   </ul>
-  <p data-k="ci">CI reviews every code push at <code>high</code> and will report in this PR's code review comment, the second of CI's comments on <a href="https://github.com/alexhu98/thunar/pull/142">PR #142</a>.</p>
+  <p data-k="ci">CI's first review, at <code>high</code> in run 45141926439, reported three low findings in its <a href="https://github.com/alexhu98/thunar/pull/142#issuecomment-7095931296">code review comment</a>. All three were fixed in one commit, <code>22909e8</code>:</p>
+  <ul class="tight">
+    <li data-k="R1"><b>R1</b> (confirmed): <code>verify/140.sh</code> didn't test F6 with split view off. It now does, and checks that F6 moved the focus to the side pane.</li>
+    <li data-k="R2"><b>R2</b> (plausible): the test checked only the title, not the keyboard focus. After a third F6, End and F2 now rename the right pane's last file.</li>
+    <li data-k="R3"><b>R3</b> (plausible): the callback returned TRUE in split view even if no switch happened. Its own verifier refuted it, but it was fixed anyway: the callback now returns whether the selected pane changed.</li>
+  </ul>
+  <p data-k="ci2">CI reviews every later code push the same way.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -327,6 +337,7 @@ explainers/
     <li data-k="l1">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...140-split-pane-shortcut">main…140-split-pane-shortcut</a>, or this PR's “Files changed”</li>
     <li data-k="l2">CI's summary, code review, verify and explainer comments on this PR, with the screenshots of <code>verify/140.sh</code></li>
     <li data-k="l3">The issue: <a href="https://github.com/alexhu98/thunar/issues/140">#140</a></li>
+    <li data-k="l4">CI on the first head: <a href="https://github.com/alexhu98/thunar/actions/runs/45141926439">run 45141926439</a>, and its <a href="https://github.com/alexhu98/thunar/pull/142#issuecomment-7095931296">code review comment</a></li>
   </ul>
   </section>
   </section>
@@ -380,6 +391,7 @@ explainers/
     <div data-k="handled"><dt>TRUE / FALSE</dt><dd>A shortcut callback's answer to GTK: TRUE means “I used the key”, FALSE lets others have it.</dd></div>
     <div data-k="paned"><dt>GtkPaned</dt><dd>GTK's two-part container with a draggable divider; split view is one.</dd></div>
     <div data-k="accels"><dt>accels.scm</dt><dd>Thunar's file of custom keyboard shortcuts, written by the shortcut editor.</dd></div>
+    <div data-k="finding"><dt>R1, R2, R3</dt><dd>The IDs CI's code review gives its findings on this PR.</dd></div>
     <div data-k="xvfb"><dt>Xvfb, xdotool</dt><dd>A screenless X server, and a tool that sends it clicks and keys.</dd></div>
   </dl>
   </section>
