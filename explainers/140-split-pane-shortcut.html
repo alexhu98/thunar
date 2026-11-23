@@ -272,7 +272,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The new test was run first against main's code, where it failed as the issue predicted, then against the fix, where every test passed. After CI's review the test grew two checks and the callback changed; the longer test passed against the earlier build, and the changed callback is built only by CI.</p>
+  <p class="intro" data-k="intro">The new test was run first against main's code, where it failed as the issue predicted, then against the fix, where every test passed. After CI's review the test grew two checks and the callback changed; a local build of the changed callback passed every test. CI's builds have all failed so far, because Launchpad's PPA was unavailable.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -285,7 +285,7 @@ explainers/
 
   <section class="sub" id="checks">
   <h3 class="sec">What was checked</h3>
-  <div class="note" data-k="when">All of these ran in a cloud container by the building session. The first seven rows ran on the fix as first written (commit <code>158bf93</code>) with the first <code>verify/140.sh</code>. After CI's review, the longer <code>verify/140.sh</code> ran alone under Xvfb against that same build: exit 0, 5 shots. The callback change from the review (R3, commit <code>22909e8</code>) hasn't been built here.</div>
+  <div class="note" data-k="when">All of these ran in a cloud container by the building session. The first seven rows ran on the fix as first written (commit <code>158bf93</code>) with the first <code>verify/140.sh</code>. After CI's review, the longer <code>verify/140.sh</code> ran alone under Xvfb against that same build: exit 0, 5 shots. Then the code at <code>22909e8</code>, with the callback change from the review (R3), was built and every test was run on it.</div>
   <div class="table-wrap" style="margin-top:14px">
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
@@ -298,8 +298,8 @@ explainers/
     <tr data-k="c7"><td>F6 again switches back</td><td><code>verify/140.sh</code>: a second F6; the title must start with leftdir (shot f6-again)</td><td class="ok">pass</td></tr>
     <tr data-k="c8"><td>F6 with split view off keeps GTK's meaning</td><td>The longer <code>verify/140.sh</code>: with split view off, click the file list, press F6, then Down and Return; the title must be neither leftdir nor sub, because F6 moved the focus to the side pane (shot split-off)</td><td class="ok">pass: it opened Computer</td></tr>
     <tr data-k="c11"><td>After F6 the keyboard is in the right pane</td><td>The longer <code>verify/140.sh</code>: a third F6, then End, F2 and typing renamed; rightdir must hold renamed and not b2.txt, and b1.txt and leftdir/sub must remain (shot focus-right)</td><td class="ok">pass</td></tr>
-    <tr data-k="c12"><td>The R3 callback change builds and passes</td><td>Not built here; CI builds commit <code>22909e8</code> and runs every test on it</td><td class="no">not run yet: CI pending</td></tr>
-    <tr data-k="c9"><td>CI on the first head, <code>141eb5d</code></td><td>CI run 45141926439: Launchpad's PPA returned 503 Service Unavailable during the build, so verify didn't run; review and explainer ran</td><td class="no">build failed (PPA 503); verify not run</td></tr>
+    <tr data-k="c12"><td>The R3 callback change builds and passes</td><td><code>build-verify</code> agent: the code at <code>22909e8</code> (<code>thunar-window.c</code> is unchanged since), built with <code>dpkg-buildpackage</code>, debs installed, then <code>verify-proof.sh run</code>: the smoke test and every <code>verify/*.sh</code>; no build warnings in the changed files, and 140 took 19 s</td><td class="ok">build OK; 31 of 31 pass</td></tr>
+    <tr data-k="c9"><td>CI's build and verify</td><td>CI runs 45141926439 (on <code>141eb5d</code>), 45143078450 (on <code>22909e8</code>) and 45143946399 (on <code>21bc0c1</code>): Launchpad's PPA returned 503 Service Unavailable during each build, so verify didn't run; review ran on <code>141eb5d</code> and <code>22909e8</code>. The PPA still returned 503 from the cloud container at 1:06 AM PST.</td><td class="no">build failed 3 of 3 (PPA 503); verify not run</td></tr>
     <tr data-k="c10"><td>Screenshot audit</td><td><code>/visual-verify</code> of CI's shots from the <code>shots</code> branch</td><td class="no">not run yet: CI has taken no shots yet</td></tr>
   </table>
   </div>
@@ -316,6 +316,11 @@ explainers/
     <li data-k="R1"><b>R1</b> (confirmed): <code>verify/140.sh</code> didn't test F6 with split view off. It now does, and checks that F6 moved the focus to the side pane.</li>
     <li data-k="R2"><b>R2</b> (plausible): the test checked only the title, not the keyboard focus. After a third F6, End and F2 now rename the right pane's last file.</li>
     <li data-k="R3"><b>R3</b> (plausible): the callback returned TRUE in split view even if no switch happened. Its own verifier refuted it, but it was fixed anyway: the callback now returns whether the selected pane changed.</li>
+  </ul>
+  <p data-k="ci3">CI's second review, in run 45143078450 on <code>22909e8</code>, reported two more low findings:</p>
+  <ul class="tight">
+    <li data-k="R4"><b>R4</b> (confirmed): the split-view-off check waited a fixed 1.5 s after Down and Return, which could be flaky. CI fixed it itself in commit <code>21bc0c1</code>: the test now waits up to 10 s for the title to leave leftdir.</li>
+    <li data-k="R5"><b>R5</b> (plausible, not confirmed): <code>verify/140.sh</code> adds step comments, against <code>CLAUDE.md</code>'s rule against new explanatory comments. Accepted, not fixed: <code>CLAUDE.md</code> accepts a later review's low finding that isn't confirmed, and CI's own verifier noted that step comments are an established pattern in verify scripts (<code>19.sh</code>, <code>40.sh</code>, <code>93.sh</code>, <code>96.sh</code>).</li>
   </ul>
   <p data-k="ci2">CI reviews every later code push the same way.</p>
   </section>
@@ -337,7 +342,7 @@ explainers/
     <li data-k="l1">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...140-split-pane-shortcut">main…140-split-pane-shortcut</a>, or this PR's “Files changed”</li>
     <li data-k="l2">CI's summary, code review, verify and explainer comments on this PR, with the screenshots of <code>verify/140.sh</code></li>
     <li data-k="l3">The issue: <a href="https://github.com/alexhu98/thunar/issues/140">#140</a></li>
-    <li data-k="l4">CI on the first head: <a href="https://github.com/alexhu98/thunar/actions/runs/45141926439">run 45141926439</a>, and its <a href="https://github.com/alexhu98/thunar/pull/142#issuecomment-7095931296">code review comment</a></li>
+    <li data-k="l4">CI's runs: <a href="https://github.com/alexhu98/thunar/actions/runs/45141926439">45141926439</a> on <code>141eb5d</code>, <a href="https://github.com/alexhu98/thunar/actions/runs/45143078450">45143078450</a> on <code>22909e8</code>, <a href="https://github.com/alexhu98/thunar/actions/runs/45143946399">45143946399</a> on <code>21bc0c1</code>, and the <a href="https://github.com/alexhu98/thunar/pull/142#issuecomment-7095931296">code review comment</a></li>
   </ul>
   </section>
   </section>
