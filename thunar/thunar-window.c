@@ -320,6 +320,20 @@ thunar_window_split_view_add (ThunarWindow *window,
                               ThunarFile   *directory);
 static void
 thunar_window_split_view_update_toggle (ThunarWindow *window);
+typedef enum
+{
+  THUNAR_WINDOW_SEARCH_SAVED,
+  THUNAR_WINDOW_SEARCH_FOLDER,
+  THUNAR_WINDOW_SEARCH_SUBFOLDERS,
+} ThunarWindowSearchScope;
+
+static gboolean
+thunar_window_search_in_scope (ThunarWindow           *window,
+                               ThunarWindowSearchScope scope);
+static gboolean
+thunar_window_action_search_folder (ThunarWindow *window);
+static gboolean
+thunar_window_action_search_subfolders (ThunarWindow *window);
 static gboolean
 thunar_window_action_switch_next_tab (ThunarWindow *window);
 static gboolean
@@ -804,7 +818,8 @@ static XfceGtkActionEntry thunar_window_action_entries[] =
     { THUNAR_WINDOW_ACTION_SWITCH_NEXT_TAB,                "<Actions>/ThunarWindow/switch-next-tab",                 "<Primary>Page_Down",   XFCE_GTK_IMAGE_MENU_ITEM, N_ ("_Next Tab"),              N_ ("Switch to Next Tab"),                                                           "go-next",                 G_CALLBACK (thunar_window_action_switch_next_tab),     },
     { THUNAR_WINDOW_ACTION_SWITCH_NEXT_TAB_ALT,            "<Actions>/ThunarWindow/switch-next-tab-alt",             "<Primary>Tab",         XFCE_GTK_IMAGE_MENU_ITEM, NULL,                          NULL,                                                                                NULL,                      G_CALLBACK (thunar_window_action_switch_next_tab),     },
 
-    { THUNAR_WINDOW_ACTION_SEARCH,                         "<Actions>/ThunarWindow/search",                          "<Primary>f",           XFCE_GTK_IMAGE_MENU_ITEM, N_ ("_Search for Files..."),   N_ ("Search for a specific file in the current folder and Recent"),                  "system-search",           G_CALLBACK (thunar_window_action_search),              },
+    { THUNAR_WINDOW_ACTION_SEARCH,                         "<Actions>/ThunarWindow/search",                          "<Primary>f",           XFCE_GTK_IMAGE_MENU_ITEM, N_ ("_Search for Files..."),   N_ ("Search for a specific file in the current folder and Recent"),                  "system-search",           G_CALLBACK (thunar_window_action_search_folder),       },
+    { THUNAR_WINDOW_ACTION_SEARCH_SUBFOLDERS,              "<Actions>/ThunarWindow/search-subfolders",               "<Primary><Shift>f",    XFCE_GTK_IMAGE_MENU_ITEM, N_ ("Search in _Subfolders..."), N_ ("Search for a specific file in the current folder, its subfolders and Recent"), "system-search",           G_CALLBACK (thunar_window_action_search_subfolders),   },
     { THUNAR_WINDOW_ACTION_SEARCH_ALT,                     "<Actions>/ThunarWindow/search-alt",                      "Search",               XFCE_GTK_IMAGE_MENU_ITEM, NULL,                          NULL,                                                                                NULL,                      G_CALLBACK (thunar_window_action_search),              },
     { THUNAR_WINDOW_ACTION_CANCEL_SEARCH,                  "<Actions>/ThunarWindow/cancel-search",                   "Escape",               XFCE_GTK_MENU_ITEM,       N_ ("Cancel search for files"),NULL,                                                                                "",                        G_CALLBACK (thunar_window_action_cancel_search),       },
 
@@ -5695,13 +5710,17 @@ thunar_window_action_show_highlight (ThunarWindow *window)
 
 
 
-gboolean
-thunar_window_action_search (ThunarWindow *window)
+static gboolean
+thunar_window_search_in_scope (ThunarWindow           *window,
+                               ThunarWindowSearchScope scope)
 {
   _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);
 
   if (window->is_searching == FALSE)
     {
+      if (scope != THUNAR_WINDOW_SEARCH_SAVED && window->current_directory != NULL)
+        thunar_file_set_search_subfolders (window->current_directory, scope == THUNAR_WINDOW_SEARCH_SUBFOLDERS);
+
       /* initiate search */
       thunar_window_start_open_location (window, thunar_util_get_search_prefix ());
       g_signal_handlers_block_by_func (G_OBJECT (window->location_toolbar_item_search), thunar_window_action_search, window);
@@ -5713,6 +5732,30 @@ thunar_window_action_search (ThunarWindow *window)
 
   /* required in case of shortcut activation, in order to signal that the accel key got handled */
   return TRUE;
+}
+
+
+
+gboolean
+thunar_window_action_search (ThunarWindow *window)
+{
+  return thunar_window_search_in_scope (window, THUNAR_WINDOW_SEARCH_SAVED);
+}
+
+
+
+static gboolean
+thunar_window_action_search_folder (ThunarWindow *window)
+{
+  return thunar_window_search_in_scope (window, THUNAR_WINDOW_SEARCH_FOLDER);
+}
+
+
+
+static gboolean
+thunar_window_action_search_subfolders (ThunarWindow *window)
+{
+  return thunar_window_search_in_scope (window, THUNAR_WINDOW_SEARCH_SUBFOLDERS);
 }
 
 
@@ -7483,6 +7526,8 @@ thunar_window_location_toolbar_create (ThunarWindow *window)
   /* add remaining toolbar items */
   thunar_window_create_toolbar_item_from_action (window, THUNAR_WINDOW_ACTION_RELOAD, item_order++);
   window->location_toolbar_item_search = thunar_window_create_toolbar_toggle_item_from_action (window, THUNAR_WINDOW_ACTION_SEARCH, window->is_searching, item_order++);
+  g_signal_handlers_disconnect_by_func (G_OBJECT (window->location_toolbar_item_search), thunar_window_action_search_folder, window);
+  g_signal_connect_swapped (G_OBJECT (window->location_toolbar_item_search), "toggled", G_CALLBACK (thunar_window_action_search), window);
 
   /* add custom actions to the toolbar */
   thunar_window_location_toolbar_add_ucas (window);

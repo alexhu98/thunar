@@ -7,6 +7,8 @@ W=1000
 H=700
 TOGGLE_X=$((W - 60))
 TOGGLE_Y=45
+SEARCH_X=$((W - 20))
+SEARCH_Y=45
 
 mkdir -p "$WORK/top/sub" "$WORK/other/deep"
 echo top > "$WORK/top/match-top.txt"
@@ -25,9 +27,14 @@ go() {  # path
   sleep 0.5
 }
 
-search() {  # query [key that opens the search]
+search() {  # query [key that opens the search, default the toolbar Search button]
   focus "$WID"
-  xdotool key "${2:-ctrl+f}"
+  if [[ -n ${2:-} ]]; then
+    xdotool key "$2"
+  else
+    xdotool mousemove --window "$WID" "$SEARCH_X" "$SEARCH_Y" click 1
+    xdotool mousemove --window "$WID" $((W / 2)) $((H - 40))
+  fi
   sleep 0.5
   xdotool type --delay 20 "$1"
   sleep 2

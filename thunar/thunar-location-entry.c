@@ -334,9 +334,6 @@ thunar_location_entry_path_changed (ThunarLocationEntry *location_entry)
   const gchar *text = gtk_entry_get_text (GTK_ENTRY (location_entry->path_entry));
   gboolean     searching = text != NULL && thunar_util_is_a_search_query (text);
 
-  if (searching == gtk_widget_get_visible (location_entry->subfolders_button))
-    return;
-
   if (searching)
     thunar_location_entry_sync_subfolders_button (location_entry);
   gtk_widget_set_visible (location_entry->subfolders_button, searching);
