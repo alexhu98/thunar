@@ -299,7 +299,7 @@ explainers/
     <tr data-k="c8"><td>F6 with split view off keeps GTK's meaning</td><td>The longer <code>verify/140.sh</code>: with split view off, click the file list, press F6, then Down and Return; the title must be neither leftdir nor sub, because F6 moved the focus to the side pane (shot split-off)</td><td class="ok">pass: it opened Computer</td></tr>
     <tr data-k="c11"><td>After F6 the keyboard is in the right pane</td><td>The longer <code>verify/140.sh</code>: a third F6, then End, F2 and typing renamed; rightdir must hold renamed and not b2.txt, and b1.txt and leftdir/sub must remain (shot focus-right)</td><td class="ok">pass</td></tr>
     <tr data-k="c12"><td>The R3 callback change builds and passes</td><td><code>build-verify</code> agent: the code at <code>22909e8</code> (<code>thunar-window.c</code> is unchanged since), built with <code>dpkg-buildpackage</code>, debs installed, then <code>verify-proof.sh run</code>: the smoke test and every <code>verify/*.sh</code>; no build warnings in the changed files, and 140 took 19 s</td><td class="ok">build OK; 31 of 31 pass</td></tr>
-    <tr data-k="c9"><td>CI's build and verify</td><td>CI runs 45141926439 (on <code>141eb5d</code>), 45143078450 (on <code>22909e8</code>) and 45143946399 (on <code>21bc0c1</code>): Launchpad's PPA returned 503 Service Unavailable during each build, so verify didn't run; review ran on <code>141eb5d</code> and <code>22909e8</code>. The PPA still returned 503 from the cloud container at 1:06 AM PST.</td><td class="no">build failed 3 of 3 (PPA 503); verify not run</td></tr>
+    <tr data-k="c9"><td>CI's build and verify</td><td>CI runs 45141926439 (on <code>141eb5d</code>), 45143078450 (on <code>22909e8</code>), 45143946399 (on <code>21bc0c1</code>) and 45145487986 (on <code>507ea9d</code>): Launchpad's PPA returned 503 Service Unavailable during each build, so verify didn't run; review ran on <code>141eb5d</code>, <code>22909e8</code> and <code>507ea9d</code>. The PPA answered 15 of 15 requests from the cloud container at 3:11 AM PST.</td><td class="no">build failed 4 of 4 (PPA 503); verify not run yet</td></tr>
     <tr data-k="c10"><td>Screenshot audit</td><td><code>/visual-verify</code> of CI's shots from the <code>shots</code> branch</td><td class="no">not run yet: CI has taken no shots yet</td></tr>
   </table>
   </div>
@@ -322,6 +322,10 @@ explainers/
     <li data-k="R4"><b>R4</b> (confirmed): the split-view-off check waited a fixed 1.5 s after Down and Return, which could be flaky. CI fixed it itself in commit <code>21bc0c1</code>: the test now waits up to 10 s for the title to leave leftdir.</li>
     <li data-k="R5"><b>R5</b> (plausible, not confirmed): <code>verify/140.sh</code> adds step comments, against <code>CLAUDE.md</code>'s rule against new explanatory comments. Accepted, not fixed: <code>CLAUDE.md</code> accepts a later review's low finding that isn't confirmed, and CI's own verifier noted that step comments are an established pattern in verify scripts (<code>19.sh</code>, <code>40.sh</code>, <code>93.sh</code>, <code>96.sh</code>).</li>
   </ul>
+  <p data-k="ci4">CI's third review, in run 45145487986 on <code>507ea9d</code>, covered the commits since <code>22909e8</code> and reported one low finding:</p>
+  <ul class="tight">
+    <li data-k="R6"><b>R6</b> (plausible, not confirmed): the wait CI added for R4 repeats <code>wait_start</code>'s polling inline with the opposite condition, and doesn't tell a timeout from a real title change before the shared failure check. Accepted, not fixed: <code>CLAUDE.md</code> accepts a later review's low finding that isn't confirmed, and CI's own verifier found that the unclear failure message predates the loop, and the 10 s wait is spent only on a path that already fails.</li>
+  </ul>
   <p data-k="ci2">CI reviews every later code push the same way.</p>
   </section>
 
@@ -342,7 +346,7 @@ explainers/
     <li data-k="l1">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...140-split-pane-shortcut">main…140-split-pane-shortcut</a>, or this PR's “Files changed”</li>
     <li data-k="l2">CI's summary, code review, verify and explainer comments on this PR, with the screenshots of <code>verify/140.sh</code></li>
     <li data-k="l3">The issue: <a href="https://github.com/alexhu98/thunar/issues/140">#140</a></li>
-    <li data-k="l4">CI's runs: <a href="https://github.com/alexhu98/thunar/actions/runs/45141926439">45141926439</a> on <code>141eb5d</code>, <a href="https://github.com/alexhu98/thunar/actions/runs/45143078450">45143078450</a> on <code>22909e8</code>, <a href="https://github.com/alexhu98/thunar/actions/runs/45143946399">45143946399</a> on <code>21bc0c1</code>, and the <a href="https://github.com/alexhu98/thunar/pull/142#issuecomment-7095931296">code review comment</a></li>
+    <li data-k="l4">CI's runs: <a href="https://github.com/alexhu98/thunar/actions/runs/45141926439">45141926439</a> on <code>141eb5d</code>, <a href="https://github.com/alexhu98/thunar/actions/runs/45143078450">45143078450</a> on <code>22909e8</code>, <a href="https://github.com/alexhu98/thunar/actions/runs/45143946399">45143946399</a> on <code>21bc0c1</code>, <a href="https://github.com/alexhu98/thunar/actions/runs/45145487986">45145487986</a> on <code>507ea9d</code>, and the <a href="https://github.com/alexhu98/thunar/pull/142#issuecomment-7095931296">code review comment</a></li>
   </ul>
   </section>
   </section>
