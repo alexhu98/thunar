@@ -318,10 +318,18 @@ explainers/
   <p data-k="summary">A local review at high level, of everything on the branch against main, before the first push: 3 findings, 1 fixed.</p>
   <ul class="tight">
     <li data-k="b1"><b>Fixed:</b> after a search typed by hand, Ctrl+F or Ctrl+Shift+F started a new search with a new scope, but the visible toggle kept its old state. The location entry now syncs the toggle on every search text change.</li>
-    <li data-k="b2"><b>S1, skipped, for you to decide:</b> without gvfs metadata, a shortcut's scope lives only in Thunar's in-memory copy of the folder. Once Thunar drops it, the toolbar button falls back to the global preference. #21's toggle behaves the same today; a per-window fallback would be a new mechanism.</li>
+    <li data-k="b2"><b>S1, skipped, kept as is by your choice:</b> without gvfs metadata, a shortcut's scope lives only in Thunar's in-memory copy of the folder. Once Thunar drops it, the toolbar button falls back to the global preference. #21's toggle behaves the same today; a per-window fallback would be a new mechanism. You chose to leave it, with no follow-up issue.</li>
     <li data-k="b3"><b>S2:</b> the explainer was missing at review time; this page is it.</li>
   </ul>
-  <p data-k="ci">CI's own review runs on every code push and reports in the code review comment on PR #141.</p>
+  <p data-k="ci">CI's own review runs on every code push and reports in the <a href="https://github.com/alexhu98/thunar/pull/141#issuecomment-7088338573">code review comment</a> on PR #141.</p>
+  <p data-k="cisum">CI's first review, on head <code>04e0270</code>, found 5 low findings, all plausible, none fixed by CI. You accepted all five, and a <code>Review-accept: R1, R2, R3, R4, R5</code> trailer on a commit that changes only <code>explainers/</code> closes them:</p>
+  <ul class="tight">
+    <li data-k="cr1"><b>R1, accepted:</b> the Search key still opens with the folder's saved choice, while Ctrl+F searches only the current folder. Issue #139 asks for exactly that (item 2).</li>
+    <li data-k="cr2"><b>R2, accepted:</b> Ctrl+Shift+F during a Ctrl+F search ends that search instead of switching its scope. The issue asks for that (item 4).</li>
+    <li data-k="cr3"><b>R3, accepted:</b> each shortcut saves its scope on the folder, so a later toolbar search there follows that, not the global preference. The issue asks for that (item 1).</li>
+    <li data-k="cr4"><b>R4, accepted:</b> Search in Subfolders... is in no menu, only in the shortcut editor. The issue asked only for the editor.</li>
+    <li data-k="cr5"><b>R5, accepted:</b> the toolbar Search button's tooltip still says “in the current folder and Recent”, though it opens with the folder's saved choice. That text predates this PR, and you chose to keep it.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -350,17 +358,12 @@ explainers/
   <section class="part" id="later">
   <p class="part-label" data-k="label">Part 3</p>
   <h2 data-k="heading">What comes later: nothing builds on it yet</h2>
-  <p class="intro" data-k="intro">No open issue says it depends on #139. One possible follow-up came from the local review: keeping a shortcut's scope where folder metadata can't be saved.</p>
+  <p class="intro" data-k="intro">No open issue says it depends on #139, so nothing builds on this PR yet. The local review's S1, a shortcut's scope where folder metadata can't be saved, stays as is by your choice, with no follow-up issue.</p>
 
   <section class="sub" id="next">
-  <div class="diagram" role="img" aria-label="This PR, then a possible follow-up issue that keeps the scope without gvfs metadata">
+  <div class="diagram" role="img" aria-label="This PR, with nothing built on it yet">
   <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
-      </marker>
-    </defs>
-    <text class="lane" x="20" y="44" style="fill:var(--future)">#139, then a possible follow-up</text>
+    <text class="lane" x="20" y="44" style="fill:var(--merge)">#139: nothing builds on it yet</text>
     <g data-k="n1">
       <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
       <text x="36" y="90" class="t">#139 this PR</text>
@@ -368,29 +371,19 @@ explainers/
       <text x="36" y="134" class="b">Ctrl+Shift+F: with</text>
       <text x="36" y="154" class="b">subfolders</text>
     </g>
-    <g data-k="n2">
-      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
-      <text x="286" y="90" class="t">Possible issue</text>
-      <text x="286" y="114" class="b">keep the scope</text>
-      <text x="286" y="134" class="b">without gvfs, per</text>
-      <text x="286" y="154" class="b">window (S1)</text>
-    </g>
-    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
   </svg>
   </div>
   <div class="legend">
     <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
-    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not filed or built yet</span>
   </div>
   </section>
 
   <section class="sub" id="followup">
-  <h3 class="sec">Possible issue: the scope without gvfs (S1, not filed)</h3>
+  <h3 class="sec">S1: the scope without gvfs, kept as is (not planned)</h3>
   <div class="panel">
   <ol class="steps">
     <li data-k="1"><b>Today.</b> Where folder metadata can't be written (no gvfs, read-only or remote folders), the scope a shortcut sets lasts only while Thunar keeps that folder in memory. #21's toggle has the same limit.</li>
-    <li data-k="2"><b>What it could add.</b> A per-window override, read before the folder's saved choice, as issue #139's risks suggested.</li>
-    <li data-k="3"><b>Your call.</b> Open it as an issue, or leave it as #21 behaves.</li>
+    <li data-k="2"><b>Your choice.</b> Leave it as #21 behaves. No follow-up issue is planned, so a per-window override, as issue #139's risks suggested, won't be built.</li>
   </ol>
   </div>
   </section>
