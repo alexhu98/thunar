@@ -297,6 +297,8 @@ thunar_window_action_reload (ThunarWindow *window,
                              GtkWidget    *menu_item);
 static gboolean
 thunar_window_action_toggle_split_view (ThunarWindow *window);
+static gboolean
+thunar_window_action_switch_focused_split_view_pane (ThunarWindow *window);
 static GtkWidget *
 thunar_window_other_pane_view (ThunarWindow *window);
 static GtkWidget *
@@ -758,7 +760,7 @@ static XfceGtkActionEntry thunar_window_action_entries[] =
     { THUNAR_WINDOW_ACTION_RELOAD_ALT_1,                   "<Actions>/ThunarWindow/reload-alt-1",                    "F5",                   XFCE_GTK_IMAGE_MENU_ITEM, NULL,                          NULL,                                                                                NULL,                      G_CALLBACK (thunar_window_action_reload),             },
     { THUNAR_WINDOW_ACTION_RELOAD_ALT_2,                   "<Actions>/ThunarWindow/reload-alt-2",                    "Reload",               XFCE_GTK_IMAGE_MENU_ITEM, NULL,                          NULL,                                                                                NULL,                      G_CALLBACK (thunar_window_action_reload),             },
     { THUNAR_WINDOW_ACTION_VIEW_SPLIT,                     "<Actions>/ThunarWindow/toggle-split-view",               "F3",                   XFCE_GTK_CHECK_MENU_ITEM, N_ ("S_plit View"),            N_ ("Open/Close Split View"),                                                        "view-dual",               G_CALLBACK (thunar_window_action_toggle_split_view),  },
-    { THUNAR_WINDOW_ACTION_SWITCH_FOCUSED_SPLIT_VIEW_PANE, "<Actions>/ThunarWindow/switch-focused-split-view-pane",  "",                     XFCE_GTK_MENU_ITEM,       N_ ("Switch Focused Split View Pane"), NULL,                                                                        NULL,                      G_CALLBACK (thunar_window_paned_notebooks_switch),    },
+    { THUNAR_WINDOW_ACTION_SWITCH_FOCUSED_SPLIT_VIEW_PANE, "<Actions>/ThunarWindow/switch-focused-split-view-pane",  "",                     XFCE_GTK_MENU_ITEM,       N_ ("Switch Focused Split View Pane"), NULL,                                                                        NULL,                      G_CALLBACK (thunar_window_action_switch_focused_split_view_pane), },
     { THUNAR_WINDOW_ACTION_DROP_ON_OTHER_PANE,            "<Actions>/ThunarWindow/drop-on-other-pane",             "Insert",               XFCE_GTK_MENU_ITEM,       N_ ("Drop on Other Pane"),    N_ ("Move or copy the selected files to the other pane, as a drop there would"),     NULL,                      G_CALLBACK (thunar_window_action_drop_on_other_pane), },
     { THUNAR_WINDOW_ACTION_DROP_ON_PREVIOUS_TAB,          "<Actions>/ThunarWindow/drop-on-previous-tab",           "<Alt>Page_Up",         XFCE_GTK_MENU_ITEM,       N_ ("Drop on Previous Tab"),  N_ ("Move or copy the selected files to the previous tab, as a drop there would"),   NULL,                      G_CALLBACK (thunar_window_action_drop_on_previous_tab), },
     { THUNAR_WINDOW_ACTION_DROP_ON_PREVIOUS_TAB_ALT_1,    "<Actions>/ThunarWindow/drop-on-previous-tab-alt-1",     "F11",                  XFCE_GTK_MENU_ITEM,       NULL,                          NULL,                                                                                NULL,                      G_CALLBACK (thunar_window_action_drop_on_previous_tab), },
@@ -4578,6 +4580,20 @@ thunar_window_action_reload (ThunarWindow *window,
     g_object_notify (G_OBJECT (window->location_bar), "current-directory");
 
   /* required in case of shortcut activation, in order to signal that the accel key got handled */
+  return TRUE;
+}
+
+
+
+static gboolean
+thunar_window_action_switch_focused_split_view_pane (ThunarWindow *window)
+{
+  _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);
+
+  if (!thunar_window_split_view_is_active (window))
+    return FALSE;
+
+  thunar_window_paned_notebooks_switch (window);
   return TRUE;
 }
 
