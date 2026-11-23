@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #142 Pane shortcut</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+  .box-old { fill: var(--panel); stroke: var(--warn); stroke-dasharray: 3 4; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #142: Make a Switch Focused Split View Pane shortcut switch panes</h1>
+  <p class="lead" data-k="lead">Branch <code>140-split-pane-shortcut</code> → <code>main</code>, closes #140 (<a href="https://github.com/alexhu98/thunar/pull/142">PR #142</a>). In split view, a key you bind to “Switch Focused Split View Pane”, such as F6, now moves you to the other pane.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing depends on #140 yet</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">The action behind “Switch Focused Split View Pane” now tells GTK whether it used the key. The change is one new function in <code>thunar/thunar-window.c</code>, tested by <code>verify/140.sh</code>.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="In split view, F6 runs the new callback, which notes the selected pane, switches panes and returns TRUE because the pane changed, so GTK stops the key. Before this PR the callback returned no value, GTK passed the key on, and the split view's own F6 binding moved focus back. With split view off no pane changes, so the new callback returns FALSE and F6 keeps its GTK meaning.">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① F6 in split view — with this PR</text>
+    <g data-k="1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">You press F6</text>
+      <text x="36" y="114" class="b">bound to Switch</text>
+      <text x="36" y="134" class="b">Focused Split View</text>
+      <text x="36" y="154" class="b">Pane, in split view</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">New callback</text>
+      <text x="286" y="114" class="b">notes the selected</text>
+      <text x="286" y="134" class="b">pane, then asks for</text>
+      <text x="286" y="154" class="b">the panes to switch</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-merge" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Panes switch</text>
+      <text x="536" y="114" class="b">the other pane is</text>
+      <text x="536" y="134" class="b">now active; the title</text>
+      <text x="536" y="154" class="b">shows its folder</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Returns TRUE</text>
+      <text x="786" y="114" class="b">the pane changed, so</text>
+      <text x="786" y="134" class="b">GTK sees the key as</text>
+      <text x="786" y="154" class="b">handled and stops it</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--warn)">② Before this PR (main)</text>
+    <g data-k="5">
+      <rect class="box-old" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Old callback</text>
+      <text x="36" y="314" class="b">switched panes but</text>
+      <text x="36" y="334" class="b">returned no value, so</text>
+      <text x="36" y="354" class="b">GTK passed F6 on</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-old" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">F6 undoes it</text>
+      <text x="286" y="314" class="b">the split view's own</text>
+      <text x="286" y="334" class="b">F6 binding moved</text>
+      <text x="286" y="354" class="b">focus back: no change</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow" d="M230,320 H266" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="520" y="244" style="fill:var(--accent)">③ Split view off — with this PR</text>
+    <g data-k="7">
+      <rect class="box-pr" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Returns FALSE</text>
+      <text x="536" y="314" class="b">nothing to switch, so</text>
+      <text x="536" y="334" class="b">F6 keeps its usual</text>
+      <text x="536" y="354" class="b">GTK meaning</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">7</text>
+    </g>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>changed by this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>unchanged code</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--warn);border-style:dashed"></span>before this PR</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Split view (F3) shows two folders side by side, and one of them is the active pane. Thunar has an action, “Switch Focused Split View Pane”, with no key of its own; you can give it one in Edit → Configure Keyboard Shortcuts. On the owner's machine F6 was bound to it, and pressing F6 did nothing visible, while Shift+F6 (GTK's own pane cycling) did switch.</p>
+  <div class="note" data-k="note">A keyboard shortcut's callback returns TRUE to tell GTK “I used this key”. All the other callbacks in Thunar's window action table do; this one was the only one that returned no value. GTK then passed F6 on, and the split view's own F6 binding moved focus straight back.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① F6 in split view — with this PR</div>
+  <ol class="steps">
+    <li data-k="1"><b>You press F6.</b> F6 is bound to “Switch Focused Split View Pane”, and split view is open. The binding lives in Thunar's <code>accels.scm</code>, which the shortcut editor writes.</li>
+    <li data-k="2"><b>New callback.</b> The action entry now points at the new <code>thunar_window_action_switch_focused_split_view_pane</code>. It notes which pane is selected, then calls <code>thunar_window_paned_notebooks_switch</code>.</li>
+    <li data-k="3"><b>Panes switch.</b> <code>thunar_window_paned_notebooks_switch</code> is unchanged: it makes the other pane the selected one, so the window title, location bar and keyboard follow it. Its other callers inside Thunar keep using it as before.</li>
+    <li data-k="4"><b>Returns TRUE.</b> The new callback returns whether the selected pane changed. After a switch that is TRUE, so GTK treats F6 as handled and gives it to no other widget.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--warn)">② Before this PR (main)</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Old callback.</b> The action called <code>thunar_window_paned_notebooks_switch</code> directly. It switched panes but returned no value, so GTK didn't see F6 as handled and passed it on to the focused widget.</li>
+    <li data-k="6"><b>F6 undoes it.</b> The split view's <code>GtkPaned</code> has GTK's own F6 binding, which moves focus between the two halves, so focus went back to the pane you started in. That last part is read from the code; the test below shows the net effect.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--accent)">③ Split view off — with this PR</div>
+  <ol class="steps" start="7" style="counter-reset: s 6">
+    <li data-k="7"><b>Returns FALSE.</b> With one pane, <code>thunar_window_paned_notebooks_switch</code> changes nothing, so the selected pane is the same and the callback returns FALSE. F6 then keeps whatever GTK does with it there, such as moving focus to the side pane. The callback returns FALSE whenever no switch happened, not only with split view off. This was the more natural choice the issue's Risks section suggested.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="parts">
+  <h3 class="sec">A closer look at the change</h3>
+<pre data-k="diff"><span class="add">static gboolean</span>
+<span class="add">thunar_window_action_switch_focused_split_view_pane (ThunarWindow *window)</span>
+<span class="add">{</span>
+<span class="add">  GtkWidget *notebook_selected;</span>
+<span class="add"></span>
+<span class="add">  _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);</span>
+<span class="add"></span>
+<span class="add">  notebook_selected = window->notebook_selected;</span>
+<span class="add">  thunar_window_paned_notebooks_switch (window);</span>
+<span class="add">  return window->notebook_selected != notebook_selected;</span>
+<span class="add">}</span></pre>
+  <div class="table-wrap" style="margin-top:14px">
+  <table>
+    <tr><th>Key press</th><th>Before (main)</th><th>With this PR</th></tr>
+    <tr data-k="k1"><td>Bound F6, split view on</td><td>nothing visible changes</td><td>the other pane becomes active</td></tr>
+    <tr data-k="k2"><td>Bound F6 again</td><td>nothing visible changes</td><td>back to the first pane</td></tr>
+    <tr data-k="k3"><td>Bound F6, split view off</td><td>the callback did nothing</td><td>returns FALSE: GTK's own F6 runs</td></tr>
+    <tr data-k="k4"><td>Shift+F6</td><td>GTK's pane cycling</td><td>unchanged: Thunar doesn't bind it</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+└── thunar-window.c                     # new switch_focused_split_view_pane callback;
+                                        # the action entry points at it
+verify/
+└── 140.sh                              # binds F6; presses it with split view off, then three
+                                        # times in split view, and renames a file: 1 pair, 3 shots
+explainers/
+├── 140-split-pane-shortcut.html        # this page
+└── 140-split-pane-shortcut.narration.json   # its narration</pre>
+  <div class="note" data-k="undo">To undo: point the action entry back at <code>thunar_window_paned_notebooks_switch</code> and remove the new function. Nothing else depends on it.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The new test was run first against main's code, where it failed as the issue predicted, then against the fix, where every test passed. After CI's review the test grew two checks and the callback changed; a local build of the changed callback passed every test. CI's builds have all failed so far, because Launchpad's PPA was unavailable.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>The issue's analysis</h3><p>It read the cause from the code: the only action callback in the table that returned no value. The fix follows its Approach.</p></div>
+    <div class="card" data-k="r2"><h3>The other action callbacks</h3><p>Such as <code>thunar_window_action_toggle_split_view</code>: each returns <code>gboolean</code> TRUE when it handled the key. The new callback has the same shape.</p></div>
+    <div class="card" data-k="r3"><h3>A failing run on main</h3><p><code>verify/140.sh</code> was run against main's code before the fix, so its pass afterwards shows the fix, not the test, made the difference.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="note" data-k="when">All of these ran in a cloud container by the building session. The first seven rows ran on the fix as first written (commit <code>158bf93</code>) with the first <code>verify/140.sh</code>. After CI's review, the longer <code>verify/140.sh</code> ran alone under Xvfb against that same build: exit 0, 5 shots. Then the code at <code>22909e8</code>, with the callback change from the review (R3), was built and every test was run on it.</div>
+  <div class="table-wrap" style="margin-top:14px">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>The bug shows on main</td><td><code>build-verify</code> agent: main's code plus <code>verify/140.sh</code>, built with <code>dpkg-buildpackage</code>, tests run by <code>verify-proof.sh run</code> under Xvfb</td><td class="ok">30 of 31 pass; 140 fails, as predicted</td></tr>
+    <tr data-k="c2"><td>Why 140 failed on main</td><td>Its message: “F6 bound to Switch Focused Split View Pane left the active pane at 'leftdir - Thunar', expected rightdir”</td><td class="ok">F6 changed nothing</td></tr>
+    <tr data-k="c3"><td>It builds</td><td>Same agent, with the fix: <code>dpkg-buildpackage</code> in the cloud container, as CI</td><td class="ok">build OK, no warnings in thunar-window.c</td></tr>
+    <tr data-k="c4"><td>The debs install</td><td>Same agent: <code>verify-proof.sh install</code></td><td class="ok">installed</td></tr>
+    <tr data-k="c5"><td>All verify tests pass</td><td>Same agent: <code>verify-proof.sh run</code>, the smoke test and every <code>verify/*.sh</code>, each under its own Xvfb</td><td class="ok">31 of 31 pass</td></tr>
+    <tr data-k="c6"><td>F6 switches left to right</td><td><code>verify/140.sh</code>: bind F6, open split view on <code>leftdir</code> and <code>rightdir</code>, click the left pane, press F6; the title must start with rightdir (pair f6)</td><td class="ok">pass (140 took 11 s)</td></tr>
+    <tr data-k="c7"><td>F6 again switches back</td><td><code>verify/140.sh</code>: a second F6; the title must start with leftdir (shot f6-again)</td><td class="ok">pass</td></tr>
+    <tr data-k="c8"><td>F6 with split view off keeps GTK's meaning</td><td>The longer <code>verify/140.sh</code>: with split view off, click the file list, press F6, then Down and Return; the title must be neither leftdir nor sub, because F6 moved the focus to the side pane (shot split-off)</td><td class="ok">pass: it opened Computer</td></tr>
+    <tr data-k="c11"><td>After F6 the keyboard is in the right pane</td><td>The longer <code>verify/140.sh</code>: a third F6, then End, F2 and typing renamed; rightdir must hold renamed and not b2.txt, and b1.txt and leftdir/sub must remain (shot focus-right)</td><td class="ok">pass</td></tr>
+    <tr data-k="c12"><td>The R3 callback change builds and passes</td><td><code>build-verify</code> agent: the code at <code>22909e8</code> (<code>thunar-window.c</code> is unchanged since), built with <code>dpkg-buildpackage</code>, debs installed, then <code>verify-proof.sh run</code>: the smoke test and every <code>verify/*.sh</code>; no build warnings in the changed files, and 140 took 19 s</td><td class="ok">build OK; 31 of 31 pass</td></tr>
+    <tr data-k="c9"><td>CI's build and verify</td><td>CI runs 45141926439 (on <code>141eb5d</code>), 45143078450 (on <code>22909e8</code>), 45143946399 (on <code>21bc0c1</code>) and 45145487986 (on <code>507ea9d</code>): Launchpad's PPA returned 503 Service Unavailable during each build, so verify didn't run; review ran on <code>141eb5d</code>, <code>22909e8</code> and <code>507ea9d</code>. The PPA answered 15 of 15 requests from the cloud container at 3:11 AM PST.</td><td class="no">build failed 4 of 4 (PPA 503); verify not run yet</td></tr>
+    <tr data-k="c10"><td>Screenshot audit</td><td><code>/visual-verify</code> of CI's shots from the <code>shots</code> branch</td><td class="no">not run yet: CI has taken no shots yet</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh agent ran <code>/code-review</code> at <code>high</code> with <code>--fix</code> on the branch against <code>origin/main</code>. It found no correctness problems and fixed nothing.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Skipped, S1:</b> the explainer page and its narration were missing. This page and its narration resolve it.</li>
+  </ul>
+  <p data-k="ci">CI's first review, at <code>high</code> in run 45141926439, reported three low findings in its <a href="https://github.com/alexhu98/thunar/pull/142#issuecomment-7095931296">code review comment</a>. All three were fixed in one commit, <code>22909e8</code>:</p>
+  <ul class="tight">
+    <li data-k="R1"><b>R1</b> (confirmed): <code>verify/140.sh</code> didn't test F6 with split view off. It now does, and checks that F6 moved the focus to the side pane.</li>
+    <li data-k="R2"><b>R2</b> (plausible): the test checked only the title, not the keyboard focus. After a third F6, End and F2 now rename the right pane's last file.</li>
+    <li data-k="R3"><b>R3</b> (plausible): the callback returned TRUE in split view even if no switch happened. Its own verifier refuted it, but it was fixed anyway: the callback now returns whether the selected pane changed.</li>
+  </ul>
+  <p data-k="ci3">CI's second review, in run 45143078450 on <code>22909e8</code>, reported two more low findings:</p>
+  <ul class="tight">
+    <li data-k="R4"><b>R4</b> (confirmed): the split-view-off check waited a fixed 1.5 s after Down and Return, which could be flaky. CI fixed it itself in commit <code>21bc0c1</code>: the test now waits up to 10 s for the title to leave leftdir.</li>
+    <li data-k="R5"><b>R5</b> (plausible, not confirmed): <code>verify/140.sh</code> adds step comments, against <code>CLAUDE.md</code>'s rule against new explanatory comments. Accepted, not fixed: <code>CLAUDE.md</code> accepts a later review's low finding that isn't confirmed, and CI's own verifier noted that step comments are an established pattern in verify scripts (<code>19.sh</code>, <code>40.sh</code>, <code>93.sh</code>, <code>96.sh</code>).</li>
+  </ul>
+  <p data-k="ci4">CI's third review, in run 45145487986 on <code>507ea9d</code>, covered the commits since <code>22909e8</code> and reported one low finding:</p>
+  <ul class="tight">
+    <li data-k="R6"><b>R6</b> (plausible, not confirmed): the wait CI added for R4 repeats <code>wait_start</code>'s polling inline with the opposite condition, and doesn't tell a timeout from a real title change before the shared failure check. Accepted, not fixed: <code>CLAUDE.md</code> accepts a later review's low finding that isn't confirmed, and CI's own verifier found that the unclear failure message predates the loop, and the 10 s wait is spent only on a path that already fails.</li>
+  </ul>
+  <p data-k="ci2">CI reviews every later code push the same way.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>F6 on the owner's desktop, where the bug was reported</td><td>The tests drive Thunar with <code>xdotool</code> under Xvfb, not on the owner's machine</td><td class="open">when the owner installs the next build</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l0">The PR: <a href="https://github.com/alexhu98/thunar/pull/142">#142</a></li>
+    <li data-k="l1">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...140-split-pane-shortcut">main…140-split-pane-shortcut</a>, or this PR's “Files changed”</li>
+    <li data-k="l2">CI's summary, code review, verify and explainer comments on this PR, with the screenshots of <code>verify/140.sh</code></li>
+    <li data-k="l3">The issue: <a href="https://github.com/alexhu98/thunar/issues/140">#140</a></li>
+    <li data-k="l4">CI's runs: <a href="https://github.com/alexhu98/thunar/actions/runs/45141926439">45141926439</a> on <code>141eb5d</code>, <a href="https://github.com/alexhu98/thunar/actions/runs/45143078450">45143078450</a> on <code>22909e8</code>, <a href="https://github.com/alexhu98/thunar/actions/runs/45143946399">45143946399</a> on <code>21bc0c1</code>, <a href="https://github.com/alexhu98/thunar/actions/runs/45145487986">45145487986</a> on <code>507ea9d</code>, and the <a href="https://github.com/alexhu98/thunar/pull/142#issuecomment-7095931296">code review comment</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing depends on #140 yet</h2>
+  <p class="intro" data-k="intro">No open issue says “Depends on #140”; #140 itself is the only open issue. Nothing is queued to build on this fix.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR fixes the pane shortcut; no open issue builds on it yet.">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">After this PR</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">#140 shortcut</text>
+      <text x="36" y="114" class="b">a bound key switches</text>
+      <text x="36" y="134" class="b">the split view pane</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Nothing yet</text>
+      <text x="286" y="114" class="b">no open issue says</text>
+      <text x="286" y="134" class="b">Depends on #140</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  <div class="note" data-k="upstream">Upstream Thunar has the same callback that returns no value, so the bug is there too. This PR changes only this fork.</div>
+  </section>
+
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="split"><dt>Split view</dt><dd>Two folder panes side by side in one window, toggled with F3.</dd></div>
+    <div data-k="active"><dt>Active pane</dt><dd>The pane the title, location bar and keyboard follow.</dd></div>
+    <div data-k="action"><dt>Action</dt><dd>A named Thunar command that a menu item or a shortcut can run.</dd></div>
+    <div data-k="callback"><dt>Callback</dt><dd>The function GTK calls when the action's shortcut is pressed.</dd></div>
+    <div data-k="handled"><dt>TRUE / FALSE</dt><dd>A shortcut callback's answer to GTK: TRUE means “I used the key”, FALSE lets others have it.</dd></div>
+    <div data-k="paned"><dt>GtkPaned</dt><dd>GTK's two-part container with a draggable divider; split view is one.</dd></div>
+    <div data-k="accels"><dt>accels.scm</dt><dd>Thunar's file of custom keyboard shortcuts, written by the shortcut editor.</dd></div>
+    <div data-k="finding"><dt>R1, R2, R3</dt><dd>The IDs CI's code review gives its findings on this PR.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb, xdotool</dt><dd>A screenless X server, and a tool that sends it clicks and keys.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
