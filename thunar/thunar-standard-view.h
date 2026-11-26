@@ -244,11 +244,6 @@ void
 thunar_standard_view_set_statusbar_text (ThunarStandardView *standard_view,
                                          const gchar        *text);
 void
-thunar_standard_view_set_statusbar_text_for_job (ThunarStandardView *standard_view,
-                                                 ThunarJob          *job,
-                                                 const gchar        *text,
-                                                 const gchar        *info_text);
-void
 thunar_standard_view_transfer_selection (ThunarStandardView *standard_view,
                                          ThunarStandardView *old_view);
 void
