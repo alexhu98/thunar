@@ -2014,6 +2014,19 @@ thunar_file_rename (ThunarFile   *file,
 
 
 
+void
+thunar_file_set_renamed (ThunarFile *file,
+                         GFile      *renamed_file)
+{
+  _thunar_return_if_fail (THUNAR_IS_FILE (file));
+  _thunar_return_if_fail (G_IS_FILE (renamed_file));
+
+  thunar_file_replace_file (file, renamed_file);
+  thunar_file_load (file, NULL, NULL);
+}
+
+
+
 gboolean
 thunar_file_drop_refused (ThunarFile *file,
                           GList      *file_list)

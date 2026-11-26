@@ -190,6 +190,10 @@ thunar_file_rename (ThunarFile   *file,
                     gboolean      called_from_job,
                     GError      **error);
 
+void
+thunar_file_set_renamed (ThunarFile *file,
+                         GFile      *renamed_file);
+
 gboolean
 thunar_file_drop_refused (ThunarFile *file,
                           GList      *file_list);
