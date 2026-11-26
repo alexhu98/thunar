@@ -5,18 +5,22 @@
 #            which repairs what dpkg left, may downgrade the built debs, and skips them when the same version is
 #            installed, so dpkg -i then installs them over whatever is there. $DEBS then keeps exactly the
 #            installed versions of everything apt and dpkg added. Prints cached=true|false (for $GITHUB_OUTPUT).
-#   run      runs the smoke test (Thunar is still running 10 s after launch) and each verify/<issue>.sh, $JOBS at a
-#            time, each with its own Xvfb, xfwm4 and D-Bus session, a fresh HOME and XDG folders, and a $TIMEOUT s
+#   run [<issue>...]
+#            runs the smoke test (Thunar is still running 10 s after launch) and each verify/<issue>.sh, or only the
+#            ones named, $JOBS at a time, each with its own Xvfb, xfwm4 and D-Bus session, a fresh HOME and XDG folders, and a $TIMEOUT s
 #            limit. A test that could end after $BUDGET s of the run's wall-clock time is reported as not run, and one
 #            that passes with a before/after pair that has no pair call fails. results.tsv keeps the serial order.
-#            Numbers the shots and makes each pair's 1920px image (verify-shots.py build). Writes the shots,
-#            $OUT/pairs/, the logs, $OUT/results.tsv, $OUT/numbered.json, the manifest $OUT/verify.tsv and, last,
-#            $OUT/complete, and fails if any test failed.
-#   publish  commits the shots, the pair images and the manifest to the shots branch under pr-$PR/
-#            (verify-<test>-<shot>.png, pair-<test>-<what>.png, verify.tsv) through shots.sh, writes the verify
-#            comment through pr-comment.sh and then the summary through pr-summary.py. Run it whether or not run
-#            passed. A failed upload is marked in the comment and in the manifest (file -), and publish then fails.
-# Env: PR, HEAD_SHA, HEAD_REF, GH_REPO, RUN_ID, RUN_URL, OUT, DEBS, TIMEOUT (default 120), BUDGET (default 1500), JOBS (default 2).
+#            Numbers the shots of the smoke test, of the tests in $OWN (space-separated issues; default: every test
+#            run) and of every test that failed, and makes each pair's 1920px image (verify-shots.py build). Writes
+#            the shots, $OUT/pairs/, the logs, $OUT/results.tsv, $OUT/scope ("all <total>" or "partial <run> <total>"),
+#            $OUT/own, $OUT/numbered.json, the manifest $OUT/verify.tsv and, last, $OUT/complete, and fails if any
+#            test failed.
+#   publish  commits the numbered shots, the pair images and the manifest to the shots branch under pr-$PR/
+#            (verify-<test>-<shot>.png, pair-<test>-<what>.png, verify.tsv) in one commit through shots.sh, writes
+#            the verify comment through pr-comment.sh and then the summary through pr-summary.py. Run it whether or
+#            not run passed. A failed upload is marked in the comment, and publish then fails.
+# Env: PR, HEAD_SHA, HEAD_REF, GH_REPO, RUN_ID, RUN_URL, OUT, DEBS, OWN, TIMEOUT (default 120), BUDGET (default 1500),
+# JOBS (default 4).
 # DRY_RUN=1 makes publish print the comment instead of uploading and posting it.
 set -euo pipefail
 
@@ -25,7 +29,7 @@ OUT=${OUT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/verify-proof}
 DEBS=${DEBS:-$HOME/verify-debs}
 TIMEOUT=${TIMEOUT:-120}
 BUDGET=${BUDGET:-1500}
-JOBS=${JOBS:-2}
+JOBS=${JOBS:-4}
 names=()
 declare -A running=()
 TOOLS=(xvfb xfwm4 xdotool imagemagick x11-utils dbus gvfs gvfs-daemons zorin-desktop-themes)
@@ -162,11 +166,12 @@ reap() {
 
 run() {
   [[ $JOBS =~ ^[1-9][0-9]*$ ]] || { echo "JOBS must be a positive number, not '$JOBS'" >&2; exit 2; }
-  rm -rf "$OUT/logs" "$OUT/run" "$OUT/shots" "$OUT/pairs" "$OUT/complete" "$OUT/verify.tsv" "$OUT/numbered.json"
+  rm -rf "$OUT/logs" "$OUT/run" "$OUT/shots" "$OUT/pairs" "$OUT/complete" "$OUT/verify.tsv" "$OUT/numbered.json" \
+    "$OUT/scope" "$OUT/own"
   mkdir -p "$OUT/logs" "$OUT/run"
   : > "$OUT/results.tsv"
   theme > "$OUT/theme"
-  local script name begin=$SECONDS tests=(smoke) cmd
+  local script name begin=$SECONDS tests=(smoke) cmd total=1 want=" $* " own=" ${OWN-} "
   names=(smoke)
   running=()
   trap 'kill $(jobs -p) 2>/dev/null || true; for f in "$OUT"/run/*.pid; do [[ -f $f ]] && kill -- -"$(<"$f")" 2>/dev/null || true; done; [[ -e $OUT/complete ]] || collect "cut short"' EXIT
@@ -180,9 +185,17 @@ run() {
       not_run "$name.sh" misnamed "$script is not named verify/<issue>.sh, so it was not run"
       continue
     fi
+    total=$((total + 1))
+    if (( $# )) && [[ $want != *" $name "* ]]; then
+      continue
+    fi
     names+=("$name")
     tests+=("$name")
+    [[ -n ${OWN+set} && $own != *" $name "* ]] || echo "$name" >> "$OUT/own"
   done
+  echo smoke >> "$OUT/own"
+  if (( ${#tests[@]} == total )); then echo "all $total"; else echo "partial ${#tests[@]} $total"; fi > "$OUT/scope"
+  echo "running ${#tests[@]} of $total tests: ${tests[*]}"
   for name in "${tests[@]}"; do
     while (( ${#running[@]} >= JOBS )); do reap; done
     if [[ $name == smoke ]]; then
@@ -208,34 +221,27 @@ run() {
   (( failed == 0 )) || exit 1
 }
 
-upload() {  # local file, path on shots -> commit sha
-  OUT="$OUT/upload" "$HERE/shots.sh" "$1" "$2" "Verify screenshots for PR #${PR:-0}" </dev/null
-}
-
 publish() {
   [[ -n ${PR:-} || ${DRY_RUN:-0} == 1 ]] || { echo "publish needs PR" >&2; exit 1; }
   : "${GH_REPO:?}"
   : > "$OUT/urls.tsv"
-  local file path sha url failed=0
+  local file sha failed=0 dir="pr-${PR:-0}"
   export SHOTS_DEADLINE=$(( $(date +%s) + 300 ))
   if [[ -s $OUT/results.tsv && ! -s $OUT/numbered.json ]]; then
     python3 "$HERE/verify-shots.py" build "$OUT" || echo "::warning::some pair images could not be made" >&2
   fi
   if [[ -s $OUT/results.tsv && -s $OUT/numbered.json ]]; then
-    while IFS=$'\t' read -r file path; do
-      if [[ -s $OUT/$file ]] && sha=$(upload "$OUT/$file" "pr-${PR:-0}/$path"); then
-        url="https://github.com/$GH_REPO/blob/$sha/pr-${PR:-0}/$path?raw=true"
-      else
-        echo "::error::could not upload pr-${PR:-0}/$path" >&2
-        url=- failed=1
-      fi
-      printf '%s\t%s\n' "$file" "$url" >> "$OUT/urls.tsv"
-    done < <(jq -r '.[] | (.test as $t | .shots[] | [.file, "verify-\($t)-\(.name).png"]), (select(.kind == "pair" and .image) | [.image, "pair-\(.test)-\(.what).png"]) | @tsv' "$OUT/numbered.json")
     python3 "$HERE/verify-shots.py" manifest "$OUT" > "$OUT/verify-shots.tsv"
-    if ! upload "$OUT/verify-shots.tsv" "pr-${PR:-0}/verify.tsv" >/dev/null; then
-      echo "::error::could not upload pr-${PR:-0}/verify.tsv" >&2
-      failed=1
-    fi
+    {
+      jq -r --arg o "$OUT/" --arg d "$dir/" '.[] | (.test as $t | .shots[] | [$o + .file, $d + "verify-\($t)-\(.name).png"]), (select(.kind == "pair" and .image) | [$o + .image, $d + "pair-\(.test)-\(.what).png"]) | @tsv' "$OUT/numbered.json"
+      printf '%s\t%s\n' "$OUT/verify-shots.tsv" "$dir/verify.tsv"
+    } > "$OUT/upload.tsv"
+    OUT="$OUT/upload" "$HERE/shots.sh" "$OUT/upload.tsv" "Verify screenshots for PR #${PR:-0}" > "$OUT/committed.tsv" </dev/null || failed=1
+    while IFS=$'\t' read -r file sha; do
+      [[ $sha == - ]] || sha="https://github.com/$GH_REPO/blob/$sha/$(awk -F'\t' -v f="$file" '$1 == f { print $2; exit }' "$OUT/upload.tsv")?raw=true"
+      printf '%s\t%s\n' "${file#"$OUT/"}" "$sha" >> "$OUT/urls.tsv"
+    done < <(awk -F'\t' 'NR == FNR { sha[$1] = $2; next } { print $1 "\t" ($1 in sha ? sha[$1] : "-") }' "$OUT/committed.tsv" "$OUT/upload.tsv")
+    (( failed == 0 )) || echo "::error::the shots could not all be committed to the shots branch" >&2
   fi
   python3 "$HERE/verify-shots.py" comment "$OUT" > "$OUT/comment.md"
   OUT="$OUT/comment" "$HERE/pr-comment.sh" put verify "$OUT/comment.md"
@@ -245,9 +251,9 @@ publish() {
 
 case ${1:-} in
   install) install ;;
-  run) run ;;
+  run) shift; run "$@" ;;
   publish) publish ;;
   session) shift; session "$@" ;;
   smoke) smoke ;;
-  *) echo "usage: $0 install | run | publish" >&2; exit 2 ;;
+  *) echo "usage: $0 install | run [<issue>...] | publish" >&2; exit 2 ;;
 esac

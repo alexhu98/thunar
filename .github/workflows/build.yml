@@ -185,7 +185,31 @@ jobs:
       - uses: actions/checkout@v4
         if: needs.build.outputs.skip != 'true'
         with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
           persist-credentials: false
+
+      - name: Pick the tests
+        id: tests
+        if: needs.build.outputs.skip != 'true'
+        run: |
+          if [[ $GITHUB_EVENT_NAME != pull_request ]]; then
+            echo "All tests: a push to ${GITHUB_REF#refs/heads/}" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git diff --no-renames --name-only --diff-filter=d HEAD^1 HEAD > "$RUNNER_TEMP/changed.txt"
+          own=$(grep -E '^verify/[0-9]+\.sh$' "$RUNNER_TEMP/changed.txt" | sed -E 's|^verify/([0-9]+)\.sh$|\1|' | tr '\n' ' ' || true)
+          echo "own=$own" >> "$GITHUB_OUTPUT"
+          trailer=$(git log -1 --format='%(trailers:key=Verify,valueonly,separator=%x2C)' "$HEAD_SHA" | tr -d ' \n' | tr '[:upper:]' '[:lower:]')
+          ci=$(grep -E '^\.github/scripts/(verify-|shots\.sh$)|^debian/|^\.github/workflows/build\.yml$' "$RUNNER_TEMP/changed.txt" || true)
+          if [[ $trailer == full ]]; then
+            echo "All tests: the head commit has the trailer Verify: full" | tee -a "$GITHUB_STEP_SUMMARY"
+          elif [[ -n $ci ]]; then
+            echo "All tests: the PR changes $(echo $ci)" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            [[ -z $trailer ]] || echo "::warning::unknown Verify: trailer \"$trailer\"; running only the PR's own tests"
+            echo "run=smoke $own" >> "$GITHUB_OUTPUT"
+            echo "The smoke test and the PR's own tests (${own:-none}); a head commit with the trailer Verify: full runs all of them" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
 
       - uses: actions/download-artifact@v4
         if: needs.build.outputs.skip != 'true'
@@ -220,7 +244,10 @@ jobs:
         id: run
         if: needs.build.outputs.skip != 'true'
         timeout-minutes: 30
-        run: .github/scripts/verify-proof.sh run
+        env:
+          OWN: ${{ steps.tests.outputs.own }}
+          TESTS: ${{ steps.tests.outputs.run }}
+        run: .github/scripts/verify-proof.sh run $TESTS
 
       - name: Upload the screenshots and write the verify comment
         if: ${{ !cancelled() && needs.build.outputs.skip != 'true' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}

@@ -165,6 +165,8 @@ def summary(runs):
         title = '⚠️ Screenshot audit inconclusive: the owner decides'
     elif a[0] == 'wait':
         title = '⏳ waiting for the screenshot audit'
+    elif v[0] == 'pass' and (status['verify'] or {}).get('full') is False:
+        title = '⏳ verify ran only some tests: a head with `Verify: full` runs all of them before the merge'
     else:
         title = '✅ ready for review'
     run_url = os.environ.get('RUN_URL') or (f"https://github.com/{os.environ['GH_REPO']}/actions/runs/{run_id}"

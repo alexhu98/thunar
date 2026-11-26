@@ -36,7 +36,7 @@ Before reading any image, check that the run can produce a trustworthy verdict. 
 
 - `run:`: this is a cloud container (`$CLAUDE_CODE_REMOTE` is `true`) and `Xvfb`, `xdotool`, `import` and `xfwm4` exist. Step 2 builds, installs and captures in one `build-verify` run, so the capture always tests this branch's working tree. If not, the verdict is INCONCLUSIVE("sandbox can't run the capture"); rely on CI's shots instead (`pr:<n>`).
 - The manifest exists and has at least one row; with `run:`, check this after Step 2's capture, which writes it. If none, the verdict is INCONCLUSIVE("no verify.tsv").
-- Every row has a `proves` sentence, except rows with shot `-`, which are tests that saved no shot. A row with a shot but file `-` lost its upload: list it as a required shot, so the auditor reports it MISSING.
+- Every row has a `proves` sentence, except rows with shot `-`, which are tests that saved no shot or whose shots CI didn't post (it posts only the smoke test's, the PR's own tests' and failing tests'). A row with a shot but file `-` lost its upload: list it as a required shot, so the auditor reports it MISSING.
 - `pr:<n>`: the manifest's `sha` is the PR's head commit (`git ls-remote origin refs/pull/<n>/head`, or the branch head). If not, the verdict is INCONCLUSIVE("shots are for <sha>, the PR head is <sha>"), because CI may still be running.
 - If the capture itself errored (Xvfb didn't start, a script timed out before its first shot), the verdict is INCONCLUSIVE.
 
