@@ -278,7 +278,16 @@ thunar_location_buttons_image_new (const gchar *icon_name)
   if (g_str_has_suffix (icon_name, "-symbolic"))
     xapp_icon_name = thunar_util_get_xapp_icon_name (gtk_icon_theme_get_default (), icon_name);
 
-  image = gtk_image_new_from_icon_name (xapp_icon_name != NULL ? xapp_icon_name : icon_name, GTK_ICON_SIZE_BUTTON);
+  if (xapp_icon_name != NULL)
+    {
+      const gchar *names[] = { xapp_icon_name, icon_name, NULL };
+      GIcon       *gicon = g_themed_icon_new_from_names ((gchar **) names, -1);
+
+      image = gtk_image_new_from_gicon (gicon, GTK_ICON_SIZE_BUTTON);
+      g_object_unref (gicon);
+    }
+  else
+    image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_BUTTON);
   g_free (xapp_icon_name);
 
   return image;
