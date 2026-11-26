@@ -1138,7 +1138,9 @@ thunar_util_get_xapp_icon_name (GtkIconTheme *icon_theme,
  *
  * If @gicon is a #GThemedIcon and any of its names has an XApp
  * symbolic icon (see thunar_util_get_xapp_icon_name()), returns a new
- * #GThemedIcon that lists those XApp names first, then @gicon's names.
+ * #GThemedIcon with only those XApp names. Look it up on its own: in a
+ * #GThemedIcon that also had @gicon's names, the icon theme's own icons
+ * would win over the XApp ones in hicolor.
  *
  * Return value: a new #GIcon, to be released with g_object_unref(), or %NULL.
  **/
@@ -1167,10 +1169,6 @@ thunar_util_get_xapp_gicon (GtkIconTheme *icon_theme,
         g_themed_icon_append_name (G_THEMED_ICON (xapp_icon), xapp_name);
       g_free (xapp_name);
     }
-
-  if (xapp_icon != NULL)
-    for (n = 0; names[n] != NULL; ++n)
-      g_themed_icon_append_name (G_THEMED_ICON (xapp_icon), names[n]);
 
   return xapp_icon;
 }

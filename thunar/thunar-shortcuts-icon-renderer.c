@@ -248,24 +248,23 @@ thunar_shortcuts_icon_renderer_render (GtkCellRenderer     *renderer,
       else
         gicon = thunar_device_get_icon (shortcuts_icon_renderer->device, use_symbolic_icons);
 
-      if (use_symbolic_icons)
-        {
-          xapp_gicon = thunar_util_get_xapp_gicon (icon_theme, gicon);
-          if (xapp_gicon != NULL)
-            {
-              g_object_unref (gicon);
-              gicon = xapp_gicon;
-            }
-        }
-
       scale_factor = gtk_widget_get_scale_factor (widget);
 
       lookup_flags = GTK_ICON_LOOKUP_USE_BUILTIN | GTK_ICON_LOOKUP_FORCE_SIZE;
       if (use_symbolic_icons)
         lookup_flags |= GTK_ICON_LOOKUP_FORCE_SYMBOLIC;
 
-      icon_info = gtk_icon_theme_lookup_by_gicon_for_scale (icon_theme, gicon, cell_area->width,
-                                                            scale_factor, lookup_flags);
+      icon_info = NULL;
+      xapp_gicon = use_symbolic_icons ? thunar_util_get_xapp_gicon (icon_theme, gicon) : NULL;
+      if (xapp_gicon != NULL)
+        {
+          icon_info = gtk_icon_theme_lookup_by_gicon_for_scale (icon_theme, xapp_gicon, cell_area->width,
+                                                                scale_factor, lookup_flags);
+          g_object_unref (xapp_gicon);
+        }
+      if (icon_info == NULL)
+        icon_info = gtk_icon_theme_lookup_by_gicon_for_scale (icon_theme, gicon, cell_area->width,
+                                                              scale_factor, lookup_flags);
       g_object_unref (gicon);
 
       /* try to load the icon */
