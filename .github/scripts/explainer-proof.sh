@@ -146,7 +146,7 @@ publish() {
   [[ -n ${PR:-} || ${DRY_RUN:-0} == 1 ]] || { echo "publish needs PR" >&2; exit 1; }
   : "${GH_REPO:?}"
   : > "$OUT/urls"
-  local page issue path sha failed=0
+  local page issue path sha cause failed=0
   if [[ ${CHECK:-success} == failure ]]; then
     failed=1
   else
@@ -158,10 +158,13 @@ publish() {
         echo "::error::no image of $page to upload" >&2
         echo "$page !" >> "$OUT/urls"
         failed=1
-      elif sha=$(OUT="$OUT/shots" "$(dirname "$0")/shots.sh" "$OUT/explainer-$issue.png" "$path" "Explainer image for PR #${PR:-0}" </dev/null); then
+      elif rm -f "$OUT/shots/reason" && printf '%s\t%s\n' "$OUT/explainer-$issue.png" "$path" > "$OUT/upload-$issue.tsv" \
+        && sha=$(OUT="$OUT/shots" "$(dirname "$0")/shots.sh" "$OUT/upload-$issue.tsv" "Explainer image for PR #${PR:-0}" </dev/null | cut -f 2) \
+        && [[ -n $sha && $sha != - ]]; then
         echo "$page https://github.com/$GH_REPO/blob/$sha/$path?raw=true" >> "$OUT/urls"
       else
-        echo "::error::could not upload $path" >&2
+        cause=$(cat "$OUT/shots/reason" 2>/dev/null || true)
+        echo "::error::could not upload $path${cause:+ ($cause)}" >&2
         echo "$page -" >> "$OUT/urls"
         failed=1
       fi

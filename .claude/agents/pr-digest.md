@@ -40,6 +40,8 @@ never fix anything you find.
    `<!-- pr-proof:summary -->`, `review`, `verify` or `explainer`. Parse the hidden markers, not the tables:
    - `<!-- pr-proof:status {"sha":…,"state":…,"text":…} -->` in the review, verify and explainer comments: that
      check's state, its text and the SHA it covers. A status whose `sha` isn't the head is stale; say so.
+     The verify status also has `full`: true when verify ran all tests (its text says `all <M> tests`), false
+     when it ran only the smoke test and the PR's own tests (`<N> of <M> tests (partial)`) or its text says `tests run unknown`.
    - `<!-- review:state {...} -->` in the review comment: `sha` (the last head a review ran on), `reason`, and
      `findings`, each with `id`, `sha` (the head it was found on), `severity`, `verdict`, `status`, `file`, `line`, `summary`, `detail`, `commit`.
      Closed findings from earlier reviews keep at most 80 characters of `summary` and `detail`.
@@ -87,6 +89,7 @@ Return exactly this, plus the `detail` lines when asked for, and nothing else: n
 PR #<n> <title> (<open|merged|closed>)
 head <sha12> · base main <sha12> · mergeable <state> · main moved since CI: yes|no|n/a (yes when unknown)
 checks: build <s> · verify <s> · explainer <s> · review <s> · review-report <s> · summary <s> (steps: build <ran|No code changed|skipped> · verify <ran|No code changed|skipped> · explainer <ran|skipped>)
+verify scope: all <M> tests | <N> of <M> tests (partial) | tests run unknown for <sha12> (head|not head) (or "n/a" when verify ran No code changed)
 review: last ran on <sha12> · head <reviewed|skipped: reason>
 findings: <total> total · highest <Rn> · fixed <IDs> · resolved <IDs> · accepted <IDs> · unconfirmed <IDs, each with any mark> · open <IDs>
 new since <since or "the last review">:

@@ -7,7 +7,7 @@ A visual acceptance gate. It audits Thunar screenshots for **content correctness
 
 ## Where the shots and intents come from
 
-`.github/scripts/verify-proof.sh run` writes a manifest, `verify.tsv`, next to the shots. CI's `verify` job commits the same manifest to the `shots` branch as `pr-<n>/verify.tsv`, beside `pr-<n>/verify-<test>-<shot>.png` and each pair's side-by-side image for the PR comments, `pr-<n>/pair-<test>-<what>.png`. The audit reads the originals. The manifest has one row per shot, and `num` is the shot's number in the PR comments, shared by both shots of a pair (the smoke test comes last):
+`.github/scripts/verify-proof.sh run` writes a manifest, `verify.tsv`, next to the shots. CI's `verify` job commits the same manifest to the `shots` branch as `pr-<n>/verify.tsv`, beside `pr-<n>/verify-<test>-<shot>.png` and each pair's side-by-side image for the PR comments, `pr-<n>/pair-<test>-<what>.png`. The audit reads the originals. CI numbers and posts only the shots of the smoke test, of the verify scripts the PR adds or changes and of any test that failed; every other test gets one row with shot `-`, and its shots stay in the run's `verify` artifact. A local `run` with no `OWN` numbers every test's shots. The manifest has one row per shot, and `num` is the shot's number in the PR comments, shared by both shots of a pair (the smoke test comes last):
 
 ```
 sha    num  test   result  shot           file                         proves

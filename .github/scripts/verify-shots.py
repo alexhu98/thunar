@@ -5,14 +5,15 @@ verify-shots.py check DIR
     For a test that passed: fails unless every before-<what> in DIR/shots.tsv has its after-<what> and one row in
     DIR/pairs.tsv (verify-lib.sh's pair), and every row in DIR/pairs.tsv has both of its shots.
 verify-shots.py build OUT
-    Numbers the shots of the tests in $OUT/results.tsv (the verify scripts in order, then the smoke test; a pair is one
-    number), and writes $OUT/numbered.json, the manifest $OUT/verify.tsv and each pair's 1920px image as
+    Numbers the shots of the tests in $OUT/results.tsv that are in $OUT/own (every test when it is missing) or failed
+    (the verify scripts in order, then the smoke test; a pair is one number), and writes $OUT/numbered.json, the manifest $OUT/verify.tsv and each pair's 1920px image as
     $OUT/pairs/<test>-<what>.png.
 verify-shots.py manifest OUT
     Prints the manifest with each file named as on the shots branch; a file whose upload failed ($OUT/urls.tsv) is -.
 verify-shots.py comment OUT
-    Prints the verify comment's body (the results, the key result, the shots table, then every other shot) from $OUT/numbered.json, $OUT/results.tsv, the logs and $OUT/urls.tsv
-    ("<local file><tab><url or ->"). Env: HEAD_SHA, HEAD_REF, RUN_URL.
+    Prints the verify comment's body (the scope, the results, the key result, the shots table, then every other
+    numbered shot, and one line for the other tests that passed) from $OUT/numbered.json, $OUT/results.tsv, $OUT/scope,
+    the logs and $OUT/urls.tsv ("<local file><tab><url or ->", plus "verify-shots.tsv<tab>-" when verify.tsv was lost). Env: HEAD_SHA, HEAD_REF, RUN_URL, PR.
 verify-shots.py status SHA STATE TEXT
     Prints the <!-- pr-proof:status {...} --> marker of a comment with that head, state and text.
 """
@@ -66,9 +67,29 @@ def tests(out):
     return [r for r in res if r[0] != 'smoke'] + [r for r in res if r[0] == 'smoke']
 
 
+def own(out):
+    path = os.path.join(out, 'own')
+    return set(open(path).read().split()) if os.path.exists(path) else None
+
+
+def shown(out):
+    mine = own(out)
+    return [r for r in tests(out) if mine is None or r[0] in mine or r[1] != 'pass']
+
+
+def scope(out):
+    path = os.path.join(out, 'scope')
+    words = open(path).read().split() if os.path.exists(path) else []
+    if words[:1] == ['partial'] and len(words) == 3:
+        return f'{words[1]} of {words[2]} tests (partial)', False
+    if words[:1] == ['all'] and len(words) == 2:
+        return f'all {words[1]} tests', True
+    return 'tests run unknown', False
+
+
 def number(out):
     entries = []
-    for name, status, _ in tests(out):
+    for name, status, _ in shown(out):
         d = os.path.join(out, 'shots', name)
         shots = rows(os.path.join(d, 'shots.tsv'), 2)
         caption = dict((s, p) for s, p in shots)
@@ -221,7 +242,8 @@ def comment(out):
     numbered = os.path.join(out, 'numbered.json')
     entries = json.load(open(numbered)) if os.path.exists(numbered) else []
     u = urls(out)
-    lost = [k for k, v in u.items() if v == '-'] + [e['num'] for e in entries if not e['image']]
+    manifest_lost = u.get('verify-shots.tsv') == '-'
+    lost = [k for k, v in u.items() if v == '-' and k != 'verify-shots.tsv'] + [e['num'] for e in entries if not e['image']]
     lines = []
     if not res:
         status = {'sha': sha, 'state': 'fail', 'text': 'did not run', 'shots': False}
@@ -230,14 +252,21 @@ def comment(out):
     total = len(res)
     passed = sum(1 for r in res if r[1] == 'pass')
     complete = os.path.exists(os.path.join(out, 'complete'))
+    scope_text, full = scope(out)
     head = f'{passed} of {total} passed' if complete else f'cut short, {passed} of {total} passed'
+    head += f'; {scope_text}'
     unnumbered = not os.path.exists(numbered)
-    ok = complete and passed == total and not lost and not unnumbered
-    text = head + (f'; {len(lost)} image(s) missing' if lost else '')
-    status = {'sha': sha, 'state': 'pass' if ok else 'fail', 'text': text,
+    ok = complete and passed == total and not lost and not unnumbered and not manifest_lost
+    text = head + (f'; {len(lost)} image(s) missing' if lost else '') + ('; verify.tsv missing' if manifest_lost else '')
+    status = {'sha': sha, 'state': 'pass' if ok else 'fail', 'text': text, 'full': full,
               'shots': any(e['image'] and u.get(e['image'], '-') != '-' for e in entries)}
     theme = open(os.path.join(out, 'theme')).read().strip() if os.path.exists(os.path.join(out, 'theme')) else 'default'
     lines += [f'### Verify: {head}', '']
+    if scope_text.endswith('(partial)'):
+        lines += ["Only the smoke test and the PR's own tests ran. A head commit with the trailer `Verify: full` runs "
+                  'all of them, as the merge needs.', '']
+    elif not full:
+        lines += ['The run did not record which tests it ran, so it does not count as a run of all of them.', '']
     if not complete:
         lines += ['The run step stopped before it finished, so the tests it had not finished are marked cut short.', '']
     if unnumbered:
@@ -245,9 +274,14 @@ def comment(out):
         lines += ["The shots could not be numbered, so none were published; see the run's `verify` artifact.", '']
     if lost:
         lines += [f"{len(lost)} image(s) could not be made or uploaded to the `shots` branch; see the run's `verify` artifact.", '']
+    if manifest_lost:
+        lines += [f"The manifest `verify.tsv` could not be uploaded to the `shots` branch, so `/visual-verify pr:{os.environ.get('PR', '<n>')}` can't "
+                  "audit this run; see the run's `verify` artifact.", '']
     lines += [f'Xvfb, xfwm4 and the {theme} GTK theme, as of `{sha[:12]}`. [Logs]({run_url})', '',
               '| Test | Result | Time |', '|---|---|---|']
-    for name, st, secs in res:
+    posted = shown(out)
+    others = [r[0] for r in res if r not in posted]
+    for name, st, secs in posted:
         lines.append(f"| {label(name)} | {'✅ pass' if st == 'pass' else '❌ ' + cell(st)} | {secs} s |")
     key = key_entry(entries)
     if entries:
@@ -257,7 +291,9 @@ def comment(out):
         for e in entries:
             what = names(e) + (' (smoke test)' if e['test'] == 'smoke' else '')
             lines.append(f"| [{e['num']}](#shot-{e['num']}) | {cell(what)} | {cell(e['proves'])} |")
-    for name, st, _ in res:
+    if others:
+        lines += ['', f"{len(others)} other test{'s' if len(others) > 1 else ''} passed: {', '.join(others)}. Their shots are in the run's `verify` artifact."]
+    for name, st, _ in posted:
         lines += ['', f'#### {label(name)}']
         if st != 'pass':
             log = os.path.join(out, 'logs', f'{name}.log')

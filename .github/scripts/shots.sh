@@ -1,69 +1,126 @@
 #!/bin/bash
-# Commits one file to the orphan shots branch: shots.sh <local file> <path on shots> <commit message>
-# Prints the commit's sha, which pins the file's URL: https://github.com/$GH_REPO/blob/<sha>/<path>?raw=true
+# Commits files to the orphan shots branch in one commit: shots.sh <list> <commit message>
+# <list> holds one "<local file><tab><path on shots>" line per file. Prints "<local file><tab><commit sha>" for each
+# file in the commit; the sha pins its URL: https://github.com/$GH_REPO/blob/<sha>/<path>?raw=true. A file whose blob
+# could not be made is removed from the branch in that commit, so no older copy stays at its path, and printed with -.
+# When a file is lost or no commit is made, $OUT/reason holds one line saying why. Fails when the commit could not be made.
+# The commit goes on top of the branch's tip through the Git Data API, and is made again on a newer tip when another
+# run moved the branch first.
 # Env: GH_TOKEN, GH_REPO, OUT, SHOTS_BRANCH (default shots), SHOTS_DEADLINE (epoch seconds after which GitHub errors
-# other than conflicts are no longer retried). DRY_RUN=1 prints DRY-RUN instead of committing.
+# other than conflicts are no longer retried), SHOTS_JOBS (blobs made at a time, default 8). DRY_RUN=1 prints DRY-RUN
+# for each file instead of committing.
 set -euo pipefail
 
-file=${1:?local file} path=${2:?path on shots} message=${3:?commit message}
+HERE=$(cd "$(dirname "$0")" && pwd)
 OUT=${OUT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/shots}
-mkdir -p "$OUT"
-body="$OUT/upload.json" err="$OUT/upload.err"
 branch=${SHOTS_BRANCH:-shots}
-[[ -s $file ]] || { echo "::error::$file is missing or empty" >&2; exit 1; }
-if [[ ${DRY_RUN:-0} == 1 ]]; then
-  echo "would upload $file to $branch:$path" >&2
-  echo DRY-RUN
-  exit 0
-fi
-delays=(2 4 8 16 30)
-local_blob=$(git hash-object --no-filters "$file")
-transient=0
-landed() {
-  local blob sha
-  blob=$(gh api "repos/{owner}/{repo}/contents/$path?ref=$branch" -H 'Accept: application/vnd.github.object' --jq .sha 2>/dev/null) &&
-    [[ $blob == "$local_blob" ]] &&
-    sha=$(gh api "repos/{owner}/{repo}/commits?sha=$branch&path=$path&per_page=1" --jq '.[0].sha' 2>/dev/null) &&
-    [[ $sha =~ ^[0-9a-f]{40}$ ]] &&
-    blob=$(gh api "repos/{owner}/{repo}/contents/$path?ref=$sha" -H 'Accept: application/vnd.github.object' --jq .sha 2>/dev/null) &&
-    [[ $blob == "$local_blob" ]] || return 1
-  echo "$branch:$path already holds this file, in ${sha::12}; the failed upload landed" >&2
+mkdir -p "$OUT"
+
+why() {
+  echo "$*" >&2
+  printf '%s\n' "$*" > "${WHY:-$OUT/reason}"
+}
+
+api() {
+  local out=$1 err=$1.err attempt delay delays=(2 4 8 16 30)
+  shift
+  for attempt in 1 2 3 4 5 6; do
+    gh api "$@" > "$out" 2> "$err" && return 0
+    cat "$err" >&2
+    if grep -qE 'HTTP (409|422)' "$err"; then
+      why "$1 hit a conflict: $(tail -n 1 "$err")"
+      return 2
+    elif grep -qE 'HTTP 4[0-9]{2}' "$err" && ! grep -qiE 'HTTP 429|rate limit' "$err"; then
+      why "$1 failed with $(grep -oE 'HTTP 4[0-9]{2}' "$err" | head -n 1), so not retried"
+      return 1
+    elif [[ -n ${SHOTS_DEADLINE:-} ]] && (( $(date +%s) >= SHOTS_DEADLINE )); then
+      why "$1 failed ($(tail -n 1 "$err")) and this run's time for retrying GitHub errors is used up"
+      return 1
+    fi
+    if (( attempt < 6 )); then
+      delay=${delays[attempt-1]}
+      sleep $(( delay + RANDOM % (delay / 2 + 1) ))
+    fi
+  done
+  why "$1 failed 6 times: $(tail -n 1 "$err")"
+  return 1
+}
+
+blob() {
+  local file=$1 work=$2 sha WHY=$2.reason
+  [[ -s $file ]] || { why "$file is missing or empty"; return 1; }
+  jq -n --rawfile c <(base64 -w0 "$file") '{content: $c, encoding: "base64"}' > "$work.json"
+  api "$work.out" "repos/{owner}/{repo}/git/blobs" -X POST --input "$work.json" --jq .sha || return 1
+  sha=$(<"$work.out")
+  [[ $sha == "$(git hash-object --no-filters "$file")" ]] || { why "the blob of $file came back as '$sha'"; return 1; }
   echo "$sha"
 }
-for attempt in 1 2 3 4 5 6; do
-  if (( transient )) && landed; then
-    exit 0
-  fi
-  blob=$(gh api "repos/{owner}/{repo}/contents/$path?ref=$branch" -H 'Accept: application/vnd.github.object' --jq .sha 2>/dev/null) || blob=
-  jq -n --arg m "$message" --arg b "$branch" --arg s "$blob" --rawfile c <(base64 -w0 "$file") \
-    '{message: $m, branch: $b, content: $c} + (if $s == "" then {} else {sha: $s} end)' > "$body"
-  if sha=$(gh api -X PUT "repos/{owner}/{repo}/contents/$path" --input "$body" --jq .commit.sha 2>"$err") && [[ $sha =~ ^[0-9a-f]{40}$ ]]; then
-    echo "uploaded $branch:$path in ${sha::12}" >&2
-    echo "$sha"
-    exit 0
-  fi
-  cat "$err" >&2
-  if grep -qE 'HTTP (409|422)' "$err"; then
-    echo "upload of $path hit a conflict (attempt $attempt)" >&2
-  elif grep -qE 'HTTP 4[0-9]{2}' "$err" && ! grep -qiE 'HTTP 429|rate limit' "$err"; then
-    echo "upload of $path failed (attempt $attempt) with $(grep -oE 'HTTP 4[0-9]{2}' "$err" | head -n 1), so not retried" >&2
-    exit 1
-  else
-    transient=1
-    echo "upload of $path failed (attempt $attempt) with a transient error" >&2
-    if [[ -n ${SHOTS_DEADLINE:-} ]] && (( $(date +%s) >= SHOTS_DEADLINE )); then
-      echo "this run's time for retrying GitHub errors is used up, so $path is not retried" >&2
-      break
-    fi
-  fi
-  if (( attempt < 6 )); then
-    delay=${delays[attempt-1]}
-    sleep $(( delay + RANDOM % (delay / 2 + 1) ))
-  fi
-done
-if (( transient )); then
-  sleep 5
-  landed && exit 0
+
+if [[ ${1:-} == --blob ]]; then
+  IFS=$'\t' read -r i file <<< "$2"
+  if sha=$(blob "$file" "$OUT/blob-$i"); then printf '%s\t%s\n' "$i" "$sha"; else printf '%s\t-\n' "$i"; fi
+  exit 0
 fi
-echo "upload of $path failed after $attempt attempt(s)" >&2
+
+list=${1:?list of files} message=${2:?commit message}
+if [[ ${DRY_RUN:-0} == 1 ]]; then
+  while IFS=$'\t' read -r file path; do
+    echo "would upload $file to $branch:$path" >&2
+    printf '%s\tDRY-RUN\n' "$file"
+  done < "$list"
+  exit 0
+fi
+
+rm -f "$OUT"/blob-* "$OUT/reason"
+awk -F'\t' '{ printf "%d\t%s\n", NR, $1 }' "$list" \
+  | OUT=$OUT xargs -d '\n' -P "${SHOTS_JOBS:-8}" -n 1 "$HERE/shots.sh" --blob \
+  | sort -n > "$OUT/blobs.tsv"
+awk -F'\t' 'NR == FNR { sha[$1] = $2; next } { print $1 "\t" $2 "\t" (FNR in sha ? sha[FNR] : "-") }' "$OUT/blobs.tsv" "$list" > "$OUT/files.tsv"
+jq -R -s 'split("\n") | map(select(length > 0) | split("\t") | {path: .[1], mode: "100644", type: "blob", sha: (if .[2] == "-" then null else .[2] end)})' \
+  "$OUT/files.tsv" > "$OUT/entries.json"
+lost=$(awk -F'\t' '$3 == "-"' "$OUT/files.tsv" | wc -l)
+lostmsg="$lost of $(wc -l < "$list") file(s) could not be uploaded, so they are removed from $branch ($(cat "$OUT"/blob-*.reason 2>/dev/null | head -n 1 || true))"
+(( lost == 0 )) || why "$lostmsg"
+if [[ $(jq 'map(select(.sha != null)) | length' "$OUT/entries.json") == 0 ]]; then
+  why "no file could be uploaded, so no commit was made ($(cat "$OUT"/blob-*.reason 2>/dev/null | head -n 1))"
+  exit 1
+fi
+
+for attempt in 1 2 3 4 5 6 7 8; do
+  api "$OUT/tip" "repos/{owner}/{repo}/git/ref/heads/$branch" --jq .object.sha || exit 1
+  tip=$(<"$OUT/tip")
+  api "$OUT/base" "repos/{owner}/{repo}/git/commits/$tip" --jq .tree.sha || exit 1
+  jq -c 'map(select(.sha == null) | .path) | .[]' -r "$OUT/entries.json" | while read -r path; do
+    if ! WHY=$OUT/probe.why api "$OUT/probe" "repos/{owner}/{repo}/contents/$path?ref=$tip" --silent 2>"$OUT/probe.log"; then
+      grep -q 'HTTP 404' "$OUT/probe.err" && echo "$path" || { cat "$OUT/probe.log" >&2; exit 1; }
+    fi
+  done > "$OUT/absent" || { why "could not tell whether the lost files are on $branch, so no commit was made ($(tail -n 1 "$OUT/probe.log"))"; exit 1; }
+  jq -n --arg b "$(<"$OUT/base")" --slurpfile t "$OUT/entries.json" --rawfile a "$OUT/absent" \
+    '($a | split("\n")) as $absent | {base_tree: $b, tree: ($t[0] | map(select(.sha != null or (.path | IN($absent[]) | not))))}' > "$OUT/tree.json"
+  api "$OUT/tree" "repos/{owner}/{repo}/git/trees" -X POST --input "$OUT/tree.json" --jq .sha || exit 1
+  jq -n --arg m "$message" --arg t "$(<"$OUT/tree")" --arg p "$tip" '{message: $m, tree: $t, parents: [$p]}' > "$OUT/commit.json"
+  api "$OUT/commit" "repos/{owner}/{repo}/git/commits" -X POST --input "$OUT/commit.json" --jq .sha || exit 1
+  sha=$(<"$OUT/commit")
+  [[ $sha =~ ^[0-9a-f]{40}$ ]] || { why "the commit came back as '$sha'"; exit 1; }
+  jq -n --arg s "$sha" '{sha: $s, force: false}' > "$OUT/ref.json"
+  if api "$OUT/ref" "repos/{owner}/{repo}/git/refs/heads/$branch" -X PATCH --input "$OUT/ref.json" --jq .object.sha; then
+    status=0
+  else
+    status=$?
+  fi
+  if (( status != 0 )) && api "$OUT/now" "repos/{owner}/{repo}/git/ref/heads/$branch" --jq .object.sha && [[ $(<"$OUT/now") == "$sha" ]]; then
+    echo "$branch already points at ${sha::12}; the failed update landed" >&2
+    status=0
+  fi
+  if (( status == 0 )); then
+    echo "committed $(( $(jq length "$OUT/entries.json") - lost )) file(s) to $branch in ${sha::12}" >&2
+    if (( lost > 0 )); then why "$lostmsg"; else rm -f "$OUT/reason"; fi
+    awk -F'\t' -v s="$sha" '{ print $1 "\t" ($3 == "-" ? "-" : s) }' "$OUT/files.tsv"
+    exit "$(( lost > 0 ))"
+  fi
+  (( status == 2 )) || exit 1
+  echo "$branch moved while committing (attempt $attempt), so the commit is made again on its new tip" >&2
+  sleep $(( 1 + RANDOM % 4 ))
+done
+why "$branch kept moving; the commit was not made after $attempt attempts"
 exit 1

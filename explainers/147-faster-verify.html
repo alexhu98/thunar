@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #148 Faster verify</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  td.wrap { white-space: normal; min-width: 220px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #148: a faster verify job that still runs every test before the merge</h1>
+  <p class="lead" data-k="lead">Branch <code>147-faster-verify</code> → <code>main</code>, closes #147. Early pushes to a PR run only the smoke test and the PR's own tests, post only their shots in one commit, and run four tests at a time; the head that merges still runs all of them.</p>
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: the trial PR, then a full run before each merge</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">CI's verify job now picks which tests to run, numbers and posts shots only for the tests a reader needs, uploads them in one commit, and runs four tests at a time. The changes are in <code>build.yml</code>, <code>verify-proof.sh</code>, <code>verify-shots.py</code>, <code>shots.sh</code> and the rules in <code>CLAUDE.md</code>.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="A PR run picks its tests, runs them four at a time, numbers only the posted shots and uploads them in one commit; the comments say whether the run was partial, and the agent's last push with Verify: full runs every test before the merge.">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Each push to a PR — run and upload</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Pick the tests</text>
+      <text x="36" y="114" class="m">build.yml</text>
+      <text x="36" y="134" class="b">smoke + the PR's own</text>
+      <text x="36" y="154" class="b">or all of them</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">4 at a time</text>
+      <text x="286" y="114" class="m">verify-proof.sh</text>
+      <text x="286" y="134" class="b">JOBS 2 → 4</text>
+      <text x="286" y="154" class="b">writes scope, own</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Number shots</text>
+      <text x="536" y="114" class="m">verify-shots.py</text>
+      <text x="536" y="134" class="b">smoke, own, failed</text>
+      <text x="536" y="154" class="b">others: result only</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">One commit</text>
+      <text x="786" y="114" class="m">shots.sh</text>
+      <text x="786" y="134" class="b">blobs → tree →</text>
+      <text x="786" y="154" class="b">commit → move ref</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+    <text class="lane" x="270" y="244" style="fill:var(--text)">② Report — and a full run before the merge</text>
+    <g data-k="5">
+      <rect class="box-pr" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Verify comment</text>
+      <text x="786" y="314" class="b">“N of M (partial)”</text>
+      <text x="786" y="334" class="b">or “all M tests”;</text>
+      <text x="786" y="354" class="b">others on one line</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-pr" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Summary, digest</text>
+      <text x="536" y="314" class="m">pr-summary.py</text>
+      <text x="536" y="334" class="b">⏳ while partial;</text>
+      <text x="536" y="354" class="b">digest: verify scope</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <g data-k="7">
+      <rect class="box-you" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Verify: full</text>
+      <text x="286" y="314" class="b">the agent's last push</text>
+      <text x="286" y="334" class="b">runs every test;</text>
+      <text x="286" y="354" class="b">the merge needs it</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">7</text>
+    </g>
+    <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M520,320 H484" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M270,320 H140 V184" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>CI, on every run</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>the agent, once before the merge</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Every push to a PR runs the whole test suite in CI's verify job, takes about 274 screenshots and uploads each one as its own commit. A full run took about 25 minutes: 3.5 for the build, then about 12 for the tests and 9.5 for the upload and comment. Most runs are early pushes, such as review fixes, and about 3 in 10 are cancelled by a newer push anyway. This PR makes those early runs short and keeps one full run for the head that merges.</p>
+  <div class="note" data-k="note">Nothing is dropped, only moved: early pushes run the smoke test and the PR's own <code>verify/&lt;issue&gt;.sh</code>, and the merge rule now needs a run of all tests on the head, which the agent starts with a <code>Verify: full</code> trailer.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Each push to a PR — run and upload</div>
+  <ol class="steps">
+    <li data-k="1"><b>Pick the tests.</b> A new step in <code>build.yml</code>'s verify job, “Pick the tests”, lists the files the PR changes. It runs every test on a push to <code>main</code>, when the head commit has the trailer <code>Verify: full</code>, or when the PR changes <code>.github/scripts/verify-*</code>, <code>shots.sh</code>, <code>debian/</code> or <code>build.yml</code>. Otherwise it runs the smoke test and the <code>verify/&lt;n&gt;.sh</code> scripts the PR adds or changes, and says which in the job summary.</li>
+    <li data-k="2"><b>4 at a time.</b> <code>verify-proof.sh run</code> now takes the tests to run (no names means all), and <code>JOBS</code> goes from 2 to 4. It writes <code>scope</code> (“all 33” or “partial 3 33”) and <code>own</code>, the tests whose shots are posted.</li>
+    <li data-k="3"><b>Number shots.</b> <code>verify-shots.py build</code> numbers only the shots of the smoke test, the PR's own tests and any test that failed. Every other test that passed gets its result only; its shots stay in the run's <code>verify</code> artifact.</li>
+    <li data-k="4"><b>One commit.</b> <code>shots.sh</code> was rewritten to take a list of files and commit them all to the <code>shots</code> branch at once through GitHub's Git Data API: one blob per file, eight at a time, then one tree, one commit and one move of the branch. When another run moved the branch first, it makes the commit again on the new tip. Every shot's link pins that one commit.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--text)">② Report — and a full run before the merge</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Verify comment.</b> Its heading says “3 of 3 passed; 3 of 33 tests (partial)” or “all 33 tests”. A partial run adds a sentence on how to run them all, and the tests that passed without posted shots get one line: “28 other tests passed: 3, 4, 5, …”.</li>
+    <li data-k="6"><b>Summary, digest.</b> The verify status now carries <code>full</code>. While it is false, <code>pr-summary.py</code> titles the summary “⏳ verify ran only some tests” instead of “ready for review”, and the <code>pr-digest</code> agent prints a “verify scope” line.</li>
+    <li data-k="7"><b>Verify: full.</b> Once review is clean and the PR is otherwise ready, the agent pushes a commit with <code>Verify: full</code> in its message's last paragraph, an empty one if nothing is left. <code>CLAUDE.md</code>'s merge rule now needs verify to have run all tests on the head.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">Which tests a run picks</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>The run</th><th>Tests</th><th>Shots posted</th></tr>
+    <tr data-k="k1"><td>An early push to a feature PR</td><td>smoke + the PR's own</td><td>those, and any that failed</td></tr>
+    <tr data-k="k2"><td>Head commit with <code>Verify: full</code></td><td>all</td><td>smoke, own, failed</td></tr>
+    <tr data-k="k3"><td>PR changes verify scripts, <code>shots.sh</code>, <code>debian/</code> or <code>build.yml</code></td><td>all</td><td>smoke, own, failed</td></tr>
+    <tr data-k="k4"><td>A push to <code>main</code></td><td>all</td><td>none (no PR comment)</td></tr>
+    <tr data-k="k5"><td>Unknown <code>Verify:</code> value</td><td>smoke + own, with a warning</td><td>those, and any that failed</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="upload">
+  <h3 class="sec">The upload, before and after</h3>
+  <div class="grid">
+    <div class="card" data-k="u1"><h3>Before: one commit per file</h3><p>Each shot and pair image was its own contents-API commit, with 2–4 calls each. Two runs committing at once raced, which caused 9 of the 16 infra failures in #147's history.</p></div>
+    <div class="card" data-k="u2"><h3>After: one commit per run</h3><p>All files, the manifest included, go in one commit. A clash on the branch (HTTP 409 or 422) makes the commit again on the new tip, up to 8 times.</p></div>
+    <div class="card" data-k="u3"><h3>A file that can't be uploaded</h3><p>It is printed with <code>-</code> and its older copy is removed from the branch in the same commit, so no stale shot stays at its path. The comment marks it missing and the job fails.</p></div>
+  </div>
+  <div class="note" data-k="u4">When a file is lost or no commit is made, <code>shots.sh</code> writes one line saying why to <code>$OUT/reason</code>. <code>verify-proof.sh</code> and <code>explainer-proof.sh</code> quote that line in their single <code>::error::</code>.</div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">.claude/agents/pr-digest.md             # reads the verify status's full flag, prints a "verify scope" line
+.claude/skills/visual-verify/README.md  # CI numbers only the posted shots
+.claude/skills/visual-verify/SKILL.md   # a shot "-" row may be a test whose shots weren't posted
+.github/scripts/explainer-proof.sh      # uploads through the new shots.sh; its ::error:: quotes shots.sh's reason
+.github/scripts/pr-summary.py           # ⏳ summary title while verify ran only some tests
+.github/scripts/shots.sh                # rewritten: all files in one commit, Git Data API, retried on a moved branch, writes reason
+.github/scripts/verify-proof.sh         # run takes test names and OWN, writes scope and own; JOBS 4; publish uploads once
+.github/scripts/verify-shots.py         # numbers only posted tests; scope in the heading; one line for the others
+.github/workflows/build.yml             # new "Pick the tests" step; passes OWN and the test list to run
+CLAUDE.md                               # merge needs all tests; Verify: full trailer; four tests at a time
+explainers/147-faster-verify.html       # this page
+explainers/147-faster-verify.narration.json  # its narration</pre>
+  <div class="note warn" data-k="undo">To undo: revert the squash commit on <code>main</code>. The <code>shots</code> branch needs no cleanup; its newer commits are ordinary shot folders. To force a full run on one PR without reverting, push a commit with <code>Verify: full</code>. If four tests at a time proves flaky, set <code>JOBS</code> back to 2 in <code>verify-proof.sh</code> and “four at a time” in <code>CLAUDE.md</code>.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">The building session checked the new upload, the comment and the test picking with stand-ins for GitHub and for Thunar. Then this PR's own CI ran the real test suite and the real upload twice, at four at a time, and measured them against <code>main</code>.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>#147's measurements</h3><p>PR #146's CI runs: build 3.5 min, verify about 22 min, of which tests about 12 (730–748 s wall at 2 at a time) and upload and comment about 9.5. This PR's CI run is compared with them.</p></div>
+    <div class="card" data-k="r2"><h3>The old per-file upload</h3><p>The new <code>shots.sh</code> keeps its retry rules (no retry on a 4xx other than rate limits, <code>SHOTS_DEADLINE</code>, <code>DRY_RUN</code>) and the same link form, so <code>urls.tsv</code> and the manifest read the same.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>One-commit upload, with a missing file and a moved branch</td><td>The building session: the new <code>shots.sh</code> against a mock <code>gh</code>, 4 files with one missing; the first branch update answered HTTP 422</td><td class="ok wrap">3 blobs, 1 tree, 1 commit; redone on the new tip; missing file “-”, exit 1</td></tr>
+    <tr data-k="c2"><td>The missing file's older copy</td><td>Same mock run: the missing path absent from the branch, then present</td><td class="ok wrap">left out of the tree / deleted by a null entry</td></tr>
+    <tr data-k="c3"><td>Only posted tests are numbered, and the comment says partial</td><td>The building session: <code>verify-shots.py build</code> and <code>DRY_RUN=1 verify-proof.sh publish</code> on a fake run (smoke, 3, failing 5, own 147; scope partial 4 of 33)</td><td class="ok wrap">3 numbered (smoke, 147, 5); “3 of 4 passed; 4 of 33 tests (partial)”; “1 other test passed: 3”</td></tr>
+    <tr data-k="c4"><td><code>run</code> takes a list of tests</td><td>The building session: <code>OWN=3 TIMEOUT=5 verify-proof.sh run smoke 3 5</code>, with no Thunar installed</td><td class="ok wrap">3 of 32 run; scope “partial 3 32”; own “3, smoke”</td></tr>
+    <tr data-k="c5"><td>A bug found by that run</td><td>Its first try ran every test: the dispatcher didn't pass <code>run</code> its arguments. Fixed, then re-run (row above)</td><td class="ok">fixed</td></tr>
+    <tr data-k="c6"><td>Build, install and the real test suite under Xvfb, four at a time</td><td>CI runs <a href="https://github.com/alexhu98/thunar/actions/runs/45767790032">45767790032</a> (run 1) and <a href="https://github.com/alexhu98/thunar/actions/runs/45769088250">45769088250</a> (run 2): full runs, since this PR changes the CI files</td><td class="ok">32 of 32 pass, both runs</td></tr>
+    <tr data-k="c7"><td>The real Git Data API upload</td><td>Same two runs: the explainer image and the verify shots on the <code>shots</code> branch</td><td class="ok">1 commit each</td></tr>
+    <tr data-k="c8"><td>Tests step time</td><td>Step “Smoke test and verify/*.sh”, against <code>main</code> push run <a href="https://github.com/alexhu98/thunar/actions/runs/45765361273">45765361273</a> at <code>JOBS</code>=2 (733 s, 707 s of it tests)</td><td class="ok wrap">370 s (run 1), 369 s (run 2) vs 733 s</td></tr>
+    <tr data-k="c9"><td>Each test's own time</td><td>Per-test times in both runs against the same baseline</td><td class="ok wrap">run 2: all within ±5 s (largest +5 s, test 123); run 1: all within ±4 s except test 14, +14 s (49 vs 35); test 16 stayed at 103 s</td></tr>
+    <tr data-k="c10"><td>Upload and verify comment step</td><td>Same two runs, against #147's baseline</td><td class="ok wrap">8 s (run 1), 9 s (run 2) vs about 9.5 min</td></tr>
+    <tr data-k="c11"><td>Verify job total</td><td>Same two runs, against the <code>main</code> push run and #147's PR runs</td><td class="ok wrap">394 s (run 1), 409 s (run 2) vs 774 s on <code>main</code>, about 22 min on PRs</td></tr>
+    <tr data-k="c12"><td>Build job time</td><td>Same two runs; it varies with apt and ccache, not with this PR</td><td class="ok wrap">227 s and 496 s</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, the building session reviewed the branch at <code>high</code> with <code>/code-review --fix</code>: 7 findings. The review fixed 4; of the 3 it skipped, the session fixed 2 by hand and kept 1. CI then reviewed each push; its findings are below and in the PR's code review comment.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Counting a run as passed:</b> an empty commit result counted as a pass, and the manifest counted as a missing image. Both fixed.</li>
+    <li data-k="b2"><b>Wording:</b> retry messages named the wrong argument, and the <code>pr-digest</code> wording was unclear. Both fixed.</li>
+    <li data-k="b3"><b>Fixed by hand:</b> a failed upload's older copy is now removed from the <code>shots</code> branch, and <code>OWN</code> unset versus empty is documented.</li>
+    <li data-k="b4"><b>Kept:</b> the comments naming a function's arguments follow the existing <code>test_one() {  # name, command...</code> pattern.</li>
+  </ul>
+  <p data-k="ci">CI's review at <code>high</code>: 49 findings over 10 rounds (R1–R49). None was medium or high after R18, and every medium was fixed. All are fixed or resolved except these, which are accepted:</p>
+  <ul class="tight">
+    <li data-k="ci1"><b>R6, four at a time may be flaky:</b> accepted by the owner after the two measured runs above: 32 of 32 passed both times, every test within ±5 s of the 2-at-a-time baseline except test 14 once at +14 s.</li>
+    <li data-k="ci4"><b>R44–R49, upload error wording:</b> accepted by the owner after 9 rounds kept confirming new lows about it: which reason the lost-shots error quotes when both uploads fail (R44), every HTTP 422 called a conflict (R45), the lost-files message printed twice (R46), a possible empty “()” (R47), an inherited <code>WHY</code> variable (R48), and a header line on <code>$OUT/reason</code> (R49).</li>
+    <li data-k="ci3"><b>R7, R11, R12, R16, R17, R23, R24, R29, R33, R34, R43:</b> unconfirmed lows from later reviews, which count as accepted under <code>CLAUDE.md</code>.</li>
+  </ul>
+  <p data-k="ci5">Late in the review, the upload's error handling was reworked: <code>shots.sh</code> now records why a file was lost or no commit was made, and each caller reports one <code>::error::</code> that quotes it.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>An early push runs smoke + its own test only, and posts only their shots</td><td>This PR changes the CI files, so all its runs are full</td><td class="open">the trial PR</td></tr>
+    <tr data-k="a2"><td>A <code>Verify: full</code> empty commit runs every test</td><td>Same: this PR always runs all of them</td><td class="open">the trial PR</td></tr>
+    <tr data-k="a3"><td>A failing other test posts its shots and log tail</td><td>Needs a test broken on purpose on a throwaway branch</td><td class="open">the trial PR</td></tr>
+    <tr data-k="a4"><td>⏳ summary title and the digest's verify scope line</td><td>Need a partial run on a real PR</td><td class="open">the first feature PR</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The issue, with its measurements and plan: <a href="https://github.com/alexhu98/thunar/issues/147">#147</a></li>
+    <li data-k="l2">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...147-faster-verify">main…147-faster-verify</a></li>
+    <li data-k="l3">The PR: <a href="https://github.com/alexhu98/thunar/pull/148">#148</a></li>
+    <li data-k="l4">Its full CI runs at four at a time: <a href="https://github.com/alexhu98/thunar/actions/runs/45767790032">45767790032</a> and <a href="https://github.com/alexhu98/thunar/actions/runs/45769088250">45769088250</a>; the <code>main</code> run at two: <a href="https://github.com/alexhu98/thunar/actions/runs/45765361273">45765361273</a></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: the trial PR, then a full run before each merge</h2>
+  <p class="intro" data-k="intro">No open issue depends on #147. What follows is the rest of its test plan: a trial PR that shows a partial run and a full one, then every PR ending on a full run.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR's CI measured four at a time; then a trial PR checks partial and full runs; then every PR ends with Verify: full before its merge.">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">#147's test plan, in order</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">partial runs, one</text>
+      <text x="36" y="134" class="b">commit, 4 at a time</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-merge" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Its own CI runs</text>
+      <text x="286" y="114" class="b">32 of 32, twice;</text>
+      <text x="286" y="134" class="b">tests 370 s at 4</text>
+      <text x="286" y="154" class="b">vs 733 s at 2</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Trial PR</text>
+      <text x="536" y="114" class="b">a trivial test;</text>
+      <text x="536" y="134" class="b">partial, then full;</text>
+      <text x="536" y="154" class="b">one failing test</text>
+    </g>
+    <g data-k="n4">
+      <rect class="box-you" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Every PR</text>
+      <text x="786" y="114" class="b">the agent pushes</text>
+      <text x="786" y="134" class="b">Verify: full, then</text>
+      <text x="786" y="154" class="b">merges on “all”</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built and run by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not run yet</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>the agent, from then on</span>
+  </div>
+  </section>
+
+  <section class="sub" id="trial">
+  <h3 class="sec">This PR's CI runs (done), then the trial PR (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Measured four at a time (done).</b> Both full runs passed 32 of 32, with the tests step at 370 s and 369 s against 733 s at two. Only test 14 slowed by more than 5 s, once, so <code>JOBS</code> stays at 4.</li>
+    <li data-k="2"><b>The upload (done).</b> The explainer image and the verify shots were each committed in one Git Data API commit, and the upload and comment step took 8 s and 9 s.</li>
+    <li data-k="3"><b>Trial PR, early push.</b> A throwaway PR adds a trivial <code>verify/&lt;n&gt;.sh</code>. Its first run should run only the smoke test and <code>&lt;n&gt;</code>, post only their shots, and show the ⏳ summary title.</li>
+    <li data-k="4"><b>Trial PR, full run.</b> An empty commit with <code>Verify: full</code> should run every test and turn the scope into “all”.</li>
+    <li data-k="5"><b>A failing other test.</b> One other test is broken on purpose on that branch; its shots and log tail should be posted.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="everypr">
+  <h3 class="sec">Every PR after that</h3>
+  <div class="panel">
+  <ol class="steps" start="6" style="counter-reset: s 5">
+    <li data-k="6"><b>Early pushes stay short.</b> Review-fix pushes run the smoke test and the PR's own test, and <code>/visual-verify pr:&lt;n&gt;</code> audits only their shots instead of about 274.</li>
+    <li data-k="7"><b>The last push is full.</b> The agent pushes <code>Verify: full</code> once review is clean, and merges only when verify says “all M tests” on that head.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="verify"><dt>verify job</dt><dd>The CI job that installs the built Thunar and runs the screenshot tests.</dd></div>
+    <div data-k="smoke"><dt>smoke test</dt><dd>Checks Thunar is still running 10 s after launch; always runs.</dd></div>
+    <div data-k="own"><dt>the PR's own tests</dt><dd>The <code>verify/&lt;n&gt;.sh</code> scripts the PR adds or changes.</dd></div>
+    <div data-k="trailer"><dt>trailer</dt><dd>A <code>Key: value</code> line at the end of a commit message, such as <code>Verify: full</code>.</dd></div>
+    <div data-k="partial"><dt>partial run</dt><dd>A verify run of only the smoke test and the PR's own tests.</dd></div>
+    <div data-k="shots"><dt><code>shots</code> branch</dt><dd>An orphan branch that holds each PR's screenshots under <code>pr-&lt;n&gt;/</code>.</dd></div>
+    <div data-k="gitdata"><dt>Git Data API</dt><dd>GitHub's API for making blobs, trees and commits directly, without a checkout.</dd></div>
+    <div data-k="blob"><dt>blob, tree</dt><dd>Git's stored file contents, and the folder listing that points at them.</dd></div>
+    <div data-k="artifact"><dt><code>verify</code> artifact</dt><dd>The run's downloadable bundle of every shot and log, kept by GitHub Actions.</dd></div>
+    <div data-k="jobs"><dt><code>JOBS</code></dt><dd>How many tests run at once, each with its own Xvfb.</dd></div>
+    <div data-k="manifest"><dt>manifest</dt><dd><code>verify.tsv</code>: one row per shot, with its number, test and what it proves.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
