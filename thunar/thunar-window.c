@@ -566,12 +566,6 @@ thunar_window_update_location_toolbar_icons (ThunarWindow *window);
 static void
 thunar_window_update_toolbar_button_icons (ThunarWindow *window);
 static void
-thunar_window_icon_theme_changed (ThunarWindow *window);
-static void
-thunar_window_location_bar_icons_retry (ThunarWindow *window);
-static gboolean
-thunar_window_location_bar_icons_idle (gpointer data);
-static void
 thunar_window_location_toolbar_add_ucas (ThunarWindow *window);
 GtkWidget *
 thunar_window_location_toolbar_add_uca (ThunarWindow *window,
@@ -692,8 +686,6 @@ struct _ThunarWindow
   /* support for two different styles of location bars */
   GtkWidget    *location_bar;
   GtkWidget    *location_toolbar;
-  gboolean      location_bar_icons_stale;
-  guint         location_bar_icons_idle_id;
   GFileMonitor *uca_file_monitor;
   GFile        *uca_file;
 
@@ -1322,9 +1314,8 @@ thunar_window_init (ThunarWindow *window)
 
   /* update the location toolbar when symbolic icons setting is toggled */
   g_signal_connect_swapped (G_OBJECT (window->preferences), "notify::misc-symbolic-icons-in-toolbar", G_CALLBACK (thunar_window_update_location_toolbar_icons), window);
-  g_signal_connect_swapped (G_OBJECT (window->preferences), "notify::misc-xapp-icons", G_CALLBACK (thunar_window_icon_theme_changed), window);
-  g_signal_connect_object (G_OBJECT (gtk_icon_theme_get_for_screen (gtk_window_get_screen (GTK_WINDOW (window)))), "changed", G_CALLBACK (thunar_window_icon_theme_changed), window, G_CONNECT_SWAPPED);
-  g_signal_connect_after (G_OBJECT (window), "set-focus", G_CALLBACK (thunar_window_location_bar_icons_retry), NULL);
+  g_signal_connect_swapped (G_OBJECT (window->preferences), "notify::misc-xapp-icons", G_CALLBACK (thunar_window_update_location_toolbar_icons), window);
+  g_signal_connect_object (G_OBJECT (gtk_icon_theme_get_for_screen (gtk_window_get_screen (GTK_WINDOW (window)))), "changed", G_CALLBACK (thunar_window_update_toolbar_button_icons), window, G_CONNECT_SWAPPED);
 
   /* update the location toolbar when custom actions are changed */
   uca_path = xfce_resource_save_location (XFCE_RESOURCE_CONFIG, "Thunar/uca.xml", TRUE);
@@ -1932,12 +1923,6 @@ thunar_window_dispose (GObject *object)
   /* destroy the save geometry timer source */
   if (G_UNLIKELY (window->save_geometry_timer_id != 0))
     g_source_remove (window->save_geometry_timer_id);
-
-  if (window->location_bar_icons_idle_id != 0)
-    {
-      g_source_remove (window->location_bar_icons_idle_id);
-      window->location_bar_icons_idle_id = 0;
-    }
 
   /* disconnect from the current-directory */
   thunar_window_set_current_directory (window, NULL);
@@ -4346,9 +4331,6 @@ thunar_window_action_cancel_search (ThunarWindow *window)
   g_signal_handlers_block_by_func (G_OBJECT (window->location_toolbar_item_search), thunar_window_action_search, window);
   gtk_toggle_tool_button_set_active (GTK_TOGGLE_TOOL_BUTTON (window->location_toolbar_item_search), FALSE);
   g_signal_handlers_unblock_by_func (G_OBJECT (window->location_toolbar_item_search), thunar_window_action_search, window);
-
-  if (window->location_bar_icons_stale && window->location_bar_icons_idle_id == 0)
-    window->location_bar_icons_idle_id = g_idle_add (thunar_window_location_bar_icons_idle, window);
 
   /* bring back the original location bar style (relevant if the bar is hidden) */
   thunar_window_update_location_bar_visible (window);
@@ -7662,7 +7644,6 @@ thunar_window_update_location_toolbar_icons (ThunarWindow *window)
   GtkWidget *parent;
 
   thunar_window_update_toolbar_button_icons (window);
-  window->location_bar_icons_stale = FALSE;
 
   /* get the toolbar item containing the location bar */
   parent = gtk_widget_get_parent (window->location_bar);
@@ -7677,53 +7658,6 @@ thunar_window_update_location_toolbar_icons (ThunarWindow *window)
       gtk_container_add (GTK_CONTAINER (parent), window->location_bar);
       thunar_window_csd_update (window);
     }
-}
-
-
-
-static gboolean
-thunar_window_location_bar_is_busy (ThunarWindow *window)
-{
-  GtkWidget *focus = gtk_window_get_focus (GTK_WINDOW (window));
-
-  return window->is_searching || (focus != NULL && (focus == window->location_bar || gtk_widget_is_ancestor (focus, window->location_bar)));
-}
-
-
-
-static void
-thunar_window_icon_theme_changed (ThunarWindow *window)
-{
-  if (thunar_window_location_bar_is_busy (window))
-    {
-      thunar_window_update_toolbar_button_icons (window);
-      window->location_bar_icons_stale = TRUE;
-    }
-  else
-    thunar_window_update_location_toolbar_icons (window);
-}
-
-
-
-static void
-thunar_window_location_bar_icons_retry (ThunarWindow *window)
-{
-  if (window->location_bar_icons_stale && window->location_bar != NULL && !gtk_widget_in_destruction (GTK_WIDGET (window))
-      && !thunar_window_location_bar_is_busy (window))
-    thunar_window_update_location_toolbar_icons (window);
-}
-
-
-
-static gboolean
-thunar_window_location_bar_icons_idle (gpointer data)
-{
-  ThunarWindow *window = THUNAR_WINDOW (data);
-
-  window->location_bar_icons_idle_id = 0;
-  thunar_window_location_bar_icons_retry (window);
-
-  return G_SOURCE_REMOVE;
 }
 
 
