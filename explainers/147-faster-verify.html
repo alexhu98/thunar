@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>#147 Faster verify</title>
+<title>PR #148 Faster verify</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -101,7 +101,7 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">PR for #147: a faster verify job that still runs every test before the merge</h1>
+  <h1 data-k="title">PR #148: a faster verify job that still runs every test before the merge</h1>
   <p class="lead" data-k="lead">Branch <code>147-faster-verify</code> → <code>main</code>, closes #147. Early pushes to a PR run only the smoke test and the PR's own tests, post only their shots in one commit, and run four tests at a time; the head that merges still runs all of them.</p>
   <nav class="parts" aria-label="Parts of this page">
     <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
@@ -243,6 +243,7 @@
     <div class="card" data-k="u2"><h3>After: one commit per run</h3><p>All files, the manifest included, go in one commit. A clash on the branch (HTTP 409 or 422) makes the commit again on the new tip, up to 8 times.</p></div>
     <div class="card" data-k="u3"><h3>A file that can't be uploaded</h3><p>It is printed with <code>-</code> and its older copy is removed from the branch in the same commit, so no stale shot stays at its path. The comment marks it missing and the job fails.</p></div>
   </div>
+  <div class="note" data-k="u4">When a file is lost or no commit is made, <code>shots.sh</code> writes one line saying why to <code>$OUT/reason</code>. <code>verify-proof.sh</code> and <code>explainer-proof.sh</code> quote that line in their single <code>::error::</code>.</div>
   </section>
 
   <section class="sub" id="files">
@@ -250,8 +251,9 @@
 <pre data-k="tree">.claude/agents/pr-digest.md             # reads the verify status's full flag, prints a "verify scope" line
 .claude/skills/visual-verify/README.md  # CI numbers only the posted shots
 .claude/skills/visual-verify/SKILL.md   # a shot "-" row may be a test whose shots weren't posted
+.github/scripts/explainer-proof.sh      # uploads through the new shots.sh; its ::error:: quotes shots.sh's reason
 .github/scripts/pr-summary.py           # ⏳ summary title while verify ran only some tests
-.github/scripts/shots.sh                # rewritten: all files in one commit, Git Data API, retried on a moved branch
+.github/scripts/shots.sh                # rewritten: all files in one commit, Git Data API, retried on a moved branch, writes reason
 .github/scripts/verify-proof.sh         # run takes test names and OWN, writes scope and own; JOBS 4; publish uploads once
 .github/scripts/verify-shots.py         # numbers only posted tests; scope in the heading; one line for the others
 .github/workflows/build.yml             # new "Pick the tests" step; passes OWN and the test list to run
@@ -266,7 +268,7 @@ explainers/147-faster-verify.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The building session checked the new upload, the comment and the test picking with stand-ins for GitHub and for Thunar. The real test suite, the real upload and the timing at four at a time run first in this PR's own CI.</p>
+  <p class="intro" data-k="intro">The building session checked the new upload, the comment and the test picking with stand-ins for GitHub and for Thunar. Then this PR's own CI ran the real test suite and the real upload twice, at four at a time, and measured them against <code>main</code>.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -286,22 +288,33 @@ explainers/147-faster-verify.narration.json  # its narration</pre>
     <tr data-k="c3"><td>Only posted tests are numbered, and the comment says partial</td><td>The building session: <code>verify-shots.py build</code> and <code>DRY_RUN=1 verify-proof.sh publish</code> on a fake run (smoke, 3, failing 5, own 147; scope partial 4 of 33)</td><td class="ok wrap">3 numbered (smoke, 147, 5); “3 of 4 passed; 4 of 33 tests (partial)”; “1 other test passed: 3”</td></tr>
     <tr data-k="c4"><td><code>run</code> takes a list of tests</td><td>The building session: <code>OWN=3 TIMEOUT=5 verify-proof.sh run smoke 3 5</code>, with no Thunar installed</td><td class="ok wrap">3 of 32 run; scope “partial 3 32”; own “3, smoke”</td></tr>
     <tr data-k="c5"><td>A bug found by that run</td><td>Its first try ran every test: the dispatcher didn't pass <code>run</code> its arguments. Fixed, then re-run (row above)</td><td class="ok">fixed</td></tr>
-    <tr data-k="c6"><td>Build, install and the real test suite under Xvfb</td><td>Not run in the building session; this PR changes <code>build.yml</code> and the verify scripts, so its CI runs all tests</td><td class="open">this PR's CI</td></tr>
-    <tr data-k="c7"><td>The real Git Data API upload</td><td>Not run; only a repo's CI token can write the <code>shots</code> branch</td><td class="open">this PR's CI</td></tr>
-    <tr data-k="c8"><td>Four at a time: time and stability</td><td>Not run; measured on this PR's CI against #147's 730–748 s at 2 at a time</td><td class="open">this PR's CI</td></tr>
+    <tr data-k="c6"><td>Build, install and the real test suite under Xvfb, four at a time</td><td>CI runs <a href="https://github.com/alexhu98/thunar/actions/runs/45767790032">45767790032</a> (run 1) and <a href="https://github.com/alexhu98/thunar/actions/runs/45769088250">45769088250</a> (run 2): full runs, since this PR changes the CI files</td><td class="ok">32 of 32 pass, both runs</td></tr>
+    <tr data-k="c7"><td>The real Git Data API upload</td><td>Same two runs: the explainer image and the verify shots on the <code>shots</code> branch</td><td class="ok">1 commit each</td></tr>
+    <tr data-k="c8"><td>Tests step time</td><td>Step “Smoke test and verify/*.sh”, against <code>main</code> push run <a href="https://github.com/alexhu98/thunar/actions/runs/45765361273">45765361273</a> at <code>JOBS</code>=2 (733 s, 707 s of it tests)</td><td class="ok wrap">370 s (run 1), 369 s (run 2) vs 733 s</td></tr>
+    <tr data-k="c9"><td>Each test's own time</td><td>Per-test times in both runs against the same baseline</td><td class="ok wrap">run 2: all within ±5 s (largest +5 s, test 123); run 1: all within ±4 s except test 14, +14 s (49 vs 35); test 16 stayed at 103 s</td></tr>
+    <tr data-k="c10"><td>Upload and verify comment step</td><td>Same two runs, against #147's baseline</td><td class="ok wrap">8 s (run 1), 9 s (run 2) vs about 9.5 min</td></tr>
+    <tr data-k="c11"><td>Verify job total</td><td>Same two runs, against the <code>main</code> push run and #147's PR runs</td><td class="ok wrap">394 s (run 1), 409 s (run 2) vs 774 s on <code>main</code>, about 22 min on PRs</td></tr>
+    <tr data-k="c12"><td>Build job time</td><td>Same two runs; it varies with apt and ccache, not with this PR</td><td class="ok wrap">227 s and 496 s</td></tr>
   </table>
   </div>
   </section>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">Before the first push, the building session reviewed the branch at <code>high</code> with <code>/code-review --fix</code>: 7 findings. The review fixed 4; of the 3 it skipped, the session fixed 2 by hand and kept 1. CI's own review of each push is in the PR's code review comment.</p>
+  <p data-k="summary">Before the first push, the building session reviewed the branch at <code>high</code> with <code>/code-review --fix</code>: 7 findings. The review fixed 4; of the 3 it skipped, the session fixed 2 by hand and kept 1. CI then reviewed each push; its findings are below and in the PR's code review comment.</p>
   <ul class="tight">
     <li data-k="b1"><b>Counting a run as passed:</b> an empty commit result counted as a pass, and the manifest counted as a missing image. Both fixed.</li>
     <li data-k="b2"><b>Wording:</b> retry messages named the wrong argument, and the <code>pr-digest</code> wording was unclear. Both fixed.</li>
     <li data-k="b3"><b>Fixed by hand:</b> a failed upload's older copy is now removed from the <code>shots</code> branch, and <code>OWN</code> unset versus empty is documented.</li>
     <li data-k="b4"><b>Kept:</b> the comments naming a function's arguments follow the existing <code>test_one() {  # name, command...</code> pattern.</li>
   </ul>
+  <p data-k="ci">CI's review at <code>high</code>: 49 findings over 10 rounds (R1–R49). None was medium or high after R18, and every medium was fixed. All are fixed or resolved except these, which are accepted:</p>
+  <ul class="tight">
+    <li data-k="ci1"><b>R6, four at a time may be flaky:</b> accepted by the owner after the two measured runs above: 32 of 32 passed both times, every test within ±5 s of the 2-at-a-time baseline except test 14 once at +14 s.</li>
+    <li data-k="ci4"><b>R44–R49, upload error wording:</b> accepted by the owner after 9 rounds kept confirming new lows about it: which reason the lost-shots error quotes when both uploads fail (R44), every HTTP 422 called a conflict (R45), the lost-files message printed twice (R46), a possible empty “()” (R47), an inherited <code>WHY</code> variable (R48), and a header line on <code>$OUT/reason</code> (R49).</li>
+    <li data-k="ci3"><b>R7, R11, R12, R16, R17, R23, R24, R29, R33, R34, R43:</b> unconfirmed lows from later reviews, which count as accepted under <code>CLAUDE.md</code>.</li>
+  </ul>
+  <p data-k="ci5">Late in the review, the upload's error handling was reworked: <code>shots.sh</code> now records why a file was lost or no commit was made, and each caller reports one <code>::error::</code> that quotes it.</p>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -322,7 +335,8 @@ explainers/147-faster-verify.narration.json  # its narration</pre>
   <ul class="tight">
     <li data-k="l1">The issue, with its measurements and plan: <a href="https://github.com/alexhu98/thunar/issues/147">#147</a></li>
     <li data-k="l2">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...147-faster-verify">main…147-faster-verify</a></li>
-    <li data-k="l3">The timing at four at a time: this PR's verify job, step “Smoke test and verify/*.sh”, against 730–748 s at two</li>
+    <li data-k="l3">The PR: <a href="https://github.com/alexhu98/thunar/pull/148">#148</a></li>
+    <li data-k="l4">Its full CI runs at four at a time: <a href="https://github.com/alexhu98/thunar/actions/runs/45767790032">45767790032</a> and <a href="https://github.com/alexhu98/thunar/actions/runs/45769088250">45769088250</a>; the <code>main</code> run at two: <a href="https://github.com/alexhu98/thunar/actions/runs/45765361273">45765361273</a></li>
   </ul>
   </section>
   </section>
@@ -334,7 +348,7 @@ explainers/147-faster-verify.narration.json  # its narration</pre>
   <p class="intro" data-k="intro">No open issue depends on #147. What follows is the rest of its test plan: a trial PR that shows a partial run and a full one, then every PR ending on a full run.</p>
 
   <section class="sub" id="next">
-  <div class="diagram" role="img" aria-label="This PR's CI measures four at a time; then a trial PR checks partial and full runs; then every PR ends with Verify: full before its merge.">
+  <div class="diagram" role="img" aria-label="This PR's CI measured four at a time; then a trial PR checks partial and full runs; then every PR ends with Verify: full before its merge.">
   <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -352,10 +366,11 @@ explainers/147-faster-verify.narration.json  # its narration</pre>
       <text x="36" y="134" class="b">commit, 4 at a time</text>
     </g>
     <g data-k="n2">
-      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
-      <text x="286" y="90" class="t">Its own CI run</text>
-      <text x="286" y="114" class="b">full suite; times</text>
-      <text x="286" y="134" class="b">4 at a time vs 2</text>
+      <rect class="box-merge" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Its own CI runs</text>
+      <text x="286" y="114" class="b">32 of 32, twice;</text>
+      <text x="286" y="134" class="b">tests 370 s at 4</text>
+      <text x="286" y="154" class="b">vs 733 s at 2</text>
     </g>
     <g data-k="n3">
       <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
@@ -371,24 +386,24 @@ explainers/147-faster-verify.narration.json  # its narration</pre>
       <text x="786" y="134" class="b">Verify: full, then</text>
       <text x="786" y="154" class="b">merges on “all”</text>
     </g>
-    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
     <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
     <path class="arrow" d="M730,120 H766" marker-end="url(#ah-next)"/>
   </svg>
   </div>
   <div class="legend">
-    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built and run by this PR</span>
     <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not run yet</span>
     <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>the agent, from then on</span>
   </div>
   </section>
 
   <section class="sub" id="trial">
-  <h3 class="sec">This PR's CI run, then the trial PR (next)</h3>
+  <h3 class="sec">This PR's CI runs (done), then the trial PR (next)</h3>
   <div class="panel">
   <ol class="steps">
-    <li data-k="1"><b>Measure four at a time.</b> This PR's own CI runs all tests, because it changes <code>build.yml</code>. Its “Smoke test and verify/*.sh” step is timed against 730–748 s at two; if a test slows by more than 5 s or fails, <code>JOBS</code> goes to 3 or back to 2.</li>
-    <li data-k="2"><b>Compare the upload.</b> Its verify comment, <code>verify.tsv</code> and shot links are checked against a run on <code>main</code>; every link should pin one commit.</li>
+    <li data-k="1"><b>Measured four at a time (done).</b> Both full runs passed 32 of 32, with the tests step at 370 s and 369 s against 733 s at two. Only test 14 slowed by more than 5 s, once, so <code>JOBS</code> stays at 4.</li>
+    <li data-k="2"><b>The upload (done).</b> The explainer image and the verify shots were each committed in one Git Data API commit, and the upload and comment step took 8 s and 9 s.</li>
     <li data-k="3"><b>Trial PR, early push.</b> A throwaway PR adds a trivial <code>verify/&lt;n&gt;.sh</code>. Its first run should run only the smoke test and <code>&lt;n&gt;</code>, post only their shots, and show the ⏳ summary title.</li>
     <li data-k="4"><b>Trial PR, full run.</b> An empty commit with <code>Verify: full</code> should run every test and turn the scope into “all”.</li>
     <li data-k="5"><b>A failing other test.</b> One other test is broken on purpose on that branch; its shots and log tail should be posted.</li>
