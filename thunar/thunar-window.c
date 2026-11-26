@@ -337,6 +337,9 @@ thunar_window_action_search_folder (ThunarWindow *window);
 static gboolean
 thunar_window_action_search_subfolders (ThunarWindow *window);
 static gboolean
+thunar_window_switch_tab (ThunarWindow *window,
+                          gint          direction);
+static gboolean
 thunar_window_action_switch_next_tab (ThunarWindow *window);
 static gboolean
 thunar_window_action_switch_previous_tab (ThunarWindow *window);
@@ -2384,19 +2387,30 @@ thunar_window_tab_change (ThunarWindow *window,
 
 
 static gboolean
-thunar_window_action_switch_next_tab (ThunarWindow *window)
+thunar_window_switch_tab (ThunarWindow *window,
+                          gint          direction)
 {
-  gint current_page;
-  gint new_page;
-  gint pages;
+  GtkWidget *target;
+  GtkWidget *notebook;
 
   _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);
 
-  current_page = gtk_notebook_get_current_page (GTK_NOTEBOOK (window->notebook_selected));
-  pages = gtk_notebook_get_n_pages (GTK_NOTEBOOK (window->notebook_selected));
-  new_page = (current_page + 1) % pages;
+  target = thunar_window_neighbour_tab_view (window, direction);
+  if (target == NULL)
+    {
+      if (direction > 0)
+        notebook = thunar_window_split_view_is_active (window) ? window->notebook_left : window->notebook_selected;
+      else
+        notebook = thunar_window_split_view_is_active (window) ? window->notebook_right : window->notebook_selected;
+      target = gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook), direction > 0 ? 0 : -1);
+      if (target == NULL)
+        return TRUE;
+    }
 
-  thunar_window_notebook_set_current_tab (window, new_page);
+  notebook = gtk_widget_get_ancestor (target, GTK_TYPE_NOTEBOOK);
+  gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook), gtk_notebook_page_num (GTK_NOTEBOOK (notebook), target));
+  if (notebook != window->notebook_selected)
+    thunar_window_paned_notebooks_switch (window);
 
   return TRUE;
 }
@@ -2404,21 +2418,17 @@ thunar_window_action_switch_next_tab (ThunarWindow *window)
 
 
 static gboolean
+thunar_window_action_switch_next_tab (ThunarWindow *window)
+{
+  return thunar_window_switch_tab (window, 1);
+}
+
+
+
+static gboolean
 thunar_window_action_switch_previous_tab (ThunarWindow *window)
 {
-  gint current_page;
-  gint new_page;
-  gint pages;
-
-  _thunar_return_val_if_fail (THUNAR_IS_WINDOW (window), FALSE);
-
-  current_page = gtk_notebook_get_current_page (GTK_NOTEBOOK (window->notebook_selected));
-  pages = gtk_notebook_get_n_pages (GTK_NOTEBOOK (window->notebook_selected));
-  new_page = (current_page - 1) % pages;
-
-  thunar_window_notebook_set_current_tab (window, new_page);
-
-  return TRUE;
+  return thunar_window_switch_tab (window, -1);
 }
 
 
