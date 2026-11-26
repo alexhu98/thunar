@@ -762,8 +762,16 @@ thunar_path_entry_set_icon_name (ThunarPathEntry *path_entry,
   if (g_str_has_suffix (icon_name, "-symbolic"))
     xapp_icon_name = thunar_util_get_xapp_icon_name (gtk_icon_theme_get_for_screen (gtk_widget_get_screen (GTK_WIDGET (path_entry))), icon_name);
 
-  gtk_entry_set_icon_from_icon_name (GTK_ENTRY (path_entry), GTK_ENTRY_ICON_PRIMARY,
-                                     xapp_icon_name != NULL ? xapp_icon_name : icon_name);
+  if (xapp_icon_name != NULL)
+    {
+      const gchar *names[] = { xapp_icon_name, icon_name, NULL };
+      GIcon       *gicon = g_themed_icon_new_from_names ((gchar **) names, -1);
+
+      gtk_entry_set_icon_from_gicon (GTK_ENTRY (path_entry), GTK_ENTRY_ICON_PRIMARY, gicon);
+      g_object_unref (gicon);
+    }
+  else
+    gtk_entry_set_icon_from_icon_name (GTK_ENTRY (path_entry), GTK_ENTRY_ICON_PRIMARY, icon_name);
   g_free (xapp_icon_name);
 }
 
