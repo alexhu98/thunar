@@ -5499,7 +5499,8 @@ thunar_standard_view_rename_finish (ThunarStandardView *standard_view,
     return;
 
   if (thunar_standard_view_rename_check (text) == NULL
-      && g_strcmp0 (text, standard_view->priv->rename_name) != 0)
+      && g_strcmp0 (text, standard_view->priv->rename_name) != 0
+      && g_strcmp0 (text, thunar_file_get_display_name (file)) != 0)
     {
       application = thunar_application_get ();
       thunar_application_rename_file_to (application, file, text,
@@ -5634,6 +5635,7 @@ thunar_standard_view_rename_neighbour (ThunarStandardView *standard_view,
   GtkTreeIter   iter;
   ThunarFile   *file = NULL;
   ThunarFile   *parent;
+  GFile        *parent_gfile;
   GFileInfo    *info;
   GList        *paths;
   gboolean      found;
@@ -5661,9 +5663,11 @@ thunar_standard_view_rename_neighbour (ThunarStandardView *standard_view,
           info = file != NULL ? thunar_file_get_info (file) : NULL;
           if (file != NULL && info != NULL && !g_file_info_has_attribute (info, G_FILE_ATTRIBUTE_ACCESS_CAN_RENAME))
             {
-              parent = thunar_file_get_parent (file, NULL);
+              parent_gfile = g_file_get_parent (thunar_file_get_file (file));
+              parent = parent_gfile != NULL ? thunar_file_cache_lookup (parent_gfile) : NULL;
               writable = parent == NULL || thunar_file_is_writable (parent);
               g_clear_object (&parent);
+              g_clear_object (&parent_gfile);
             }
           else
             writable = TRUE;
