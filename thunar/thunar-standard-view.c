@@ -2132,8 +2132,12 @@ thunar_standard_view_free_space_timer (gpointer user_data)
 
 
 static void
-thunar_standard_view_statusbar_folder_files_changed (ThunarStandardView *standard_view)
+thunar_standard_view_statusbar_folder_files_changed (ThunarStandardView *standard_view,
+                                                     GHashTable         *files)
 {
+  if (g_hash_table_size (files) == 0)
+    return;
+
   g_clear_pointer (&standard_view->priv->folder_total_text, g_free);
   standard_view->priv->search_size_num_files = -1;
 
@@ -2171,6 +2175,18 @@ thunar_standard_view_set_statusbar_folder (ThunarStandardView *standard_view,
     }
 
   thunar_standard_view_update_free_space (standard_view);
+}
+
+
+
+static void
+thunar_standard_view_model_row_changed (ThunarStandardView *standard_view)
+{
+  if (standard_view->priv->search_query == NULL)
+    return;
+
+  standard_view->priv->search_size_num_files = -1;
+  thunar_standard_view_update_statusbar_text (standard_view);
 }
 
 
@@ -5445,6 +5461,7 @@ thunar_standard_view_set_model (ThunarStandardView *standard_view)
 
   /* be sure to update the statusbar text whenever the number of files in our model changes. */
   g_signal_connect_swapped (G_OBJECT (standard_view->model), "notify::num-files", G_CALLBACK (thunar_standard_view_update_statusbar_text), standard_view);
+  g_signal_connect_swapped (G_OBJECT (standard_view->model), "row-changed", G_CALLBACK (thunar_standard_view_model_row_changed), standard_view);
 
   /* be sure to update the statusbar text whenever the file-size-binary property changes */
   g_signal_connect_swapped (G_OBJECT (standard_view->model), "notify::file-size-binary", G_CALLBACK (thunar_standard_view_update_statusbar_text), standard_view);
