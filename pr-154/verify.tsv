@@ -1,13 +1,44 @@
 sha	num	test	result	shot	file	proves
-19700f5962d6ab91909ec9aa64d262242aa60ab8	1	149	pass	before-subfolders	verify-149-before-subfolders.png	Ctrl+Shift+F in top with the global default Always: the Include subfolders toggle is released and only match-top.txt is listed
-19700f5962d6ab91909ec9aa64d262242aa60ab8	1	149	pass	after-subfolders	verify-149-after-subfolders.png	Ctrl+F in top: the Include subfolders toggle is pressed and both match-top.txt and sub/match-sub.txt are listed
-19700f5962d6ab91909ec9aa64d262242aa60ab8	2	149	pass	before-folder	verify-149-before-folder.png	Folder top with no search running, listing match-top.txt and the sub folder; Ctrl+F saved Include subfolders on for it
-19700f5962d6ab91909ec9aa64d262242aa60ab8	2	149	pass	after-folder	verify-149-after-folder.png	Ctrl+Shift+F in top still searches only the current folder: the Include subfolders toggle is released and only match-top.txt is listed
-19700f5962d6ab91909ec9aa64d262242aa60ab8	3	149	pass	before-toolbar	verify-149-before-toolbar.png	Folder top with no search running, listing match-top.txt and the sub folder; Ctrl+Shift+F saved Include subfolders off for it
-19700f5962d6ab91909ec9aa64d262242aa60ab8	3	149	pass	after-toolbar	verify-149-after-toolbar.png	The toolbar Search button in top opens with the saved choice, not the global Always: the toggle is released and only match-top.txt is listed
-19700f5962d6ab91909ec9aa64d262242aa60ab8	4	149	pass	go-menu	verify-149-go-menu.png	The Go menu lists Search in Subfolders... with Ctrl+F above Search for Files... with Ctrl+Shift+F
-19700f5962d6ab91909ec9aa64d262242aa60ab8	5	68	pass	before-toggle-gap	verify-68-before-toggle-gap.png	The right end of Thunar's toolbar before a search; cropped to the right end of the toolbar and enlarged 4 times: no Include subfolders toggle; the script checked that the entry reaches over its place
-19700f5962d6ab91909ec9aa64d262242aa60ab8	5	68	pass	after-toggle-gap	verify-68-after-toggle-gap.png	The right end of Thunar's toolbar while searching, with the Include subfolders toggle showing; cropped to the right end of the toolbar and enlarged 4 times: a gap of toolbar background on each side of the pressed toggle, measured as entry border ends at x=917, toggle x=923-956 on row y=45: entry to toggle 5 px, toggle to search button 5 px
-19700f5962d6ab91909ec9aa64d262242aa60ab8	6	68	pass	menubar-hidden-gap	verify-68-menubar-hidden-gap.png	The right end of Thunar's toolbar with the menu bar hidden, while searching, with the Include subfolders toggle showing; cropped to the right end of the toolbar and enlarged 4 times: a gap on each side of the pressed toggle, measured as entry border ends at x=917, toggle x=923-956 on row y=20: entry to toggle 5 px, toggle to search button 5 px
-19700f5962d6ab91909ec9aa64d262242aa60ab8	7	68	pass	headerbar-gap	verify-68-headerbar-gap.png	The right end of Thunar's header bar with client-side decorations on, while searching, with the Include subfolders toggle showing; cropped to the right end of the toolbar and enlarged 4 times: a gap from the search entry to the pressed toggle, and from the toggle to the search button, measured as entry border ends at x=783, toggle x=789-822 on row y=29: entry to toggle 5 px, toggle to search button 15 px
-19700f5962d6ab91909ec9aa64d262242aa60ab8	8	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	118	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	120	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	123	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	124	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	126	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	128	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	129	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	132	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	133	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	135	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	14	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	140	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	143	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	144	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	1	149	pass	before-subfolders	verify-149-before-subfolders.png	Ctrl+Shift+F in top with the global default Always: the Include subfolders toggle is released and only match-top.txt is listed
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	1	149	pass	after-subfolders	verify-149-after-subfolders.png	Ctrl+F in top: the Include subfolders toggle is pressed and both match-top.txt and sub/match-sub.txt are listed
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	2	149	pass	before-folder	verify-149-before-folder.png	Folder top with no search running, listing match-top.txt and the sub folder; Ctrl+F saved Include subfolders on for it
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	2	149	pass	after-folder	verify-149-after-folder.png	Ctrl+Shift+F in top still searches only the current folder: the Include subfolders toggle is released and only match-top.txt is listed
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	3	149	pass	before-toolbar	verify-149-before-toolbar.png	Folder top with no search running, listing match-top.txt and the sub folder; Ctrl+Shift+F saved Include subfolders off for it
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	3	149	pass	after-toolbar	verify-149-after-toolbar.png	The toolbar Search button in top opens with the saved choice, not the global Always: the toggle is released and only match-top.txt is listed
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	4	149	pass	go-menu	verify-149-go-menu.png	The Go menu lists Search in Subfolders... with Ctrl+F above Search for Files... with Ctrl+Shift+F
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	15	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	150	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	16	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	17	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	19	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	21	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	22	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	3	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	4	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	40	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	49	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	5	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	5	68	pass	before-toggle-gap	verify-68-before-toggle-gap.png	The right end of Thunar's toolbar before a search; cropped to the right end of the toolbar and enlarged 4 times: no Include subfolders toggle; the script checked that the entry reaches over its place
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	5	68	pass	after-toggle-gap	verify-68-after-toggle-gap.png	The right end of Thunar's toolbar while searching, with the Include subfolders toggle showing; cropped to the right end of the toolbar and enlarged 4 times: a gap of toolbar background on each side of the pressed toggle, measured as entry border ends at x=917, toggle x=923-956 on row y=45: entry to toggle 5 px, toggle to search button 5 px
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	6	68	pass	menubar-hidden-gap	verify-68-menubar-hidden-gap.png	The right end of Thunar's toolbar with the menu bar hidden, while searching, with the Include subfolders toggle showing; cropped to the right end of the toolbar and enlarged 4 times: a gap on each side of the pressed toggle, measured as entry border ends at x=917, toggle x=923-956 on row y=20: entry to toggle 5 px, toggle to search button 5 px
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	7	68	pass	headerbar-gap	verify-68-headerbar-gap.png	The right end of Thunar's header bar with client-side decorations on, while searching, with the Include subfolders toggle showing; cropped to the right end of the toolbar and enlarged 4 times: a gap from the search entry to the pressed toggle, and from the toggle to the search button, measured as entry border ends at x=783, toggle x=789-822 on row y=29: entry to toggle 5 px, toggle to search button 15 px
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	74	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	89	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	93	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	95	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	-	96	pass	-	-	-
+7e2c45abcbc8b8c7257a48aca78055f6ddaaf267	8	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
