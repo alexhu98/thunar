@@ -142,7 +142,7 @@ go "$WORK/top"
 focus "$WID"
 xdotool key alt+g
 sleep 1
-shot "$WID" go-menu "The Go menu lists Search in Subfolders... with Ctrl+F above Search for Files... with Ctrl+Shift+F"
+shot root go-menu "The Go menu lists Search in Subfolders... with Ctrl+F above Search for Files... with Ctrl+Shift+F"
 xdotool key u
 sleep 0.5
 xdotool type --delay 20 match
