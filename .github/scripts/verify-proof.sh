@@ -250,8 +250,11 @@ publish() {
       if [[ -s $OUT/committed.tsv ]] && { (( manifest_lost )) || awk -F'\t' '$1 ~ /^shots\// && $2 == "-" { found = 1 } END { exit !found }' "$OUT/urls.tsv"; }; then
         python3 "$HERE/verify-shots.py" manifest "$OUT" > "$OUT/verify-shots.tsv"
         printf '%s\t%s\n' "$OUT/verify-shots.tsv" "$dir/verify.tsv" > "$OUT/manifest.tsv"
-        OUT="$OUT/manifest" "$HERE/shots.sh" "$OUT/manifest.tsv" "Verify manifest for PR #${PR:-0}" >/dev/null </dev/null \
-          || echo "::error::could not upload $dir/verify.tsv" >&2
+        if OUT="$OUT/manifest" "$HERE/shots.sh" "$OUT/manifest.tsv" "Verify manifest for PR #${PR:-0}" >/dev/null </dev/null; then
+          awk -F'\t' '$2 == "-" { found = 1 } END { exit !found }' "$OUT/urls.tsv" || failed=0
+        else
+          echo "::error::could not upload $dir/verify.tsv$( (( manifest_lost )) || echo ' with the lost files marked')" >&2
+        fi
       fi
     fi
   fi
