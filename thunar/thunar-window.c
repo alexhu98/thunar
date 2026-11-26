@@ -824,8 +824,8 @@ static XfceGtkActionEntry thunar_window_action_entries[] =
     { THUNAR_WINDOW_ACTION_SWITCH_NEXT_TAB,                "<Actions>/ThunarWindow/switch-next-tab",                 "<Primary>Page_Down",   XFCE_GTK_IMAGE_MENU_ITEM, N_ ("_Next Tab"),              N_ ("Switch to Next Tab"),                                                           "go-next",                 G_CALLBACK (thunar_window_action_switch_next_tab),     },
     { THUNAR_WINDOW_ACTION_SWITCH_NEXT_TAB_ALT,            "<Actions>/ThunarWindow/switch-next-tab-alt",             "<Primary>Tab",         XFCE_GTK_IMAGE_MENU_ITEM, NULL,                          NULL,                                                                                NULL,                      G_CALLBACK (thunar_window_action_switch_next_tab),     },
 
-    { THUNAR_WINDOW_ACTION_SEARCH,                         "<Actions>/ThunarWindow/search",                          "<Primary>f",           XFCE_GTK_IMAGE_MENU_ITEM, N_ ("_Search for Files..."),   N_ ("Search for a specific file in the current folder and Recent"),                  "system-search",           G_CALLBACK (thunar_window_action_search_folder),       },
-    { THUNAR_WINDOW_ACTION_SEARCH_SUBFOLDERS,              "<Actions>/ThunarWindow/search-subfolders",               "<Primary><Shift>f",    XFCE_GTK_IMAGE_MENU_ITEM, N_ ("Search in _Subfolders..."), N_ ("Search for a specific file in the current folder, its subfolders and Recent"), "system-search",           G_CALLBACK (thunar_window_action_search_subfolders),   },
+    { THUNAR_WINDOW_ACTION_SEARCH,                         "<Actions>/ThunarWindow/search",                          "<Primary><Shift>f",    XFCE_GTK_IMAGE_MENU_ITEM, N_ ("_Search for Files..."),   N_ ("Search for a specific file in the current folder and Recent"),                  "system-search",           G_CALLBACK (thunar_window_action_search_folder),       },
+    { THUNAR_WINDOW_ACTION_SEARCH_SUBFOLDERS,              "<Actions>/ThunarWindow/search-subfolders",               "<Primary>f",           XFCE_GTK_IMAGE_MENU_ITEM, N_ ("Search in S_ubfolders..."), N_ ("Search for a specific file in the current folder, its subfolders and Recent"), "system-search",           G_CALLBACK (thunar_window_action_search_subfolders),   },
     { THUNAR_WINDOW_ACTION_SEARCH_ALT,                     "<Actions>/ThunarWindow/search-alt",                      "Search",               XFCE_GTK_IMAGE_MENU_ITEM, NULL,                          NULL,                                                                                NULL,                      G_CALLBACK (thunar_window_action_search),              },
     { THUNAR_WINDOW_ACTION_CANCEL_SEARCH,                  "<Actions>/ThunarWindow/cancel-search",                   "Escape",               XFCE_GTK_MENU_ITEM,       N_ ("Cancel search for files"),NULL,                                                                                "",                        G_CALLBACK (thunar_window_action_cancel_search),       },
 
@@ -1860,6 +1860,7 @@ thunar_window_update_go_menu (ThunarWindow *window,
   xfce_gtk_menu_item_new_from_action_entry (get_action_entry (THUNAR_WINDOW_ACTION_OPEN_NETWORK), G_OBJECT (window), GTK_MENU_SHELL (menu));
   xfce_gtk_menu_append_separator (GTK_MENU_SHELL (menu));
   xfce_gtk_menu_item_new_from_action_entry (get_action_entry (THUNAR_WINDOW_ACTION_OPEN_LOCATION), G_OBJECT (window), GTK_MENU_SHELL (menu));
+  xfce_gtk_menu_item_new_from_action_entry (get_action_entry (THUNAR_WINDOW_ACTION_SEARCH_SUBFOLDERS), G_OBJECT (window), GTK_MENU_SHELL (menu));
   xfce_gtk_menu_item_new_from_action_entry (get_action_entry (THUNAR_WINDOW_ACTION_SEARCH), G_OBJECT (window), GTK_MENU_SHELL (menu));
   gtk_widget_show_all (GTK_WIDGET (menu));
 
@@ -7567,6 +7568,7 @@ thunar_window_location_toolbar_create (ThunarWindow *window)
   window->location_toolbar_item_search = thunar_window_create_toolbar_toggle_item_from_action (window, THUNAR_WINDOW_ACTION_SEARCH, window->is_searching, item_order++);
   g_signal_handlers_disconnect_by_func (G_OBJECT (window->location_toolbar_item_search), thunar_window_action_search_folder, window);
   g_signal_connect_swapped (G_OBJECT (window->location_toolbar_item_search), "toggled", G_CALLBACK (thunar_window_action_search), window);
+  gtk_widget_set_tooltip_text (GTK_WIDGET (window->location_toolbar_item_search), _("Search for a specific file in the current folder, with its saved Include subfolders choice or the default from Preferences, and Recent"));
 
   /* add custom actions to the toolbar */
   thunar_window_location_toolbar_add_ucas (window);

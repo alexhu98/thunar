@@ -50,7 +50,7 @@ start_thunar() {  # folder
 
 search() {
   focus "$WID"
-  xdotool key ctrl+shift+f
+  xdotool key ctrl+f
   sleep 0.5
   xdotool type --delay 20 match
   sleep 2
@@ -137,7 +137,7 @@ shot "$WID" after-toggle-gap "The right end of Thunar's toolbar while searching,
 measure "$SHOTS/after-toggle-gap.png" "menu bar shown"
 SHOWN_GAPS=$GAPS
 no_toggle "$SHOTS/before-toggle-gap.png" "menu bar shown, not searching"
-pair toggle-gap "Pressed Ctrl+Shift+F and typed match" "The Include subfolders toggle appears with a gap on both sides ($GAPS)" "no search, no toggle" "toggle, a gap to the entry and the button" "$G"
+pair toggle-gap "Pressed Ctrl+F and typed match" "The Include subfolders toggle appears with a gap on both sides ($GAPS)" "no search, no toggle" "toggle, a gap to the entry and the button" "$G"
 
 click_toggle
 capture "$WORK/released.png"
