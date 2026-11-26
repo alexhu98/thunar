@@ -158,7 +158,9 @@ publish() {
         echo "::error::no image of $page to upload" >&2
         echo "$page !" >> "$OUT/urls"
         failed=1
-      elif sha=$(OUT="$OUT/shots" "$(dirname "$0")/shots.sh" "$OUT/explainer-$issue.png" "$path" "Explainer image for PR #${PR:-0}" </dev/null); then
+      elif printf '%s\t%s\n' "$OUT/explainer-$issue.png" "$path" > "$OUT/upload-$issue.tsv" \
+        && sha=$(OUT="$OUT/shots" "$(dirname "$0")/shots.sh" "$OUT/upload-$issue.tsv" "Explainer image for PR #${PR:-0}" </dev/null | cut -f 2) \
+        && [[ -n $sha && $sha != - ]]; then
         echo "$page https://github.com/$GH_REPO/blob/$sha/$path?raw=true" >> "$OUT/urls"
       else
         echo "::error::could not upload $path" >&2
