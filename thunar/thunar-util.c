@@ -1084,7 +1084,7 @@ thunar_util_clip_view_background (GtkCellRenderer     *cell,
  * @icon_theme : the #GtkIconTheme to look the icon up in.
  * @icon_name  : an icon name, with or without the "-symbolic" suffix.
  *
- * Returns the XApp symbolic icon name ("xsi-<name>-symbolic") for
+ * Returns the XApp symbolic icon name, "xsi-" + the name + "-symbolic", for
  * @icon_name if the misc-xapp-icons preference is on and @icon_theme
  * has that icon. "system-search" maps to "edit-find", as in Nemo.
  *
