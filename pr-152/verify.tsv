@@ -1,6 +1,37 @@
 sha	num	test	result	shot	file	proves
-374b93336fa67671dc9d0067997fba69455b34e0	1	144	pass	status-after-keys	verify-144-status-after-keys.png	After 20 Down presses from a.bin, f0020 is selected: "f0020" | 0 bytes on the left, 2042 files: 11.7 MiB | Free space: … on the right
-374b93336fa67671dc9d0067997fba69455b34e0	2	144	pass	before-grow	verify-144-before-grow.png	a.bin selected before grow.bin grows: the right part reads 2042 files: 11.7 MiB | Free space: …
-374b93336fa67671dc9d0067997fba69455b34e0	2	144	pass	after-grow	verify-144-after-grow.png	a.bin still selected, 4 s after the script appended 1 MiB to grow.bin: the right part reads 2042 files: 12.7 MiB | Free space: …
-374b93336fa67671dc9d0067997fba69455b34e0	3	144	pass	status-search	verify-144-status-search.png	Searching for hit-: the status bar reads 40 files found: 9.7 MiB | Free space: …, the sum of the 40 hit-NN.dat sizes (10122900 bytes)
-374b93336fa67671dc9d0067997fba69455b34e0	4	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
+62fd873620ab7388004147d50daab8027dcec357	-	118	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	120	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	123	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	124	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	126	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	128	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	129	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	132	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	133	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	135	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	139	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	14	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	140	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	143	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	1	144	pass	status-after-keys	verify-144-status-after-keys.png	After 20 Down presses from a.bin, f0020 is selected: "f0020" | 0 bytes on the left, 2042 files: 11.7 MiB | Free space: … on the right
+62fd873620ab7388004147d50daab8027dcec357	2	144	pass	before-grow	verify-144-before-grow.png	a.bin selected before grow.bin grows: the right part reads 2042 files: 11.7 MiB | Free space: …
+62fd873620ab7388004147d50daab8027dcec357	2	144	pass	after-grow	verify-144-after-grow.png	a.bin still selected, 4 s after the script appended 1 MiB to grow.bin: the right part reads 2042 files: 12.7 MiB | Free space: …
+62fd873620ab7388004147d50daab8027dcec357	3	144	pass	status-search	verify-144-status-search.png	Searching for hit-: the status bar reads 40 files found: 9.7 MiB | Free space: …, the sum of the 40 hit-NN.dat sizes (10122900 bytes)
+62fd873620ab7388004147d50daab8027dcec357	-	15	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	16	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	17	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	19	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	21	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	22	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	3	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	4	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	40	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	49	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	5	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	68	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	74	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	89	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	93	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	95	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	-	96	pass	-	-	-
+62fd873620ab7388004147d50daab8027dcec357	4	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
