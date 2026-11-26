@@ -566,6 +566,8 @@ thunar_window_update_location_toolbar_icons (ThunarWindow *window);
 static void
 thunar_window_update_toolbar_button_icons (ThunarWindow *window);
 static void
+thunar_window_icon_theme_changed (ThunarWindow *window);
+static void
 thunar_window_location_toolbar_add_ucas (ThunarWindow *window);
 GtkWidget *
 thunar_window_location_toolbar_add_uca (ThunarWindow *window,
@@ -1315,7 +1317,7 @@ thunar_window_init (ThunarWindow *window)
   /* update the location toolbar when symbolic icons setting is toggled */
   g_signal_connect_swapped (G_OBJECT (window->preferences), "notify::misc-symbolic-icons-in-toolbar", G_CALLBACK (thunar_window_update_location_toolbar_icons), window);
   g_signal_connect_swapped (G_OBJECT (window->preferences), "notify::misc-xapp-icons", G_CALLBACK (thunar_window_update_location_toolbar_icons), window);
-  g_signal_connect_object (G_OBJECT (gtk_icon_theme_get_for_screen (gtk_window_get_screen (GTK_WINDOW (window)))), "changed", G_CALLBACK (thunar_window_update_toolbar_button_icons), window, G_CONNECT_SWAPPED);
+  g_signal_connect_object (G_OBJECT (gtk_icon_theme_get_for_screen (gtk_window_get_screen (GTK_WINDOW (window)))), "changed", G_CALLBACK (thunar_window_icon_theme_changed), window, G_CONNECT_SWAPPED);
 
   /* update the location toolbar when custom actions are changed */
   uca_path = xfce_resource_save_location (XFCE_RESOURCE_CONFIG, "Thunar/uca.xml", TRUE);
@@ -7653,6 +7655,19 @@ thunar_window_update_location_toolbar_icons (ThunarWindow *window)
 
       gtk_container_add (GTK_CONTAINER (parent), window->location_bar);
     }
+}
+
+
+
+static void
+thunar_window_icon_theme_changed (ThunarWindow *window)
+{
+  GtkWidget *focus = gtk_window_get_focus (GTK_WINDOW (window));
+
+  if (focus != NULL && (focus == window->location_bar || gtk_widget_is_ancestor (focus, window->location_bar)))
+    thunar_window_update_toolbar_button_icons (window);
+  else
+    thunar_window_update_location_toolbar_icons (window);
 }
 
 
