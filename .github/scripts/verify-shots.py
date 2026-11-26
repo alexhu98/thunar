@@ -13,7 +13,7 @@ verify-shots.py manifest OUT
 verify-shots.py comment OUT
     Prints the verify comment's body (the scope, the results, the key result, the shots table, then every other
     numbered shot, and one line for the other tests that passed) from $OUT/numbered.json, $OUT/results.tsv, $OUT/scope,
-    the logs and $OUT/urls.tsv ("<local file><tab><url or ->"). Env: HEAD_SHA, HEAD_REF, RUN_URL.
+    the logs and $OUT/urls.tsv ("<local file><tab><url or ->", plus "verify-shots.tsv<tab>-" when verify.tsv was lost). Env: HEAD_SHA, HEAD_REF, RUN_URL, PR.
 verify-shots.py status SHA STATE TEXT
     Prints the <!-- pr-proof:status {...} --> marker of a comment with that head, state and text.
 """

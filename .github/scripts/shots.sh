@@ -73,7 +73,7 @@ jq -R -s 'split("\n") | map(select(length > 0) | split("\t") | {path: .[1], mode
 lost=$(awk -F'\t' '$3 == "-"' "$OUT/files.tsv" | wc -l)
 (( lost == 0 )) || echo "$lost of $(wc -l < "$list") file(s) could not be uploaded, so they are removed from $branch" >&2
 if [[ $(jq 'map(select(.sha != null)) | length' "$OUT/entries.json") == 0 ]]; then
-  echo "::error::no file could be uploaded, so no commit was made" >&2
+  echo "no file could be uploaded, so no commit was made" >&2
   exit 1
 fi
 
@@ -85,14 +85,14 @@ for attempt in 1 2 3 4 5 6 7 8; do
     if ! api "$OUT/probe" "repos/{owner}/{repo}/contents/$path?ref=$tip" --silent 2>"$OUT/probe.log"; then
       grep -q 'HTTP 404' "$OUT/probe.err" && echo "$path" || { cat "$OUT/probe.log" >&2; exit 1; }
     fi
-  done > "$OUT/absent" || { echo "::error::could not tell whether the lost files are on $branch, so no commit was made" >&2; exit 1; }
+  done > "$OUT/absent" || { echo "could not tell whether the lost files are on $branch, so no commit was made" >&2; exit 1; }
   jq -n --arg b "$(<"$OUT/base")" --slurpfile t "$OUT/entries.json" --rawfile a "$OUT/absent" \
     '($a | split("\n")) as $absent | {base_tree: $b, tree: ($t[0] | map(select(.sha != null or (.path | IN($absent[]) | not))))}' > "$OUT/tree.json"
   api "$OUT/tree" "repos/{owner}/{repo}/git/trees" -X POST --input "$OUT/tree.json" --jq .sha || exit 1
   jq -n --arg m "$message" --arg t "$(<"$OUT/tree")" --arg p "$tip" '{message: $m, tree: $t, parents: [$p]}' > "$OUT/commit.json"
   api "$OUT/commit" "repos/{owner}/{repo}/git/commits" -X POST --input "$OUT/commit.json" --jq .sha || exit 1
   sha=$(<"$OUT/commit")
-  [[ $sha =~ ^[0-9a-f]{40}$ ]] || { echo "::error::the commit came back as '$sha'" >&2; exit 1; }
+  [[ $sha =~ ^[0-9a-f]{40}$ ]] || { echo "the commit came back as '$sha'" >&2; exit 1; }
   jq -n --arg s "$sha" '{sha: $s, force: false}' > "$OUT/ref.json"
   if api "$OUT/ref" "repos/{owner}/{repo}/git/refs/heads/$branch" -X PATCH --input "$OUT/ref.json" --jq .object.sha; then
     status=0
@@ -112,5 +112,5 @@ for attempt in 1 2 3 4 5 6 7 8; do
   echo "$branch moved while committing (attempt $attempt), so the commit is made again on its new tip" >&2
   sleep $(( 1 + RANDOM % 4 ))
 done
-echo "::error::$branch kept moving; the commit was not made after $attempt attempts" >&2
+echo "$branch kept moving; the commit was not made after $attempt attempts" >&2
 exit 1

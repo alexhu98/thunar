@@ -254,12 +254,12 @@ publish() {
           manifest_lost=0
           awk -F'\t' '$2 == "-" { found = 1 } END { exit !found }' "$OUT/urls.tsv" || failed=0
         else
-          echo "::error::could not upload $dir/verify.tsv$( (( manifest_lost )) || echo ' with the lost files marked')" >&2
+          echo "could not upload $dir/verify.tsv$( (( manifest_lost )) || echo ' with the lost files marked')" >&2
         fi
       fi
     fi
     (( ! manifest_lost )) || printf 'verify-shots.tsv\t-\n' >> "$OUT/urls.tsv"
-    (( ! failed )) || echo "::error::the shots could not all be committed to the shots branch" >&2
+    (( ! failed )) || echo "::error::the shots could not all be committed to the shots branch; lost: $(awk -F'\t' '$2 == "-" { printf "%s%s", sep, $1; sep = ", " }' "$OUT/urls.tsv")" >&2
   fi
   python3 "$HERE/verify-shots.py" comment "$OUT" > "$OUT/comment.md"
   OUT="$OUT/comment" "$HERE/pr-comment.sh" put verify "$OUT/comment.md"
