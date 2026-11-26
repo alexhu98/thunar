@@ -225,7 +225,7 @@ publish() {
   [[ -n ${PR:-} || ${DRY_RUN:-0} == 1 ]] || { echo "publish needs PR" >&2; exit 1; }
   : "${GH_REPO:?}"
   : > "$OUT/urls.tsv"
-  local file sha failed=0 dir="pr-${PR:-0}"
+  local file sha failed=0 manifest_lost=0 dir="pr-${PR:-0}"
   export SHOTS_DEADLINE=$(( $(date +%s) + 300 ))
   if [[ -s $OUT/results.tsv && ! -s $OUT/numbered.json ]]; then
     python3 "$HERE/verify-shots.py" build "$OUT" || echo "::warning::some pair images could not be made" >&2
@@ -239,7 +239,7 @@ publish() {
     OUT="$OUT/upload" "$HERE/shots.sh" "$OUT/upload.tsv" "Verify screenshots for PR #${PR:-0}" > "$OUT/committed.tsv" </dev/null || failed=1
     while IFS=$'\t' read -r file sha; do
       if [[ $file == "$OUT/verify-shots.tsv" ]]; then
-        [[ $sha != - ]] || echo "::error::could not upload $dir/verify.tsv" >&2
+        [[ $sha != - ]] || manifest_lost=1
         continue
       fi
       [[ $sha == - ]] || sha="https://github.com/$GH_REPO/blob/$sha/$(awk -F'\t' -v f="$file" '$1 == f { print $2; exit }' "$OUT/upload.tsv")?raw=true"
@@ -247,11 +247,11 @@ publish() {
     done < <(awk -F'\t' 'FILENAME == ARGV[1] { sha[$1] = $2; next } { print $1 "\t" ($1 in sha ? sha[$1] : "-") }' "$OUT/committed.tsv" "$OUT/upload.tsv")
     if (( failed )); then
       echo "::error::the shots could not all be committed to the shots branch" >&2
-      if [[ -s $OUT/committed.tsv ]] && awk -F'\t' '$1 ~ /^shots\// && $2 == "-" { found = 1 } END { exit !found }' "$OUT/urls.tsv"; then
+      if [[ -s $OUT/committed.tsv ]] && { (( manifest_lost )) || awk -F'\t' '$1 ~ /^shots\// && $2 == "-" { found = 1 } END { exit !found }' "$OUT/urls.tsv"; }; then
         python3 "$HERE/verify-shots.py" manifest "$OUT" > "$OUT/verify-shots.tsv"
         printf '%s\t%s\n' "$OUT/verify-shots.tsv" "$dir/verify.tsv" > "$OUT/manifest.tsv"
         OUT="$OUT/manifest" "$HERE/shots.sh" "$OUT/manifest.tsv" "Verify manifest for PR #${PR:-0}" >/dev/null </dev/null \
-          || echo "::error::could not upload $dir/verify.tsv with the lost files marked" >&2
+          || echo "::error::could not upload $dir/verify.tsv" >&2
       fi
     fi
   fi

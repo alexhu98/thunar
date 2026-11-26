@@ -82,8 +82,8 @@ for attempt in 1 2 3 4 5 6 7 8; do
   tip=$(<"$OUT/tip")
   api "$OUT/base" "repos/{owner}/{repo}/git/commits/$tip" --jq .tree.sha || exit 1
   jq -c 'map(select(.sha == null) | .path) | .[]' -r "$OUT/entries.json" | while read -r path; do
-    if ! api "$OUT/probe" "repos/{owner}/{repo}/contents/$path?ref=$tip" --silent; then
-      grep -q 'HTTP 404' "$OUT/probe.err" && echo "$path" || exit 1
+    if ! api "$OUT/probe" "repos/{owner}/{repo}/contents/$path?ref=$tip" --silent 2>/dev/null; then
+      grep -q 'HTTP 404' "$OUT/probe.err" && echo "$path" || { cat "$OUT/probe.err" >&2; exit 1; }
     fi
   done > "$OUT/absent" || { echo "::error::could not tell whether the lost files are on $branch, so no commit was made" >&2; exit 1; }
   jq -n --arg b "$(<"$OUT/base")" --slurpfile t "$OUT/entries.json" --rawfile a "$OUT/absent" \

@@ -264,6 +264,8 @@ def comment(out):
     if scope_text.endswith('(partial)'):
         lines += ["Only the smoke test and the PR's own tests ran. A head commit with the trailer `Verify: full` runs "
                   'all of them, as the merge needs.', '']
+    elif not full:
+        lines += ['The run did not record which tests it ran, so it does not count as a run of all of them.', '']
     if not complete:
         lines += ['The run step stopped before it finished, so the tests it had not finished are marked cut short.', '']
     if unnumbered:
