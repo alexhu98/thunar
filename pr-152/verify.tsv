@@ -1,0 +1,6 @@
+sha	num	test	result	shot	file	proves
+3567f03ce671211a8d975c6e0e7c7107409ea8f3	1	144	pass	status-after-keys	verify-144-status-after-keys.png	After 20 Down presses from a.bin, f0020 is selected: "f0020" | 0 bytes on the left, 2042 files: 11.7 MiB | Free space: … on the right
+3567f03ce671211a8d975c6e0e7c7107409ea8f3	2	144	pass	before-grow	verify-144-before-grow.png	a.bin selected before grow.bin grows: the right part reads 2042 files: 11.7 MiB | Free space: …
+3567f03ce671211a8d975c6e0e7c7107409ea8f3	2	144	pass	after-grow	verify-144-after-grow.png	a.bin still selected, 4 s after the script appended 1 MiB to grow.bin: the right part reads 2042 files: 12.7 MiB | Free space: …
+3567f03ce671211a8d975c6e0e7c7107409ea8f3	3	144	pass	status-search	verify-144-status-search.png	Searching for hit-: the status bar reads 40 files found: 9.7 MiB | Free space: …, the sum of the 40 hit-NN.dat sizes (10122900 bytes)
+3567f03ce671211a8d975c6e0e7c7107409ea8f3	4	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
