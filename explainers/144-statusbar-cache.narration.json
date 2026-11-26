@@ -1,7 +1,7 @@
 {
   "title": "PR #152 · Status cache",
   "voice": "af_heart",
-  "page_sha256": "d0790a925ba6a9d93afbce5634db994119a62ece1d6804d11d75f3dbc938c025",
+  "page_sha256": "ca0d55b88978e274ee3e592acf83e7aa37e5d0992a6636d062d6ccbba0900481",
   "lines": [
     {"screen": "title", "keys": [], "from": ["title", "lead"], "caption": "This is a tour of pull request 152, which stops the status bar from re-reading every file on each cursor move.", "say": "This is a tour of pull request one fifty-two, which stops the status bar from re-reading every file on each cursor move.", "src": "6dde6f4dc32c"},
     {"screen": "title", "keys": ["p1", "p2", "p3"], "caption": "It has three parts: what this PR adds, how it was built and verified, and what comes later.", "src": "e4e04a687fd8"},
@@ -43,13 +43,15 @@
     {"screen": "review", "keys": ["summary"], "caption": "Before the first push, a fresh agent reviewed the branch at level high: four fixes, and two kept that CI raised again.", "src": "ef2954341ad2"},
     {"screen": "review", "keys": ["b1"], "caption": "The main fix: a file listed twice in a selection was released twice.", "src": "6516f385f233"},
     {"screen": "review", "keys": ["b2", "b3"], "caption": "The others fixed the test's trace filter and selection clearing, and the code's alignment.", "src": "33f1df21ad6d"},
-    {"screen": "review", "keys": ["ci-review"], "caption": "CI's own review found six things, R1 to R6, then two more, R7 and R8: five are fixed and you accepted three.", "say": "C I's own review found six things, R one to R six, then two more, R seven and R eight: five are fixed and you accepted three.", "src": "46cf4583f5cf"},
+    {"screen": "review", "keys": ["ci-review"], "caption": "CI's reviews found R1 to R9 over three heads; the third found nothing confirmed at medium or high.", "say": "C I's reviews found R one to R nine over three heads; the third found nothing confirmed at medium or high.", "src": "782bd6109c2c"},
     {"screen": "review", "keys": ["r2", "r3"], "caption": "R2 and R3, a stale cache key and a failed free space query, were fixed by CI's own commit.", "say": "R two and R three, a stale cache key and a failed free space query, were fixed by C I's own commit.", "src": "f776c784946a"},
     {"screen": "review", "keys": ["r6"], "caption": "R6: folder signals with no files dropped the caches. They are now ignored.", "say": "R six: folder signals with no files dropped the caches. They are now ignored.", "src": "059f7d53ff50"},
     {"screen": "review", "keys": ["r7"], "caption": "R7: in a search, every row change added up all results again, even for folders. CI's fix skips folder rows.", "say": "R seven: in a search, every row change added up all results again, even for folders. C I's fix skips folder rows.", "src": "b5c03e11abeb"},
     {"screen": "review", "keys": ["r8"], "caption": "R8: a free space answer with no value kept the old one. CI's fix clears it.", "say": "R eight: a free space answer with no value kept the old one. C I's fix clears it.", "src": "85fdb054eb80"},
     {"screen": "review", "keys": ["r1"], "caption": "R1: a result that changes size is now caught in the Details view, but not in Icon and Compact. You accepted that.", "say": "R one: a result that changes size is now caught in the Details view, but not in Icon and Compact. You accepted that.", "src": "a51cbcf25fdb"},
-    {"screen": "review", "keys": ["r4", "r5", "open"], "caption": "You also accepted R4 and R5, trade-offs the issue allows, and a Review-accept trailer closes all three.", "say": "You also accepted R four and R five, trade-offs the issue allows, and a review accept trailer closes all three.", "src": "012cd292b6c1"},
+    {"screen": "review", "keys": ["r4", "r5"], "caption": "You also accepted R4 and R5, trade-offs the issue allows.", "say": "You also accepted R four and R five, trade-offs the issue allows.", "src": "253e8442735f"},
+    {"screen": "review", "keys": ["r9"], "caption": "R9, a low finding about a file turning into a folder, isn't confirmed: no path was found that does it.", "say": "R nine, a low finding about a file turning into a folder, isn't confirmed: no path was found that does it.", "src": "9f27fe0db477"},
+    {"screen": "review", "keys": ["open"], "caption": "The repo's rules accept it, and a Review-accept trailer closes it along with your three.", "say": "The repo's rules accept it, and a review accept trailer closes it along with your three.", "src": "abd3f05a3aae"},
     {"screen": "aftermerge", "keys": ["a1", "a2"], "caption": "Still to come before the merge: all 33 tests, not run yet. Without strace in CI, the stat count is skipped.", "say": "Still to come before the merge: all thirty-three tests, not run yet. Without s trace in C I, the stat count is skipped.", "src": "6be465578939"},
     {"screen": "aftermerge", "keys": ["a3"], "caption": "Your own large folders and network shares can only be tried on your machine.", "src": "565fd0fb285b"},
     {"screen": "see", "keys": ["l1", "l2", "l3"], "caption": "The links lead to the issue, the PR, its CI run, its review, verify and screenshot audit comments, and the test.", "src": "d611ac7b577f"},
@@ -111,7 +113,7 @@
     "review/b1": "6516f385f233",
     "review/b2": "7c877ded9b38",
     "review/b3": "53954eb55b81",
-    "review/ci-review": "46cf4583f5cf",
+    "review/ci-review": "782bd6109c2c",
     "review/r2": "9877e7ac16b0",
     "review/r3": "6b10f6b83fe9",
     "review/r6": "059f7d53ff50",
@@ -120,7 +122,8 @@
     "review/r1": "a51cbcf25fdb",
     "review/r4": "e737d3264ff7",
     "review/r5": "3b0264ab8707",
-    "review/open": "f779fa46ee04",
+    "review/r9": "9f27fe0db477",
+    "review/open": "abd3f05a3aae",
     "aftermerge/a1": "5a3b168a744d",
     "aftermerge/a2": "a7aa2f6e5639",
     "aftermerge/a3": "565fd0fb285b",
@@ -142,6 +145,6 @@
     "glossary/async": "3ef8666513ab",
     "glossary/gvfs": "43bda2d415df",
     "glossary/xvfb": "145987577a58",
-    "glossary/sx": "e0ee513643f5"
+    "glossary/sx": "07c85a704e62"
   }
 }

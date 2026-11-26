@@ -303,7 +303,7 @@ explainers/144-statusbar-cache.narration.json  # its narration</pre>
     <li data-k="b2"><b>Fixed, test:</b> the trace filter missed the newer stat calls, so it now traces every stat variant; and clearing the selection clicked a file, so it now presses Escape too.</li>
     <li data-k="b3"><b>Fixed, style:</b> alignment of the changed lines, as clang-format wants.</li>
   </ul>
-  <p data-k="ci-review">CI's own review, at level high, found 6 things in head <code>3567f03</code>, R1 to R6, and 2 more in head <code>979c1e5</code>, R7 and R8, all listed in the <a href="https://github.com/alexhu98/thunar/pull/152#issuecomment-7188228494">code review PR comment</a>. 5 are fixed and you accepted 3.</p>
+  <p data-k="ci-review">CI's own review, at level high, found 6 things in head <code>3567f03</code>, R1 to R6, 2 more in head <code>979c1e5</code>, R7 and R8, and 1 more in head <code>10defa8</code>, R9, all listed in the <a href="https://github.com/alexhu98/thunar/pull/152#issuecomment-7188228494">code review PR comment</a>. 5 are fixed, you accepted 3, and R9 is accepted by the repo's rules. That third review, of the commits since <code>979c1e5</code>, passed with no confirmed medium or high findings.</p>
   <div class="table-wrap">
   <table>
     <tr><th>Finding</th><th>What it found</th><th>Status</th></tr>
@@ -315,9 +315,10 @@ explainers/144-statusbar-cache.narration.json  # its narration</pre>
     <tr data-k="r1"><td>R1, medium</td><td>A search result that changed size at the same result count kept the old total. <code>dd385ab</code> fixed this in the Details view, whose model watches search results; the Icon and Compact views' model never does, so there it stays.</td><td class="ok acc">accepted by the owner</td></tr>
     <tr data-k="r4"><td>R4</td><td>Free space isn't refreshed for writes elsewhere on the disk. A trade-off issue #144 allows.</td><td class="ok acc">accepted by the owner</td></tr>
     <tr data-k="r5"><td>R5</td><td>A recursive search still adds up its results once per 500 ms batch while they stream in. A trade-off issue #144 allows.</td><td class="ok acc">accepted by the owner</td></tr>
+    <tr data-k="r9"><td>R9, low</td><td>In a search, the row-changed handler skips folder rows, so a result that turned from a file into a folder in place would keep its old size in the cached total. Plausible, but CI's verify agent found no reachable path where a row changes from file to directory in place.</td><td class="ok acc">accepted: not confirmed</td></tr>
   </table>
   </div>
-  <div class="note" data-k="open">You accepted R1 as it is, and R4 and R5 as the trade-offs the issue allows, on November 26, 2026. A <code>Review-accept</code> trailer on the commit carrying this page closes all three.</div>
+  <div class="note" data-k="open">You accepted R1 as it is, and R4 and R5 as the trade-offs the issue allows, on November 26, 2026. A <code>Review-accept</code> trailer on the commit carrying this page closes all three, and R9, a low finding from a later review that isn't confirmed, which the repo's rules accept rather than fix.</div>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -402,7 +403,7 @@ explainers/144-statusbar-cache.narration.json  # its narration</pre>
     <div data-k="async"><dt>Async</dt><dd>Started now, answered later, without freezing the window meanwhile.</dd></div>
     <div data-k="gvfs"><dt>Network share</dt><dd>An smb or sftp folder, where each file question is a round trip over the network.</dd></div>
     <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual screen with no monitor, where the tests run Thunar.</dd></div>
-    <div data-k="sx"><dt>R1 to R8</dt><dd>The numbers of CI's review findings, as in its code review PR comment.</dd></div>
+    <div data-k="sx"><dt>R1 to R9</dt><dd>The numbers of CI's review findings, as in its code review PR comment.</dd></div>
   </dl>
   </section>
 </main>
