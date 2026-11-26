@@ -1464,8 +1464,6 @@ thunar_tree_view_model_iter_previous (GtkTreeModel *model,
   THUNAR_WARN_RETURN_VAL (g_sequence_iter_is_begin (iter->user_data), FALSE);
 
   ptr = g_sequence_iter_prev (iter->user_data);
-  if (g_sequence_iter_is_begin (ptr))
-    return FALSE;
   iter->user_data = ptr;
   return TRUE;
 }

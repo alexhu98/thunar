@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #146 Tab rename</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR #146: Tab and Shift+Tab save the name and rename the next or previous file</h1>
+  <p class="lead" data-k="lead">Branch <code>143-rename-tab</code> → <code>main</code>, closes #143. While you rename a file in place with F2 in the Details view, Tab saves the name and opens the next file's name for editing, and Shift+Tab the previous one's.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing depends on #143 yet</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">The name entry's key handler in <code>thunar-standard-view.c</code> now handles Tab and Shift+Tab, and <code>verify/143.sh</code> tests them.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="You press Tab in the name entry; Thunar checks the name, picks the next row, saves the name and opens the next row's name for editing.">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Tab in the name entry: save this name</text>
+    <g data-k="1">
+      <rect class="box-you" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">You press Tab</text>
+      <text x="36" y="114" class="b">in the F2 name entry,</text>
+      <text x="36" y="134" class="b">Details view only;</text>
+      <text x="36" y="154" class="b">Shift+Tab goes back</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Check the name</text>
+      <text x="286" y="114" class="b">invalid, like a/b:</text>
+      <text x="286" y="134" class="b">show the error and</text>
+      <text x="286" y="154" class="b">stay, save nothing</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Pick the row</text>
+      <text x="536" y="114" class="b">next or previous row</text>
+      <text x="536" y="134" class="b">before saving; skips</text>
+      <text x="536" y="154" class="b">rows it can't rename</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-merge" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Save the name</text>
+      <text x="786" y="114" class="m">rename_finish</text>
+      <text x="786" y="134" class="b">the usual F2 path;</text>
+      <text x="786" y="154" class="b">same name: no change</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② Then: edit the next name</text>
+    <g data-k="5">
+      <rect class="box-merge" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Next entry opens</text>
+      <text x="786" y="314" class="m">rename_in_place</text>
+      <text x="786" y="334" class="b">selects the row and</text>
+      <text x="786" y="354" class="b">the name, no extension</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-you" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Type, Tab again</text>
+      <text x="536" y="314" class="b">or Return or Escape;</text>
+      <text x="536" y="334" class="b">no row left: Tab only</text>
+      <text x="536" y="354" class="b">saves, no wrap-around</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow" d="M770,320 H734" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>new in this PR</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>existing in-place rename code from #16, reused</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Since #16, F2 in the Details view turns a file's Name cell into a text box where you type the new name. Renaming a run of files meant pressing F2 on each one. Nemo and Dolphin let you press Tab to save and jump straight to the next name; this PR adds the same to Thunar, with Shift+Tab for the file above.</p>
+  <div class="note" data-k="note">The next file is picked <b>before</b> the name is saved. The rename runs as a job, and the renamed file may sort to a different row, so asking “what's below it?” afterwards could skip or repeat a file.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Tab in the name entry: save this name</div>
+  <ol class="steps">
+    <li data-k="1"><b>You press Tab.</b> While the name entry is open, <code>thunar_standard_view_rename_key_pressed</code> now catches Tab and the keypad Tab. Shift+Tab, which X sends as <code>ISO_Left_Tab</code>, or Tab with Shift held, goes the other way. Tab with any modifier other than Shift held (Ctrl, Alt, Super, Hyper or Meta) is left to GTK, as before.</li>
+    <li data-k="2"><b>Check the name.</b> The handler checks the typed text the way Up and Down already do. If it's invalid, such as <code>a/b</code>, the entry shows its error icon, stays open on the same file, and nothing is saved or moved.</li>
+    <li data-k="3"><b>Pick the row.</b> The new <code>thunar_standard_view_rename_neighbour</code> walks the rows in the order you see them: into an expanded folder's children, and back out to the parent's next row. It skips <code>.desktop</code> launchers, because F2 renames those in a dialog, not in place, and rows Thunar reports as not renameable: only when the file info carries <code>access::can-rename</code> and it's false. When the info doesn't say, it skips a row whose folder isn't writable, as F2's rename would refuse it. If you changed the name of an expanded folder, Tab skips its children, whose paths change with the rename, and goes to the folder's next sibling; an unchanged expanded folder still steps into its first child. “Changed” compares with the name the entry opened with.</li>
+    <li data-k="4"><b>Save the name.</b> Editing ends through the cell's normal path: <code>editing_done</code> and <code>remove_widget</code>, then <code>rename_edited</code> and <code>rename_finish</code>, exactly as Return does. A name you didn't change saves nothing, and Tab still moves on. Both the save and the move judge “unchanged” against the name the entry opened with, so they always agree. The handler returns TRUE, so GTK doesn't move the keyboard focus elsewhere.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② Then: edit the next name</div>
+  <ol class="steps" start="5" style="counter-reset: s 4">
+    <li data-k="5"><b>Next entry opens.</b> <code>thunar_standard_view_rename_in_place</code> queues the next edit through the idle callback F2 already uses. It selects the row and opens its entry with the name selected without its extension.</li>
+    <li data-k="6"><b>Type, Tab again.</b> You type the next name and press Tab again, or Return to save and stop, or Escape to stop without saving that one. On the last row, Tab saves and closes the entry; on the first row, Shift+Tab does the same. There's no wrap-around.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">What Tab does in each case</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>When you press</th><th>What happens</th></tr>
+    <tr data-k="k1"><td>Tab on a middle row</td><td>Saves the name, opens the entry on the row below</td></tr>
+    <tr data-k="k2"><td>Shift+Tab on a middle row</td><td>Saves the name, opens the entry on the row above</td></tr>
+    <tr data-k="k3"><td>Tab on the last row, Shift+Tab on the first</td><td>Saves the name and closes the entry</td></tr>
+    <tr data-k="k4"><td>Tab with an invalid name</td><td>Shows the error; the entry stays on the same file</td></tr>
+    <tr data-k="k5"><td>Tab with the name unchanged</td><td>Saves nothing, moves on</td></tr>
+    <tr data-k="k6"><td>Tab when the next row is a launcher or can't be renamed</td><td>Skips it and opens the row after</td></tr>
+    <tr data-k="k9"><td>Tab after changing an expanded folder's name</td><td>Skips its children, opens the folder's next sibling</td></tr>
+    <tr data-k="k10"><td>Tab on an expanded folder, name unchanged</td><td>Opens the entry on its first child</td></tr>
+    <tr data-k="k7"><td>Tab with Ctrl, Alt, Super, Hyper or Meta held</td><td>Left to GTK, as before this PR</td></tr>
+    <tr data-k="k8"><td>Tab in the icon or compact view</td><td>Unchanged: F2 there opens the rename popover from #15</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="code">
+  <h3 class="sec">The key handler's new branch</h3>
+<pre data-k="diff">  else if ((event-&gt;keyval == GDK_KEY_Tab || event-&gt;keyval == GDK_KEY_KP_Tab
+<span class="add">            || event-&gt;keyval == GDK_KEY_ISO_Left_Tab)</span>
+<span class="add">           &amp;&amp; (event-&gt;state &amp; ~GDK_SHIFT_MASK &amp; gtk_accelerator_get_default_mod_mask ()) == 0)</span>
+<span class="add">    {</span>
+<span class="add">      if (thunar_standard_view_rename_show_error (GTK_ENTRY (entry)))</span>
+<span class="add">        return TRUE;</span>
+<span class="add">      forward = … ;</span>
+<span class="add">      unchanged = … ;</span>
+<span class="add">      next = thunar_standard_view_rename_neighbour (standard_view, forward, unchanged);</span>
+<span class="add">      gtk_cell_editable_editing_done (GTK_CELL_EDITABLE (entry));</span>
+<span class="add">      gtk_cell_editable_remove_widget (GTK_CELL_EDITABLE (entry));</span>
+<span class="add">      if (next != NULL)</span>
+<span class="add">        thunar_standard_view_rename_in_place (standard_view, next);</span>
+<span class="add">      return TRUE;</span>
+<span class="add">    }</span></pre>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+└── thunar-standard-view.c          # Tab / Shift+Tab in rename_key_pressed, plus
+                                    # rename_row_next, rename_row_previous, rename_neighbour
+verify/
+└── 143.sh                          # Tab, Shift+Tab, last row, invalid a/b, fixed a/b
+explainers/
+├── 143-rename-tab.html             # this page
+└── 143-rename-tab.narration.json   # its narration</pre>
+  <div class="note" data-k="undo">To undo it, revert the PR. The change lives in the key handler and three new helper functions, and stores nothing, so there is nothing else to clean up.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built and tested in the cloud container on the first commit, <code>ea90b14</code>. The review fixes after it were built and verified by CI, not locally; CI's run is on the PR.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>The #16 in-place rename</h3><p>Tab reuses its save path and its idle that opens an entry, and checks the name the way its Up and Down keys do.</p></div>
+    <div class="card" data-k="r2"><h3><code>verify/16.sh</code></h3><p>The F2-in-place test. <code>verify/143.sh</code> copies its setup, and it still passes with this change.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>It builds</td><td>The <code>build-verify</code> agent built the debs from commit <code>ea90b14</code>, before the review fixes, in the cloud container</td><td class="ok">built, no warnings in changed files</td></tr>
+    <tr data-k="c2"><td>Every test still passes</td><td><code>verify-proof.sh run</code> on that build, installed in the cloud container: the smoke test and every <code>verify/*.sh</code></td><td class="ok">32 of 32 pass</td></tr>
+    <tr data-k="c3"><td>Tab and Shift+Tab work</td><td><code>verify/143.sh</code> in that run: Tab twice from a.txt, Shift+Tab from d.txt, Tab on the last row, Tab with <code>a/b</code></td><td class="ok">pass, 24 s</td></tr>
+    <tr data-k="c4"><td>F2 in place is unchanged</td><td><code>verify/16.sh</code>, the #16 test, in that run</td><td class="ok">pass, 103 s</td></tr>
+    <tr data-k="c5"><td>The review fixes compile</td><td><code>gcc -fsyntax-only</code> on the C file and <code>bash -n</code> on <code>verify/143.sh</code>, on commit <code>a754168</code>; not rebuilt or re-run</td><td class="ok">no errors</td></tr>
+    <tr data-k="c8"><td>CI's review fixes and the agent's</td><td>Commits <code>c80a3a6</code>, <code>d7c5d31</code>, <code>ea7eadc</code> and <code>8a04821</code> came after the local <code>build-verify</code> run on <code>ea90b14</code>. CI's build and verify jobs built and tested them, not the cloud container</td><td class="open">CI's run is on the PR</td></tr>
+    <tr data-k="c6"><td>Error dialog while the next entry is open</td><td>The issue's risk: a failed rename's dialog appearing over the next entry. <code>verify/143.sh</code> doesn't make a rename fail</td><td class="no">not run</td></tr>
+    <tr data-k="c7"><td>Row order with Expandable folders</td><td>The code walks into expanded folders, but <code>verify/143.sh</code> has no subfolders</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh agent ran <code>/code-review</code> at <code>high</code> with <code>--fix</code> on the branch against <code>origin/main</code>. It reported 4 findings and fixed 3 of them in commit <code>a754168</code>:</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Launchers:</b> Tab could open an in-place entry on a <code>.desktop</code> launcher, which F2 renames in a dialog. Tab and Shift+Tab now skip launchers.</li>
+    <li data-k="b2"><b>Ctrl and Alt:</b> Tab with Ctrl or Alt held is now left to GTK, as it was before.</li>
+    <li data-k="b3"><b>Test:</b> <code>verify/143.sh</code> now fixes the invalid <code>a/b</code> to <code>a</code> and presses Tab, proving the entry stayed open with its text.</li>
+    <li data-k="b4"><b>Skipped:</b> the missing explainer, which this page resolves, and an <code>xdotool</code> check that no entry is left open after Tab on the last row. That test's screenshot shows it instead.</li>
+  </ul>
+  <p data-k="ci">CI then reviewed each code push at <code>high</code>, in the <a href="https://github.com/alexhu98/thunar/pull/146#issuecomment-7181930855">code review PR comment</a>. Its first review, of <code>93386ae</code>, found 3:</p>
+  <ul class="tight">
+    <li data-k="ci1"><b>R1, high, confirmed:</b> after you changed an expanded folder's name, Tab stepped into its children, whose paths change with the rename. CI fixed it in <code>c80a3a6</code>: Tab goes to the folder's next sibling.</li>
+    <li data-k="ci2"><b>R2 and R3, low:</b> Tab could open an entry on a row Thunar reports as not renameable, and Super, Hyper or Meta+Tab were caught. The agent fixed both in <code>d7c5d31</code>.</li>
+  </ul>
+  <p data-k="ci-second">Its second review, of <code>d7c5d31</code>, found 4:</p>
+  <ul class="tight">
+    <li data-k="ci3"><b>R4 and R5, medium:</b> the renameable check also skipped rows whose file info lacks the attribute, and the changed-name check should compare with the name the entry opened with. CI fixed both in <code>ea7eadc</code>.</li>
+    <li data-k="ci4"><b>R6, low, accepted by the owner:</b> if renaming an expanded folder fails, Tab has already skipped its children, because the next row is chosen before the background rename job finishes. A narrow case, accepted rather than waiting for the job.</li>
+    <li data-k="ci5"><b>R7, low, accepted by the owner:</b> <code>verify/143.sh</code> doesn't test skipping non-renameable rows, Super+Tab, or Tab after renaming an expanded folder. xfwm4 may grab Super+Tab, and a read-only row needs extra setup, so it was accepted with no new tests.</li>
+  </ul>
+  <p data-k="ci-owner">The owner's decision on R6 and R7 is recorded on the PR.</p>
+  <p data-k="ci-third">Its third review, of <code>ca4ac65</code>, also covered CI's fix commit <code>ea7eadc</code>, and found 3:</p>
+  <ul class="tight">
+    <li data-k="ci6"><b>R8, medium:</b> Tab's “was the name changed” check used the name the entry opened with, while the save compared with the file's current name, so the two could disagree. CI fixed it in <code>8a04821</code>: the save now compares with the name the entry opened with too.</li>
+    <li data-k="ci7"><b>R9, low:</b> when the file info has no <code>access::can-rename</code>, Tab now also skips a row whose parent folder isn't writable, as F2's rename would refuse. CI fixed it in <code>8a04821</code>.</li>
+    <li data-k="ci8"><b>R10, low, plausible, not confirmed:</b> the renameable check no longer skips a row whose file has no info at all. Accepted: the review found no path that puts a file without info into the view, and <code>CLAUDE.md</code> accepts unconfirmed low findings from later reviews.</li>
+  </ul>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a2"><td>Tab with a failing rename, and with expanded folders</td><td>No test covers them</td><td class="open">when the owner uses it</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l0">The PR: <a href="https://github.com/alexhu98/thunar/pull/146">#146</a>, with CI's runs and comments</li>
+    <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/143">#143</a></li>
+    <li data-k="l2">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...143-rename-tab">main…143-rename-tab</a></li>
+    <li data-k="l3">The test: <a href="https://github.com/alexhu98/thunar/blob/143-rename-tab/verify/143.sh">verify/143.sh</a>, and its shots in CI's verify PR comment</li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing depends on #143 yet</h2>
+  <p class="intro" data-k="intro">No open issue says “Depends on #143”. #144 comes next in the same batch only because it edits the same file.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR adds Tab rename; #144, next in the batch, edits the same file but doesn't build on it.">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">Batch #145: group A, then group B</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">#143 Tab rename</text>
+      <text x="36" y="114" class="b">Tab and Shift+Tab</text>
+      <text x="36" y="134" class="b">move the name entry</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">#144 status bar</text>
+      <text x="286" y="114" class="b">keeps folder totals</text>
+      <text x="286" y="134" class="b">and free space;</text>
+      <text x="286" y="154" class="b">shares the file only</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  <div class="note" data-k="order">#144 waits for this PR so the two don't edit <code>thunar-standard-view.c</code> at once. It finds functions by name, since this PR moved its line numbers.</div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="inplace"><dt>Rename in place</dt><dd>F2 turns the file's Name cell into a text box, instead of opening a popover (#16).</dd></div>
+    <div data-k="canrename"><dt>access::can-rename</dt><dd>A file info attribute that says whether the file can be renamed.</dd></div>
+    <div data-k="details"><dt>Details view</dt><dd>Thunar's list view with columns; the only view with in-place rename.</dd></div>
+    <div data-k="popover"><dt>Popover</dt><dd>The small rename bubble the icon and compact views still use (#15).</dd></div>
+    <div data-k="launcher"><dt>Launcher</dt><dd>A <code>.desktop</code> file that starts an app; F2 renames it in a dialog.</dd></div>
+    <div data-k="order"><dt>View order</dt><dd>The rows top to bottom as shown, after sorting, with expanded folders' children.</dd></div>
+    <div data-k="expand"><dt>Expandable folders</dt><dd>A Details view option that shows a folder's files under it, as a tree.</dd></div>
+    <div data-k="isotab"><dt>ISO_Left_Tab</dt><dd>The key name X sends for Shift+Tab.</dd></div>
+    <div data-k="idle"><dt>Idle callback</dt><dd>Work GTK runs once it has nothing else to do, here opening the next entry.</dd></div>
+    <div data-k="job"><dt>Rename job</dt><dd>The background task that renames the file on disk.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb, xdotool</dt><dd>A screenless X server, and a tool that sends it clicks and keys.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
