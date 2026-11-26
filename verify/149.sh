@@ -138,4 +138,25 @@ xdotool key ctrl+f
 sleep 1.5
 results_are ends match-top.txt sub
 
+go "$WORK/top"
+focus "$WID"
+xdotool key alt+g
+sleep 1
+shot "$WID" go-menu "The Go menu lists Search in Subfolders... with Ctrl+F above Search for Files... with Ctrl+Shift+F"
+xdotool key u
+sleep 0.5
+xdotool type --delay 20 match
+sleep 2
+results_are go-subfolders match-sub.txt match-top.txt
+
+go "$WORK/top"
+focus "$WID"
+xdotool key alt+g
+sleep 1
+xdotool key s
+sleep 0.5
+xdotool type --delay 20 match
+sleep 2
+results_are go-folder match-top.txt
+
 (( ON_DISK )) || echo "note: $SKIPPED, so the on-disk checks were skipped" >&2
