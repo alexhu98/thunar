@@ -1255,72 +1255,45 @@ thunar_util_get_file_time (GFileInfo         *file_info,
 
 typedef struct
 {
-  guint64    size;
-  gint       folder_count;
-  gint       hidden_folder_count;
-  gint       file_count;
-  gint       hidden_file_count;
-  GFileInfo *last_modified_file;
+  guint64 size;
+  gint    folder_count;
+  gint    hidden_folder_count;
+  gint    file_count;
+  gint    hidden_file_count;
+  guint64 last_modified_date;
 } ThunarStatusbarCounts;
 
 
 
 static void
-thunar_util_count_files (GHashTable            *files,
-                         GCancellable          *cancellable,
-                         gboolean               with_last_modified,
-                         ThunarStatusbarCounts *counts)
+thunar_util_count_thunar_files (GHashTable            *files,
+                                ThunarStatusbarCounts *counts)
 {
-  guint64        last_modified_date = 0;
-  guint64        temp_last_modified_date;
   GHashTableIter iter;
   gpointer       key;
 
   memset (counts, 0, sizeof (*counts));
 
   g_hash_table_iter_init (&iter, files);
-  while (g_hash_table_iter_next (&iter, &key, NULL) && !g_cancellable_is_cancelled (cancellable))
+  while (g_hash_table_iter_next (&iter, &key, NULL))
     {
-      GFileInfo *file_info = g_file_query_info (G_FILE (key),
-                                                G_FILE_ATTRIBUTE_STANDARD_TYPE "," G_FILE_ATTRIBUTE_STANDARD_SIZE "," G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP "," G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN "," G_FILE_ATTRIBUTE_TIME_MODIFIED,
-                                                G_FILE_QUERY_INFO_NONE,
-                                                cancellable,
-                                                NULL);
-      if (file_info == NULL)
-        continue;
+      ThunarFile *file = THUNAR_FILE (key);
 
-      if (g_file_info_get_attribute_uint32 (file_info, G_FILE_ATTRIBUTE_STANDARD_TYPE) == G_FILE_TYPE_DIRECTORY)
+      if (thunar_file_is_directory (file))
         {
           counts->folder_count++;
-          if (g_file_info_get_attribute_boolean (file_info, G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN) || g_file_info_get_attribute_boolean (file_info, G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP))
+          if (thunar_file_is_hidden (file))
             counts->hidden_folder_count++;
         }
       else
         {
           counts->file_count++;
-          if (g_file_info_get_attribute_boolean (file_info, G_FILE_ATTRIBUTE_STANDARD_IS_HIDDEN) || g_file_info_get_attribute_boolean (file_info, G_FILE_ATTRIBUTE_STANDARD_IS_BACKUP))
+          if (thunar_file_is_hidden (file))
             counts->hidden_file_count++;
-          counts->size += g_file_info_get_attribute_uint64 (file_info, G_FILE_ATTRIBUTE_STANDARD_SIZE);
+          counts->size += thunar_file_get_size (file);
         }
 
-      if (!with_last_modified)
-        {
-          g_object_unref (file_info);
-          continue;
-        }
-
-      temp_last_modified_date = thunar_util_get_file_time (file_info, THUNAR_FILE_DATE_MODIFIED);
-      if (last_modified_date <= temp_last_modified_date)
-        {
-          last_modified_date = temp_last_modified_date;
-
-          /* Keep the last modified file-info for later */
-          if (counts->last_modified_file != NULL)
-            g_object_unref (counts->last_modified_file);
-          counts->last_modified_file = g_object_ref (file_info);
-        }
-
-      g_object_unref (file_info);
+      counts->last_modified_date = MAX (counts->last_modified_date, thunar_file_get_date (file, THUNAR_FILE_DATE_MODIFIED));
     }
 }
 
@@ -1405,13 +1378,12 @@ thunar_util_get_statusbar_count_texts (const ThunarStatusbarCounts *counts,
 
 /**
  * thunar_util_get_statusbar_text_for_files:
- * @files                        : list of #GFile's for which a text is requested
+ * @files                        : set of #ThunarFile's for which a text is requested
  * @show_hidden                  : whether hidden files are shown
  * @show_file_size_binary_format : whether the file size should be displayed in binary format
  * @date_style        : the #ThunarDateFormat used to humanize the @file_time.
  * @date_custom_style : custom style to apply, if @date_style is set to custom
  * @status_bar_actve_info        : the #ThunarStatusBarInfo flags to show
- * @cancellable                  : a #GCancellable to stop counting early, or %NULL
  *
  * Generates the statusbar text for the given @files.
  *
@@ -1426,47 +1398,43 @@ thunar_util_get_statusbar_text_for_files (GHashTable     *files,
                                           gboolean        show_file_size_binary_format,
                                           ThunarDateStyle date_style,
                                           const gchar    *date_custom_style,
-                                          guint           status_bar_actve_info,
-                                          GCancellable   *cancellable)
+                                          guint           status_bar_actve_info)
 {
   ThunarStatusbarCounts counts;
   GList                *text_list;
   gchar                *temp_string;
 
-  thunar_util_count_files (files, cancellable, TRUE, &counts);
+  thunar_util_count_thunar_files (files, &counts);
 
   text_list = thunar_util_get_statusbar_count_texts (&counts, show_hidden, show_file_size_binary_format, status_bar_actve_info);
   if (text_list == NULL)
     text_list = g_list_append (text_list, g_strdup_printf (_ ("0 items")));
 
-  if (thunar_status_bar_info_check_active (status_bar_actve_info, THUNAR_STATUS_BAR_INFO_LAST_MODIFIED) && counts.last_modified_file != NULL)
+  if (thunar_status_bar_info_check_active (status_bar_actve_info, THUNAR_STATUS_BAR_INFO_LAST_MODIFIED) && counts.folder_count + counts.file_count > 0)
     {
-      temp_string = thunar_util_humanize_file_time (thunar_util_get_file_time (counts.last_modified_file, THUNAR_FILE_DATE_MODIFIED), date_style, date_custom_style);
+      temp_string = thunar_util_humanize_file_time (counts.last_modified_date, date_style, date_custom_style);
       text_list = g_list_append (text_list, g_strdup_printf (_ ("Last Modified: %s"), temp_string));
       g_free (temp_string);
     }
 
   temp_string = thunar_util_strjoin_list (text_list, "  |  ");
   g_list_free_full (text_list, g_free);
-  if (counts.last_modified_file != NULL)
-    g_object_unref (counts.last_modified_file);
   return temp_string;
 }
 
 
 
 gchar *
-thunar_util_get_statusbar_total_text_for_files (GHashTable   *files,
-                                                gboolean      show_hidden,
-                                                gboolean      show_file_size_binary_format,
-                                                guint         status_bar_active_info,
-                                                GCancellable *cancellable)
+thunar_util_get_statusbar_total_text_for_files (GHashTable *files,
+                                                gboolean    show_hidden,
+                                                gboolean    show_file_size_binary_format,
+                                                guint       status_bar_active_info)
 {
   ThunarStatusbarCounts counts;
   GList                *text_list;
   gchar                *text = NULL;
 
-  thunar_util_count_files (files, cancellable, FALSE, &counts);
+  thunar_util_count_thunar_files (files, &counts);
 
   text_list = thunar_util_get_statusbar_count_texts (&counts, show_hidden, show_file_size_binary_format, status_bar_active_info);
   if (text_list != NULL)

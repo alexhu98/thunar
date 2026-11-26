@@ -123,14 +123,12 @@ thunar_util_get_statusbar_text_for_files (GHashTable     *files,
                                           gboolean        show_file_size_binary_format,
                                           ThunarDateStyle date_style,
                                           const gchar    *date_custom_style,
-                                          guint           status_bar_actve_info,
-                                          GCancellable   *cancellable);
+                                          guint           status_bar_actve_info);
 gchar *
-thunar_util_get_statusbar_total_text_for_files (GHashTable   *files,
-                                                gboolean      show_hidden,
-                                                gboolean      show_file_size_binary_format,
-                                                guint         status_bar_active_info,
-                                                GCancellable *cancellable);
+thunar_util_get_statusbar_total_text_for_files (GHashTable *files,
+                                                gboolean    show_hidden,
+                                                gboolean    show_file_size_binary_format,
+                                                guint       status_bar_active_info);
 gchar *
 thunar_util_get_statusbar_size_text (guint64  size,
                                      gboolean show_file_size_binary_format,
