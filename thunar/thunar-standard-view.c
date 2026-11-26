@@ -5556,7 +5556,8 @@ thunar_standard_view_rename_activate (GtkEntry           *entry,
 static gboolean
 thunar_standard_view_rename_row_next (GtkTreeView  *tree_view,
                                       GtkTreeModel *model,
-                                      GtkTreeIter  *iter)
+                                      GtkTreeIter  *iter,
+                                      gboolean      descend)
 {
   GtkTreePath *path;
   GtkTreeIter  child;
@@ -5564,7 +5565,7 @@ thunar_standard_view_rename_row_next (GtkTreeView  *tree_view,
   gboolean     expanded;
 
   path = gtk_tree_model_get_path (model, iter);
-  expanded = gtk_tree_view_row_expanded (tree_view, path);
+  expanded = descend && gtk_tree_view_row_expanded (tree_view, path);
   gtk_tree_path_free (path);
   if (expanded && gtk_tree_model_iter_children (model, &child, iter))
     {
@@ -5623,7 +5624,8 @@ thunar_standard_view_rename_row_previous (GtkTreeView  *tree_view,
 
 static ThunarFile *
 thunar_standard_view_rename_neighbour (ThunarStandardView *standard_view,
-                                       gboolean            forward)
+                                       gboolean            forward,
+                                       gboolean            descend)
 {
   GtkTreeModel *model = GTK_TREE_MODEL (standard_view->model);
   GtkWidget    *view = gtk_bin_get_child (GTK_BIN (standard_view));
@@ -5644,9 +5646,10 @@ thunar_standard_view_rename_neighbour (ThunarStandardView *standard_view,
   while (found && file == NULL)
     {
       if (forward)
-        found = thunar_standard_view_rename_row_next (GTK_TREE_VIEW (view), model, &iter);
+        found = thunar_standard_view_rename_row_next (GTK_TREE_VIEW (view), model, &iter, descend);
       else
         found = thunar_standard_view_rename_row_previous (GTK_TREE_VIEW (view), model, &iter);
+      descend = TRUE;
       if (found)
         {
           file = thunar_standard_view_model_get_file (standard_view->model, &iter);
@@ -5680,7 +5683,10 @@ thunar_standard_view_rename_key_pressed (GtkWidget          *entry,
         return TRUE;
 
       forward = event->keyval != GDK_KEY_ISO_Left_Tab && (event->state & GDK_SHIFT_MASK) == 0;
-      next = thunar_standard_view_rename_neighbour (standard_view, forward);
+      next = thunar_standard_view_rename_neighbour (standard_view, forward,
+                                                    standard_view->priv->rename_file == NULL
+                                                    || g_strcmp0 (gtk_entry_get_text (GTK_ENTRY (entry)),
+                                                                  thunar_file_get_display_name (standard_view->priv->rename_file)) == 0);
       g_object_ref (entry);
       gtk_cell_editable_editing_done (GTK_CELL_EDITABLE (entry));
       gtk_cell_editable_remove_widget (GTK_CELL_EDITABLE (entry));
