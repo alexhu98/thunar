@@ -5499,7 +5499,7 @@ thunar_standard_view_rename_finish (ThunarStandardView *standard_view,
     return;
 
   if (thunar_standard_view_rename_check (text) == NULL
-      && g_strcmp0 (text, thunar_file_get_display_name (file)) != 0)
+      && g_strcmp0 (text, standard_view->priv->rename_name) != 0)
     {
       application = thunar_application_get ();
       thunar_application_rename_file_to (application, file, text,
@@ -5633,9 +5633,11 @@ thunar_standard_view_rename_neighbour (ThunarStandardView *standard_view,
   GtkWidget    *view = gtk_bin_get_child (GTK_BIN (standard_view));
   GtkTreeIter   iter;
   ThunarFile   *file = NULL;
+  ThunarFile   *parent;
   GFileInfo    *info;
   GList        *paths;
   gboolean      found;
+  gboolean      writable;
 
   if (!GTK_IS_TREE_VIEW (view))
     return NULL;
@@ -5657,8 +5659,16 @@ thunar_standard_view_rename_neighbour (ThunarStandardView *standard_view,
         {
           file = thunar_standard_view_model_get_file (standard_view->model, &iter);
           info = file != NULL ? thunar_file_get_info (file) : NULL;
+          if (file != NULL && info != NULL && !g_file_info_has_attribute (info, G_FILE_ATTRIBUTE_ACCESS_CAN_RENAME))
+            {
+              parent = thunar_file_get_parent (file, NULL);
+              writable = parent == NULL || thunar_file_is_writable (parent);
+              g_clear_object (&parent);
+            }
+          else
+            writable = TRUE;
           if (file != NULL
-              && (thunar_file_is_desktop_file (file)
+              && (thunar_file_is_desktop_file (file) || !writable
                   || (info != NULL && g_file_info_has_attribute (info, G_FILE_ATTRIBUTE_ACCESS_CAN_RENAME)
                       && !thunar_file_is_renameable (file))))
             g_clear_object (&file);
