@@ -239,17 +239,17 @@
     <li data-k="3"><b>XApp name.</b> <code>thunar_util_get_xapp_icon_name</code> returns nothing if the hidden setting <code>misc-xapp-icons</code> is off. Otherwise it strips <code>-symbolic</code>, maps <code>system-search</code> to <code>edit-find</code> (XApp has no search icon; Nemo uses edit-find), and builds <code>xsi-&lt;name&gt;-symbolic</code>.</li>
     <li data-k="4"><b>Installed?</b> The helper asks the icon theme whether it has that name (<code>gtk_icon_theme_has_icon</code>). XApp installs its icons in the <code>hicolor</code> theme, which every theme falls back to.</li>
     <li data-k="5"><b>Nemo's look.</b> If it does, that icon is drawn, loaded the same symbolic way as before, so it takes the theme's text colour on dark and light themes.</li>
-    <li data-k="6"><b>Fallback.</b> If it doesn't, Thunar draws the theme's own <code>&lt;name&gt;-symbolic</code>, exactly as before this PR.</li>
+    <li data-k="6"><b>Fallback.</b> If it doesn't, Thunar draws the theme's own <code>&lt;name&gt;-symbolic</code>, exactly as before this PR. The location bar's scroll arrows and edit button list both names, so they fall back too if the XApp icons are removed later.</li>
   </ol>
   <div class="lane-h" style="color:var(--accent)">② When to look again</div>
   <ol class="steps" start="7" style="counter-reset: s 6">
     <li data-k="7"><b>Setting toggled.</b> <code>misc-xapp-icons</code> is a new hidden setting in <code>thunar-preferences.c</code>, on by default, with no switch in the Preferences dialog.</li>
-    <li data-k="8"><b>Full refresh.</b> Changing it rebuilds the toolbar and location bar icons, as the existing symbolic-icons setting does, and redraws the side pane and tree (<code>thunar-shortcuts-view.c</code>, <code>thunar-tree-view.c</code>).</li>
+    <li data-k="8"><b>Full refresh.</b> Changing it refreshes the toolbar buttons and redraws the side pane and tree (<code>thunar-shortcuts-view.c</code>, <code>thunar-tree-view.c</code>). It also rebuilds the location bar, as the symbolic-icons setting does, unless a search is running or you are typing in the location entry; then the bar is left alone, so the text stays.</li>
     <li data-k="9"><b>Theme changed.</b> The window also listens for the icon theme's <code>changed</code> signal, which fires when the theme is switched or icons are installed or removed.</li>
-    <li data-k="10"><b>Buttons only.</b> That signal refreshes the toolbar buttons and the view switcher at once. The location bar isn't rebuilt, so a search or a path you are typing is never wiped. Only toggling <code>misc-xapp-icons</code> or <code>misc-symbolic-icons-in-toolbar</code> rebuilds it, as upstream already does for the symbolic setting.</li>
+    <li data-k="10"><b>Buttons only.</b> That signal refreshes the toolbar buttons and the view switcher at once. The location bar isn't rebuilt, so a search or a path you are typing is never wiped. Only toggling a setting rebuilds it: <code>misc-xapp-icons</code> when no search or typing is under way, and <code>misc-symbolic-icons-in-toolbar</code> as upstream already does.</li>
   </ol>
   </div>
-  <div class="note warn" data-k="limits">Two known limits, accepted by the owner: after an icon theme change, the location bar keeps its old icons until a setting is toggled or a new window opens; and toggling <code>misc-xapp-icons</code> during a search drops the search entry, as toggling the symbolic setting already does.</div>
+  <div class="note warn" data-k="limits">One known limit, accepted by the owner: after an icon theme change, the location bar keeps its old icons until a setting is toggled or a new window opens. Toggling <code>misc-symbolic-icons-in-toolbar</code> during a search still drops the search entry, as it does upstream.</div>
   </section>
 
   <section class="sub" id="cases">
@@ -290,7 +290,7 @@
 ├── thunar-util.c/.h                  # helpers: XApp name, plain name back, XApp-only GIcon
 ├── thunar-preferences.c              # hidden setting misc-xapp-icons, default on
 ├── thunar-window.c                   # toolbar icon names; refresh on setting and theme change
-├── thunar-location-buttons.c         # scroll arrows and edit button
+├── thunar-location-buttons.c         # scroll arrows and edit button, theme fallback
 ├── thunar-location-button.c          # each folder button's icon
 ├── thunar-path-entry.c               # the entry's search and error icons
 ├── thunar-shortcuts-icon-renderer.c  # side pane devices and named places
@@ -334,7 +334,8 @@ explainers/150-xapp-icons.html        # this page (and its .narration.json)</pre
     <tr data-k="c11"><td>CI, test fix</td><td>CI run 45795741434 on <code>cbceae6</code>: the build passed; verify ran the smoke test and <code>verify/150.sh</code> (partial: 2 of 33)</td><td class="ok">2 of 2 pass</td></tr>
     <tr data-k="c12"><td>The shots</td><td><code>/visual-verify pr:153</code> on <code>cbceae6</code>, auditing CI's shots against what each should prove</td><td class="ok">PASS, 4 shots OK</td></tr>
     <tr data-k="c14"><td>CI, second review's fixes</td><td>CI run 45798381148 on <code>de01dbc</code>: build, verify (partial: the smoke test and <code>verify/150.sh</code>) and explainer passed; review failed on R17</td><td class="no">2 of 2 pass; review fails</td></tr>
-    <tr data-k="c13"><td>Dropping the rebuild, all tests</td><td>The change that drops the location bar rebuild hadn't run in CI when this page was written. The final push runs all 33 tests (<code>Verify: full</code>) before the merge</td><td class="open">runs on the final push</td></tr>
+    <tr data-k="c15"><td>CI, third review's fixes</td><td>CI run 45809983626 on <code>6df3a96</code>, CI's fixes for R22 and R23: build and verify (partial: the smoke test and <code>verify/150.sh</code>) passed; review skipped, as it does for CI's own fix</td><td class="ok">2 of 2 pass</td></tr>
+    <tr data-k="c13"><td>Dropping the rebuild, all tests</td><td>Dropping the location bar rebuild and the R22 and R23 fixes have run only the smoke test and <code>verify/150.sh</code> in CI. The final push runs all 33 tests (<code>Verify: full</code>) before the merge</td><td class="open">runs on the final push</td></tr>
     <tr data-k="c7"><td>The real XApp package</td><td>No <code>xapp-symbolic-icons</code> in the container; the test uses fixture squares on purpose, so it doesn't depend on the package</td><td class="no">not run</td></tr>
     <tr data-k="c8"><td>Search, location bar and view mode icons</td><td>No fixtures for them, so <code>verify/150.sh</code> doesn't look at the search mapping, the location bar or the view mode fallbacks</td><td class="no">not run</td></tr>
   </table>
@@ -357,7 +358,7 @@ explainers/150-xapp-icons.html        # this page (and its .narration.json)</pre
 
   <section class="sub" id="cireview">
   <h3 class="sec">CI's code review</h3>
-  <p data-k="summary">CI's review at <code>high</code>, in the <a href="https://github.com/alexhu98/thunar/pull/153#issuecomment-7188327769">code review PR comment</a>, found R1 to R21 over two reviews: 17 fixed, 4 accepted.</p>
+  <p data-k="summary">CI's review at <code>high</code>, in the <a href="https://github.com/alexhu98/thunar/pull/153#issuecomment-7188327769">code review PR comment</a>, found R1 to R23 over three reviews: 19 fixed, R17 by the owner's decision, and 4 accepted (R13, R14, R20, R21).</p>
   <ul class="tight">
     <li data-k="k1"><b>Fixed by CI in <code>e493c6e</code>:</b> R1 (medium), an icon theme change left the location bar's icons stale; R2 (low), a generic xsi icon beat the theme's more specific one.</li>
     <li data-k="k2"><b>Fixed in <code>cbceae6</code>:</b> R3 to R7. One shared mapping table replaces the duplicated edit-find mapping (R4), a stack buffer replaces allocations on each redraw (R3), the screen's icon theme replaces the default one (R5), the helpers' doc blocks are gone (R6; the <code>misc-xapp-icons</code> property keeps its doc block like every property), and the test counts changed side pane icons instead of checking fixed pixel boxes (R7).</li>
@@ -366,6 +367,7 @@ explainers/150-xapp-icons.html        # this page (and its .narration.json)</pre
     <li data-k="k5"><b>Second review, fixed by CI in <code>de01dbc</code>:</b> R15, R16, R18 and R19, all in the delayed rebuild: it now also waited while a search ran or focus was in the bar.</li>
     <li data-k="k6"><b>R17 (medium), the owner's decision:</b> the delayed rebuild replaced a location entry that stays open and lost the text typed in it. On Nov 26 at 3:15 AM PST the owner chose to drop the rebuild on icon theme changes, which removes R17's cause and all the delay code.</li>
     <li data-k="k7"><b>Accepted, not fixed:</b> R20 (low), the CSD update re-attaches the toolbar and menu bar; R21 (low), <code>xsi--symbolic</code> gives <code>-symbolic</code>. The verifier disproved both.</li>
+    <li data-k="k8"><b>Third review, fixed by CI in <code>6df3a96</code>:</b> R22 (medium), the location bar's scroll arrows and edit button kept the XApp name picked when built, with no fallback, so they'd show a missing-image icon if the XApp icons were removed; they now list the XApp name, then the theme's. R23 (medium), toggling <code>misc-xapp-icons</code> during a search or while typing a path rebuilt the bar and dropped the text; now only the toolbar buttons refresh then.</li>
   </ul>
   </section>
 
@@ -385,7 +387,7 @@ explainers/150-xapp-icons.html        # this page (and its .narration.json)</pre
     <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/150">#150</a>, with the coverage list</li>
     <li data-k="l2">The PR: <a href="https://github.com/alexhu98/thunar/pull/153">#153</a>, from branch <code>150-xapp-icons</code>, with CI's runs and checks</li>
     <li data-k="l4">CI's comments: the <a href="https://github.com/alexhu98/thunar/pull/153#issuecomment-7188327769">code review</a>, <a href="https://github.com/alexhu98/thunar/pull/153#issuecomment-7188328090">verify, with the shots</a> and the <a href="https://github.com/alexhu98/thunar/pull/153#issuecomment-7188699340">visual-verify verdict</a></li>
-    <li data-k="l5">The CI runs: <a href="https://github.com/alexhu98/thunar/actions/runs/45794122106">45794122106</a> (SVG fixtures) and <a href="https://github.com/alexhu98/thunar/actions/runs/45795741434">45795741434</a> (PNG fixtures) and <a href="https://github.com/alexhu98/thunar/actions/runs/45798381148">45798381148</a> (second review's fixes)</li>
+    <li data-k="l5">The CI runs: <a href="https://github.com/alexhu98/thunar/actions/runs/45794122106">45794122106</a> (SVG fixtures) and <a href="https://github.com/alexhu98/thunar/actions/runs/45795741434">45795741434</a> (PNG fixtures) and <a href="https://github.com/alexhu98/thunar/actions/runs/45798381148">45798381148</a> (second review's fixes) and <a href="https://github.com/alexhu98/thunar/actions/runs/45809983626">45809983626</a> (third review's fixes)</li>
     <li data-k="l3">The test: <code>verify/150.sh</code> on that branch</li>
   </ul>
   </section>
