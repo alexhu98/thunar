@@ -1,5 +1,5 @@
 #!/bin/bash
-# Issue #139: Ctrl+F searches the current folder, Ctrl+Shift+F includes subfolders.
+# Issue #149: Ctrl+F searches the current folder and its subfolders, Ctrl+Shift+F only the current folder.
 set -euo pipefail
 . .github/scripts/verify-lib.sh
 
@@ -94,47 +94,47 @@ sleep 0.5
 S='Ctrl+F and Ctrl+Shift+F choose the search scope'
 B='The toolbar Search button keeps the folder'"'"'s saved choice'
 
-search ctrl+f match
-saved_is false
-shot "$WID" before-subfolders "Ctrl+F in top with the global default Always: the Include subfolders toggle is released and only match-top.txt is listed"
-cancel_search
 search ctrl+shift+f match
-saved_is true
-shot "$WID" after-subfolders "Ctrl+Shift+F in top: the Include subfolders toggle is pressed and both match-top.txt and sub/match-sub.txt are listed"
-pair subfolders "Ended the Ctrl+F search with Escape, pressed Ctrl+Shift+F and typed match" "Ctrl+Shift+F searches top with its subfolders, Ctrl+F without them$(skipped)" "Ctrl+F: toggle off, only match-top.txt" "Ctrl+Shift+F: toggle on, both files" "$S"
-cancel_search
-
-shot "$WID" before-folder "Folder top with no search running, listing match-top.txt and the sub folder; Ctrl+Shift+F saved Include subfolders on for it"
-search ctrl+f match
 saved_is false
-shot "$WID" after-folder "Ctrl+F in top still searches only the current folder: the Include subfolders toggle is released and only match-top.txt is listed"
-pair folder "Pressed Ctrl+F in top and typed match" "Ctrl+F searches only the current folder, even where subfolders were saved on$(skipped)" "top, subfolders saved on, no search" "toggle off, only match-top.txt" "$S"
+shot "$WID" before-subfolders "Ctrl+Shift+F in top with the global default Always: the Include subfolders toggle is released and only match-top.txt is listed"
+cancel_search
+search ctrl+f match
+saved_is true
+shot "$WID" after-subfolders "Ctrl+F in top: the Include subfolders toggle is pressed and both match-top.txt and sub/match-sub.txt are listed"
+pair subfolders "Ended the Ctrl+Shift+F search with Escape, pressed Ctrl+F and typed match" "Ctrl+F searches top with its subfolders, Ctrl+Shift+F without them$(skipped)" "Ctrl+Shift+F: toggle off, only match-top.txt" "Ctrl+F: toggle on, both files" "$S"
 cancel_search
 
-shot "$WID" before-toolbar "Folder top with no search running, listing match-top.txt and the sub folder; Ctrl+F saved Include subfolders off for it"
+shot "$WID" before-folder "Folder top with no search running, listing match-top.txt and the sub folder; Ctrl+F saved Include subfolders on for it"
+search ctrl+shift+f match
+saved_is false
+shot "$WID" after-folder "Ctrl+Shift+F in top still searches only the current folder: the Include subfolders toggle is released and only match-top.txt is listed"
+pair folder "Pressed Ctrl+Shift+F in top and typed match" "Ctrl+Shift+F searches only the current folder, even where subfolders were saved on$(skipped)" "top, subfolders saved on, no search" "toggle off, only match-top.txt" "$S"
+cancel_search
+
+shot "$WID" before-toolbar "Folder top with no search running, listing match-top.txt and the sub folder; Ctrl+Shift+F saved Include subfolders off for it"
 click_at "$SEARCH_X" "$SEARCH_Y"
 xdotool type --delay 20 match
 sleep 2
 saved_is false
 shot "$WID" after-toolbar "The toolbar Search button in top opens with the saved choice, not the global Always: the toggle is released and only match-top.txt is listed"
-pair toolbar "Clicked the Search button at the right of the toolbar and typed match" "The toolbar button opens with the folder's saved choice, off since Ctrl+F" "top, subfolders saved off, no search" "toggle off, only match-top.txt" "$B"
+pair toolbar "Clicked the Search button at the right of the toolbar and typed match" "The toolbar button opens with the folder's saved choice, off since Ctrl+Shift+F" "top, subfolders saved off, no search" "toggle off, only match-top.txt" "$B"
 results_are toolbar match-top.txt
 
 go "$WORK/top"
-search ctrl+shift+f match
+search ctrl+f match
 results_are shift match-sub.txt match-top.txt
 
 go "$WORK/top"
-search ctrl+shift+f match
+search ctrl+f match
 click_at "$TOGGLE_X" "$TOGGLE_Y"
 sleep 1.5
 saved_is false
 results_are toggle match-top.txt
 
 go "$WORK/top"
-search ctrl+f match
+search ctrl+shift+f match
 focus "$WID"
-xdotool key ctrl+shift+f
+xdotool key ctrl+f
 sleep 1.5
 results_are ends match-top.txt sub
 
