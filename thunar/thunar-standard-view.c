@@ -2082,6 +2082,11 @@ thunar_standard_view_free_space_ready (GObject      *source_object,
       standard_view->priv->free_space_known = TRUE;
       thunar_standard_view_update_statusbar_text (standard_view);
     }
+  else if (standard_view->priv->free_space_known)
+    {
+      standard_view->priv->free_space_known = FALSE;
+      thunar_standard_view_update_statusbar_text (standard_view);
+    }
   g_object_unref (info);
 }
 
@@ -2180,9 +2185,23 @@ thunar_standard_view_set_statusbar_folder (ThunarStandardView *standard_view,
 
 
 static void
-thunar_standard_view_model_row_changed (ThunarStandardView *standard_view)
+thunar_standard_view_model_row_changed (ThunarStandardView *standard_view,
+                                        GtkTreePath        *path,
+                                        GtkTreeIter        *iter,
+                                        GtkTreeModel       *model)
 {
+  ThunarFile *file;
+  gboolean    is_directory;
+
   if (standard_view->priv->search_query == NULL)
+    return;
+
+  file = thunar_standard_view_model_get_file (THUNAR_STANDARD_VIEW_MODEL (model), iter);
+  if (file == NULL)
+    return;
+  is_directory = thunar_file_is_directory (file);
+  g_object_unref (file);
+  if (is_directory)
     return;
 
   standard_view->priv->search_size_num_files = -1;
