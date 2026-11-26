@@ -1,0 +1,4 @@
+sha	num	test	result	shot	file	proves
+c95d62118ba2430fd582093281da2e90b9f1449a	1	150	exit 1	before-xapp	verify-150-before-xapp.png	misc-xapp-icons off: the toolbar Home button, the Home place and the Projects bookmark show the theme's symbolic icons
+c95d62118ba2430fd582093281da2e90b9f1449a	1	150	exit 1	after-xapp	verify-150-after-xapp.png	misc-xapp-icons on: the toolbar Home button, the Home place and the Projects bookmark show the solid-square xsi-* fixtures; Projects and Notes in the file view keep colour folder icons
+c95d62118ba2430fd582093281da2e90b9f1449a	2	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
