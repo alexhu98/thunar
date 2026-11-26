@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Explainer #150 XApp icons</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR (to be opened): Nemo's XApp icons in the toolbar, location bar and side pane</h1>
+  <p class="lead" data-k="lead">Branch <code>150-xapp-icons</code> → <code>main</code>, closes #150. Where Thunar already shows symbolic (one-colour) icons, it now uses Nemo's XApp version of each icon when it is installed, and the theme's own icon when it isn't.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing builds on it yet</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">One helper in <code>thunar-util.c</code> turns an icon name into its XApp name, <code>xsi-&lt;name&gt;-symbolic</code>. The toolbar, the location bar and the side pane try that name first, behind a new hidden setting that is on by default.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="The toolbar, location bar and side pane ask the helper for an XApp icon name; if the icon theme has it, that icon is shown, otherwise the theme's own symbolic icon. Turning the setting or changing the icon theme refreshes the icons.">
+  <svg viewBox="0 0 1000 560" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Each icon draw: pick the name</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Toolbar, path bar</text>
+      <text x="36" y="114" class="b">Home, Back, Search,</text>
+      <text x="36" y="134" class="b">path buttons, entry</text>
+      <text x="36" y="154" class="m">thunar-window.c</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="20" y="220" width="210" height="120" rx="10"/>
+      <text x="36" y="250" class="t">Side pane</text>
+      <text x="36" y="274" class="b">places, devices,</text>
+      <text x="36" y="294" class="b">bookmarks, tree</text>
+      <text x="36" y="314" class="m">icon-renderer.c</text>
+      <circle class="badge" cx="210" cy="242" r="12"/><text class="badge-n" x="210" y="246.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="270" y="140" width="210" height="120" rx="10"/>
+      <text x="286" y="170" class="t">XApp name</text>
+      <text x="286" y="194" class="m">xsi-&lt;name&gt;-symbolic</text>
+      <text x="286" y="214" class="b">search → edit-find</text>
+      <text x="286" y="234" class="b">only if setting is on</text>
+      <circle class="badge" cx="460" cy="162" r="12"/><text class="badge-n" x="460" y="166.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="520" y="140" width="210" height="120" rx="10"/>
+      <text x="536" y="170" class="t">Installed?</text>
+      <text x="536" y="194" class="b">does the icon theme</text>
+      <text x="536" y="214" class="b">have that xsi icon?</text>
+      <text x="536" y="234" class="m">has_icon()</text>
+      <circle class="badge" cx="710" cy="162" r="12"/><text class="badge-n" x="710" y="166.5" text-anchor="middle">4</text>
+    </g>
+    <g data-k="5">
+      <rect class="box-merge" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Nemo's look</text>
+      <text x="786" y="114" class="b">yes: the xsi icon,</text>
+      <text x="786" y="134" class="b">in the theme's</text>
+      <text x="786" y="154" class="b">text colour</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-you" x="770" y="220" width="210" height="120" rx="10"/>
+      <text x="786" y="250" class="t">Fallback</text>
+      <text x="786" y="274" class="b">no: the theme's own</text>
+      <text x="786" y="294" class="m">&lt;name&gt;-symbolic</text>
+      <text x="786" y="314" class="b">as before this PR</text>
+      <circle class="badge" cx="960" cy="242" r="12"/><text class="badge-n" x="960" y="246.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow" d="M230,120 H250 V185 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M230,280 H250 V215 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,200 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,175 H750 V120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,225 H750 V280 H766" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="404" style="fill:var(--accent)">② When to look again</text>
+    <g data-k="7">
+      <rect class="box-pr" x="20" y="420" width="210" height="120" rx="10"/>
+      <text x="36" y="450" class="t">Setting toggled</text>
+      <text x="36" y="474" class="m">misc-xapp-icons</text>
+      <text x="36" y="494" class="b">hidden, default on</text>
+      <circle class="badge" cx="210" cy="442" r="12"/><text class="badge-n" x="210" y="446.5" text-anchor="middle">7</text>
+    </g>
+    <g data-k="8">
+      <rect class="box-pr" x="270" y="420" width="210" height="120" rx="10"/>
+      <text x="286" y="450" class="t">Full refresh</text>
+      <text x="286" y="474" class="b">toolbar and path bar</text>
+      <text x="286" y="494" class="b">rebuilt; side pane</text>
+      <text x="286" y="514" class="b">and tree redrawn</text>
+      <circle class="badge" cx="460" cy="442" r="12"/><text class="badge-n" x="460" y="446.5" text-anchor="middle">8</text>
+    </g>
+    <g data-k="9">
+      <rect class="box-pr" x="520" y="420" width="210" height="120" rx="10"/>
+      <text x="536" y="450" class="t">Theme changed</text>
+      <text x="536" y="474" class="m">GtkIconTheme</text>
+      <text x="536" y="494" class="m">::changed</text>
+      <text x="536" y="514" class="b">e.g. icons installed</text>
+      <circle class="badge" cx="710" cy="442" r="12"/><text class="badge-n" x="710" y="446.5" text-anchor="middle">9</text>
+    </g>
+    <g data-k="10">
+      <rect class="box-pr" x="770" y="420" width="210" height="120" rx="10"/>
+      <text x="786" y="450" class="t">Buttons only</text>
+      <text x="786" y="474" class="b">toolbar buttons and</text>
+      <text x="786" y="494" class="b">view switcher; a</text>
+      <text x="786" y="514" class="b">typed path is kept</text>
+      <circle class="badge" cx="960" cy="442" r="12"/><text class="badge-n" x="960" y="446.5" text-anchor="middle">10</text>
+    </g>
+    <path class="arrow" d="M230,480 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,480 H766" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>code this PR adds or changes</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>what you see with XApp icons installed</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>what you see without them (unchanged)</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Nemo, Cinnamon's file manager, draws its toolbar and side pane icons from the XApp symbolic set (package <code>xapp-symbolic-icons</code>), whose icons are named <code>xsi-&lt;name&gt;-symbolic</code>. Thunar used the icon theme's <code>&lt;name&gt;-symbolic</code>, for example ZorinBlue-Dark's, so the two apps looked different side by side. This PR makes Thunar ask for the XApp name first.</p>
+  <div class="note" data-k="note">It only changes places that already show symbolic icons, which the existing settings <code>misc-symbolic-icons-in-toolbar</code> and <code>misc-symbolic-icons-in-sidepane</code> turn on. The main file view keeps its colour icons.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Each icon draw: pick the name</div>
+  <ol class="steps">
+    <li data-k="1"><b>Toolbar, path bar.</b> Every built-in toolbar button gets its icon from <code>thunar_window_toolbar_get_icon_name</code> in <code>thunar-window.c</code>, which now asks the helper first. The location bar does the same in <code>thunar-location-buttons.c</code> (the scroll arrows and the edit button), <code>thunar-location-button.c</code> (each folder button) and <code>thunar-path-entry.c</code> (the entry's search and error icons).</li>
+    <li data-k="2"><b>Side pane.</b> Devices and named places go through <code>thunar-shortcuts-icon-renderer.c</code>, which first looks up an icon holding only the XApp names, then the original. Files and bookmarks go through <code>thunar-icon-factory.c</code>, which tries the XApp name only when it is drawing a symbolic icon, so the main view is untouched.</li>
+    <li data-k="3"><b>XApp name.</b> <code>thunar_util_get_xapp_icon_name</code> returns nothing if the hidden setting <code>misc-xapp-icons</code> is off. Otherwise it strips <code>-symbolic</code>, maps <code>system-search</code> to <code>edit-find</code> (XApp has no search icon; Nemo uses edit-find), and builds <code>xsi-&lt;name&gt;-symbolic</code>.</li>
+    <li data-k="4"><b>Installed?</b> The helper asks the icon theme whether it has that name (<code>gtk_icon_theme_has_icon</code>). XApp installs its icons in the <code>hicolor</code> theme, which every theme falls back to.</li>
+    <li data-k="5"><b>Nemo's look.</b> If it does, that icon is drawn, loaded the same symbolic way as before, so it takes the theme's text colour on dark and light themes.</li>
+    <li data-k="6"><b>Fallback.</b> If it doesn't, Thunar draws the theme's own <code>&lt;name&gt;-symbolic</code>, exactly as before this PR.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--accent)">② When to look again</div>
+  <ol class="steps" start="7" style="counter-reset: s 6">
+    <li data-k="7"><b>Setting toggled.</b> <code>misc-xapp-icons</code> is a new hidden setting in <code>thunar-preferences.c</code>, on by default, with no switch in the Preferences dialog.</li>
+    <li data-k="8"><b>Full refresh.</b> Changing it rebuilds the toolbar and location bar icons, as the existing symbolic-icons setting does, and redraws the side pane and tree (<code>thunar-shortcuts-view.c</code>, <code>thunar-tree-view.c</code>).</li>
+    <li data-k="9"><b>Theme changed.</b> The window also listens for the icon theme's <code>changed</code> signal, which fires when the theme is switched or icons are installed or removed.</li>
+    <li data-k="10"><b>Buttons only.</b> That signal refreshes only the toolbar buttons and the view switcher, not the whole location bar, so a path you are typing isn't wiped.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">Which icons change</h3>
+  <div class="grid">
+    <div class="card" data-k="c1"><h3>Have an XApp version</h3><p>Per the issue's list, from a Zorin machine with <code>xapp-symbolic-icons 1.0.9</code>: Back, Forward, Up, Home, New tab, New window, zoom, Reload, Find, Terminal, Edit, the scroll arrows, drives, Computer, the home and user folders, Recent, Trash, Network, Eject.</p></div>
+    <div class="card" data-k="c2"><h3>Search</h3><p>XApp has no <code>system-search</code>, so the Search button and the search entry use <code>xsi-edit-find-symbolic</code>, as Nemo does. Turning the setting off maps it back to the theme's search icon.</p></div>
+    <div class="card" data-k="c3"><h3>Likely fallbacks</h3><p>Icons missing from the issue's list keep the theme's symbolic icon, so the two styles can mix. The view mode icons (grid, list, compact) aren't in the list, so they likely fall back. Not checked here.</p></div>
+  </div>
+  <div class="note" data-k="scope">Not in this PR, because existing settings cover them: the symlink arrows on side pane entries (hidden setting <code>shortcuts-icon-emblems</code>) and custom action toolbar buttons, which keep the icon set in the custom action.</div>
+  </section>
+
+  <section class="sub" id="code">
+  <h3 class="sec">The key change: the toolbar's icon name</h3>
+<pre data-k="diff">thunar_window_toolbar_get_icon_name (ThunarWindow *window, const gchar *icon_name)
+{
+  ...
+<span class="add">  if (g_strcmp0 (icon_name, "xsi-edit-find-symbolic") == 0)</span>
+<span class="add">    icon_name = "system-search-symbolic";</span>
+<span class="add">  else if (g_str_has_prefix (icon_name, "xsi-"))</span>
+<span class="add">    icon_name += 4;</span>
+  g_object_get (..., "misc-symbolic-icons-in-toolbar", &amp;use_symbolic_icons, NULL);
+<span class="add">  if (use_symbolic_icons)</span>
+<span class="add">    {</span>
+<span class="add">      xapp_icon_name = thunar_util_get_xapp_icon_name (icon_theme, icon_name);</span>
+<span class="add">      if (xapp_icon_name != NULL)</span>
+<span class="add">        return xapp_icon_name;</span>
+<span class="add">    }</span>
+  /* otherwise the theme's &lt;name&gt;-symbolic, as before */</pre>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+├── thunar-util.c/.h                  # the two helpers: XApp name, XApp-only GIcon
+├── thunar-preferences.c              # hidden setting misc-xapp-icons, default on
+├── thunar-window.c                   # toolbar icon names; refresh on setting and theme change
+├── thunar-location-buttons.c         # scroll arrows and edit button
+├── thunar-location-button.c          # each folder button's icon
+├── thunar-path-entry.c               # the entry's search and error icons
+├── thunar-shortcuts-icon-renderer.c  # side pane devices and named places
+├── thunar-icon-factory.c             # side pane files and bookmarks, symbolic only
+├── thunar-shortcuts-view.c           # redraw the side pane on the setting
+└── thunar-tree-view.c                # redraw the tree on the setting
+verify/150.sh                         # the test: fixture icons, on, off, fallback
+explainers/150-xapp-icons.html        # this page (and its .narration.json)</pre>
+  <div class="note warn" data-k="rollback">To go back to the theme's icons without a new build, turn the hidden setting off: <code>xfconf-query -c thunar -p /misc-xapp-icons -n -t bool -s false</code>. Thunar refreshes at once; <code>-s true</code> turns it back on.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">All results below are from the building session's local run in a cloud container, via <code>.github/scripts/verify-proof.sh</code>, unless a row says otherwise. The container had no XApp package, so the test used stand-in icons.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Nemo on Zorin</h3><p>The issue's coverage list, from the owner's Zorin machine with <code>nemo 6.6.3</code> and <code>xapp-symbolic-icons 1.0.9</code>: which xsi icons exist, and that Nemo searches with edit-find. Not checked here.</p></div>
+    <div class="card" data-k="r2"><h3>The symbolic-icons settings</h3><p>The new setting refreshes the way <code>misc-symbolic-icons-in-sidepane</code> and <code>-in-toolbar</code> already do: a side pane redraw and a toolbar icon update.</p></div>
+    <div class="card" data-k="r3"><h3>Fixture icons</h3><p><code>verify/150.sh</code> puts solid grey squares named <code>xsi-go-home-symbolic</code> and <code>xsi-folder-symbolic</code> in the test home's <code>hicolor</code> folder, so the change is easy to see in a shot.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>It builds</td><td><code>dpkg-buildpackage</code> in the cloud container. Build 1 failed: the docs build choked on <code>&lt;name&gt;</code> in the helper's doc comment, which was reworded</td><td class="ok">builds 2 and 3 built</td></tr>
+    <tr data-k="c2"><td>Every test, first try</td><td><code>verify-proof.sh run</code> on build 2: the smoke test and every <code>verify/*.sh</code>. <code>verify/150.sh</code> failed: the Home place kept the theme's icon, and the fallback shot didn't change</td><td class="no">32 of 33 pass</td></tr>
+    <tr data-k="c3"><td>The two fixes</td><td>GTK picks a theme icon over a hicolor one when both names are in one lookup, so the side pane now looks up the XApp-only icon first. GTK only rescans icons when the theme folder changes, so the test now touches it</td><td class="ok">fixed in build 3</td></tr>
+    <tr data-k="c4"><td>On, off and fallback</td><td>Build 3, <code>verify-proof.sh run</code> with only the smoke test and <code>verify/150.sh</code>: the toolbar Home button, the Home place and a bookmark change; the file view doesn't; removing one icon falls back</td><td class="ok">2 of 2 pass (11 s, 16 s)</td></tr>
+    <tr data-k="c5"><td>The review fixes compile</td><td><code>make</code> of <code>thunar-window.o</code> and <code>thunar-util.o</code> after the review fixes in commit <code>6d1e1ec</code>; not rebuilt as debs or re-run under verify</td><td class="ok">clean</td></tr>
+    <tr data-k="c6"><td>CI's build, verify and review</td><td>Run on the push of this branch, against the PR's head</td><td class="open">runs on the push</td></tr>
+    <tr data-k="c7"><td>The real XApp package</td><td>No <code>xapp-symbolic-icons</code> in the container; the test uses fixture squares on purpose, so it doesn't depend on the package</td><td class="no">not run</td></tr>
+    <tr data-k="c8"><td>Search, location bar and view mode icons</td><td>No fixtures for them, so <code>verify/150.sh</code> doesn't look at the search mapping, the location bar or the view mode fallbacks</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh agent ran <code>/code-review</code> at <code>high</code> on the branch against <code>origin/main</code>. It found 7: 3 fixed, 3 skipped for now, and 1 was this missing page. The fixes came after build 3, so they were compiled but not re-run under verify.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed, Search icon:</b> turning XApp icons off left the Search button on edit-find. The toolbar now maps <code>xsi-edit-find-symbolic</code> back to <code>system-search</code>.</li>
+    <li data-k="b2"><b>Fixed, typed path:</b> an icon theme change rebuilt the whole location bar and wiped a path being typed. Now only the toolbar buttons and the view switcher refresh.</li>
+    <li data-k="b3"><b>Fixed, comments:</b> two “why” sentences were trimmed from the helpers' doc comments.</li>
+    <li data-k="b4"><b>Skipped, device icons:</b> a drive may show a generic xsi icon such as <code>xsi-drive-harddisk</code> where the theme has a more specific one. Kept for a consistent Nemo look.</li>
+    <li data-k="b5"><b>Skipped, speed:</b> each icon draw reads the setting and asks the theme once more. A small cost.</li>
+    <li data-k="b6"><b>Skipped, screen:</b> the location bar's arrows use the default icon theme rather than the window's screen's. The same on a single screen.</li>
+  </ul>
+  <p data-k="ci">CI then reviews each code push at <code>high</code> and reports in the code review PR comment, on this PR once it is opened.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>The real XApp icons on Zorin, next to Nemo: colour on ZorinBlue-Dark, search, view modes, devices</td><td>Needs the owner's machine with <code>xapp-symbolic-icons</code> and the real theme; CI uses fixtures</td><td class="open">when the owner installs it</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/150">#150</a>, with the coverage list</li>
+    <li data-k="l2">The branch: <a href="https://github.com/alexhu98/thunar/tree/150-xapp-icons"><code>150-xapp-icons</code></a>; the PR, once opened, carries CI's runs, shots and comments</li>
+    <li data-k="l3">The test: <code>verify/150.sh</code> on that branch</li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing builds on it yet</h2>
+  <p class="intro" data-k="intro">No open issue says “Depends on #150”. What's left is the owner's look on the real machine, and a new issue if a fallback icon looks out of place.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR, then the owner checks it on Zorin with the real XApp package, then possibly a new issue for an icon that looks out of place.">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--future)">After the merge</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">xsi icons first,</text>
+      <text x="36" y="134" class="b">theme icons as the</text>
+      <text x="36" y="154" class="b">fallback</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">You, on Zorin</text>
+      <text x="286" y="114" class="b">Thunar beside Nemo</text>
+      <text x="286" y="134" class="b">with the real</text>
+      <text x="286" y="154" class="b">XApp package</text>
+    </g>
+    <g data-k="n3">
+      <rect class="box-future" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Maybe an issue</text>
+      <text x="536" y="114" class="b">for a fallback or</text>
+      <text x="536" y="134" class="b">device icon that</text>
+      <text x="536" y="154" class="b">looks out of place</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
+    <path class="arrow-future" d="M480,120 H516" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not opened yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="owner-check">
+  <h3 class="sec">Your check on Zorin (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Install and compare.</b> With the new build and <code>xapp-symbolic-icons</code> installed, open Thunar beside Nemo and compare the toolbar, location bar and side pane.</li>
+    <li data-k="2"><b>Look for mixed icons.</b> The view mode buttons and any icon XApp lacks keep the theme's style. If one looks out of place, that becomes a new issue.</li>
+    <li data-k="3"><b>Turn it off if needed.</b> The rollback command in Part 1 brings back the theme's icons without a new build.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="symbolic"><dt>Symbolic icon</dt><dd>A one-colour outline icon, named <code>…-symbolic</code>, that GTK tints with the theme's text colour.</dd></div>
+    <div data-k="xapp"><dt>XApp</dt><dd>Linux Mint's shared library and assets for its apps, including Nemo's icon set.</dd></div>
+    <div data-k="xsi"><dt>xsi-</dt><dd>The prefix of XApp's symbolic icons, e.g. <code>xsi-go-home-symbolic</code>.</dd></div>
+    <div data-k="nemo"><dt>Nemo</dt><dd>Cinnamon's file manager, which Zorin also ships; the look this PR matches.</dd></div>
+    <div data-k="hicolor"><dt>hicolor</dt><dd>The base icon theme every theme falls back to; XApp installs its icons there.</dd></div>
+    <div data-k="hidden"><dt>Hidden setting</dt><dd>A Thunar setting with no switch in Preferences, changed with <code>xfconf-query</code>.</dd></div>
+    <div data-k="xfconf"><dt>xfconf-query</dt><dd>Xfce's command for reading and writing settings, such as Thunar's.</dd></div>
+    <div data-k="sidepane"><dt>Side pane</dt><dd>The left column with Places, Devices, Network and Bookmarks (or the tree).</dd></div>
+    <div data-k="location"><dt>Location bar</dt><dd>The path area in the toolbar: folder buttons or a typed path entry.</dd></div>
+    <div data-k="gthemed"><dt>GThemedIcon</dt><dd>An icon given as a list of names; GTK uses the first the theme has.</dd></div>
+    <div data-k="fixture"><dt>Fixture</dt><dd>A stand-in file a test creates, here solid squares named like XApp icons.</dd></div>
+    <div data-k="gtkdoc"><dt>gtk-doc</dt><dd>The tool that builds API docs from code comments during the build.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
