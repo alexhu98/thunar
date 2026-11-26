@@ -140,6 +140,8 @@ static gboolean
 thunar_standard_view_rename_idle (gpointer user_data);
 static void
 thunar_standard_view_rename_queue (ThunarStandardView *standard_view);
+static GList *
+thunar_standard_view_rename_paths (ThunarStandardView *standard_view);
 static void
 thunar_standard_view_get_property (GObject    *object,
                                    guint       prop_id,
@@ -5552,15 +5554,139 @@ thunar_standard_view_rename_activate (GtkEntry           *entry,
 
 
 static gboolean
+thunar_standard_view_rename_row_next (GtkTreeView  *tree_view,
+                                      GtkTreeModel *model,
+                                      GtkTreeIter  *iter)
+{
+  GtkTreePath *path;
+  GtkTreeIter  child;
+  GtkTreeIter  parent;
+  gboolean     expanded;
+
+  path = gtk_tree_model_get_path (model, iter);
+  expanded = gtk_tree_view_row_expanded (tree_view, path);
+  gtk_tree_path_free (path);
+  if (expanded && gtk_tree_model_iter_children (model, &child, iter))
+    {
+      *iter = child;
+      return TRUE;
+    }
+
+  for (;;)
+    {
+      child = *iter;
+      if (gtk_tree_model_iter_next (model, &child))
+        {
+          *iter = child;
+          return TRUE;
+        }
+      if (!gtk_tree_model_iter_parent (model, &parent, iter))
+        return FALSE;
+      *iter = parent;
+    }
+}
+
+
+
+static gboolean
+thunar_standard_view_rename_row_previous (GtkTreeView  *tree_view,
+                                          GtkTreeModel *model,
+                                          GtkTreeIter  *iter)
+{
+  GtkTreePath *path;
+  GtkTreeIter  child;
+  GtkTreeIter  parent;
+  gint         n_children;
+
+  child = *iter;
+  if (!gtk_tree_model_iter_previous (model, &child))
+    {
+      if (!gtk_tree_model_iter_parent (model, &parent, iter))
+        return FALSE;
+      *iter = parent;
+      return TRUE;
+    }
+
+  *iter = child;
+  for (;;)
+    {
+      path = gtk_tree_model_get_path (model, iter);
+      n_children = gtk_tree_view_row_expanded (tree_view, path) ? gtk_tree_model_iter_n_children (model, iter) : 0;
+      gtk_tree_path_free (path);
+      if (n_children == 0 || !gtk_tree_model_iter_nth_child (model, &child, iter, n_children - 1))
+        return TRUE;
+      *iter = child;
+    }
+}
+
+
+
+static ThunarFile *
+thunar_standard_view_rename_neighbour (ThunarStandardView *standard_view,
+                                       gboolean            forward)
+{
+  GtkTreeModel *model = GTK_TREE_MODEL (standard_view->model);
+  GtkWidget    *view = gtk_bin_get_child (GTK_BIN (standard_view));
+  GtkTreeIter   iter;
+  ThunarFile   *file = NULL;
+  GList        *paths;
+  gboolean      found;
+
+  if (!GTK_IS_TREE_VIEW (view))
+    return NULL;
+
+  paths = thunar_standard_view_rename_paths (standard_view);
+  if (paths == NULL)
+    return NULL;
+  found = gtk_tree_model_get_iter (model, &iter, paths->data);
+  g_list_free_full (paths, (GDestroyNotify) gtk_tree_path_free);
+
+  while (found && file == NULL)
+    {
+      if (forward)
+        found = thunar_standard_view_rename_row_next (GTK_TREE_VIEW (view), model, &iter);
+      else
+        found = thunar_standard_view_rename_row_previous (GTK_TREE_VIEW (view), model, &iter);
+      if (found)
+        file = thunar_standard_view_model_get_file (standard_view->model, &iter);
+    }
+  return file;
+}
+
+
+
+static gboolean
 thunar_standard_view_rename_key_pressed (GtkWidget          *entry,
                                          GdkEventKey        *event,
                                          ThunarStandardView *standard_view)
 {
+  ThunarFile *next;
+  gboolean    forward;
+
   if (event->keyval == GDK_KEY_Escape)
     standard_view->priv->rename_escaped = TRUE;
   else if (event->keyval == GDK_KEY_Up || event->keyval == GDK_KEY_KP_Up
            || event->keyval == GDK_KEY_Down || event->keyval == GDK_KEY_KP_Down)
     return thunar_standard_view_rename_show_error (GTK_ENTRY (entry));
+  else if (event->keyval == GDK_KEY_Tab || event->keyval == GDK_KEY_KP_Tab
+           || event->keyval == GDK_KEY_ISO_Left_Tab)
+    {
+      if (thunar_standard_view_rename_show_error (GTK_ENTRY (entry)))
+        return TRUE;
+
+      forward = event->keyval != GDK_KEY_ISO_Left_Tab && (event->state & GDK_SHIFT_MASK) == 0;
+      next = thunar_standard_view_rename_neighbour (standard_view, forward);
+      g_object_ref (entry);
+      gtk_cell_editable_editing_done (GTK_CELL_EDITABLE (entry));
+      gtk_cell_editable_remove_widget (GTK_CELL_EDITABLE (entry));
+      g_object_unref (entry);
+      if (next != NULL)
+        {
+          thunar_standard_view_rename_in_place (standard_view, next);
+          g_object_unref (next);
+        }
+      return TRUE;
+    }
   return FALSE;
 }
 
