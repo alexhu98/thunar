@@ -226,7 +226,7 @@ publish() {
   [[ -n ${PR:-} || ${DRY_RUN:-0} == 1 ]] || { echo "publish needs PR" >&2; exit 1; }
   : "${GH_REPO:?}"
   : > "$OUT/urls.tsv"
-  local file sha failed=0 manifest_lost=0 dir="pr-${PR:-0}"
+  local file sha cause failed=0 manifest_lost=0 dir="pr-${PR:-0}"
   export SHOTS_DEADLINE=$(( $(date +%s) + 300 ))
   if [[ -s $OUT/results.tsv && ! -s $OUT/numbered.json ]]; then
     python3 "$HERE/verify-shots.py" build "$OUT" || echo "::warning::some pair images could not be made" >&2
@@ -237,8 +237,8 @@ publish() {
       jq -r --arg o "$OUT/" --arg d "$dir/" '.[] | (.test as $t | .shots[] | [$o + .file, $d + "verify-\($t)-\(.name).png"]), (select(.kind == "pair" and .image) | [$o + .image, $d + "pair-\(.test)-\(.what).png"]) | @tsv' "$OUT/numbered.json"
       printf '%s\t%s\n' "$OUT/verify-shots.tsv" "$dir/verify.tsv"
     } > "$OUT/upload.tsv"
-    OUT="$OUT/upload" "$HERE/shots.sh" "$OUT/upload.tsv" "Verify screenshots for PR #${PR:-0}" > "$OUT/committed.tsv" 2> "$OUT/upload.err" </dev/null || failed=1
-    cat "$OUT/upload.err" >&2
+    rm -f "$OUT/upload/reason" "$OUT/manifest/reason"
+    OUT="$OUT/upload" "$HERE/shots.sh" "$OUT/upload.tsv" "Verify screenshots for PR #${PR:-0}" > "$OUT/committed.tsv" </dev/null || failed=1
     while IFS=$'\t' read -r file sha; do
       if [[ $file == "$OUT/verify-shots.tsv" ]]; then
         [[ $sha != - ]] || manifest_lost=1
@@ -260,7 +260,8 @@ publish() {
       fi
     fi
     (( ! manifest_lost )) || printf 'verify-shots.tsv\t-\n' >> "$OUT/urls.tsv"
-    (( ! failed )) || echo "::error::the shots could not all be committed to the shots branch ($(tail -n 1 "$OUT/upload.err" 2>/dev/null)); lost: $(awk -F'\t' -v m="$dir/verify.tsv" '$2 == "-" { n++; if (n <= 10) { printf "%s%s", sep, ($1 == "verify-shots.tsv" ? m : $1); sep = ", " } } END { if (n > 10) printf " and %d more", n - 10 }' "$OUT/urls.tsv")" >&2
+    cause=$(cat "$OUT/manifest/reason" 2>/dev/null || cat "$OUT/upload/reason" 2>/dev/null || true)
+    (( ! failed )) || echo "::error::the shots could not all be committed to the shots branch${cause:+ ($cause)}; lost: $(awk -F'\t' -v m="$dir/verify.tsv" '$2 == "-" { n++; if (n <= 10) { printf "%s%s", sep, ($1 == "verify-shots.tsv" ? m : $1); sep = ", " } } END { if (n > 10) printf " and %d more", n - 10 }' "$OUT/urls.tsv")" >&2
   fi
   python3 "$HERE/verify-shots.py" comment "$OUT" > "$OUT/comment.md"
   OUT="$OUT/comment" "$HERE/pr-comment.sh" put verify "$OUT/comment.md"
