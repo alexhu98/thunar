@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Issue #144 Status cache</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">Issue #144: the status bar keeps folder totals and free space instead of re-reading every file</h1>
+  <p class="lead" data-k="lead">Branch <code>144-statusbar-cache</code> → <code>main</code>, closes #144. Moving the cursor no longer reads every file in the folder from disk; the status bar text stays the same.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing depends on #144</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">The status bar's Total, Free space and Selection parts now come from file data Thunar already holds, kept per view in <code>thunar-standard-view.c</code>, and the background job that re-read the folder is gone.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="When the folder changes, the cached total is dropped and free space is asked again; when the selection moves, the status bar is built from memory and the cache">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Folder opens or its files change</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Watch the folder</text>
+      <text x="36" y="114" class="b">files added, removed</text>
+      <text x="36" y="134" class="b">or changed</text>
+      <text x="36" y="154" class="b">(a file grows)</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="2">
+      <rect class="box-pr" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Drop the Total</text>
+      <text x="286" y="114" class="b">cached text cleared,</text>
+      <text x="286" y="134" class="b">recounted on next</text>
+      <text x="286" y="154" class="b">status bar update</text>
+      <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Free space</text>
+      <text x="536" y="114" class="b">asked without</text>
+      <text x="536" y="134" class="b">blocking; again at</text>
+      <text x="536" y="154" class="b">most every 2 s</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,120 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M625,180 V256" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M375,180 V256" marker-end="url(#ah-flow)"/>
+
+    <text class="lane" x="20" y="244" style="fill:var(--merge)">② Cursor moves or results change</text>
+    <g data-k="4">
+      <rect class="box-merge" x="20" y="260" width="210" height="120" rx="10"/>
+      <text x="36" y="290" class="t">Selection text</text>
+      <text x="36" y="314" class="b">one file or several,</text>
+      <text x="36" y="334" class="b">counted in memory</text>
+      <circle class="badge" cx="210" cy="282" r="12"/><text class="badge-n" x="210" y="286.5" text-anchor="middle">4</text>
+    </g>
+    <g data-k="5">
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Total or search</text>
+      <text x="286" y="314" class="b">from the cache; the</text>
+      <text x="286" y="334" class="b">search size only when</text>
+      <text x="286" y="354" class="b">the count changes</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">5</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Status bar</text>
+      <text x="536" y="314" class="b">left: selection</text>
+      <text x="536" y="334" class="b">right: Total and</text>
+      <text x="536" y="354" class="b">Free space</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow" d="M230,320 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,320 H516" marker-end="url(#ah-flow)"/>
+
+    <g data-k="gone">
+      <rect x="770" y="160" width="210" height="120" rx="10" fill="var(--panel)" stroke="var(--line)" stroke-dasharray="4 4"/>
+      <text x="786" y="190" class="t" style="fill:var(--muted)">Removed</text>
+      <text x="786" y="214" class="b">the background job</text>
+      <text x="786" y="234" class="b">that re-read every</text>
+      <text x="786" y="254" class="b">file per selection</text>
+    </g>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>runs when the folder changes</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>runs on each status bar update, no disk reads</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--line);border-style:dashed"></span>removed by this PR</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">Since #74, every cursor move started a background job that asked the disk about every file in the folder, and asked for free space, just to redraw numbers that hadn't changed. In a folder of thousands of files, or on a network share where each question is a round trip, that is a lot of work per key press.</p>
+  <div class="note" data-k="note">Thunar already holds every file's size, type and hidden flag in memory once a folder is loaded. Counting from that is a loop with no disk access, so it can run on the main thread, and it only needs redoing when the folder's files change.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <div class="lane-h" style="color:var(--accent)">① Folder opens or its files change</div>
+  <ol class="steps">
+    <li data-k="1"><b>Watch the folder.</b> When the view's folder is set, the view keeps a reference to it and listens for its files-added, files-removed and files-changed signals. A file that grows, like a download, sends files-changed.</li>
+    <li data-k="2"><b>Drop the Total.</b> Any of those signals clears the cached Total text and the cached search size, then asks for a status bar update. The count itself waits until the text is needed.</li>
+    <li data-k="3"><b>Free space.</b> Asked once when the folder opens, without blocking the window, using the async lookup #74 added for search. While files change it is asked again, at most every 2 seconds.</li>
+  </ol>
+  <div class="lane-h" style="color:var(--merge)">② Cursor moves or results change</div>
+  <ol class="steps" start="4" style="counter-reset: s 3">
+    <li data-k="4"><b>Selection text.</b> One file shows its name and size as before. Several files are now counted from the selected files in memory, including the last-modified date, instead of being read from disk again.</li>
+    <li data-k="5"><b>Total or search.</b> With no cached Total, or after the hidden-files, size-format or status-bar settings change, the folder's files are counted once in memory. In a search, the results' size is added up again only when the result count changes.</li>
+    <li data-k="6"><b>Status bar.</b> The selection goes on the left, and Total (or the search count) with Free space on the right, the same layout and words as before.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="cases">
+  <h3 class="sec">What a cursor move reads from disk</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Case</th><th>Before (since #74)</th><th>Now</th></tr>
+    <tr data-k="none"><td>Nothing selected</td><td>every file in the folder, and free space</td><td>nothing; the cached Total</td></tr>
+    <tr data-k="one"><td>One file selected</td><td>every file in the folder, and free space</td><td>nothing</td></tr>
+    <tr data-k="many"><td>Several files selected</td><td>each selected file, every file in the folder, and free space</td><td>nothing</td></tr>
+    <tr data-k="search"><td>Searching</td><td>no disk reads, but every result row added up on each update</td><td>results added up only when their count changes</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="parts">
+  <h3 class="sec">A closer look at the pieces</h3>
+  <div class="grid">
+    <div class="card" data-k="c1"><h3>One counting helper</h3><p>The helper in <code>thunar-util.c</code> now counts Thunar's own file objects instead of asking the disk. Hidden still means hidden or backup, the same two flags as before.</p></div>
+    <div class="card" data-k="c2"><h3>One cache per view</h3><p>The view keeps the Total text, the settings it was made with, the search size and the free space. No new caching layer.</p></div>
+    <div class="card" data-k="c3"><h3>Dead code removed</h3><p>The status bar job in <code>thunar-io-jobs.c</code>, 149 lines, and its callbacks in the view are gone, so there is one path, not two.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+├── thunar-standard-view.c  # folder watch, cached Total, free space, status bar built in memory
+├── thunar-standard-view.h  # drops the job's text setter
+├── thunar-util.c           # counting helper reads file objects, not the disk
+├── thunar-util.h           # no cancellable argument any more
+├── thunar-io-jobs.c        # status bar job removed
+└── thunar-io-jobs.h        # its declaration removed
+verify/144.sh               # 2,042 files: stat count, grow freshness, search size
+explainers/144-statusbar-cache.html            # this page
+explainers/144-statusbar-cache.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo, revert the PR's merge commit. The status bar text is the same either way; only the work behind it changes.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Checked against the status bar #74 made and its test, with a new test that counts disk reads. Everything below ran in this session's cloud container; CI hasn't run yet.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 2 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>#74's status bar and verify/74.sh</h3><p>The text must not change. Its test, which checks nothing selected, one file, two files and a search, was run unchanged.</p></div>
+    <div class="card" data-k="r2"><h3>#74's free space lookup for search</h3><p>Its async query was reused for every folder, not only searches, rather than adding a new mechanism.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>Package builds</td><td><code>dpkg-buildpackage</code> from the working tree, in this session's cloud container</td><td class="ok">built, 0 new warnings</td></tr>
+    <tr data-k="c2"><td>Tests pass on the final commit</td><td><code>verify-proof.sh run 144 74</code> under Xvfb, on commit <code>752b964</code></td><td class="ok">3 of 3 pass</td></tr>
+    <tr data-k="c3"><td>Status bar text unchanged</td><td><code>verify/74.sh</code>, not edited, in that run</td><td class="ok">pass, 52 s</td></tr>
+    <tr data-k="c4"><td>No disk reads per cursor move</td><td><code>verify/144.sh</code> traces stat calls with <code>strace</code> while pressing Down 20 times in a folder of 2,042 files</td><td class="ok">0 stat calls</td></tr>
+    <tr data-k="c5"><td>The trace sees those files</td><td>the same trace, over the whole run, including the folder load</td><td class="ok">6,835 calls</td></tr>
+    <tr data-k="c6"><td>Total follows a growing file; search size is right</td><td><code>verify/144.sh</code> appends 1 MiB to a file and searches for 40 files, in that run</td><td class="ok">pass, 31 s</td></tr>
+    <tr data-k="c7"><td>Screenshots show the right text</td><td>the local run's shots weren't audited; CI's shots get <code>/visual-verify</code> after its run</td><td class="no">not run</td></tr>
+    <tr data-k="c8"><td>Network folders (smb, sftp)</td><td>no network share in the container, so the files-changed signal on them wasn't checked</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  <div class="note" data-k="scale">Before this PR, 20 cursor moves would have read about 20 × 2,042 files, roughly 40,000 reads. The test fails at 2,000.</div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, a fresh agent reviewed the branch against <code>origin/main</code> at level high, with fixes on. It found 6 things: 4 fixed, 2 kept as trade-offs the issue allows.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed, memory:</b> a file listed twice in a multi-selection was released twice. It is now added once.</li>
+    <li data-k="b2"><b>Fixed, test:</b> the trace filter missed the newer stat calls, so it now traces every stat variant; and clearing the selection clicked a file, so it now presses Escape too.</li>
+    <li data-k="b3"><b>Fixed, style:</b> alignment of the changed lines, as clang-format wants.</li>
+    <li data-k="s1"><b>Kept, S1:</b> a search's size is added up again only when the result count changes, so a result that grows during the search can show an old total.</li>
+    <li data-k="s2"><b>Kept, S2:</b> free space refreshes only when files in the viewed folder change, at most every 2 s, so space freed elsewhere on the disk shows up later.</li>
+  </ul>
+  <p data-k="ci-review">CI's own review runs on every code push and reports in the code review PR comment, added once the PR is open. It hasn't run yet.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked after this page was written</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>CI build, verify and review</td><td>they run on the PR, which isn't open yet</td><td class="open">first push of the PR</td></tr>
+    <tr data-k="a2"><td>The stat count in CI</td><td><code>strace</code> isn't in CI's verify tool list; without it the test prints a skip line and keeps its other checks. Changing CI is outside this PR.</td><td class="open">CI's verify run</td></tr>
+    <tr data-k="a3"><td>Your own large folders and network shares</td><td>only on your machine</td><td class="open">after the merge</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/144">#144</a></li>
+    <li data-k="l2">The PR, its checks and CI's review: added once the PR is open</li>
+    <li data-k="l3">The test: <code>verify/144.sh</code> on the branch <code>144-statusbar-cache</code></li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing depends on #144</h2>
+  <p class="intro" data-k="intro">No open issue says "Depends on #144", so nothing builds on it yet. What remains is a look in your own session after the merge.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR, then you try it in your own folders">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--merge)">#144 Status bar cache</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">same status bar,</text>
+      <text x="36" y="134" class="b">no disk reads per</text>
+      <text x="36" y="154" class="b">cursor move</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-you" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Try it for real</text>
+      <text x="286" y="114" class="b">a big folder and a</text>
+      <text x="286" y="134" class="b">network share in</text>
+      <text x="286" y="154" class="b">your own session</text>
+    </g>
+    <path class="arrow" d="M230,120 H266" marker-end="url(#ah-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--panel);border-color:var(--text)"></span>you</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-a">
+  <h3 class="sec">Your step (next)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Try it in your session.</b> After the merge, hold Down in a large folder and on a network share: moving should feel no slower than in a small folder, and Total should update when a file in the folder grows.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="status"><dt>Status bar</dt><dd>The line at the bottom of the window: selection on the left, Total and Free space on the right.</dd></div>
+    <div data-k="total"><dt>Total</dt><dd>The viewed folder's counts and size, e.g. "Total: 2 folders, 30 files: 4.1 MiB".</dd></div>
+    <div data-k="stat"><dt>stat</dt><dd>The system call that asks the disk for a file's size, type and dates.</dd></div>
+    <div data-k="strace"><dt>strace</dt><dd>A tool that logs every system call a program makes; the test counts stat calls with it.</dd></div>
+    <div data-k="cache"><dt>Cache</dt><dd>A result kept to reuse, here the Total text, until the folder's files change.</dd></div>
+    <div data-k="signal"><dt>files-changed</dt><dd>The signal a Thunar folder sends when one of its files changes on disk.</dd></div>
+    <div data-k="async"><dt>Async</dt><dd>Started now, answered later, without freezing the window meanwhile.</dd></div>
+    <div data-k="gvfs"><dt>Network share</dt><dd>An smb or sftp folder, where each file question is a round trip over the network.</dd></div>
+    <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual screen with no monitor, where the tests run Thunar.</dd></div>
+    <div data-k="sx"><dt>S1, S2</dt><dd>Review findings kept on purpose, with the reason.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
