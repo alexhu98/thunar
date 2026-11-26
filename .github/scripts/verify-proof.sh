@@ -18,7 +18,8 @@
 #   publish  commits the numbered shots, the pair images and the manifest to the shots branch under pr-$PR/
 #            (verify-<test>-<shot>.png, pair-<test>-<what>.png, verify.tsv) in one commit through shots.sh, writes
 #            the verify comment through pr-comment.sh and then the summary through pr-summary.py. Run it whether or
-#            not run passed. A failed upload is marked in the comment, and publish then fails.
+#            not run passed. A failed upload is marked in the comment, and publish then fails; a lost verify.tsv is
+#            uploaded again first.
 # Env: PR, HEAD_SHA, HEAD_REF, GH_REPO, RUN_ID, RUN_URL, OUT, DEBS, OWN, TIMEOUT (default 120), BUDGET (default 1500),
 # JOBS (default 4).
 # DRY_RUN=1 makes publish print the comment instead of uploading and posting it.
@@ -251,7 +252,8 @@ publish() {
         python3 "$HERE/verify-shots.py" manifest "$OUT" > "$OUT/verify-shots.tsv"
         printf '%s\t%s\n' "$OUT/verify-shots.tsv" "$dir/verify.tsv" > "$OUT/manifest.tsv"
         if OUT="$OUT/manifest" "$HERE/shots.sh" "$OUT/manifest.tsv" "Verify manifest for PR #${PR:-0}" >/dev/null </dev/null; then
-          awk -F'\t' '$2 == "-" { found = 1 } END { exit !found }' "$OUT/urls.tsv" || failed=0
+          awk -F'\t' '$2 == "-" { found = 1 } END { exit !found }' "$OUT/urls.tsv" \
+            || { failed=0; echo "::notice::$dir/verify.tsv was uploaded on the retry, so the upload errors above are cleared" >&2; }
         else
           echo "::error::could not upload $dir/verify.tsv$( (( manifest_lost )) || echo ' with the lost files marked')" >&2
         fi
