@@ -45,7 +45,7 @@ differs() {  # shot-a shot-b region
   [[ $ae != 0 ]]
 }
 
-changed_icons() {  # shot-a shot-b: how many side-pane icons differ
+changed_icons() {  # shot-a shot-b
   compare "$(region "$1" "$SIDEPANE")" "$(region "$2" "$SIDEPANE")" -compose src -highlight-color white -lowlight-color black \
     "$WORK/diff-$1-$2.png" 2>/dev/null || true
   convert "$WORK/diff-$1-$2.png" -threshold 50% -morphology Dilate Square:4 \

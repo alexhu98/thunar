@@ -1146,7 +1146,8 @@ thunar_util_get_icon_name_from_xapp (const gchar *icon_name)
   gsize length;
   guint n;
 
-  if (icon_name == NULL || !g_str_has_prefix (icon_name, "xsi-") || !g_str_has_suffix (icon_name, "-symbolic"))
+  if (icon_name == NULL || strlen (icon_name) < strlen ("xsi--symbolic")
+      || !g_str_has_prefix (icon_name, "xsi-") || !g_str_has_suffix (icon_name, "-symbolic"))
     return NULL;
 
   icon_name += 4;
