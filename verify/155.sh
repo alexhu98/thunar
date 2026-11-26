@@ -60,14 +60,6 @@ press ctrl+Page_Down charlie
 shot "$WID" after-next "The right pane is now active on charlie and the left pane, still on bravo, is dimmed (the script asserts the title charlie)"
 pair next "On the left pane's last tab, bravo, pressed Ctrl+Page Down" "Next Tab crosses the split: bravo's next tab is the right pane's first, charlie, and that pane becomes active" "left pane active on bravo" "right pane active on charlie" "$G"
 
-xdotool key ctrl+a
-sleep 0.5
-shot "$WID" before-focus "Right after crossing, Ctrl+A selected charlie's only item, the folder inside, in the right pane"
-press Return inside
-shot "$WID" after-focus "Return opened the folder inside in the right pane, so the keyboard focus was in that pane's view (the script asserts the title inside)"
-pair focus "After Ctrl+Page Down crossed to charlie, pressed Ctrl+A, then Return" "After crossing, the keyboard focus is in the new pane's file view, so Return opens its selection" "inside selected in charlie" "right pane opened inside" "$G"
-press alt+Left charlie
-
 press ctrl+Page_Up bravo
 shot "$WID" back-to-bravo "Ctrl+Page Up from charlie made the left pane active again on bravo; the right pane is dimmed (the script asserts the title bravo)"
 
@@ -88,6 +80,14 @@ press ctrl+Tab charlie
 shot "$WID" after-ctrl-tab "Ctrl+Tab from bravo moved to charlie and made the right pane active (the script asserts the title charlie)"
 pair ctrl-tab "On the left pane's last tab, bravo, pressed Ctrl+Tab" "Ctrl+Tab shares Next Tab's behavior and crosses the split too" "left pane active on bravo" "right pane active on charlie" "$G"
 press ctrl+shift+ISO_Left_Tab bravo
+press ctrl+Page_Down charlie
+
+xdotool key ctrl+a
+sleep 0.5
+shot "$WID" before-focus "Right after Ctrl+Page Down crossed from bravo to charlie, Ctrl+A selected charlie's only item, the folder inside, in the right pane"
+press Return inside
+shot "$WID" after-focus "Return opened the folder inside in the right pane, so the keyboard focus was in that pane's view (the script asserts the title inside)"
+pair focus "After Ctrl+Page Down crossed to charlie, pressed Ctrl+A, then Return" "After crossing, the keyboard focus is in the new pane's file view, so Return opens its selection" "inside selected in charlie" "right pane opened inside" "$G"
 
 open_thunar -t "$WORK/echo" "$WORK/foxtrot"
 xdotool windowsize --sync "$WID" "$W" "$H"
