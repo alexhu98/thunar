@@ -1,5 +1,5 @@
 sha	num	test	result	shot	file	proves
-cbceae6f49999f5aea866cabe757ce84d113d80b	1	150	pass	before-xapp	verify-150-before-xapp.png	misc-xapp-icons off: the toolbar Home button, the Home place and the Projects bookmark show the theme's symbolic icons
-cbceae6f49999f5aea866cabe757ce84d113d80b	1	150	pass	after-xapp	verify-150-after-xapp.png	misc-xapp-icons on: the toolbar Home button, the Home place and the Projects bookmark show the solid-square xsi-* fixtures; Projects and Notes in the file view keep colour folder icons
-cbceae6f49999f5aea866cabe757ce84d113d80b	2	150	pass	fallback-home	verify-150-fallback-home.png	xsi-go-home-symbolic removed: the toolbar Home button and the Home place fall back to the theme's go-home-symbolic, while the Projects bookmark keeps its solid-square xsi-folder-symbolic
-cbceae6f49999f5aea866cabe757ce84d113d80b	3	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
+de01dbc0c1cae47c55a42113b02b48ac15b6743f	1	150	pass	before-xapp	verify-150-before-xapp.png	misc-xapp-icons off: the toolbar Home button, the Home place and the Projects bookmark show the theme's symbolic icons
+de01dbc0c1cae47c55a42113b02b48ac15b6743f	1	150	pass	after-xapp	verify-150-after-xapp.png	misc-xapp-icons on: the toolbar Home button, the Home place and the Projects bookmark show the solid-square xsi-* fixtures; Projects and Notes in the file view keep colour folder icons
+de01dbc0c1cae47c55a42113b02b48ac15b6743f	2	150	pass	fallback-home	verify-150-fallback-home.png	xsi-go-home-symbolic removed: the toolbar Home button and the Home place fall back to the theme's go-home-symbolic, while the Projects bookmark keeps its solid-square xsi-folder-symbolic
+de01dbc0c1cae47c55a42113b02b48ac15b6743f	3	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
