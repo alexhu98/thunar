@@ -10,10 +10,13 @@ TOOLBAR=150x100+0+0
 SIDEPANE=165x600+0+90
 FILEVIEW=780x480+200+120
 
-ICONS="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/48x48"
-mkdir -p "$ICONS/actions" "$ICONS/places"
-for icon in actions/xsi-go-home-symbolic places/xsi-folder-symbolic; do
-  convert -size 48x48 xc:'#bebebe' "$ICONS/$icon.png"
+ICONS="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor"
+SIZES=(16 22 24 32 48)
+for size in "${SIZES[@]}"; do
+  mkdir -p "$ICONS/${size}x${size}/actions" "$ICONS/${size}x${size}/places"
+  for icon in actions/xsi-go-home-symbolic places/xsi-folder-symbolic; do
+    convert -size "${size}x${size}" xc:'#bebebe' "$ICONS/${size}x${size}/$icon.png"
+  done
 done
 
 mkdir -p "$HOME/Projects" "$HOME/Notes" "${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0"
@@ -74,8 +77,11 @@ differs before-xapp after-xapp "$TOOLBAR" || fail "the toolbar's Home button did
 expect_icons before-xapp after-xapp 2 "turning misc-xapp-icons on did not change exactly the Home place and the Projects bookmark"
 ! differs before-xapp after-xapp "$FILEVIEW" || fail "the file view's icons changed with misc-xapp-icons; they must stay colour icons"
 
-rm "$ICONS/actions/xsi-go-home-symbolic.png"
-touch "$ICONS/.." "$ICONS/../.."
+for size in "${SIZES[@]}"; do
+  rm "$ICONS/${size}x${size}/actions/xsi-go-home-symbolic.png"
+  touch "$ICONS/${size}x${size}/actions"
+done
+touch "$ICONS" "$ICONS/.."
 sleep 6
 set_xapp false
 set_xapp true

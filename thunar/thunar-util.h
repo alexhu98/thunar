@@ -112,6 +112,8 @@ thunar_util_clip_view_background (GtkCellRenderer     *cell,
 gchar *
 thunar_util_get_xapp_icon_name (GtkIconTheme *icon_theme,
                                 const gchar  *icon_name) G_GNUC_MALLOC G_GNUC_WARN_UNUSED_RESULT;
+gchar *
+thunar_util_get_icon_name_from_xapp (const gchar *icon_name) G_GNUC_MALLOC G_GNUC_WARN_UNUSED_RESULT;
 GIcon *
 thunar_util_get_xapp_gicon (GtkIconTheme *icon_theme,
                             GIcon        *gicon) G_GNUC_WARN_UNUSED_RESULT;

@@ -7208,14 +7208,18 @@ thunar_window_toolbar_get_icon_name (ThunarWindow *window,
 {
   gboolean use_symbolic_icons;
   gchar   *xapp_icon_name;
+  gchar   *plain_icon_name;
 
   if (icon_name == NULL)
     return NULL;
 
-  if (g_strcmp0 (icon_name, "xsi-edit-find-symbolic") == 0)
-    icon_name = "system-search-symbolic";
-  else if (g_str_has_prefix (icon_name, "xsi-"))
-    icon_name += 4;
+  plain_icon_name = thunar_util_get_icon_name_from_xapp (icon_name);
+  if (plain_icon_name != NULL)
+    {
+      xapp_icon_name = thunar_window_toolbar_get_icon_name (window, plain_icon_name);
+      g_free (plain_icon_name);
+      return xapp_icon_name;
+    }
 
   g_object_get (G_OBJECT (window->preferences), "misc-symbolic-icons-in-toolbar", &use_symbolic_icons, NULL);
 
