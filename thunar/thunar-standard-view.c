@@ -5601,9 +5601,12 @@ thunar_standard_view_rename_row_previous (GtkTreeView  *tree_view,
   GtkTreeIter  child;
   GtkTreeIter  parent;
   gint         n_children;
+  gboolean     found;
 
-  child = *iter;
-  if (!gtk_tree_model_iter_previous (model, &child))
+  path = gtk_tree_model_get_path (model, iter);
+  found = gtk_tree_path_prev (path) && gtk_tree_model_get_iter (model, &child, path);
+  gtk_tree_path_free (path);
+  if (!found)
     {
       if (!gtk_tree_model_iter_parent (model, &parent, iter))
         return FALSE;

@@ -87,9 +87,10 @@ sleep 1
 exists "$DIR/four.txt" "typing four over 'd' and pressing Shift+Tab"
 shot "$MAIN" after-shift-tab "Shift+Tab saved d.txt as four.txt and turned c.txt's Name cell, the row above, into an entry with 'c' selected"
 pair shift-tab "Pressed F2 on d.txt, typed four, pressed Shift+Tab" "Shift+Tab saves the name and edits the previous file's name" "'four' typed on d.txt" "four.txt saved, entry on c.txt" "$G"
-xdotool key Escape
-sleep 0.5
-holds "c.txt four.txt one.txt two.txt " "Shift+Tab from d to c, then Escape on c"
+xdotool type --delay 20 three
+xdotool key Return
+exists "$DIR/three.txt" "typing three into the entry Shift+Tab opened on c.txt and pressing Return"
+holds "four.txt one.txt three.txt two.txt " "Shift+Tab from d to c, then three and Return on c"
 
 click_first_row
 keys End
@@ -99,7 +100,7 @@ xdotool key Tab
 sleep 1
 exists "$DIR/last.txt" "typing last over 'two' on the last row and pressing Tab"
 shot "$MAIN" last-row "Tab on two.txt, the last row, saved it as last.txt and left no entry open in any row"
-holds "c.txt four.txt last.txt one.txt " "Tab on the last row"
+holds "four.txt last.txt one.txt three.txt " "Tab on the last row"
 
 click_first_row
 f2
@@ -107,11 +108,11 @@ xdotool key ctrl+a
 xdotool type --delay 20 'a/b'
 xdotool key Tab
 sleep 1
-shot "$MAIN" invalid-tab "Tab with 'a/b' typed left the entry open in c.txt's row, the first, with its error icon"
-holds "c.txt four.txt last.txt one.txt " "Tab with the invalid name a/b"
+shot "$MAIN" invalid-tab "Tab with 'a/b' typed left the entry open in four.txt's row, the first, with its error icon"
+holds "four.txt last.txt one.txt three.txt " "Tab with the invalid name a/b"
 xdotool key BackSpace BackSpace Tab
 sleep 1
 exists "$DIR/a" "deleting /b from the a/b still in the entry and pressing Tab"
 xdotool key Escape
 sleep 0.5
-holds "a four.txt last.txt one.txt " "Tab after fixing a/b to a, then Escape on four.txt"
+holds "a last.txt one.txt three.txt " "Tab after fixing a/b to a, then Escape on last.txt"
