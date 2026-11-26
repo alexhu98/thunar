@@ -5648,7 +5648,11 @@ thunar_standard_view_rename_neighbour (ThunarStandardView *standard_view,
       else
         found = thunar_standard_view_rename_row_previous (GTK_TREE_VIEW (view), model, &iter);
       if (found)
-        file = thunar_standard_view_model_get_file (standard_view->model, &iter);
+        {
+          file = thunar_standard_view_model_get_file (standard_view->model, &iter);
+          if (file != NULL && thunar_file_is_desktop_file (file))
+            g_clear_object (&file);
+        }
     }
   return file;
 }
@@ -5668,8 +5672,9 @@ thunar_standard_view_rename_key_pressed (GtkWidget          *entry,
   else if (event->keyval == GDK_KEY_Up || event->keyval == GDK_KEY_KP_Up
            || event->keyval == GDK_KEY_Down || event->keyval == GDK_KEY_KP_Down)
     return thunar_standard_view_rename_show_error (GTK_ENTRY (entry));
-  else if (event->keyval == GDK_KEY_Tab || event->keyval == GDK_KEY_KP_Tab
-           || event->keyval == GDK_KEY_ISO_Left_Tab)
+  else if ((event->keyval == GDK_KEY_Tab || event->keyval == GDK_KEY_KP_Tab
+            || event->keyval == GDK_KEY_ISO_Left_Tab)
+           && (event->state & (GDK_CONTROL_MASK | GDK_MOD1_MASK)) == 0)
     {
       if (thunar_standard_view_rename_show_error (GTK_ENTRY (entry)))
         return TRUE;

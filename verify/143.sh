@@ -109,6 +109,9 @@ xdotool key Tab
 sleep 1
 shot "$MAIN" invalid-tab "Tab with 'a/b' typed left the entry open in c.txt's row, the first, with its error icon"
 holds "c.txt four.txt last.txt one.txt " "Tab with the invalid name a/b"
+xdotool key BackSpace BackSpace Tab
+sleep 1
+exists "$DIR/a" "deleting /b from the a/b still in the entry and pressing Tab"
 xdotool key Escape
 sleep 0.5
-holds "c.txt four.txt last.txt one.txt " "Escape after Tab with the invalid name a/b"
+holds "a four.txt last.txt one.txt " "Tab after fixing a/b to a, then Escape on four.txt"
