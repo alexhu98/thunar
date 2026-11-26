@@ -91,6 +91,7 @@
   td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
   td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
   td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  td.ok.acc { color: var(--accent); font-style: italic; }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
   .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
   ul.tight { margin: 6px 0; padding-left: 20px; }
@@ -216,7 +217,7 @@
   <div class="lane-h" style="color:var(--merge)">② Cursor moves or results change</div>
   <ol class="steps" start="4" style="counter-reset: s 3">
     <li data-k="4"><b>Selection text.</b> One file shows its name and size as before. Several files are now counted from the selected files in memory, including the last-modified date, instead of being read from disk again.</li>
-    <li data-k="5"><b>Total or search.</b> With no cached Total, or after the hidden-files, size-format or status-bar settings change, the folder's files are counted once in memory. In a search, the results' size is added up again only when the result count changes or a result row changes.</li>
+    <li data-k="5"><b>Total or search.</b> With no cached Total, or after the hidden-files, size-format or status-bar settings change, the folder's files are counted once in memory. In a search, the results' size is added up again only when the result count changes or, in the Details view, a file result's row changes.</li>
     <li data-k="6"><b>Status bar.</b> The selection goes on the left, and Total (or the search count) with Free space on the right, the same layout and words as before.</li>
   </ol>
   </div>
@@ -264,7 +265,7 @@ explainers/144-statusbar-cache.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Checked against the status bar #74 made and its test, with a new test that counts disk reads. The local checks ran in this session's cloud container; CI run 45793496727 then built and tested head <code>3567f03</code>. Both ran before the fixes for R1, R2, R3 and R6.</p>
+  <p class="intro" data-k="intro">Checked against the status bar #74 made and its test, with a new test that counts disk reads. The local checks ran in this session's cloud container; CI run 45793496727 then built and tested head <code>3567f03</code>. Both ran before the fixes for R1, R2, R3, R6, R7 and R8.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -302,19 +303,21 @@ explainers/144-statusbar-cache.narration.json  # its narration</pre>
     <li data-k="b2"><b>Fixed, test:</b> the trace filter missed the newer stat calls, so it now traces every stat variant; and clearing the selection clicked a file, so it now presses Escape too.</li>
     <li data-k="b3"><b>Fixed, style:</b> alignment of the changed lines, as clang-format wants.</li>
   </ul>
-  <p data-k="ci-review">CI's own review of head <code>3567f03</code>, at level high, found 6 things, R1 to R6, listed in the <a href="https://github.com/alexhu98/thunar/pull/152#issuecomment-7188228494">code review PR comment</a>.</p>
+  <p data-k="ci-review">CI's own review, at level high, found 6 things in head <code>3567f03</code>, R1 to R6, and 2 more in head <code>979c1e5</code>, R7 and R8, all listed in the <a href="https://github.com/alexhu98/thunar/pull/152#issuecomment-7188228494">code review PR comment</a>. 5 are fixed and you accepted 3.</p>
   <div class="table-wrap">
   <table>
     <tr><th>Finding</th><th>What it found</th><th>Status</th></tr>
-    <tr data-k="r1"><td>R1, medium</td><td>The search total was cached by result count, so a result whose size changed at the same count kept the old total. Now the view also drops it when a result row changes while searching.</td><td class="ok">fixed in the next push</td></tr>
     <tr data-k="r2"><td>R2</td><td>The search size's cache key was kept while Size is off.</td><td class="ok">fixed by CI, <code>d1f5a4a</code></td></tr>
     <tr data-k="r3"><td>R3</td><td>A failed free space query kept the old value.</td><td class="ok">fixed by CI, <code>d1f5a4a</code></td></tr>
-    <tr data-k="r6"><td>R6</td><td>Files-added or files-removed signals with no files still dropped the caches. Now the view ignores them.</td><td class="ok">fixed in the next push</td></tr>
-    <tr data-k="r4"><td>R4</td><td>Free space isn't refreshed for writes elsewhere on the disk.</td><td class="open">your decision</td></tr>
-    <tr data-k="r5"><td>R5</td><td>A recursive search still adds up its results once per 500 ms batch while they stream in.</td><td class="open">your decision</td></tr>
+    <tr data-k="r6"><td>R6</td><td>Files-added or files-removed signals with no files still dropped the caches. Now the view ignores them.</td><td class="ok">fixed, <code>dd385ab</code></td></tr>
+    <tr data-k="r7"><td>R7, medium</td><td>In a search, every row change dropped the cached total and added up all results again, even for folder rows, whose size the total leaves out. Now folder rows are skipped.</td><td class="ok">fixed by CI, <code>374b933</code></td></tr>
+    <tr data-k="r8"><td>R8, low</td><td>A free space query that returned no free space value kept the old value. Now it is cleared, as after a failed query.</td><td class="ok">fixed by CI, <code>374b933</code></td></tr>
+    <tr data-k="r1"><td>R1, medium</td><td>A search result that changed size at the same result count kept the old total. <code>dd385ab</code> fixed this in the Details view, whose model watches search results; the Icon and Compact views' model never does, so there it stays.</td><td class="ok acc">accepted by the owner</td></tr>
+    <tr data-k="r4"><td>R4</td><td>Free space isn't refreshed for writes elsewhere on the disk. A trade-off issue #144 allows.</td><td class="ok acc">accepted by the owner</td></tr>
+    <tr data-k="r5"><td>R5</td><td>A recursive search still adds up its results once per 500 ms batch while they stream in. A trade-off issue #144 allows.</td><td class="ok acc">accepted by the owner</td></tr>
   </table>
   </div>
-  <div class="note" data-k="open">R4 and R5 are the trade-offs the issue allows, and wait for your decision. The R1 and R6 fix is in the next push; CI reviews it.</div>
+  <div class="note" data-k="open">You accepted R1 as it is, and R4 and R5 as the trade-offs the issue allows, on November 26, 2026. A <code>Review-accept</code> trailer on the commit carrying this page closes all three.</div>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -322,7 +325,7 @@ explainers/144-statusbar-cache.narration.json  # its narration</pre>
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI review and tests of the R1 and R6 fix, and all 33 tests</td><td>the fix is in the next push; the full run comes once review is clean</td><td class="open">before the merge</td></tr>
+    <tr data-k="a1"><td>All 33 tests, on the fixed code</td><td>a <code>Verify: full</code> run on the commit that carries this page; not run yet when it was written</td><td class="open">before the merge</td></tr>
     <tr data-k="a2"><td>The stat count in CI</td><td><code>strace</code> isn't in CI's verify tool list; without it the test prints a skip line and keeps its other checks. Changing CI is outside this PR.</td><td class="open">CI's verify run</td></tr>
     <tr data-k="a3"><td>Your own large folders and network shares</td><td>only on your machine</td><td class="open">after the merge</td></tr>
   </table>
@@ -399,7 +402,7 @@ explainers/144-statusbar-cache.narration.json  # its narration</pre>
     <div data-k="async"><dt>Async</dt><dd>Started now, answered later, without freezing the window meanwhile.</dd></div>
     <div data-k="gvfs"><dt>Network share</dt><dd>An smb or sftp folder, where each file question is a round trip over the network.</dd></div>
     <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual screen with no monitor, where the tests run Thunar.</dd></div>
-    <div data-k="sx"><dt>R1 to R6</dt><dd>The numbers of CI's review findings, as in its code review PR comment.</dd></div>
+    <div data-k="sx"><dt>R1 to R8</dt><dd>The numbers of CI's review findings, as in its code review PR comment.</dd></div>
   </dl>
   </section>
 </main>
