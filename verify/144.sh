@@ -28,7 +28,7 @@ TRACE=''
 if command -v strace >/dev/null; then
   TRACE="$WORK/trace"
   mkdir -p "$WORK/bin"
-  printf '#!/bin/sh\nexec strace -D -f -s 4096 -e trace=%%stat -o "%s" "%s" "$@"\n' "$TRACE" "$(command -v thunar)" > "$WORK/bin/thunar"
+  printf '#!/bin/sh\nexec strace -D -f -s 4096 -e trace=%%%%stat -o "%s" "%s" "$@"\n' "$TRACE" "$(command -v thunar)" > "$WORK/bin/thunar"
   chmod +x "$WORK/bin/thunar"
   PATH="$WORK/bin:$PATH"
 else
@@ -38,6 +38,8 @@ fi
 clear_selection() {
   focus "$WID"
   xdotool mousemove --window "$WID" $((W / 2)) $((H - 80)) click 1
+  sleep 0.3
+  xdotool key Escape
   sleep 1
 }
 

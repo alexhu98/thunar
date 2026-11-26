@@ -2055,8 +2055,8 @@ thunar_standard_view_clear_free_space (ThunarStandardView *standard_view)
 
 static void
 thunar_standard_view_free_space_ready (GObject      *source_object,
-                                              GAsyncResult *result,
-                                              gpointer      user_data)
+                                       GAsyncResult *result,
+                                       gpointer      user_data)
 {
   ThunarStandardView *standard_view;
   GFileInfo          *info;
@@ -2208,7 +2208,7 @@ thunar_standard_view_add_file_size (GtkTreeModel *model,
 
 static gchar *
 thunar_standard_view_append_free_space (ThunarStandardView *standard_view,
-                                               gchar              *text)
+                                        gchar              *text)
 {
   gchar *free_space_text;
   gchar *joined;
@@ -2251,7 +2251,7 @@ thunar_standard_view_get_folder_info_text (ThunarStandardView *standard_view)
     {
       g_free (standard_view->priv->folder_total_text);
       standard_view->priv->folder_total_text = thunar_util_get_statusbar_total_text_for_files (thunar_folder_get_files (standard_view->priv->statusbar_folder),
-                                                                                              show_hidden, show_file_size_binary_format, active);
+                                                                                               show_hidden, show_file_size_binary_format, active);
       if (standard_view->priv->folder_total_text == NULL)
         standard_view->priv->folder_total_text = g_strdup (_ ("0 items"));
       standard_view->priv->folder_total_show_hidden = show_hidden;
@@ -2918,8 +2918,12 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
         {
           gtk_tree_model_get_iter (GTK_TREE_MODEL (standard_view->model), &iter, lp->data);
           file = thunar_standard_view_model_get_file (standard_view->model, &iter);
-          if (file != NULL && !g_hash_table_add (selected_files, file))
+          if (file == NULL)
+            continue;
+          if (g_hash_table_contains (selected_files, file))
             g_object_unref (file);
+          else
+            g_hash_table_add (selected_files, file);
         }
 
       g_object_get (G_OBJECT (standard_view->preferences), "last-show-hidden", &show_hidden,
