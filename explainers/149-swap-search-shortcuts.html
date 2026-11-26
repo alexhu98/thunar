@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Search Shortcut Swap</title>
+<title>PR #154 Search Shortcut Swap</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -101,8 +101,8 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">This PR: Ctrl+F now searches subfolders too</h1>
-  <p class="lead" data-k="lead">Branch <code>149-swap-search-shortcuts</code> → <code>main</code>, closes #149. The two search shortcuts from #139 trade places: Ctrl+F searches the folder and its subfolders, and Ctrl+Shift+F searches only the folder you're in.</p>
+  <h1 data-k="title">PR #154: Ctrl+F now searches subfolders too</h1>
+  <p class="lead" data-k="lead"><a href="https://github.com/alexhu98/thunar/pull/154">PR #154</a>, branch <code>149-swap-search-shortcuts</code> → <code>main</code>, closes #149. The two search shortcuts from #139 trade places: Ctrl+F searches the folder and its subfolders, and Ctrl+Shift+F searches only the folder you're in.</p>
 
   <nav class="parts" aria-label="Parts of this page">
     <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
@@ -219,7 +219,7 @@
   <section class="sub" id="bigpic">
   <h3 class="sec">The big picture</h3>
   <p data-k="why">Thunar's search can look only in the folder you're in, or in it and every folder below it. #139 gave each scope its own shortcut: Ctrl+F for the folder alone, Ctrl+Shift+F for its subfolders too. You search subfolders far more often, so this PR gives that one the easier key.</p>
-  <div class="note" data-k="note">Only the default keys move. Each action keeps its name, menu label, tooltip and behaviour, so the menu items now simply show the other shortcut.</div>
+  <div class="note" data-k="note">Only the default keys move. Each action keeps its name, menu label and behaviour, so the menu items now simply show the other shortcut. Two small extras came from CI's review: a new Go menu letter and a toolbar tooltip (steps 7 and 9).</div>
   </section>
 
   <section class="sub" id="steps">
@@ -239,9 +239,9 @@
   </ol>
   <div class="lane-h" style="color:var(--merge)">③ Around the shortcuts</div>
   <ol class="steps" start="7" style="counter-reset: s 6">
-    <li data-k="7"><b>Go menu.</b> The Go menu listed only Search for Files.... It now lists Search in Subfolders... first, so the Ctrl+F item comes first. The issue offered this as optional; it's done.</li>
+    <li data-k="7"><b>Go menu.</b> The Go menu listed only Search for Files.... It now lists Search in Subfolders... first, so the Ctrl+F item comes first. The issue offered this as optional; it's done. Both items used S as their menu letter, so CI's review moved Search in Subfolders... to U: Alt+G then U searches with subfolders, Alt+G then S only the folder.</li>
     <li data-k="8"><b>Your shortcuts.</b> If you rebound either action in <code>~/.config/Thunar/accels.scm</code>, your binding stays, because it is stored under the action's name, which hasn't changed.</li>
-    <li data-k="9"><b>Toolbar button.</b> The toolbar Search button and the Search key still open with the folder's saved choice, which the last shortcut you used there set.</li>
+    <li data-k="9"><b>Toolbar button.</b> The toolbar Search button and the Search key still open with the folder's saved choice, which the last shortcut you used there set. The button had borrowed Search for Files...'s tooltip, which said “current folder”; CI's review gave it its own: “Search for a specific file in the current folder, with its saved Include subfolders choice, and Recent”.</li>
   </ol>
   </div>
   </section>
@@ -253,8 +253,8 @@
     <tr><th>You use</th><th>Before (#139)</th><th>After this PR</th></tr>
     <tr data-k="k1"><td>Ctrl+F</td><td>this folder only</td><td>folder and subfolders</td></tr>
     <tr data-k="k2"><td>Ctrl+Shift+F</td><td>folder and subfolders</td><td>this folder only</td></tr>
-    <tr data-k="k3"><td>Go › Search in Subfolders...</td><td>not in the Go menu</td><td>folder and subfolders</td></tr>
-    <tr data-k="k4"><td>Go › Search for Files...</td><td>this folder only</td><td>this folder only</td></tr>
+    <tr data-k="k3"><td>Go › Search in Subfolders... (Alt+G, U)</td><td>not in the Go menu</td><td>folder and subfolders</td></tr>
+    <tr data-k="k4"><td>Go › Search for Files... (Alt+G, S)</td><td>this folder only</td><td>this folder only</td></tr>
     <tr data-k="k5"><td>Toolbar Search button, Search key</td><td>folder's saved choice</td><td>folder's saved choice</td></tr>
   </table>
   </div>
@@ -262,13 +262,18 @@
 
   <section class="sub" id="parts">
   <h3 class="sec">The change itself</h3>
-<pre data-k="diff">thunar_window_action_entries[]  (key column only)
+<pre data-k="diff">thunar_window_action_entries[]  (key and label columns)
   SEARCH              "&lt;Actions&gt;/ThunarWindow/search"
 -                     "&lt;Primary&gt;f"
 <span class="add">+                     "&lt;Primary&gt;&lt;Shift&gt;f"</span>
   SEARCH_SUBFOLDERS   "&lt;Actions&gt;/ThunarWindow/search-subfolders"
 -                     "&lt;Primary&gt;&lt;Shift&gt;f"
 <span class="add">+                     "&lt;Primary&gt;f"</span>
+-                     "Search in _Subfolders..."
+<span class="add">+                     "Search in S_ubfolders..."</span>
+
+thunar_window_location_toolbar_create ()
+<span class="add">+ tooltip of the Search button: its own text</span>
 
 thunar_window_update_go_menu ()
   ... OPEN_LOCATION
@@ -284,9 +289,11 @@ thunar_window_update_go_menu ()
   <section class="sub" id="files">
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">thunar/
-└── thunar-window.c     # swaps the two default keys; Go menu adds Search in Subfolders...
+└── thunar-window.c     # swaps the two default keys; Go menu adds Search in
+                        # S_ubfolders... (letter U); toolbar Search tooltip
 verify/
-├── 139.sh → 149.sh     # moved; keys, shot texts and pair texts swapped
+├── 139.sh → 149.sh     # moved; keys, shot texts and pair texts swapped;
+│                       # Go menu check: Alt+G U / Alt+G S, go-menu shot
 └── 68.sh               # presses Ctrl+F to get the toggle pressed, pair text updated
 explainers/
 ├── 149-swap-search-shortcuts.html            # this page
@@ -299,7 +306,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested in the cloud container on the first commit, then reviewed locally. The Go menu line came after that run, so CI is the first to build and test it.</p>
+  <p class="intro" data-k="intro">Built and tested in the cloud container on the first commit, then reviewed locally. CI then built and tested both later heads, reviewed the code and fixed its 3 findings itself. The full test run and a clean screenshot audit are still to come.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -319,9 +326,11 @@ explainers/
     <tr data-k="c3"><td>Toggle spacing still shown</td><td><code>verify/68.sh</code>, now pressing Ctrl+F to get the toggle pressed. Same run</td><td class="ok">pass, 35 s</td></tr>
     <tr data-k="c4"><td>Scripts that press Ctrl+F, left unchanged</td><td><code>verify/22.sh</code>, <code>74.sh</code>, <code>135.sh</code>, <code>144.sh</code>: their search folders have no subfolder with matching names (74's <code>sub/</code> is empty), so counts like “3 files found” still hold. Same run</td><td class="ok">4 of 4 pass</td></tr>
     <tr data-k="c5"><td>The toggle from #21, and launch</td><td><code>verify/21.sh</code> and the smoke test. Same run</td><td class="ok">2 of 2 pass</td></tr>
-    <tr data-k="c6"><td>Go menu line and a renamed check in 149.sh</td><td>Both came after that run (commit <code>6236f5b</code> and the review fix); CI builds and runs the head</td><td class="no">not run here</td></tr>
-    <tr data-k="c7"><td>All 34 verify scripts</td><td>Only the 8 above ran locally; CI runs all of them with <code>Verify: full</code> before the merge</td><td class="no">not run here</td></tr>
-    <tr data-k="c8"><td>Screenshot audit</td><td><code>/visual-verify</code> on CI's shots, after CI's first verify run</td><td class="no">not run yet</td></tr>
+    <tr data-k="c6"><td>Go menu line, in CI</td><td>CI's verify on <code>40462fa58f23</code>, with the Go menu line and the renamed check: <code>verify/149.sh</code> 55 s, <code>verify/68.sh</code> 39 s, smoke test 16 s. Partial: 3 of 34</td><td class="ok">3 of 3 pass</td></tr>
+    <tr data-k="c9"><td>CI's review fixes, in CI</td><td>CI's verify on <code>19700f5962d6</code>, its fix commit, with the new Go menu check: <code>verify/149.sh</code> 71 s, <code>verify/68.sh</code> 38 s, smoke test 15 s. Partial</td><td class="ok">3 of 3 pass</td></tr>
+    <tr data-k="c10"><td>This page</td><td>CI's explainer job on <code>19700f5962d6</code>: render and <code>make-video.py status</code></td><td class="ok">rendered, narration current</td></tr>
+    <tr data-k="c8"><td>Screenshot audit</td><td><code>/visual-verify pr:154</code> on <code>19700f5962d6</code>: shots 1–3 and 5–8 OK; shot 4 (go-menu) BLANK, because <code>import -window</code> doesn't capture the menu's popup. The next push takes that shot from the root window, and a new audit follows</td><td class="no">FAIL, 7 of 8 OK</td></tr>
+    <tr data-k="c7"><td>All 34 verify scripts</td><td>CI ran 3 per push so far; the next push carries <code>Verify: full</code>, so CI runs all of them before the merge</td><td class="no">not run yet</td></tr>
   </table>
   </div>
   </section>
@@ -334,7 +343,12 @@ explainers/
     <li data-k="b2"><b>S1, fixed:</b> the PR had no explainer; this page is it.</li>
     <li data-k="b3"><b>S2, fixed:</b> Search in Subfolders..., now the Ctrl+F item, was in no menu. It was added to the Go menu, above Search for Files....</li>
   </ul>
-  <p data-k="ci">CI reviews every code push too, and reports in the code review comment on this PR, the second of CI's four comments.</p>
+  <p data-k="ci">CI then reviewed <code>40462fa58f23</code> at high level (<a href="https://github.com/alexhu98/thunar/actions/runs/45861955949">run 45861955949</a>) and found 3 things, all fixed in its own commit <code>19700f5962d6</code>. They are in the <a href="https://github.com/alexhu98/thunar/pull/154#issuecomment-7198107050">code review comment</a>.</p>
+  <ul class="tight">
+    <li data-k="r1"><b>R1, medium, fixed:</b> both Go menu items used S as their menu letter. Search in Subfolders... now uses U.</li>
+    <li data-k="r2"><b>R2, low, fixed:</b> no test covered the Go menu item. <code>verify/149.sh</code> now opens the Go menu and checks that U searches with subfolders and S only the folder, with a go-menu shot.</li>
+    <li data-k="r3"><b>R3, low, fixed:</b> the toolbar Search button said “current folder” but uses the folder's saved choice, as it did before this PR. It now has its own tooltip.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -351,8 +365,8 @@ explainers/
   <section class="sub" id="see">
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
-    <li data-k="l1">The changes: this PR → “Files changed”, from branch <code>149-swap-search-shortcuts</code></li>
-    <li data-k="l2">CI's results: this PR's summary, code review, verify and explainer comments</li>
+    <li data-k="l1">The changes: <a href="https://github.com/alexhu98/thunar/pull/154/files">PR #154 → “Files changed”</a>, from branch <code>149-swap-search-shortcuts</code></li>
+    <li data-k="l2">CI's results: <a href="https://github.com/alexhu98/thunar/pull/154">PR #154</a>'s summary, code review, verify and explainer comments; the review's <a href="https://github.com/alexhu98/thunar/actions/runs/45861955949">run 45861955949</a></li>
     <li data-k="l3">The issue: <a href="https://github.com/alexhu98/thunar/issues/149">#149</a>; the shortcuts it swaps: <a href="https://github.com/alexhu98/thunar/issues/139">#139</a></li>
   </ul>
   </section>
@@ -396,6 +410,8 @@ explainers/
     <div data-k="verify"><dt>Verify script</dt><dd><code>verify/&lt;issue&gt;.sh</code>: drives Thunar with simulated keys under a virtual screen, checks the result and takes screenshots.</dd></div>
     <div data-k="full"><dt>Verify: full</dt><dd>A commit trailer that makes CI run every verify script instead of only this PR's.</dd></div>
     <div data-k="sfind"><dt>S1, S2</dt><dd>Findings the local review skipped rather than fixed, numbered for follow-up.</dd></div>
+    <div data-k="rfind"><dt>R1, R2</dt><dd>Findings of CI's code review, numbered across the whole PR.</dd></div>
+    <div data-k="mnemonic"><dt>Menu letter</dt><dd>The underlined letter of a menu item; pressing it while the menu is open picks that item.</dd></div>
   </dl>
   </section>
 </main>
