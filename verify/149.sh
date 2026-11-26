@@ -122,7 +122,7 @@ results_are toolbar match-top.txt
 
 go "$WORK/top"
 search ctrl+f match
-results_are shift match-sub.txt match-top.txt
+results_are ctrl-f match-sub.txt match-top.txt
 
 go "$WORK/top"
 search ctrl+f match
