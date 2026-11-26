@@ -1,14 +1,47 @@
 sha	num	test	result	shot	file	proves
-c4182ce0d989be75e201d351e1eb5a88df361de3	1	155	pass	before-next	verify-155-before-next.png	Split view: the left pane is active on its last tab, bravo; the right pane shows charlie, its first tab, dimmed as inactive
-c4182ce0d989be75e201d351e1eb5a88df361de3	1	155	pass	after-next	verify-155-after-next.png	The right pane is now active on charlie and the left pane, still on bravo, is dimmed (the script asserts the title charlie)
-c4182ce0d989be75e201d351e1eb5a88df361de3	2	155	pass	back-to-bravo	verify-155-back-to-bravo.png	Ctrl+Page Up from charlie made the left pane active again on bravo; the right pane is dimmed (the script asserts the title bravo)
-c4182ce0d989be75e201d351e1eb5a88df361de3	3	155	pass	before-wrap-next	verify-155-before-wrap-next.png	The right pane is active on the last tab overall, delta; the left pane shows bravo
-c4182ce0d989be75e201d351e1eb5a88df361de3	3	155	pass	after-wrap-next	verify-155-after-wrap-next.png	Ctrl+Page Down from delta wrapped to alpha, the left pane's first tab, and the left pane is active (the script asserts the title alpha)
-c4182ce0d989be75e201d351e1eb5a88df361de3	4	155	pass	wrap-to-delta	verify-155-wrap-to-delta.png	Ctrl+Page Up from alpha wrapped back to delta, and the right pane is active (the script asserts the title delta)
-c4182ce0d989be75e201d351e1eb5a88df361de3	5	155	pass	before-ctrl-tab	verify-155-before-ctrl-tab.png	The left pane is active on bravo again, its last tab; the right pane shows charlie
-c4182ce0d989be75e201d351e1eb5a88df361de3	5	155	pass	after-ctrl-tab	verify-155-after-ctrl-tab.png	Ctrl+Tab from bravo moved to charlie and made the right pane active (the script asserts the title charlie)
-c4182ce0d989be75e201d351e1eb5a88df361de3	6	155	pass	before-focus	verify-155-before-focus.png	Right after Ctrl+Page Down crossed from bravo to charlie, Ctrl+A selected charlie's only item, the folder inside, in the right pane
-c4182ce0d989be75e201d351e1eb5a88df361de3	6	155	pass	after-focus	verify-155-after-focus.png	Return opened the folder inside in the right pane, so the keyboard focus was in that pane's view (the script asserts the title inside)
-c4182ce0d989be75e201d351e1eb5a88df361de3	7	155	pass	before-no-split	verify-155-before-no-split.png	A window without split view on its last tab, foxtrot; its first tab is echo
-c4182ce0d989be75e201d351e1eb5a88df361de3	7	155	pass	after-no-split	verify-155-after-no-split.png	Ctrl+Page Down from foxtrot wrapped to echo, the first tab (the script asserts the title echo)
-c4182ce0d989be75e201d351e1eb5a88df361de3	8	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	118	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	120	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	123	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	124	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	126	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	128	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	129	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	132	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	133	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	135	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	14	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	140	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	143	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	144	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	149	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	15	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	150	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	1	155	pass	before-next	verify-155-before-next.png	Split view: the left pane is active on its last tab, bravo; the right pane shows charlie, its first tab, dimmed as inactive
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	1	155	pass	after-next	verify-155-after-next.png	The right pane is now active on charlie and the left pane, still on bravo, is dimmed (the script asserts the title charlie)
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	2	155	pass	back-to-bravo	verify-155-back-to-bravo.png	Ctrl+Page Up from charlie made the left pane active again on bravo; the right pane is dimmed (the script asserts the title bravo)
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	3	155	pass	before-wrap-next	verify-155-before-wrap-next.png	The right pane is active on the last tab overall, delta; the left pane shows bravo
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	3	155	pass	after-wrap-next	verify-155-after-wrap-next.png	Ctrl+Page Down from delta wrapped to alpha, the left pane's first tab, and the left pane is active (the script asserts the title alpha)
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	4	155	pass	wrap-to-delta	verify-155-wrap-to-delta.png	Ctrl+Page Up from alpha wrapped back to delta, and the right pane is active (the script asserts the title delta)
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	5	155	pass	before-ctrl-tab	verify-155-before-ctrl-tab.png	The left pane is active on bravo again, its last tab; the right pane shows charlie
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	5	155	pass	after-ctrl-tab	verify-155-after-ctrl-tab.png	Ctrl+Tab from bravo moved to charlie and made the right pane active (the script asserts the title charlie)
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	6	155	pass	before-focus	verify-155-before-focus.png	Right after Ctrl+Page Down crossed from bravo to charlie, Ctrl+A selected charlie's only item, the folder inside, in the right pane
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	6	155	pass	after-focus	verify-155-after-focus.png	Return opened the folder inside in the right pane, so the keyboard focus was in that pane's view (the script asserts the title inside)
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	7	155	pass	before-no-split	verify-155-before-no-split.png	A window without split view on its last tab, foxtrot; its first tab is echo
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	7	155	pass	after-no-split	verify-155-after-no-split.png	Ctrl+Page Down from foxtrot wrapped to echo, the first tab (the script asserts the title echo)
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	16	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	17	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	19	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	21	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	22	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	3	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	4	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	40	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	49	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	5	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	68	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	74	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	89	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	93	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	95	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	-	96	pass	-	-	-
+d1b73bc03f29c1ec0ccb19c496f1c81bc9ef0329	8	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
