@@ -40,7 +40,7 @@ never fix anything you find.
    `<!-- pr-proof:summary -->`, `review`, `verify` or `explainer`. Parse the hidden markers, not the tables:
    - `<!-- pr-proof:status {"sha":…,"state":…,"text":…} -->` in the review, verify and explainer comments: that
      check's state, its text and the SHA it covers. A status whose `sha` isn't the head is stale; say so.
-     The verify status also has `full`: true when verify ran all tests (its text ends `all <M> tests`), false
+     The verify status also has `full`: true when verify ran all tests (its text says `all <M> tests`), false
      when it ran only the smoke test and the PR's own tests (`<N> of <M> tests (partial)`).
    - `<!-- review:state {...} -->` in the review comment: `sha` (the last head a review ran on), `reason`, and
      `findings`, each with `id`, `sha` (the head it was found on), `severity`, `verdict`, `status`, `file`, `line`, `summary`, `detail`, `commit`.

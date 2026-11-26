@@ -10,8 +10,8 @@
 #            ones named, $JOBS at a time, each with its own Xvfb, xfwm4 and D-Bus session, a fresh HOME and XDG folders, and a $TIMEOUT s
 #            limit. A test that could end after $BUDGET s of the run's wall-clock time is reported as not run, and one
 #            that passes with a before/after pair that has no pair call fails. results.tsv keeps the serial order.
-#            Numbers the shots of the smoke test, of the tests in $OWN (space-separated issues; default: every test
-#            run) and of every test that failed, and makes each pair's 1920px image (verify-shots.py build). Writes
+#            Numbers the shots of the smoke test, of the tests in $OWN (space-separated issues; when it is unset, every
+#            test run; when empty, none) and of every test that failed, and makes each pair's 1920px image (verify-shots.py build). Writes
 #            the shots, $OUT/pairs/, the logs, $OUT/results.tsv, $OUT/scope ("all <total>" or "partial <run> <total>"),
 #            $OUT/own, $OUT/numbered.json, the manifest $OUT/verify.tsv and, last, $OUT/complete, and fails if any
 #            test failed.
@@ -238,9 +238,13 @@ publish() {
     } > "$OUT/upload.tsv"
     OUT="$OUT/upload" "$HERE/shots.sh" "$OUT/upload.tsv" "Verify screenshots for PR #${PR:-0}" > "$OUT/committed.tsv" </dev/null || failed=1
     while IFS=$'\t' read -r file sha; do
+      if [[ $file == "$OUT/verify-shots.tsv" ]]; then
+        [[ $sha != - ]] || echo "::error::could not upload $dir/verify.tsv" >&2
+        continue
+      fi
       [[ $sha == - ]] || sha="https://github.com/$GH_REPO/blob/$sha/$(awk -F'\t' -v f="$file" '$1 == f { print $2; exit }' "$OUT/upload.tsv")?raw=true"
       printf '%s\t%s\n' "${file#"$OUT/"}" "$sha" >> "$OUT/urls.tsv"
-    done < <(awk -F'\t' 'NR == FNR { sha[$1] = $2; next } { print $1 "\t" ($1 in sha ? sha[$1] : "-") }' "$OUT/committed.tsv" "$OUT/upload.tsv")
+    done < <(awk -F'\t' 'FILENAME == ARGV[1] { sha[$1] = $2; next } { print $1 "\t" ($1 in sha ? sha[$1] : "-") }' "$OUT/committed.tsv" "$OUT/upload.tsv")
     (( failed == 0 )) || echo "::error::the shots could not all be committed to the shots branch" >&2
   fi
   python3 "$HERE/verify-shots.py" comment "$OUT" > "$OUT/comment.md"

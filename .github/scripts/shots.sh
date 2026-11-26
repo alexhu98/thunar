@@ -2,7 +2,7 @@
 # Commits files to the orphan shots branch in one commit: shots.sh <list> <commit message>
 # <list> holds one "<local file><tab><path on shots>" line per file. Prints "<local file><tab><commit sha>" for each
 # file in the commit; the sha pins its URL: https://github.com/$GH_REPO/blob/<sha>/<path>?raw=true. A file whose blob
-# could not be made is left out of the commit and printed with -. Fails when the commit could not be made.
+# could not be made is removed from the branch in that commit, so no older copy stays at its path, and printed with -. Fails when the commit could not be made.
 # The commit goes on top of the branch's tip through the Git Data API, and is made again on a newer tip when another
 # run moved the branch first.
 # Env: GH_TOKEN, GH_REPO, OUT, SHOTS_BRANCH (default shots), SHOTS_DEADLINE (epoch seconds after which GitHub errors
@@ -24,10 +24,10 @@ api() {  # out file, gh api args... -> 0 done, 1 failed, 2 conflict (HTTP 409 or
     if grep -qE 'HTTP (409|422)' "$err"; then
       return 2
     elif grep -qE 'HTTP 4[0-9]{2}' "$err" && ! grep -qiE 'HTTP 429|rate limit' "$err"; then
-      echo "$2 failed with $(grep -oE 'HTTP 4[0-9]{2}' "$err" | head -n 1), so not retried" >&2
+      echo "$1 failed with $(grep -oE 'HTTP 4[0-9]{2}' "$err" | head -n 1), so not retried" >&2
       return 1
     elif [[ -n ${SHOTS_DEADLINE:-} ]] && (( $(date +%s) >= SHOTS_DEADLINE )); then
-      echo "this run's time for retrying GitHub errors is used up, so $2 is not retried" >&2
+      echo "this run's time for retrying GitHub errors is used up, so $1 is not retried" >&2
       return 1
     fi
     if (( attempt < 6 )); then
@@ -68,11 +68,11 @@ awk -F'\t' '{ printf "%d\t%s\n", NR, $1 }' "$list" \
   | OUT=$OUT xargs -d '\n' -P "${SHOTS_JOBS:-8}" -n 1 "$HERE/shots.sh" --blob \
   | sort -n > "$OUT/blobs.tsv"
 awk -F'\t' 'NR == FNR { sha[$1] = $2; next } { print $1 "\t" $2 "\t" (FNR in sha ? sha[FNR] : "-") }' "$OUT/blobs.tsv" "$list" > "$OUT/files.tsv"
-jq -R -s 'split("\n") | map(select(length > 0) | split("\t") | select(.[2] != "-") | {path: .[1], mode: "100644", type: "blob", sha: .[2]})' \
+jq -R -s 'split("\n") | map(select(length > 0) | split("\t") | {path: .[1], mode: "100644", type: "blob", sha: (if .[2] == "-" then null else .[2] end)})' \
   "$OUT/files.tsv" > "$OUT/entries.json"
 lost=$(awk -F'\t' '$3 == "-"' "$OUT/files.tsv" | wc -l)
-(( lost == 0 )) || echo "::error::$lost of $(wc -l < "$list") file(s) could not be uploaded, so they are left out" >&2
-if [[ $(jq length "$OUT/entries.json") == 0 ]]; then
+(( lost == 0 )) || echo "::error::$lost of $(wc -l < "$list") file(s) could not be uploaded, so they are removed from $branch" >&2
+if [[ $(jq 'map(select(.sha != null)) | length' "$OUT/entries.json") == 0 ]]; then
   echo "::error::no file could be uploaded, so no commit was made" >&2
   exit 1
 fi
@@ -81,7 +81,11 @@ for attempt in 1 2 3 4 5 6 7 8; do
   api "$OUT/tip" "repos/{owner}/{repo}/git/ref/heads/$branch" --jq .object.sha || exit 1
   tip=$(<"$OUT/tip")
   api "$OUT/base" "repos/{owner}/{repo}/git/commits/$tip" --jq .tree.sha || exit 1
-  jq -n --arg b "$(<"$OUT/base")" --slurpfile t "$OUT/entries.json" '{base_tree: $b, tree: $t[0]}' > "$OUT/tree.json"
+  jq -c 'map(select(.sha == null) | .path) | .[]' -r "$OUT/entries.json" | while read -r path; do
+    gh api "repos/{owner}/{repo}/contents/$path?ref=$tip" --silent 2>/dev/null || echo "$path"
+  done > "$OUT/absent"
+  jq -n --arg b "$(<"$OUT/base")" --slurpfile t "$OUT/entries.json" --rawfile a "$OUT/absent" \
+    '($a | split("\n")) as $absent | {base_tree: $b, tree: ($t[0] | map(select(.sha != null or (.path | IN($absent[]) | not))))}' > "$OUT/tree.json"
   api "$OUT/tree" "repos/{owner}/{repo}/git/trees" -X POST --input "$OUT/tree.json" --jq .sha || exit 1
   jq -n --arg m "$message" --arg t "$(<"$OUT/tree")" --arg p "$tip" '{message: $m, tree: $t, parents: [$p]}' > "$OUT/commit.json"
   api "$OUT/commit" "repos/{owner}/{repo}/git/commits" -X POST --input "$OUT/commit.json" --jq .sha || exit 1
@@ -98,7 +102,7 @@ for attempt in 1 2 3 4 5 6 7 8; do
     status=0
   fi
   if (( status == 0 )); then
-    echo "committed $(jq length "$OUT/entries.json") file(s) to $branch in ${sha::12}" >&2
+    echo "committed $(( $(jq length "$OUT/entries.json") - lost )) file(s) to $branch in ${sha::12}" >&2
     awk -F'\t' -v s="$sha" '{ print $1 "\t" ($3 == "-" ? "-" : s) }' "$OUT/files.tsv"
     exit "$(( lost > 0 ))"
   fi
