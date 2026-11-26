@@ -7568,7 +7568,7 @@ thunar_window_location_toolbar_create (ThunarWindow *window)
   window->location_toolbar_item_search = thunar_window_create_toolbar_toggle_item_from_action (window, THUNAR_WINDOW_ACTION_SEARCH, window->is_searching, item_order++);
   g_signal_handlers_disconnect_by_func (G_OBJECT (window->location_toolbar_item_search), thunar_window_action_search_folder, window);
   g_signal_connect_swapped (G_OBJECT (window->location_toolbar_item_search), "toggled", G_CALLBACK (thunar_window_action_search), window);
-  gtk_widget_set_tooltip_text (GTK_WIDGET (window->location_toolbar_item_search), _("Search for a specific file in the current folder, with its saved Include subfolders choice, and Recent"));
+  gtk_widget_set_tooltip_text (GTK_WIDGET (window->location_toolbar_item_search), _("Search for a specific file in the current folder, with its saved Include subfolders choice or the default from Preferences, and Recent"));
 
   /* add custom actions to the toolbar */
   thunar_window_location_toolbar_add_ucas (window);
