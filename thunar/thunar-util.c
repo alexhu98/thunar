@@ -1079,6 +1079,125 @@ thunar_util_clip_view_background (GtkCellRenderer     *cell,
 
 
 
+static const struct
+{
+  const gchar *icon_name;
+  const gchar *xapp_name;
+} thunar_util_xapp_icon_names[] = {
+  { "system-search", "edit-find" },
+};
+
+
+
+gchar *
+thunar_util_get_xapp_icon_name (GtkIconTheme *icon_theme,
+                                const gchar  *icon_name)
+{
+  ThunarPreferences *preferences;
+  gboolean           use_xapp_icons;
+  gchar              xapp_name[256];
+  gsize              length;
+  guint              n;
+
+  _thunar_return_val_if_fail (GTK_IS_ICON_THEME (icon_theme), NULL);
+
+  if (icon_name == NULL || *icon_name == '\0' || g_path_is_absolute (icon_name))
+    return NULL;
+
+  preferences = thunar_preferences_get ();
+  g_object_get (G_OBJECT (preferences), "misc-xapp-icons", &use_xapp_icons, NULL);
+  g_object_unref (G_OBJECT (preferences));
+
+  if (!use_xapp_icons)
+    return NULL;
+
+  if (g_str_has_prefix (icon_name, "xsi-"))
+    icon_name += 4;
+
+  length = strlen (icon_name);
+  if (g_str_has_suffix (icon_name, "-symbolic"))
+    length -= strlen ("-symbolic");
+
+  for (n = 0; n < G_N_ELEMENTS (thunar_util_xapp_icon_names); ++n)
+    if (strlen (thunar_util_xapp_icon_names[n].icon_name) == length
+        && strncmp (icon_name, thunar_util_xapp_icon_names[n].icon_name, length) == 0)
+      {
+        icon_name = thunar_util_xapp_icon_names[n].xapp_name;
+        length = strlen (icon_name);
+        break;
+      }
+
+  if (length + strlen ("xsi--symbolic") >= sizeof (xapp_name))
+    return NULL;
+
+  g_snprintf (xapp_name, sizeof (xapp_name), "xsi-%.*s-symbolic", (gint) length, icon_name);
+
+  if (gtk_icon_theme_has_icon (icon_theme, xapp_name))
+    return g_strdup (xapp_name);
+
+  return NULL;
+}
+
+
+
+gchar *
+thunar_util_get_icon_name_from_xapp (const gchar *icon_name)
+{
+  gsize length;
+  guint n;
+
+  if (icon_name == NULL || strlen (icon_name) < strlen ("xsi--symbolic")
+      || !g_str_has_prefix (icon_name, "xsi-") || !g_str_has_suffix (icon_name, "-symbolic"))
+    return NULL;
+
+  icon_name += 4;
+  length = strlen (icon_name) - strlen ("-symbolic");
+
+  for (n = 0; n < G_N_ELEMENTS (thunar_util_xapp_icon_names); ++n)
+    if (strlen (thunar_util_xapp_icon_names[n].xapp_name) == length
+        && strncmp (icon_name, thunar_util_xapp_icon_names[n].xapp_name, length) == 0)
+      return g_strconcat (thunar_util_xapp_icon_names[n].icon_name, "-symbolic", NULL);
+
+  return g_strdup (icon_name);
+}
+
+
+
+GIcon *
+thunar_util_get_xapp_gicon (GtkIconTheme *icon_theme,
+                            GIcon        *gicon)
+{
+  const gchar *const *names;
+  GIcon              *xapp_icon = NULL;
+  gchar              *xapp_name;
+  guint               n;
+
+  if (!G_IS_THEMED_ICON (gicon))
+    return NULL;
+
+  names = g_themed_icon_get_names (G_THEMED_ICON (gicon));
+  for (n = 0; names[n] != NULL; ++n)
+    {
+      xapp_name = thunar_util_get_xapp_icon_name (icon_theme, names[n]);
+      if (xapp_name == NULL)
+        {
+          if (gtk_icon_theme_has_icon (icon_theme, names[n]))
+            break;
+          continue;
+        }
+
+      if (xapp_icon == NULL)
+        xapp_icon = g_themed_icon_new (xapp_name);
+      else
+        g_themed_icon_append_name (G_THEMED_ICON (xapp_icon), xapp_name);
+      g_free (xapp_name);
+    }
+
+  return xapp_icon;
+}
+
+
+
 /**
  * thunar_util_split_search_query:
  * @search_query_normalized: The normalized search query to split.

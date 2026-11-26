@@ -143,6 +143,7 @@ enum
   PROP_MISC_EXPANDABLE_FOLDERS,
   PROP_MISC_SYMBOLIC_ICONS_IN_TOOLBAR,
   PROP_MISC_SYMBOLIC_ICONS_IN_SIDEPANE,
+  PROP_MISC_XAPP_ICONS,
   PROP_MISC_CTRL_SCROLL_WHEEL_TO_ZOOM,
   PROP_MISC_USE_CSD,
   N_PROPERTIES
@@ -1417,6 +1418,19 @@ thunar_preferences_class_init (ThunarPreferencesClass *klass)
                         "MiscSymbolicIconsInSidepane",
                         NULL,
                         FALSE,
+                        EXO_PARAM_READWRITE);
+
+  /**
+   * ThunarPreferences:misc-xapp-icons:
+   *
+   * If true, symbolic icons in the toolbar, location bar and side pane
+   * use the XApp symbolic icon (xsi-*-symbolic) when it is installed
+   **/
+  preferences_props[PROP_MISC_XAPP_ICONS] =
+  g_param_spec_boolean ("misc-xapp-icons",
+                        "MiscXappIcons",
+                        NULL,
+                        TRUE,
                         EXO_PARAM_READWRITE);
 
   /**

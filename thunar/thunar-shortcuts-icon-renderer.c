@@ -28,6 +28,7 @@
 #include "thunar/thunar-gobject-extensions.h"
 #include "thunar/thunar-icon-factory.h"
 #include "thunar/thunar-shortcuts-icon-renderer.h"
+#include "thunar/thunar-util.h"
 
 #include <gio/gio.h>
 
@@ -224,6 +225,7 @@ thunar_shortcuts_icon_renderer_render (GtkCellRenderer     *renderer,
   GdkPixbuf                   *icon = NULL;
   GdkPixbuf                   *temp;
   GIcon                       *gicon;
+  GIcon                       *xapp_gicon;
   gdouble                      alpha;
   gint                         scale_factor;
   gboolean                     use_symbolic_icons;
@@ -252,8 +254,17 @@ thunar_shortcuts_icon_renderer_render (GtkCellRenderer     *renderer,
       if (use_symbolic_icons)
         lookup_flags |= GTK_ICON_LOOKUP_FORCE_SYMBOLIC;
 
-      icon_info = gtk_icon_theme_lookup_by_gicon_for_scale (icon_theme, gicon, cell_area->width,
-                                                            scale_factor, lookup_flags);
+      icon_info = NULL;
+      xapp_gicon = use_symbolic_icons ? thunar_util_get_xapp_gicon (icon_theme, gicon) : NULL;
+      if (xapp_gicon != NULL)
+        {
+          icon_info = gtk_icon_theme_lookup_by_gicon_for_scale (icon_theme, xapp_gicon, cell_area->width,
+                                                                scale_factor, lookup_flags);
+          g_object_unref (xapp_gicon);
+        }
+      if (icon_info == NULL)
+        icon_info = gtk_icon_theme_lookup_by_gicon_for_scale (icon_theme, gicon, cell_area->width,
+                                                              scale_factor, lookup_flags);
       g_object_unref (gicon);
 
       /* try to load the icon */
