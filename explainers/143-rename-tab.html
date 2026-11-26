@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tab rename</title>
+<title>PR #146 Tab rename</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -100,7 +100,7 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">Tab rename: Tab and Shift+Tab save the name and rename the next or previous file</h1>
+  <h1 data-k="title">PR #146: Tab and Shift+Tab save the name and rename the next or previous file</h1>
   <p class="lead" data-k="lead">Branch <code>143-rename-tab</code> → <code>main</code>, closes #143. While you rename a file in place with F2 in the Details view, Tab saves the name and opens the next file's name for editing, and Shift+Tab the previous one's.</p>
 
   <nav class="parts" aria-label="Parts of this page">
@@ -145,9 +145,9 @@
     <g data-k="3">
       <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
       <text x="536" y="90" class="t">Pick the row</text>
-      <text x="536" y="114" class="b">next or previous in</text>
-      <text x="536" y="134" class="b">view order, before</text>
-      <text x="536" y="154" class="b">saving; no launchers</text>
+      <text x="536" y="114" class="b">next or previous row</text>
+      <text x="536" y="134" class="b">before saving; skips</text>
+      <text x="536" y="154" class="b">rows it can't rename</text>
       <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">3</text>
     </g>
     <g data-k="4">
@@ -201,9 +201,9 @@
   <div class="panel">
   <div class="lane-h" style="color:var(--accent)">① Tab in the name entry: save this name</div>
   <ol class="steps">
-    <li data-k="1"><b>You press Tab.</b> While the name entry is open, <code>thunar_standard_view_rename_key_pressed</code> now catches Tab and the keypad Tab. Shift+Tab, which X sends as <code>ISO_Left_Tab</code>, or Tab with Shift held, goes the other way. Tab with Ctrl or Alt held is left to GTK, as before.</li>
+    <li data-k="1"><b>You press Tab.</b> While the name entry is open, <code>thunar_standard_view_rename_key_pressed</code> now catches Tab and the keypad Tab. Shift+Tab, which X sends as <code>ISO_Left_Tab</code>, or Tab with Shift held, goes the other way. Tab with any modifier other than Shift held (Ctrl, Alt, Super, Hyper or Meta) is left to GTK, as before.</li>
     <li data-k="2"><b>Check the name.</b> The handler checks the typed text the way Up and Down already do. If it's invalid, such as <code>a/b</code>, the entry shows its error icon, stays open on the same file, and nothing is saved or moved.</li>
-    <li data-k="3"><b>Pick the row.</b> The new <code>thunar_standard_view_rename_neighbour</code> walks the rows in the order you see them: into an expanded folder's children, and back out to the parent's next row. It skips <code>.desktop</code> launchers, because F2 renames those in a dialog, not in place.</li>
+    <li data-k="3"><b>Pick the row.</b> The new <code>thunar_standard_view_rename_neighbour</code> walks the rows in the order you see them: into an expanded folder's children, and back out to the parent's next row. It skips <code>.desktop</code> launchers, because F2 renames those in a dialog, not in place, and rows Thunar reports as not renameable: only when the file info carries <code>access::can-rename</code> and it's false. If you changed the name of an expanded folder, Tab skips its children, whose paths change with the rename, and goes to the folder's next sibling; an unchanged expanded folder still steps into its first child. “Changed” compares with the name the entry opened with.</li>
     <li data-k="4"><b>Save the name.</b> Editing ends through the cell's normal path: <code>editing_done</code> and <code>remove_widget</code>, then <code>rename_edited</code> and <code>rename_finish</code>, exactly as Return does. A name you didn't change saves nothing, and Tab still moves on. The handler returns TRUE, so GTK doesn't move the keyboard focus elsewhere.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Then: edit the next name</div>
@@ -224,8 +224,10 @@
     <tr data-k="k3"><td>Tab on the last row, Shift+Tab on the first</td><td>Saves the name and closes the entry</td></tr>
     <tr data-k="k4"><td>Tab with an invalid name</td><td>Shows the error; the entry stays on the same file</td></tr>
     <tr data-k="k5"><td>Tab with the name unchanged</td><td>Saves nothing, moves on</td></tr>
-    <tr data-k="k6"><td>Tab when the next row is a launcher</td><td>Skips it and opens the row after</td></tr>
-    <tr data-k="k7"><td>Ctrl+Tab or Alt+Tab</td><td>Left to GTK, as before this PR</td></tr>
+    <tr data-k="k6"><td>Tab when the next row is a launcher or can't be renamed</td><td>Skips it and opens the row after</td></tr>
+    <tr data-k="k9"><td>Tab after changing an expanded folder's name</td><td>Skips its children, opens the folder's next sibling</td></tr>
+    <tr data-k="k10"><td>Tab on an expanded folder, name unchanged</td><td>Opens the entry on its first child</td></tr>
+    <tr data-k="k7"><td>Tab with Ctrl, Alt, Super, Hyper or Meta held</td><td>Left to GTK, as before this PR</td></tr>
     <tr data-k="k8"><td>Tab in the icon or compact view</td><td>Unchanged: F2 there opens the rename popover from #15</td></tr>
   </table>
   </div>
@@ -235,12 +237,13 @@
   <h3 class="sec">The key handler's new branch</h3>
 <pre data-k="diff">  else if ((event-&gt;keyval == GDK_KEY_Tab || event-&gt;keyval == GDK_KEY_KP_Tab
 <span class="add">            || event-&gt;keyval == GDK_KEY_ISO_Left_Tab)</span>
-<span class="add">           &amp;&amp; (event-&gt;state &amp; (GDK_CONTROL_MASK | GDK_MOD1_MASK)) == 0)</span>
+<span class="add">           &amp;&amp; (event-&gt;state &amp; ~GDK_SHIFT_MASK &amp; gtk_accelerator_get_default_mod_mask ()) == 0)</span>
 <span class="add">    {</span>
 <span class="add">      if (thunar_standard_view_rename_show_error (GTK_ENTRY (entry)))</span>
 <span class="add">        return TRUE;</span>
 <span class="add">      forward = … ;</span>
-<span class="add">      next = thunar_standard_view_rename_neighbour (standard_view, forward);</span>
+<span class="add">      unchanged = … ;</span>
+<span class="add">      next = thunar_standard_view_rename_neighbour (standard_view, forward, unchanged);</span>
 <span class="add">      gtk_cell_editable_editing_done (GTK_CELL_EDITABLE (entry));</span>
 <span class="add">      gtk_cell_editable_remove_widget (GTK_CELL_EDITABLE (entry));</span>
 <span class="add">      if (next != NULL)</span>
@@ -267,7 +270,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested in the cloud container on the first commit; the review fixes after it were only syntax-checked there, and CI runs them after the push.</p>
+  <p class="intro" data-k="intro">Built and tested in the cloud container on the first commit, <code>ea90b14</code>. The review fixes after it were built and verified by CI, not locally; CI's run is on the PR.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -287,6 +290,7 @@ explainers/
     <tr data-k="c3"><td>Tab and Shift+Tab work</td><td><code>verify/143.sh</code> in that run: Tab twice from a.txt, Shift+Tab from d.txt, Tab on the last row, Tab with <code>a/b</code></td><td class="ok">pass, 24 s</td></tr>
     <tr data-k="c4"><td>F2 in place is unchanged</td><td><code>verify/16.sh</code>, the #16 test, in that run</td><td class="ok">pass, 103 s</td></tr>
     <tr data-k="c5"><td>The review fixes compile</td><td><code>gcc -fsyntax-only</code> on the C file and <code>bash -n</code> on <code>verify/143.sh</code>, on commit <code>a754168</code>; not rebuilt or re-run</td><td class="ok">no errors</td></tr>
+    <tr data-k="c8"><td>CI's review fixes and the agent's</td><td>Commits <code>c80a3a6</code>, <code>d7c5d31</code> and <code>ea7eadc</code> came after the local <code>build-verify</code> run on <code>ea90b14</code>. CI's build and verify jobs built and tested them, not the cloud container</td><td class="open">CI's run is on the PR</td></tr>
     <tr data-k="c6"><td>Error dialog while the next entry is open</td><td>The issue's risk: a failed rename's dialog appearing over the next entry. <code>verify/143.sh</code> doesn't make a rename fail</td><td class="no">not run</td></tr>
     <tr data-k="c7"><td>Row order with Expandable folders</td><td>The code walks into expanded folders, but <code>verify/143.sh</code> has no subfolders</td><td class="no">not run</td></tr>
   </table>
@@ -302,7 +306,17 @@ explainers/
     <li data-k="b3"><b>Test:</b> <code>verify/143.sh</code> now fixes the invalid <code>a/b</code> to <code>a</code> and presses Tab, proving the entry stayed open with its text.</li>
     <li data-k="b4"><b>Skipped:</b> the missing explainer, which this page resolves, and an <code>xdotool</code> check that no entry is left open after Tab on the last row. That test's screenshot shows it instead.</li>
   </ul>
-  <p data-k="ci">CI reviews the first push at <code>high</code> too, and posts its findings in the code review PR comment.</p>
+  <p data-k="ci">CI then reviewed each code push at <code>high</code>, in the <a href="https://github.com/alexhu98/thunar/pull/146#issuecomment-7181930855">code review PR comment</a>. Its first review, of <code>93386ae</code>, found 3:</p>
+  <ul class="tight">
+    <li data-k="ci1"><b>R1, high, confirmed:</b> after you changed an expanded folder's name, Tab stepped into its children, whose paths change with the rename. CI fixed it in <code>c80a3a6</code>: Tab goes to the folder's next sibling.</li>
+    <li data-k="ci2"><b>R2 and R3, low:</b> Tab could open an entry on a row Thunar reports as not renameable, and Super, Hyper or Meta+Tab were caught. The agent fixed both in <code>d7c5d31</code>.</li>
+  </ul>
+  <p data-k="ci-second">Its second review, of <code>d7c5d31</code>, found 4:</p>
+  <ul class="tight">
+    <li data-k="ci3"><b>R4 and R5, medium:</b> the renameable check also skipped rows whose file info lacks the attribute, and the changed-name check should compare with the name the entry opened with. CI fixed both in <code>ea7eadc</code>.</li>
+    <li data-k="ci4"><b>R6, low, accepted by the owner:</b> if renaming an expanded folder fails, Tab has already skipped its children, because the next row is chosen before the background rename job finishes. A narrow case, accepted rather than waiting for the job.</li>
+    <li data-k="ci5"><b>R7, low, accepted by the owner:</b> <code>verify/143.sh</code> doesn't test skipping non-renameable rows, Super+Tab, or Tab after renaming an expanded folder. xfwm4 may grab Super+Tab, and a read-only row needs extra setup, so it was accepted with no new tests.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -310,7 +324,6 @@ explainers/
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>The review fixes built and every test re-run, including the new fixed-<code>a/b</code> step</td><td>The fixes came after the local run and were only syntax-checked here</td><td class="open">CI, on the first push</td></tr>
     <tr data-k="a2"><td>Tab with a failing rename, and with expanded folders</td><td>No test covers them</td><td class="open">when the owner uses it</td></tr>
   </table>
   </div>
@@ -319,6 +332,7 @@ explainers/
   <section class="sub" id="see">
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
+    <li data-k="l0">The PR: <a href="https://github.com/alexhu98/thunar/pull/146">#146</a>, with CI's runs and comments</li>
     <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/143">#143</a></li>
     <li data-k="l2">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...143-rename-tab">main…143-rename-tab</a></li>
     <li data-k="l3">The test: <a href="https://github.com/alexhu98/thunar/blob/143-rename-tab/verify/143.sh">verify/143.sh</a>, and its shots in CI's verify PR comment</li>
@@ -369,6 +383,7 @@ explainers/
   <h2>Glossary</h2>
   <dl class="gloss">
     <div data-k="inplace"><dt>Rename in place</dt><dd>F2 turns the file's Name cell into a text box, instead of opening a popover (#16).</dd></div>
+    <div data-k="canrename"><dt>access::can-rename</dt><dd>A file info attribute that says whether the file can be renamed.</dd></div>
     <div data-k="details"><dt>Details view</dt><dd>Thunar's list view with columns; the only view with in-place rename.</dd></div>
     <div data-k="popover"><dt>Popover</dt><dd>The small rename bubble the icon and compact views still use (#15).</dd></div>
     <div data-k="launcher"><dt>Launcher</dt><dd>A <code>.desktop</code> file that starts an app; F2 renames it in a dialog.</dd></div>
