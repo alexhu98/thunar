@@ -241,7 +241,7 @@
   <ol class="steps" start="7" style="counter-reset: s 6">
     <li data-k="7"><b>Go menu.</b> The Go menu listed only Search for Files.... It now lists Search in Subfolders... first, so the Ctrl+F item comes first. The issue offered this as optional; it's done. Both items used S as their menu letter, so CI's review moved Search in Subfolders... to U: Alt+G then U searches with subfolders, Alt+G then S only the folder.</li>
     <li data-k="8"><b>Your shortcuts.</b> If you rebound either action in <code>~/.config/Thunar/accels.scm</code>, your binding stays, because it is stored under the action's name, which hasn't changed.</li>
-    <li data-k="9"><b>Toolbar button.</b> The toolbar Search button and the Search key still open with the folder's saved choice, which the last shortcut you used there set. The button had borrowed Search for Files...'s tooltip, which said “current folder”; CI's review gave it its own: “Search for a specific file in the current folder, with its saved Include subfolders choice, and Recent”.</li>
+    <li data-k="9"><b>Toolbar button.</b> The toolbar Search button and the Search key still open with the folder's saved choice, which the last shortcut you used there set. The button had borrowed Search for Files...'s tooltip, which said “current folder”; CI's review gave it its own, and its second review corrected it, since a folder with no saved choice uses the default from Preferences: “Search for a specific file in the current folder, with its saved Include subfolders choice or the default from Preferences, and Recent”.</li>
   </ol>
   </div>
   </section>
@@ -306,7 +306,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Built and tested in the cloud container on the first commit, then reviewed locally. CI then built and tested both later heads, reviewed the code and fixed its 3 findings itself. The full test run and a clean screenshot audit are still to come.</p>
+  <p class="intro" data-k="intro">Built and tested in the cloud container on the first commit, then reviewed locally. CI then built and tested the later heads, reviewed the code twice and fixed all 4 of its findings itself. The Go menu shot fix was built and tested locally. The full test run and CI's screenshot audit of the new head are still to come.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -329,8 +329,11 @@ explainers/
     <tr data-k="c6"><td>Go menu line, in CI</td><td>CI's verify on <code>40462fa58f23</code>, with the Go menu line and the renamed check: <code>verify/149.sh</code> 55 s, <code>verify/68.sh</code> 39 s, smoke test 16 s. Partial: 3 of 34</td><td class="ok">3 of 3 pass</td></tr>
     <tr data-k="c9"><td>CI's review fixes, in CI</td><td>CI's verify on <code>19700f5962d6</code>, its fix commit, with the new Go menu check: <code>verify/149.sh</code> 71 s, <code>verify/68.sh</code> 38 s, smoke test 15 s. Partial</td><td class="ok">3 of 3 pass</td></tr>
     <tr data-k="c10"><td>This page</td><td>CI's explainer job on <code>19700f5962d6</code>: render and <code>make-video.py status</code></td><td class="ok">rendered, narration current</td></tr>
-    <tr data-k="c8"><td>Screenshot audit</td><td><code>/visual-verify pr:154</code> on <code>19700f5962d6</code>: shots 1–3 and 5–8 OK; shot 4 (go-menu) BLANK, because <code>import -window</code> doesn't capture the menu's popup. The next push takes that shot from the root window, and a new audit follows</td><td class="no">FAIL, 7 of 8 OK</td></tr>
-    <tr data-k="c7"><td>All 34 verify scripts</td><td>CI ran 3 per push so far; the next push carries <code>Verify: full</code>, so CI runs all of them before the merge</td><td class="no">not run yet</td></tr>
+    <tr data-k="c8"><td>Screenshot audit</td><td><code>/visual-verify pr:154</code> on <code>19700f5962d6</code>: shots 1–3 and 5–8 OK; shot 4 (go-menu) BLANK, because <code>import -window</code> doesn't capture the menu's popup. Commit <code>457b9ef</code> takes that shot from the root window</td><td class="no">FAIL, 7 of 8 OK</td></tr>
+    <tr data-k="c11"><td>The Go menu shot fix, locally</td><td>The build-verify agent built the tree with <code>457b9ef</code> in the cloud container and ran <code>verify/149.sh</code> and the smoke test</td><td class="ok">2 of 2 pass, 68 s and 12 s</td></tr>
+    <tr data-k="c12"><td>Go menu shot, local audit</td><td>An independent shot audit of that local run's shot 4: the Go menu is drawn, with Search in Subfolders... Ctrl+F above Search for Files... Shift+Ctrl+F</td><td class="ok">menu shown</td></tr>
+    <tr data-k="c13"><td>Screenshot audit of the new head</td><td><code>/visual-verify pr:154</code> on CI's shots of the new head, after its verify run</td><td class="no">not run yet</td></tr>
+    <tr data-k="c7"><td>All 34 verify scripts</td><td>CI ran 3 per push so far; the push that carries this page update has <code>Verify: full</code>, so CI runs all of them before the merge</td><td class="no">not run yet</td></tr>
   </table>
   </div>
   </section>
@@ -349,6 +352,10 @@ explainers/
     <li data-k="r2"><b>R2, low, fixed:</b> no test covered the Go menu item. <code>verify/149.sh</code> now opens the Go menu and checks that U searches with subfolders and S only the folder, with a go-menu shot.</li>
     <li data-k="r3"><b>R3, low, fixed:</b> the toolbar Search button said “current folder” but uses the folder's saved choice, as it did before this PR. It now has its own tooltip.</li>
   </ul>
+  <p data-k="ci2">CI reviewed again on <code>d959e09e740c</code>, covering the commits since <code>40462fa58f23</code> (<a href="https://github.com/alexhu98/thunar/actions/runs/45864142177">run 45864142177</a>, 3 min). It found 1 thing, fixed in its commit <code>cb70d9d8ff89</code>. That makes 4 findings in all, all fixed.</p>
+  <ul class="tight">
+    <li data-k="r4"><b>R4, low, confirmed, fixed:</b> the new tooltip said the button always uses the folder's saved choice, but a folder with none uses the default from Preferences. The tooltip now says so.</li>
+  </ul>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -366,7 +373,7 @@ explainers/
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
     <li data-k="l1">The changes: <a href="https://github.com/alexhu98/thunar/pull/154/files">PR #154 → “Files changed”</a>, from branch <code>149-swap-search-shortcuts</code></li>
-    <li data-k="l2">CI's results: <a href="https://github.com/alexhu98/thunar/pull/154">PR #154</a>'s summary, code review, verify and explainer comments; the review's <a href="https://github.com/alexhu98/thunar/actions/runs/45861955949">run 45861955949</a></li>
+    <li data-k="l2">CI's results: <a href="https://github.com/alexhu98/thunar/pull/154">PR #154</a>'s summary, code review, verify and explainer comments; the reviews' <a href="https://github.com/alexhu98/thunar/actions/runs/45861955949">run 45861955949</a> and <a href="https://github.com/alexhu98/thunar/actions/runs/45864142177">run 45864142177</a></li>
     <li data-k="l3">The issue: <a href="https://github.com/alexhu98/thunar/issues/149">#149</a>; the shortcuts it swaps: <a href="https://github.com/alexhu98/thunar/issues/139">#139</a></li>
   </ul>
   </section>
