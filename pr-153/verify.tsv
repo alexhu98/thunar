@@ -1,5 +1,37 @@
 sha	num	test	result	shot	file	proves
-773257b0cbc4e1c00551bf11e798db1959213595	1	150	pass	before-xapp	verify-150-before-xapp.png	misc-xapp-icons off: the toolbar Home button, the Home place and the Projects bookmark show the theme's symbolic icons
-773257b0cbc4e1c00551bf11e798db1959213595	1	150	pass	after-xapp	verify-150-after-xapp.png	misc-xapp-icons on: the toolbar Home button, the Home place and the Projects bookmark show the solid-square xsi-* fixtures; Projects and Notes in the file view keep colour folder icons
-773257b0cbc4e1c00551bf11e798db1959213595	2	150	pass	fallback-home	verify-150-fallback-home.png	xsi-go-home-symbolic removed: the toolbar Home button and the Home place fall back to the theme's go-home-symbolic, while the Projects bookmark keeps its solid-square xsi-folder-symbolic
-773257b0cbc4e1c00551bf11e798db1959213595	3	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	118	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	120	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	123	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	124	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	126	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	128	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	129	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	132	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	133	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	135	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	139	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	14	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	140	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	143	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	144	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	15	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	1	150	pass	before-xapp	verify-150-before-xapp.png	misc-xapp-icons off: the toolbar Home button, the Home place and the Projects bookmark show the theme's symbolic icons
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	1	150	pass	after-xapp	verify-150-after-xapp.png	misc-xapp-icons on: the toolbar Home button, the Home place and the Projects bookmark show the solid-square xsi-* fixtures; Projects and Notes in the file view keep colour folder icons
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	2	150	pass	fallback-home	verify-150-fallback-home.png	xsi-go-home-symbolic removed: the toolbar Home button and the Home place fall back to the theme's go-home-symbolic, while the Projects bookmark keeps its solid-square xsi-folder-symbolic
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	16	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	17	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	19	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	21	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	22	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	3	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	4	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	40	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	49	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	5	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	68	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	74	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	89	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	93	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	95	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	-	96	pass	-	-	-
+19bd530e4b2debb8a6d3028c6d73ad22a5796a84	3	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
