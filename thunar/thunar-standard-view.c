@@ -5653,7 +5653,7 @@ thunar_standard_view_rename_neighbour (ThunarStandardView *standard_view,
       if (found)
         {
           file = thunar_standard_view_model_get_file (standard_view->model, &iter);
-          if (file != NULL && thunar_file_is_desktop_file (file))
+          if (file != NULL && (thunar_file_is_desktop_file (file) || !thunar_file_is_renameable (file)))
             g_clear_object (&file);
         }
     }
@@ -5677,7 +5677,7 @@ thunar_standard_view_rename_key_pressed (GtkWidget          *entry,
     return thunar_standard_view_rename_show_error (GTK_ENTRY (entry));
   else if ((event->keyval == GDK_KEY_Tab || event->keyval == GDK_KEY_KP_Tab
             || event->keyval == GDK_KEY_ISO_Left_Tab)
-           && (event->state & (GDK_CONTROL_MASK | GDK_MOD1_MASK)) == 0)
+           && (event->state & ~GDK_SHIFT_MASK & gtk_accelerator_get_default_mod_mask ()) == 0)
     {
       if (thunar_standard_view_rename_show_error (GTK_ENTRY (entry)))
         return TRUE;
