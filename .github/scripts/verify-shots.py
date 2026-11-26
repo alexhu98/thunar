@@ -84,7 +84,7 @@ def scope(out):
         return f'{words[1]} of {words[2]} tests (partial)', False
     if words[:1] == ['all'] and len(words) == 2:
         return f'all {words[1]} tests', True
-    return 'all tests', True
+    return 'tests run unknown', False
 
 
 def number(out):

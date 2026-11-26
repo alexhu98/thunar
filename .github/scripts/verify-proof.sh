@@ -180,12 +180,12 @@ run() {
   for script in verify/*.sh; do
     [[ -f $script ]] || continue
     name=$(basename "$script" .sh)
+    total=$((total + 1))
     if [[ ! $name =~ ^[0-9]+$ ]]; then
       names+=("$name.sh")
       not_run "$name.sh" misnamed "$script is not named verify/<issue>.sh, so it was not run"
       continue
     fi
-    total=$((total + 1))
     if (( $# )) && [[ $want != *" $name "* ]]; then
       continue
     fi
@@ -194,7 +194,7 @@ run() {
     [[ -n ${OWN+set} && $own != *" $name "* ]] || echo "$name" >> "$OUT/own"
   done
   echo smoke >> "$OUT/own"
-  if (( ${#tests[@]} == total )); then echo "all $total"; else echo "partial ${#tests[@]} $total"; fi > "$OUT/scope"
+  if (( ${#names[@]} == total )); then echo "all $total"; else echo "partial ${#names[@]} $total"; fi > "$OUT/scope"
   echo "running ${#tests[@]} of $total tests: ${tests[*]}"
   for name in "${tests[@]}"; do
     while (( ${#running[@]} >= JOBS )); do reap; done
@@ -245,7 +245,15 @@ publish() {
       [[ $sha == - ]] || sha="https://github.com/$GH_REPO/blob/$sha/$(awk -F'\t' -v f="$file" '$1 == f { print $2; exit }' "$OUT/upload.tsv")?raw=true"
       printf '%s\t%s\n' "${file#"$OUT/"}" "$sha" >> "$OUT/urls.tsv"
     done < <(awk -F'\t' 'FILENAME == ARGV[1] { sha[$1] = $2; next } { print $1 "\t" ($1 in sha ? sha[$1] : "-") }' "$OUT/committed.tsv" "$OUT/upload.tsv")
-    (( failed == 0 )) || echo "::error::the shots could not all be committed to the shots branch" >&2
+    if (( failed )); then
+      echo "::error::the shots could not all be committed to the shots branch" >&2
+      if [[ -s $OUT/committed.tsv ]]; then
+        python3 "$HERE/verify-shots.py" manifest "$OUT" > "$OUT/verify-shots.tsv"
+        printf '%s\t%s\n' "$OUT/verify-shots.tsv" "$dir/verify.tsv" > "$OUT/manifest.tsv"
+        OUT="$OUT/manifest" "$HERE/shots.sh" "$OUT/manifest.tsv" "Verify manifest for PR #${PR:-0}" >/dev/null </dev/null \
+          || echo "::error::could not upload $dir/verify.tsv with the lost files marked" >&2
+      fi
+    fi
   fi
   python3 "$HERE/verify-shots.py" comment "$OUT" > "$OUT/comment.md"
   OUT="$OUT/comment" "$HERE/pr-comment.sh" put verify "$OUT/comment.md"

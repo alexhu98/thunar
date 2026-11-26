@@ -15,7 +15,7 @@ OUT=${OUT:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/shots}
 branch=${SHOTS_BRANCH:-shots}
 mkdir -p "$OUT"
 
-api() {  # out file, gh api args... -> 0 done, 1 failed, 2 conflict (HTTP 409 or 422)
+api() {
   local out=$1 err=$1.err attempt delay delays=(2 4 8 16 30)
   shift
   for attempt in 1 2 3 4 5 6; do
@@ -38,7 +38,7 @@ api() {  # out file, gh api args... -> 0 done, 1 failed, 2 conflict (HTTP 409 or
   return 1
 }
 
-blob() {  # local file, work file -> prints the blob's sha
+blob() {
   local file=$1 work=$2 sha
   [[ -s $file ]] || { echo "::error::$file is missing or empty" >&2; return 1; }
   jq -n --rawfile c <(base64 -w0 "$file") '{content: $c, encoding: "base64"}' > "$work.json"
@@ -82,8 +82,10 @@ for attempt in 1 2 3 4 5 6 7 8; do
   tip=$(<"$OUT/tip")
   api "$OUT/base" "repos/{owner}/{repo}/git/commits/$tip" --jq .tree.sha || exit 1
   jq -c 'map(select(.sha == null) | .path) | .[]' -r "$OUT/entries.json" | while read -r path; do
-    gh api "repos/{owner}/{repo}/contents/$path?ref=$tip" --silent 2>/dev/null || echo "$path"
-  done > "$OUT/absent"
+    if ! err=$(gh api "repos/{owner}/{repo}/contents/$path?ref=$tip" --silent 2>&1); then
+      grep -q 'HTTP 404' <<< "$err" && echo "$path" || { echo "$err" >&2; exit 1; }
+    fi
+  done > "$OUT/absent" || { echo "::error::could not tell whether the lost files are on $branch, so no commit was made" >&2; exit 1; }
   jq -n --arg b "$(<"$OUT/base")" --slurpfile t "$OUT/entries.json" --rawfile a "$OUT/absent" \
     '($a | split("\n")) as $absent | {base_tree: $b, tree: ($t[0] | map(select(.sha != null or (.path | IN($absent[]) | not))))}' > "$OUT/tree.json"
   api "$OUT/tree" "repos/{owner}/{repo}/git/trees" -X POST --input "$OUT/tree.json" --jq .sha || exit 1
