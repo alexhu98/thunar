@@ -5499,7 +5499,6 @@ thunar_standard_view_rename_finish (ThunarStandardView *standard_view,
     return;
 
   if (thunar_standard_view_rename_check (text) == NULL
-      && g_strcmp0 (text, standard_view->priv->rename_name) != 0
       && g_strcmp0 (text, thunar_file_get_display_name (file)) != 0)
     {
       application = thunar_application_get ();
@@ -5668,7 +5667,7 @@ thunar_standard_view_rename_neighbour (ThunarStandardView *standard_view,
             {
               parent_gfile = g_file_get_parent (thunar_file_get_file (file));
               parent = parent_gfile != NULL ? thunar_file_cache_lookup (parent_gfile) : NULL;
-              writable = parent == NULL || thunar_file_is_writable (parent);
+              writable = parent_gfile == NULL || (parent != NULL && thunar_file_is_writable (parent));
               g_clear_object (&parent);
               g_clear_object (&parent_gfile);
             }
