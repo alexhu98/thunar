@@ -2060,10 +2060,20 @@ thunar_standard_view_free_space_ready (GObject      *source_object,
 {
   ThunarStandardView *standard_view;
   GFileInfo          *info;
+  GError             *error = NULL;
 
-  info = g_file_query_filesystem_info_finish (G_FILE (source_object), result, NULL);
+  info = g_file_query_filesystem_info_finish (G_FILE (source_object), result, &error);
   if (info == NULL)
-    return;
+    {
+      if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        {
+          standard_view = THUNAR_STANDARD_VIEW (user_data);
+          standard_view->priv->free_space_known = FALSE;
+          thunar_standard_view_update_statusbar_text (standard_view);
+        }
+      g_error_free (error);
+      return;
+    }
 
   standard_view = THUNAR_STANDARD_VIEW (user_data);
   if (g_file_info_has_attribute (info, G_FILE_ATTRIBUTE_FILESYSTEM_FREE))
@@ -2880,6 +2890,8 @@ thunar_standard_view_update_statusbar_text_idle (gpointer data)
               g_free (info_text);
               info_text = temp_string;
             }
+          else
+            standard_view->priv->search_size_num_files = -1;
           info_text = thunar_standard_view_append_free_space (standard_view, info_text);
         }
       else
