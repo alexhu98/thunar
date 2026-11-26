@@ -261,7 +261,7 @@ def comment(out):
               'shots': any(e['image'] and u.get(e['image'], '-') != '-' for e in entries)}
     theme = open(os.path.join(out, 'theme')).read().strip() if os.path.exists(os.path.join(out, 'theme')) else 'default'
     lines += [f'### Verify: {head}', '']
-    if not full:
+    if scope_text.endswith('(partial)'):
         lines += ["Only the smoke test and the PR's own tests ran. A head commit with the trailer `Verify: full` runs "
                   'all of them, as the merge needs.', '']
     if not complete:

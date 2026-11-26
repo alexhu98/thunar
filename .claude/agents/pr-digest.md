@@ -89,7 +89,7 @@ Return exactly this, plus the `detail` lines when asked for, and nothing else: n
 PR #<n> <title> (<open|merged|closed>)
 head <sha12> · base main <sha12> · mergeable <state> · main moved since CI: yes|no|n/a (yes when unknown)
 checks: build <s> · verify <s> · explainer <s> · review <s> · review-report <s> · summary <s> (steps: build <ran|No code changed|skipped> · verify <ran|No code changed|skipped> · explainer <ran|skipped>)
-verify scope: all <M> tests | <N> of <M> tests (partial) for <sha12> (head|not head) (or "n/a" when verify ran No code changed)
+verify scope: all <M> tests | <N> of <M> tests (partial) | tests run unknown for <sha12> (head|not head) (or "n/a" when verify ran No code changed)
 review: last ran on <sha12> · head <reviewed|skipped: reason>
 findings: <total> total · highest <Rn> · fixed <IDs> · resolved <IDs> · accepted <IDs> · unconfirmed <IDs, each with any mark> · open <IDs>
 new since <since or "the last review">:

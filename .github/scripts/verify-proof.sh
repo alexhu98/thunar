@@ -12,7 +12,7 @@
 #            that passes with a before/after pair that has no pair call fails. results.tsv keeps the serial order.
 #            Numbers the shots of the smoke test, of the tests in $OWN (space-separated issues; when it is unset, every
 #            test run; when empty, none) and of every test that failed, and makes each pair's 1920px image (verify-shots.py build). Writes
-#            the shots, $OUT/pairs/, the logs, $OUT/results.tsv, $OUT/scope ("all <total>" or "partial <run> <total>"),
+#            the shots, $OUT/pairs/, the logs, $OUT/results.tsv, $OUT/scope ("all <total>" or "partial <reported> <total>"),
 #            $OUT/own, $OUT/numbered.json, the manifest $OUT/verify.tsv and, last, $OUT/complete, and fails if any
 #            test failed.
 #   publish  commits the numbered shots, the pair images and the manifest to the shots branch under pr-$PR/
@@ -247,7 +247,7 @@ publish() {
     done < <(awk -F'\t' 'FILENAME == ARGV[1] { sha[$1] = $2; next } { print $1 "\t" ($1 in sha ? sha[$1] : "-") }' "$OUT/committed.tsv" "$OUT/upload.tsv")
     if (( failed )); then
       echo "::error::the shots could not all be committed to the shots branch" >&2
-      if [[ -s $OUT/committed.tsv ]]; then
+      if [[ -s $OUT/committed.tsv ]] && awk -F'\t' '$1 ~ /^shots\// && $2 == "-" { found = 1 } END { exit !found }' "$OUT/urls.tsv"; then
         python3 "$HERE/verify-shots.py" manifest "$OUT" > "$OUT/verify-shots.tsv"
         printf '%s\t%s\n' "$OUT/verify-shots.tsv" "$dir/verify.tsv" > "$OUT/manifest.tsv"
         OUT="$OUT/manifest" "$HERE/shots.sh" "$OUT/manifest.tsv" "Verify manifest for PR #${PR:-0}" >/dev/null </dev/null \
