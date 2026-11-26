@@ -159,11 +159,13 @@ publish() {
         echo "$page !" >> "$OUT/urls"
         failed=1
       elif printf '%s\t%s\n' "$OUT/explainer-$issue.png" "$path" > "$OUT/upload-$issue.tsv" \
-        && sha=$(OUT="$OUT/shots" "$(dirname "$0")/shots.sh" "$OUT/upload-$issue.tsv" "Explainer image for PR #${PR:-0}" </dev/null | cut -f 2) \
+        && sha=$(OUT="$OUT/shots" "$(dirname "$0")/shots.sh" "$OUT/upload-$issue.tsv" "Explainer image for PR #${PR:-0}" </dev/null 2> "$OUT/shots.err" | cut -f 2) \
         && [[ -n $sha && $sha != - ]]; then
+        cat "$OUT/shots.err" >&2
         echo "$page https://github.com/$GH_REPO/blob/$sha/$path?raw=true" >> "$OUT/urls"
       else
-        echo "::error::could not upload $path" >&2
+        cat "$OUT/shots.err" >&2 2>/dev/null
+        echo "::error::could not upload $path ($(tail -n 1 "$OUT/shots.err" 2>/dev/null))" >&2
         echo "$page -" >> "$OUT/urls"
         failed=1
       fi
