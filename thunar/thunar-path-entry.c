@@ -754,6 +754,22 @@ thunar_path_entry_changed (GtkEditable *editable)
 
 
 static void
+thunar_path_entry_set_icon_name (ThunarPathEntry *path_entry,
+                                 const gchar     *icon_name)
+{
+  gchar *xapp_icon_name = NULL;
+
+  if (g_str_has_suffix (icon_name, "-symbolic"))
+    xapp_icon_name = thunar_util_get_xapp_icon_name (gtk_icon_theme_get_for_screen (gtk_widget_get_screen (GTK_WIDGET (path_entry))), icon_name);
+
+  gtk_entry_set_icon_from_icon_name (GTK_ENTRY (path_entry), GTK_ENTRY_ICON_PRIMARY,
+                                     xapp_icon_name != NULL ? xapp_icon_name : icon_name);
+  g_free (xapp_icon_name);
+}
+
+
+
+static void
 thunar_path_entry_update_icon (ThunarPathEntry *path_entry)
 {
   ThunarPreferences *preferences;
@@ -769,8 +785,7 @@ thunar_path_entry_update_icon (ThunarPathEntry *path_entry)
 
   if (path_entry->search_mode == TRUE)
     {
-      gtk_entry_set_icon_from_icon_name (GTK_ENTRY (path_entry), GTK_ENTRY_ICON_PRIMARY,
-                                         use_symbolic_icons ? "system-search-symbolic" : "system-search");
+      thunar_path_entry_set_icon_name (path_entry, use_symbolic_icons ? "system-search-symbolic" : "system-search");
       return;
     }
 
@@ -809,8 +824,7 @@ thunar_path_entry_update_icon (ThunarPathEntry *path_entry)
     }
   else
     {
-      gtk_entry_set_icon_from_icon_name (GTK_ENTRY (path_entry), GTK_ENTRY_ICON_PRIMARY,
-                                         use_symbolic_icons ? "dialog-error-symbolic" : "dialog-error");
+      thunar_path_entry_set_icon_name (path_entry, use_symbolic_icons ? "dialog-error-symbolic" : "dialog-error");
     }
 }
 

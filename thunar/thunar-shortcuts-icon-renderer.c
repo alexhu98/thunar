@@ -28,6 +28,7 @@
 #include "thunar/thunar-gobject-extensions.h"
 #include "thunar/thunar-icon-factory.h"
 #include "thunar/thunar-shortcuts-icon-renderer.h"
+#include "thunar/thunar-util.h"
 
 #include <gio/gio.h>
 
@@ -224,6 +225,7 @@ thunar_shortcuts_icon_renderer_render (GtkCellRenderer     *renderer,
   GdkPixbuf                   *icon = NULL;
   GdkPixbuf                   *temp;
   GIcon                       *gicon;
+  GIcon                       *xapp_gicon;
   gdouble                      alpha;
   gint                         scale_factor;
   gboolean                     use_symbolic_icons;
@@ -245,6 +247,16 @@ thunar_shortcuts_icon_renderer_render (GtkCellRenderer     *renderer,
         gicon = g_object_ref (shortcuts_icon_renderer->gicon);
       else
         gicon = thunar_device_get_icon (shortcuts_icon_renderer->device, use_symbolic_icons);
+
+      if (use_symbolic_icons)
+        {
+          xapp_gicon = thunar_util_get_xapp_gicon (icon_theme, gicon);
+          if (xapp_gicon != NULL)
+            {
+              g_object_unref (gicon);
+              gicon = xapp_gicon;
+            }
+        }
 
       scale_factor = gtk_widget_get_scale_factor (widget);
 

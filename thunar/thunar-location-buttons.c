@@ -37,6 +37,7 @@
 #include "thunar/thunar-preferences.h"
 #include "thunar/thunar-private.h"
 #include "thunar/thunar-properties-dialog.h"
+#include "thunar/thunar-util.h"
 
 
 
@@ -268,6 +269,23 @@ thunar_location_buttons_on_filler_clicked (ThunarLocationButtons *buttons)
 
 
 
+static GtkWidget *
+thunar_location_buttons_image_new (const gchar *icon_name)
+{
+  GtkWidget *image;
+  gchar     *xapp_icon_name = NULL;
+
+  if (g_str_has_suffix (icon_name, "-symbolic"))
+    xapp_icon_name = thunar_util_get_xapp_icon_name (gtk_icon_theme_get_default (), icon_name);
+
+  image = gtk_image_new_from_icon_name (xapp_icon_name != NULL ? xapp_icon_name : icon_name, GTK_ICON_SIZE_BUTTON);
+  g_free (xapp_icon_name);
+
+  return image;
+}
+
+
+
 static void
 thunar_location_buttons_init (ThunarLocationButtons *buttons)
 {
@@ -291,7 +309,7 @@ thunar_location_buttons_init (ThunarLocationButtons *buttons)
   gtk_container_add (GTK_CONTAINER (buttons), buttons->left_slider);
   gtk_widget_show (buttons->left_slider);
 
-  icon = gtk_image_new_from_icon_name (use_symbolic_icons ? "pan-start-symbolic" : "pan-start", GTK_ICON_SIZE_BUTTON);
+  icon = thunar_location_buttons_image_new (use_symbolic_icons ? "pan-start-symbolic" : "pan-start");
   gtk_container_add (GTK_CONTAINER (buttons->left_slider), icon);
   gtk_widget_show (icon);
 
@@ -302,14 +320,14 @@ thunar_location_buttons_init (ThunarLocationButtons *buttons)
   gtk_container_add (GTK_CONTAINER (buttons), buttons->right_slider);
   gtk_widget_show (buttons->right_slider);
 
-  icon = gtk_image_new_from_icon_name (use_symbolic_icons ? "pan-end-symbolic" : "pan-end", GTK_ICON_SIZE_BUTTON);
+  icon = thunar_location_buttons_image_new (use_symbolic_icons ? "pan-end-symbolic" : "pan-end");
   gtk_container_add (GTK_CONTAINER (buttons->right_slider), icon);
   gtk_widget_show (icon);
 
   buttons->filler_widget = gtk_button_new ();
   g_signal_connect_swapped (buttons->filler_widget, "clicked", G_CALLBACK (thunar_location_buttons_on_filler_clicked), buttons);
 
-  icon = gtk_image_new_from_icon_name (use_symbolic_icons ? "document-edit-symbolic" : "document-edit", GTK_ICON_SIZE_BUTTON);
+  icon = thunar_location_buttons_image_new (use_symbolic_icons ? "document-edit-symbolic" : "document-edit");
   gtk_widget_set_halign (icon, GTK_ALIGN_END);
   gtk_container_add (GTK_CONTAINER (buttons->filler_widget), icon);
   gtk_widget_show (icon);

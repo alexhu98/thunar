@@ -437,6 +437,7 @@ thunar_tree_view_init (ThunarTreeView *view)
   /* optional symbolic icons */
   g_object_bind_property (G_OBJECT (view->preferences), "misc-symbolic-icons-in-sidepane", G_OBJECT (view->icon_renderer), "use-symbolic-icons", G_BINDING_SYNC_CREATE);
   g_signal_connect_swapped (G_OBJECT (view->preferences), "notify::misc-symbolic-icons-in-sidepane", G_CALLBACK (gtk_widget_queue_draw), view);
+  g_signal_connect_swapped (G_OBJECT (view->preferences), "notify::misc-xapp-icons", G_CALLBACK (gtk_widget_queue_draw), view);
 
   /* allocate the text renderer */
   renderer = gtk_cell_renderer_text_new ();

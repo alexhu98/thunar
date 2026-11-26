@@ -37,6 +37,7 @@
 #include "thunar/thunar-pango-extensions.h"
 #include "thunar/thunar-preferences.h"
 #include "thunar/thunar-private.h"
+#include "thunar/thunar-util.h"
 
 #include <libxfce4util/libxfce4util.h>
 
@@ -472,8 +473,12 @@ thunar_location_button_file_changed (ThunarLocationButton *location_button,
       g_object_get (G_OBJECT (preferences), "misc-symbolic-icons-in-toolbar", &use_symbolic_icons, NULL);
       g_object_unref (G_OBJECT (preferences));
 
-      icon_name = g_strdup_printf ("%s%s", thunar_file_get_icon_name (file, location_button->file_icon_state, icon_theme),
-                                   use_symbolic_icons ? "-symbolic" : "");
+      icon_name = NULL;
+      if (use_symbolic_icons)
+        icon_name = thunar_util_get_xapp_icon_name (icon_theme, thunar_file_get_icon_name (file, location_button->file_icon_state, icon_theme));
+      if (icon_name == NULL)
+        icon_name = g_strdup_printf ("%s%s", thunar_file_get_icon_name (file, location_button->file_icon_state, icon_theme),
+                                     use_symbolic_icons ? "-symbolic" : "");
 
       /* update the icon for the image */
       gtk_image_set_from_icon_name (GTK_IMAGE (location_button->image), icon_name, GTK_ICON_SIZE_BUTTON);

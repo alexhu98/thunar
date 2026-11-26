@@ -1312,6 +1312,8 @@ thunar_window_init (ThunarWindow *window)
 
   /* update the location toolbar when symbolic icons setting is toggled */
   g_signal_connect_swapped (G_OBJECT (window->preferences), "notify::misc-symbolic-icons-in-toolbar", G_CALLBACK (thunar_window_update_location_toolbar_icons), window);
+  g_signal_connect_swapped (G_OBJECT (window->preferences), "notify::misc-xapp-icons", G_CALLBACK (thunar_window_update_location_toolbar_icons), window);
+  g_signal_connect_object (G_OBJECT (gtk_icon_theme_get_for_screen (gtk_window_get_screen (GTK_WINDOW (window)))), "changed", G_CALLBACK (thunar_window_update_location_toolbar_icons), window, G_CONNECT_SWAPPED);
 
   /* update the location toolbar when custom actions are changed */
   uca_path = xfce_resource_save_location (XFCE_RESOURCE_CONFIG, "Thunar/uca.xml", TRUE);
@@ -7201,11 +7203,22 @@ thunar_window_toolbar_get_icon_name (ThunarWindow *window,
                                      const gchar  *icon_name)
 {
   gboolean use_symbolic_icons;
+  gchar   *xapp_icon_name;
 
   if (icon_name == NULL)
     return NULL;
 
+  if (g_str_has_prefix (icon_name, "xsi-"))
+    icon_name += 4;
+
   g_object_get (G_OBJECT (window->preferences), "misc-symbolic-icons-in-toolbar", &use_symbolic_icons, NULL);
+
+  if (use_symbolic_icons)
+    {
+      xapp_icon_name = thunar_util_get_xapp_icon_name (gtk_icon_theme_get_for_screen (gtk_window_get_screen (GTK_WINDOW (window))), icon_name);
+      if (xapp_icon_name != NULL)
+        return xapp_icon_name;
+    }
 
   /* create symbolic icon name */
   if (use_symbolic_icons && !g_str_has_suffix (icon_name, "-symbolic"))

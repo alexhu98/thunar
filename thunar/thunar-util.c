@@ -1080,6 +1080,104 @@ thunar_util_clip_view_background (GtkCellRenderer     *cell,
 
 
 /**
+ * thunar_util_get_xapp_icon_name:
+ * @icon_theme : the #GtkIconTheme to look the icon up in.
+ * @icon_name  : an icon name, with or without the "-symbolic" suffix.
+ *
+ * Returns the XApp symbolic icon name ("xsi-<name>-symbolic") for
+ * @icon_name if the misc-xapp-icons preference is on and @icon_theme
+ * has that icon. "system-search" maps to "edit-find", as in Nemo.
+ *
+ * Return value: the icon name, to be freed with g_free(), or %NULL.
+ **/
+gchar *
+thunar_util_get_xapp_icon_name (GtkIconTheme *icon_theme,
+                                const gchar  *icon_name)
+{
+  ThunarPreferences *preferences;
+  gboolean           use_xapp_icons;
+  gchar             *base_name;
+  gchar             *xapp_name;
+
+  _thunar_return_val_if_fail (GTK_IS_ICON_THEME (icon_theme), NULL);
+
+  if (icon_name == NULL || *icon_name == '\0' || g_path_is_absolute (icon_name))
+    return NULL;
+
+  preferences = thunar_preferences_get ();
+  g_object_get (G_OBJECT (preferences), "misc-xapp-icons", &use_xapp_icons, NULL);
+  g_object_unref (G_OBJECT (preferences));
+
+  if (!use_xapp_icons)
+    return NULL;
+
+  if (g_str_has_prefix (icon_name, "xsi-"))
+    icon_name += 4;
+
+  if (g_str_has_suffix (icon_name, "-symbolic"))
+    base_name = g_strndup (icon_name, strlen (icon_name) - strlen ("-symbolic"));
+  else
+    base_name = g_strdup (icon_name);
+
+  xapp_name = g_strconcat ("xsi-", g_strcmp0 (base_name, "system-search") == 0 ? "edit-find" : base_name, "-symbolic", NULL);
+  g_free (base_name);
+
+  if (gtk_icon_theme_has_icon (icon_theme, xapp_name))
+    return xapp_name;
+
+  g_free (xapp_name);
+  return NULL;
+}
+
+
+
+/**
+ * thunar_util_get_xapp_gicon:
+ * @icon_theme : the #GtkIconTheme to look the icons up in.
+ * @gicon      : a #GIcon.
+ *
+ * If @gicon is a #GThemedIcon and any of its names has an XApp
+ * symbolic icon (see thunar_util_get_xapp_icon_name()), returns a new
+ * #GThemedIcon that lists those XApp names first, then @gicon's names.
+ *
+ * Return value: a new #GIcon, to be released with g_object_unref(), or %NULL.
+ **/
+GIcon *
+thunar_util_get_xapp_gicon (GtkIconTheme *icon_theme,
+                            GIcon        *gicon)
+{
+  const gchar *const *names;
+  GIcon              *xapp_icon = NULL;
+  gchar              *xapp_name;
+  guint               n;
+
+  if (!G_IS_THEMED_ICON (gicon))
+    return NULL;
+
+  names = g_themed_icon_get_names (G_THEMED_ICON (gicon));
+  for (n = 0; names[n] != NULL; ++n)
+    {
+      xapp_name = thunar_util_get_xapp_icon_name (icon_theme, names[n]);
+      if (xapp_name == NULL)
+        continue;
+
+      if (xapp_icon == NULL)
+        xapp_icon = g_themed_icon_new (xapp_name);
+      else
+        g_themed_icon_append_name (G_THEMED_ICON (xapp_icon), xapp_name);
+      g_free (xapp_name);
+    }
+
+  if (xapp_icon != NULL)
+    for (n = 0; names[n] != NULL; ++n)
+      g_themed_icon_append_name (G_THEMED_ICON (xapp_icon), names[n]);
+
+  return xapp_icon;
+}
+
+
+
+/**
  * thunar_util_split_search_query:
  * @search_query_normalized: The normalized search query to split.
  * @error: Return location for regex compilation errors.
