@@ -40,11 +40,11 @@ api() {
 
 blob() {
   local file=$1 work=$2 sha
-  [[ -s $file ]] || { echo "::error::$file is missing or empty" >&2; return 1; }
+  [[ -s $file ]] || { echo "$file is missing or empty" >&2; return 1; }
   jq -n --rawfile c <(base64 -w0 "$file") '{content: $c, encoding: "base64"}' > "$work.json"
   api "$work.out" "repos/{owner}/{repo}/git/blobs" -X POST --input "$work.json" --jq .sha || return 1
   sha=$(<"$work.out")
-  [[ $sha == "$(git hash-object --no-filters "$file")" ]] || { echo "::error::the blob of $file came back as '$sha'" >&2; return 1; }
+  [[ $sha == "$(git hash-object --no-filters "$file")" ]] || { echo "the blob of $file came back as '$sha'" >&2; return 1; }
   echo "$sha"
 }
 
@@ -71,7 +71,7 @@ awk -F'\t' 'NR == FNR { sha[$1] = $2; next } { print $1 "\t" $2 "\t" (FNR in sha
 jq -R -s 'split("\n") | map(select(length > 0) | split("\t") | {path: .[1], mode: "100644", type: "blob", sha: (if .[2] == "-" then null else .[2] end)})' \
   "$OUT/files.tsv" > "$OUT/entries.json"
 lost=$(awk -F'\t' '$3 == "-"' "$OUT/files.tsv" | wc -l)
-(( lost == 0 )) || echo "::error::$lost of $(wc -l < "$list") file(s) could not be uploaded, so they are removed from $branch" >&2
+(( lost == 0 )) || echo "$lost of $(wc -l < "$list") file(s) could not be uploaded, so they are removed from $branch" >&2
 if [[ $(jq 'map(select(.sha != null)) | length' "$OUT/entries.json") == 0 ]]; then
   echo "::error::no file could be uploaded, so no commit was made" >&2
   exit 1

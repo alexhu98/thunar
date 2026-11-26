@@ -18,8 +18,8 @@
 #   publish  commits the numbered shots, the pair images and the manifest to the shots branch under pr-$PR/
 #            (verify-<test>-<shot>.png, pair-<test>-<what>.png, verify.tsv) in one commit through shots.sh, writes
 #            the verify comment through pr-comment.sh and then the summary through pr-summary.py. Run it whether or
-#            not run passed. When verify.tsv or a shot is lost, verify.tsv is uploaded again in a second commit; a
-#            lost file is marked in the comment, and publish fails if any file stays lost.
+#            not run passed. When the first commit lands but verify.tsv or a shot is lost, verify.tsv is uploaded again
+#            in a second commit; a lost file is marked in the comment, and publish fails if any file stays lost.
 # Env: PR, HEAD_SHA, HEAD_REF, GH_REPO, RUN_ID, RUN_URL, OUT, DEBS, OWN, TIMEOUT (default 120), BUDGET (default 1500),
 # JOBS (default 4).
 # DRY_RUN=1 makes publish print the comment instead of uploading and posting it.
@@ -247,20 +247,19 @@ publish() {
       printf '%s\t%s\n' "${file#"$OUT/"}" "$sha" >> "$OUT/urls.tsv"
     done < <(awk -F'\t' 'FILENAME == ARGV[1] { sha[$1] = $2; next } { print $1 "\t" ($1 in sha ? sha[$1] : "-") }' "$OUT/committed.tsv" "$OUT/upload.tsv")
     if (( failed )); then
-      echo "::error::the shots could not all be committed to the shots branch" >&2
       if [[ -s $OUT/committed.tsv ]] && { (( manifest_lost )) || awk -F'\t' '$1 ~ /^shots\// && $2 == "-" { found = 1 } END { exit !found }' "$OUT/urls.tsv"; }; then
         python3 "$HERE/verify-shots.py" manifest "$OUT" > "$OUT/verify-shots.tsv"
         printf '%s\t%s\n' "$OUT/verify-shots.tsv" "$dir/verify.tsv" > "$OUT/manifest.tsv"
         if OUT="$OUT/manifest" "$HERE/shots.sh" "$OUT/manifest.tsv" "Verify manifest for PR #${PR:-0}" >/dev/null </dev/null; then
           manifest_lost=0
-          awk -F'\t' '$2 == "-" { found = 1 } END { exit !found }' "$OUT/urls.tsv" \
-            || { failed=0; echo "::notice::$dir/verify.tsv was uploaded on the retry, so the upload errors above are cleared" >&2; }
+          awk -F'\t' '$2 == "-" { found = 1 } END { exit !found }' "$OUT/urls.tsv" || failed=0
         else
           echo "::error::could not upload $dir/verify.tsv$( (( manifest_lost )) || echo ' with the lost files marked')" >&2
         fi
       fi
     fi
-    (( ! manifest_lost )) || printf 'verify.tsv\t-\n' >> "$OUT/urls.tsv"
+    (( ! manifest_lost )) || printf 'verify-shots.tsv\t-\n' >> "$OUT/urls.tsv"
+    (( ! failed )) || echo "::error::the shots could not all be committed to the shots branch" >&2
   fi
   python3 "$HERE/verify-shots.py" comment "$OUT" > "$OUT/comment.md"
   OUT="$OUT/comment" "$HERE/pr-comment.sh" put verify "$OUT/comment.md"

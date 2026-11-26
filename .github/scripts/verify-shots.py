@@ -242,7 +242,8 @@ def comment(out):
     numbered = os.path.join(out, 'numbered.json')
     entries = json.load(open(numbered)) if os.path.exists(numbered) else []
     u = urls(out)
-    lost = [k for k, v in u.items() if v == '-'] + [e['num'] for e in entries if not e['image']]
+    manifest_lost = u.get('verify-shots.tsv') == '-'
+    lost = [k for k, v in u.items() if v == '-' and k != 'verify-shots.tsv'] + [e['num'] for e in entries if not e['image']]
     lines = []
     if not res:
         status = {'sha': sha, 'state': 'fail', 'text': 'did not run', 'shots': False}
@@ -255,8 +256,8 @@ def comment(out):
     head = f'{passed} of {total} passed' if complete else f'cut short, {passed} of {total} passed'
     head += f'; {scope_text}'
     unnumbered = not os.path.exists(numbered)
-    ok = complete and passed == total and not lost and not unnumbered
-    text = head + (f'; {len(lost)} image(s) missing' if lost else '')
+    ok = complete and passed == total and not lost and not unnumbered and not manifest_lost
+    text = head + (f'; {len(lost)} image(s) missing' if lost else '') + ('; verify.tsv missing' if manifest_lost else '')
     status = {'sha': sha, 'state': 'pass' if ok else 'fail', 'text': text, 'full': full,
               'shots': any(e['image'] and u.get(e['image'], '-') != '-' for e in entries)}
     theme = open(os.path.join(out, 'theme')).read().strip() if os.path.exists(os.path.join(out, 'theme')) else 'default'
@@ -273,6 +274,9 @@ def comment(out):
         lines += ["The shots could not be numbered, so none were published; see the run's `verify` artifact.", '']
     if lost:
         lines += [f"{len(lost)} image(s) could not be made or uploaded to the `shots` branch; see the run's `verify` artifact.", '']
+    if manifest_lost:
+        lines += [f"The manifest `verify.tsv` could not be uploaded to the `shots` branch, so `/visual-verify pr:{os.environ.get('PR', '<n>')}` can't "
+                  "audit this run; see the run's `verify` artifact.", '']
     lines += [f'Xvfb, xfwm4 and the {theme} GTK theme, as of `{sha[:12]}`. [Logs]({run_url})', '',
               '| Test | Result | Time |', '|---|---|---|']
     posted = shown(out)
