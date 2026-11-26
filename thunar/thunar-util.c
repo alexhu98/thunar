@@ -1086,7 +1086,7 @@ thunar_util_clip_view_background (GtkCellRenderer     *cell,
  *
  * Returns the XApp symbolic icon name, "xsi-" + the name + "-symbolic", for
  * @icon_name if the misc-xapp-icons preference is on and @icon_theme
- * has that icon. "system-search" maps to "edit-find", as in Nemo.
+ * has that icon. "system-search" maps to "edit-find".
  *
  * Return value: the icon name, to be freed with g_free(), or %NULL.
  **/
@@ -1138,9 +1138,7 @@ thunar_util_get_xapp_icon_name (GtkIconTheme *icon_theme,
  *
  * If @gicon is a #GThemedIcon and any of its names has an XApp
  * symbolic icon (see thunar_util_get_xapp_icon_name()), returns a new
- * #GThemedIcon with only those XApp names. Look it up on its own: in a
- * #GThemedIcon that also had @gicon's names, the icon theme's own icons
- * would win over the XApp ones in hicolor.
+ * #GThemedIcon with only those XApp names.
  *
  * Return value: a new #GIcon, to be released with g_object_unref(), or %NULL.
  **/

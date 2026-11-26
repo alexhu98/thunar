@@ -564,6 +564,8 @@ thunar_window_update_location_toolbar (ThunarWindow *window);
 static void
 thunar_window_update_location_toolbar_icons (ThunarWindow *window);
 static void
+thunar_window_update_toolbar_button_icons (ThunarWindow *window);
+static void
 thunar_window_location_toolbar_add_ucas (ThunarWindow *window);
 GtkWidget *
 thunar_window_location_toolbar_add_uca (ThunarWindow *window,
@@ -1313,7 +1315,7 @@ thunar_window_init (ThunarWindow *window)
   /* update the location toolbar when symbolic icons setting is toggled */
   g_signal_connect_swapped (G_OBJECT (window->preferences), "notify::misc-symbolic-icons-in-toolbar", G_CALLBACK (thunar_window_update_location_toolbar_icons), window);
   g_signal_connect_swapped (G_OBJECT (window->preferences), "notify::misc-xapp-icons", G_CALLBACK (thunar_window_update_location_toolbar_icons), window);
-  g_signal_connect_object (G_OBJECT (gtk_icon_theme_get_for_screen (gtk_window_get_screen (GTK_WINDOW (window)))), "changed", G_CALLBACK (thunar_window_update_location_toolbar_icons), window, G_CONNECT_SWAPPED);
+  g_signal_connect_object (G_OBJECT (gtk_icon_theme_get_for_screen (gtk_window_get_screen (GTK_WINDOW (window)))), "changed", G_CALLBACK (thunar_window_update_toolbar_button_icons), window, G_CONNECT_SWAPPED);
 
   /* update the location toolbar when custom actions are changed */
   uca_path = xfce_resource_save_location (XFCE_RESOURCE_CONFIG, "Thunar/uca.xml", TRUE);
@@ -7208,7 +7210,9 @@ thunar_window_toolbar_get_icon_name (ThunarWindow *window,
   if (icon_name == NULL)
     return NULL;
 
-  if (g_str_has_prefix (icon_name, "xsi-"))
+  if (g_strcmp0 (icon_name, "xsi-edit-find-symbolic") == 0)
+    icon_name = "system-search-symbolic";
+  else if (g_str_has_prefix (icon_name, "xsi-"))
     icon_name += 4;
 
   g_object_get (G_OBJECT (window->preferences), "misc-symbolic-icons-in-toolbar", &use_symbolic_icons, NULL);
@@ -7589,11 +7593,10 @@ thunar_window_update_location_toolbar (ThunarWindow *window)
 
 
 static void
-thunar_window_update_location_toolbar_icons (ThunarWindow *window)
+thunar_window_update_toolbar_button_icons (ThunarWindow *window)
 {
-  GtkWidget *parent;
-  GList     *toolbar_items;
-  GList     *lp;
+  GList *toolbar_items;
+  GList *lp;
 
   toolbar_items = gtk_container_get_children (GTK_CONTAINER (window->location_toolbar));
 
@@ -7624,6 +7627,20 @@ thunar_window_update_location_toolbar_icons (ThunarWindow *window)
         }
     }
 
+  thunar_window_view_switcher_update (window);
+
+  g_list_free (toolbar_items);
+}
+
+
+
+static void
+thunar_window_update_location_toolbar_icons (ThunarWindow *window)
+{
+  GtkWidget *parent;
+
+  thunar_window_update_toolbar_button_icons (window);
+
   /* get the toolbar item containing the location bar */
   parent = gtk_widget_get_parent (window->location_bar);
   if (parent != NULL)
@@ -7636,10 +7653,6 @@ thunar_window_update_location_toolbar_icons (ThunarWindow *window)
 
       gtk_container_add (GTK_CONTAINER (parent), window->location_bar);
     }
-
-  thunar_window_view_switcher_update (window);
-
-  g_list_free (toolbar_items);
 }
 
 
