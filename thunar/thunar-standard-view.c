@@ -429,6 +429,7 @@ struct _ThunarStandardViewPrivate
   GHashTable *scroll_to_files;
 
   ThunarFile  *rename_file;
+  gchar       *rename_name;
   GtkEntry    *rename_entry;
   gchar       *rename_text;
   gint         rename_start;
@@ -1245,6 +1246,7 @@ thunar_standard_view_finalize (GObject *object)
 
   g_clear_object (&standard_view->priv->rename_file);
   g_clear_object (&standard_view->priv->rename_entry);
+  g_free (standard_view->priv->rename_name);
   g_free (standard_view->priv->rename_text);
 
   /* release the reference on the name renderer */
@@ -5631,6 +5633,7 @@ thunar_standard_view_rename_neighbour (ThunarStandardView *standard_view,
   GtkWidget    *view = gtk_bin_get_child (GTK_BIN (standard_view));
   GtkTreeIter   iter;
   ThunarFile   *file = NULL;
+  GFileInfo    *info;
   GList        *paths;
   gboolean      found;
 
@@ -5653,7 +5656,11 @@ thunar_standard_view_rename_neighbour (ThunarStandardView *standard_view,
       if (found)
         {
           file = thunar_standard_view_model_get_file (standard_view->model, &iter);
-          if (file != NULL && (thunar_file_is_desktop_file (file) || !thunar_file_is_renameable (file)))
+          info = file != NULL ? thunar_file_get_info (file) : NULL;
+          if (file != NULL
+              && (thunar_file_is_desktop_file (file)
+                  || (info != NULL && g_file_info_has_attribute (info, G_FILE_ATTRIBUTE_ACCESS_CAN_RENAME)
+                      && !thunar_file_is_renameable (file))))
             g_clear_object (&file);
         }
     }
@@ -5686,7 +5693,7 @@ thunar_standard_view_rename_key_pressed (GtkWidget          *entry,
       next = thunar_standard_view_rename_neighbour (standard_view, forward,
                                                     standard_view->priv->rename_file == NULL
                                                     || g_strcmp0 (gtk_entry_get_text (GTK_ENTRY (entry)),
-                                                                  thunar_file_get_display_name (standard_view->priv->rename_file)) == 0);
+                                                                  standard_view->priv->rename_name) == 0);
       g_object_ref (entry);
       gtk_cell_editable_editing_done (GTK_CELL_EDITABLE (entry));
       gtk_cell_editable_remove_widget (GTK_CELL_EDITABLE (entry));
@@ -6005,6 +6012,8 @@ thunar_standard_view_rename_in_place (ThunarStandardView *standard_view,
   klass = THUNAR_STANDARD_VIEW_GET_CLASS (standard_view);
 
   g_set_object (&standard_view->priv->rename_file, file);
+  g_free (standard_view->priv->rename_name);
+  standard_view->priv->rename_name = g_strdup (thunar_file_get_display_name (file));
   paths = thunar_standard_view_rename_paths (standard_view);
   if (paths == NULL)
     {
