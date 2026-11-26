@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Issue #144 Status cache</title>
+<title>PR #152 Status cache</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
@@ -100,8 +100,8 @@
 <body>
 <main>
   <header id="title">
-  <h1 data-k="title">Issue #144: the status bar keeps folder totals and free space instead of re-reading every file</h1>
-  <p class="lead" data-k="lead">Branch <code>144-statusbar-cache</code> → <code>main</code>, closes #144. Moving the cursor no longer reads every file in the folder from disk; the status bar text stays the same.</p>
+  <h1 data-k="title">PR #152: the status bar keeps folder totals and free space instead of re-reading every file</h1>
+  <p class="lead" data-k="lead">PR <a href="https://github.com/alexhu98/thunar/pull/152">#152</a>, branch <code>144-statusbar-cache</code> → <code>main</code>, closes #144. Moving the cursor no longer reads every file in the folder from disk; the status bar text stays the same.</p>
 
   <nav class="parts" aria-label="Parts of this page">
     <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
@@ -167,8 +167,8 @@
       <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
       <text x="286" y="290" class="t">Total or search</text>
       <text x="286" y="314" class="b">from the cache; the</text>
-      <text x="286" y="334" class="b">search size only when</text>
-      <text x="286" y="354" class="b">the count changes</text>
+      <text x="286" y="334" class="b">search size when the</text>
+      <text x="286" y="354" class="b">results change</text>
       <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">5</text>
     </g>
     <g data-k="6">
@@ -210,13 +210,13 @@
   <div class="lane-h" style="color:var(--accent)">① Folder opens or its files change</div>
   <ol class="steps">
     <li data-k="1"><b>Watch the folder.</b> When the view's folder is set, the view keeps a reference to it and listens for its files-added, files-removed and files-changed signals. A file that grows, like a download, sends files-changed.</li>
-    <li data-k="2"><b>Drop the Total.</b> Any of those signals clears the cached Total text and the cached search size, then asks for a status bar update. The count itself waits until the text is needed.</li>
+    <li data-k="2"><b>Drop the Total.</b> Any of those signals clears the cached Total text and the cached search size, then asks for a status bar update. A signal that lists no files is ignored. The count itself waits until the text is needed.</li>
     <li data-k="3"><b>Free space.</b> Asked once when the folder opens, without blocking the window, using the async lookup #74 added for search. While files change it is asked again, at most every 2 seconds.</li>
   </ol>
   <div class="lane-h" style="color:var(--merge)">② Cursor moves or results change</div>
   <ol class="steps" start="4" style="counter-reset: s 3">
     <li data-k="4"><b>Selection text.</b> One file shows its name and size as before. Several files are now counted from the selected files in memory, including the last-modified date, instead of being read from disk again.</li>
-    <li data-k="5"><b>Total or search.</b> With no cached Total, or after the hidden-files, size-format or status-bar settings change, the folder's files are counted once in memory. In a search, the results' size is added up again only when the result count changes.</li>
+    <li data-k="5"><b>Total or search.</b> With no cached Total, or after the hidden-files, size-format or status-bar settings change, the folder's files are counted once in memory. In a search, the results' size is added up again only when the result count changes or a result row changes.</li>
     <li data-k="6"><b>Status bar.</b> The selection goes on the left, and Total (or the search count) with Free space on the right, the same layout and words as before.</li>
   </ol>
   </div>
@@ -230,7 +230,7 @@
     <tr data-k="none"><td>Nothing selected</td><td>every file in the folder, and free space</td><td>nothing; the cached Total</td></tr>
     <tr data-k="one"><td>One file selected</td><td>every file in the folder, and free space</td><td>nothing</td></tr>
     <tr data-k="many"><td>Several files selected</td><td>each selected file, every file in the folder, and free space</td><td>nothing</td></tr>
-    <tr data-k="search"><td>Searching</td><td>no disk reads, but every result row added up on each update</td><td>results added up only when their count changes</td></tr>
+    <tr data-k="search"><td>Searching</td><td>no disk reads, but every result row added up on each update</td><td>results added up only when they change</td></tr>
   </table>
   </div>
   </section>
@@ -264,7 +264,7 @@ explainers/144-statusbar-cache.narration.json  # its narration</pre>
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">Checked against the status bar #74 made and its test, with a new test that counts disk reads. Everything below ran in this session's cloud container; CI hasn't run yet.</p>
+  <p class="intro" data-k="intro">Checked against the status bar #74 made and its test, with a new test that counts disk reads. The local checks ran in this session's cloud container; CI run 45793496727 then built and tested head <code>3567f03</code>. Both ran before the fixes for R1, R2, R3 and R6.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 2 known-good references</h3>
@@ -280,12 +280,14 @@ explainers/144-statusbar-cache.narration.json  # its narration</pre>
   <table>
     <tr><th>Check</th><th>How</th><th>Result</th></tr>
     <tr data-k="c1"><td>Package builds</td><td><code>dpkg-buildpackage</code> from the working tree, in this session's cloud container</td><td class="ok">built, 0 new warnings</td></tr>
-    <tr data-k="c2"><td>Tests pass on the final commit</td><td><code>verify-proof.sh run 144 74</code> under Xvfb, on commit <code>752b964</code></td><td class="ok">3 of 3 pass</td></tr>
+    <tr data-k="c2"><td>Tests pass locally</td><td><code>verify-proof.sh run 144 74</code> under Xvfb, on commit <code>752b964</code></td><td class="ok">3 of 3 pass</td></tr>
     <tr data-k="c3"><td>Status bar text unchanged</td><td><code>verify/74.sh</code>, not edited, in that run</td><td class="ok">pass, 52 s</td></tr>
     <tr data-k="c4"><td>No disk reads per cursor move</td><td><code>verify/144.sh</code> traces stat calls with <code>strace</code> while pressing Down 20 times in a folder of 2,042 files</td><td class="ok">0 stat calls</td></tr>
     <tr data-k="c5"><td>The trace sees those files</td><td>the same trace, over the whole run, including the folder load</td><td class="ok">6,835 calls</td></tr>
     <tr data-k="c6"><td>Total follows a growing file; search size is right</td><td><code>verify/144.sh</code> appends 1 MiB to a file and searches for 40 files, in that run</td><td class="ok">pass, 31 s</td></tr>
-    <tr data-k="c7"><td>Screenshots show the right text</td><td>the local run's shots weren't audited; CI's shots get <code>/visual-verify</code> after its run</td><td class="no">not run</td></tr>
+    <tr data-k="ci1"><td>CI build</td><td>build job, CI run 45793496727, on head <code>3567f03</code></td><td class="ok">passed</td></tr>
+    <tr data-k="ci2"><td>CI tests</td><td>verify job in that run: the smoke test (19 s) and <code>verify/144.sh</code> (37 s). Partial: 2 of 33 tests; a <code>Verify: full</code> run before the merge runs all 33</td><td class="ok">2 of 2 pass</td></tr>
+    <tr data-k="c7"><td>Screenshots show the right text</td><td><code>/visual-verify pr:152</code>, an independent shot-auditor, on CI's shots: after 20 Down presses Total still reads 2042 files: 11.7 MiB; the grow pair goes 11.7 MiB → 12.7 MiB with a.bin still selected; the search reads 40 files found: 9.7 MiB (10,122,900 bytes); the smoke window is right</td><td class="ok">PASS, 4 of 4 OK</td></tr>
     <tr data-k="c8"><td>Network folders (smb, sftp)</td><td>no network share in the container, so the files-changed signal on them wasn't checked</td><td class="no">not run</td></tr>
   </table>
   </div>
@@ -294,15 +296,25 @@ explainers/144-statusbar-cache.narration.json  # its narration</pre>
 
   <section class="sub" id="review">
   <h3 class="sec">Code review</h3>
-  <p data-k="summary">Before the first push, a fresh agent reviewed the branch against <code>origin/main</code> at level high, with fixes on. It found 6 things: 4 fixed, 2 kept as trade-offs the issue allows.</p>
+  <p data-k="summary">Before the first push, a fresh agent reviewed the branch against <code>origin/main</code> at level high, with fixes on. It found 6 things: 4 fixed, and 2 kept that CI's review then raised again as R1 and R4.</p>
   <ul class="tight">
     <li data-k="b1"><b>Fixed, memory:</b> a file listed twice in a multi-selection was released twice. It is now added once.</li>
     <li data-k="b2"><b>Fixed, test:</b> the trace filter missed the newer stat calls, so it now traces every stat variant; and clearing the selection clicked a file, so it now presses Escape too.</li>
     <li data-k="b3"><b>Fixed, style:</b> alignment of the changed lines, as clang-format wants.</li>
-    <li data-k="s1"><b>Kept, S1:</b> a search's size is added up again only when the result count changes, so a result that grows during the search can show an old total.</li>
-    <li data-k="s2"><b>Kept, S2:</b> free space refreshes only when files in the viewed folder change, at most every 2 s, so space freed elsewhere on the disk shows up later.</li>
   </ul>
-  <p data-k="ci-review">CI's own review runs on every code push and reports in the code review PR comment, added once the PR is open. It hasn't run yet.</p>
+  <p data-k="ci-review">CI's own review of head <code>3567f03</code>, at level high, found 6 things, R1 to R6, listed in the <a href="https://github.com/alexhu98/thunar/pull/152#issuecomment-7188228494">code review PR comment</a>.</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Finding</th><th>What it found</th><th>Status</th></tr>
+    <tr data-k="r1"><td>R1, medium</td><td>The search total was cached by result count, so a result whose size changed at the same count kept the old total. Now the view also drops it when a result row changes while searching.</td><td class="ok">fixed in the next push</td></tr>
+    <tr data-k="r2"><td>R2</td><td>The search size's cache key was kept while Size is off.</td><td class="ok">fixed by CI, <code>d1f5a4a</code></td></tr>
+    <tr data-k="r3"><td>R3</td><td>A failed free space query kept the old value.</td><td class="ok">fixed by CI, <code>d1f5a4a</code></td></tr>
+    <tr data-k="r6"><td>R6</td><td>Files-added or files-removed signals with no files still dropped the caches. Now the view ignores them.</td><td class="ok">fixed in the next push</td></tr>
+    <tr data-k="r4"><td>R4</td><td>Free space isn't refreshed for writes elsewhere on the disk.</td><td class="open">your decision</td></tr>
+    <tr data-k="r5"><td>R5</td><td>A recursive search still adds up its results once per 500 ms batch while they stream in.</td><td class="open">your decision</td></tr>
+  </table>
+  </div>
+  <div class="note" data-k="open">R4 and R5 are the trade-offs the issue allows, and wait for your decision. The R1 and R6 fix is in the next push; CI reviews it.</div>
   </section>
 
   <section class="sub" id="aftermerge">
@@ -310,7 +322,7 @@ explainers/144-statusbar-cache.narration.json  # its narration</pre>
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI build, verify and review</td><td>they run on the PR, which isn't open yet</td><td class="open">first push of the PR</td></tr>
+    <tr data-k="a1"><td>CI review and tests of the R1 and R6 fix, and all 33 tests</td><td>the fix is in the next push; the full run comes once review is clean</td><td class="open">before the merge</td></tr>
     <tr data-k="a2"><td>The stat count in CI</td><td><code>strace</code> isn't in CI's verify tool list; without it the test prints a skip line and keeps its other checks. Changing CI is outside this PR.</td><td class="open">CI's verify run</td></tr>
     <tr data-k="a3"><td>Your own large folders and network shares</td><td>only on your machine</td><td class="open">after the merge</td></tr>
   </table>
@@ -321,7 +333,7 @@ explainers/144-statusbar-cache.narration.json  # its narration</pre>
   <h3 class="sec">See it yourself</h3>
   <ul class="tight">
     <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/144">#144</a></li>
-    <li data-k="l2">The PR, its checks and CI's review: added once the PR is open</li>
+    <li data-k="l2">The PR: <a href="https://github.com/alexhu98/thunar/pull/152">#152</a>, its <a href="https://github.com/alexhu98/thunar/actions/runs/45793496727">CI run</a>, the <a href="https://github.com/alexhu98/thunar/pull/152#issuecomment-7188228494">code review comment</a>, the <a href="https://github.com/alexhu98/thunar/pull/152#issuecomment-7188228832">verify comment</a> and the <a href="https://github.com/alexhu98/thunar/pull/152#issuecomment-7188374139">screenshot audit</a></li>
     <li data-k="l3">The test: <code>verify/144.sh</code> on the branch <code>144-statusbar-cache</code></li>
   </ul>
   </section>
@@ -387,7 +399,7 @@ explainers/144-statusbar-cache.narration.json  # its narration</pre>
     <div data-k="async"><dt>Async</dt><dd>Started now, answered later, without freezing the window meanwhile.</dd></div>
     <div data-k="gvfs"><dt>Network share</dt><dd>An smb or sftp folder, where each file question is a round trip over the network.</dd></div>
     <div data-k="xvfb"><dt>Xvfb</dt><dd>A virtual screen with no monitor, where the tests run Thunar.</dd></div>
-    <div data-k="sx"><dt>S1, S2</dt><dd>Review findings kept on purpose, with the reason.</dd></div>
+    <div data-k="sx"><dt>R1 to R6</dt><dd>The numbers of CI's review findings, as in its code review PR comment.</dd></div>
   </dl>
   </section>
 </main>
