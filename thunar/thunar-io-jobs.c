@@ -1402,21 +1402,21 @@ _thunar_io_jobs_rename (ThunarJob *job,
 
   _thunar_return_val_if_fail (THUNAR_IS_JOB (job), FALSE);
   _thunar_return_val_if_fail (param_values != NULL, FALSE);
-  _thunar_return_val_if_fail (param_values->len == 3, FALSE);
+  _thunar_return_val_if_fail (param_values->len == 4, FALSE);
   _thunar_return_val_if_fail (G_VALUE_HOLDS (&g_array_index (param_values, GValue, 0), THUNAR_TYPE_FILE), FALSE);
-  _thunar_return_val_if_fail (G_VALUE_HOLDS_STRING (&g_array_index (param_values, GValue, 1)), FALSE);
-  _thunar_return_val_if_fail (G_VALUE_HOLDS_ENUM (&g_array_index (param_values, GValue, 2)), FALSE);
+  _thunar_return_val_if_fail (G_VALUE_HOLDS (&g_array_index (param_values, GValue, 1), G_TYPE_FILE), FALSE);
+  _thunar_return_val_if_fail (G_VALUE_HOLDS_STRING (&g_array_index (param_values, GValue, 2)), FALSE);
+  _thunar_return_val_if_fail (G_VALUE_HOLDS_ENUM (&g_array_index (param_values, GValue, 3)), FALSE);
   _thunar_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
   if (exo_job_set_error_if_cancelled (EXO_JOB (job), error))
     return FALSE;
 
-  /* determine the file, display name and log mode */
+  /* determine the file, its location, display name and log mode */
   file = g_value_get_object (&g_array_index (param_values, GValue, 0));
-  display_name = g_value_get_string (&g_array_index (param_values, GValue, 1));
-  log_mode = g_value_get_enum (&g_array_index (param_values, GValue, 2));
-
-  old_file = g_object_ref (thunar_file_get_file (file));
+  old_file = g_value_get_object (&g_array_index (param_values, GValue, 1));
+  display_name = g_value_get_string (&g_array_index (param_values, GValue, 2));
+  log_mode = g_value_get_enum (&g_array_index (param_values, GValue, 3));
 
   /* try to rename the file */
   renamed_file = g_file_set_display_name (old_file, display_name, exo_job_get_cancellable (EXO_JOB (job)), &err);
@@ -1440,8 +1440,6 @@ _thunar_io_jobs_rename (ThunarJob *job,
       g_object_unref (renamed_file);
     }
 
-  g_object_unref (old_file);
-
   /* abort on errors or cancellation */
   if (err != NULL)
     {
@@ -1462,8 +1460,9 @@ thunar_io_jobs_rename_file (ThunarFile            *file,
   _thunar_return_val_if_fail (THUNAR_IS_FILE (file), NULL);
   _thunar_return_val_if_fail (g_utf8_validate (display_name, -1, NULL), NULL);
 
-  return thunar_simple_job_new (_thunar_io_jobs_rename, 3,
+  return thunar_simple_job_new (_thunar_io_jobs_rename, 4,
                                 THUNAR_TYPE_FILE, file,
+                                G_TYPE_FILE, thunar_file_get_file (file),
                                 G_TYPE_STRING, display_name,
                                 THUNAR_TYPE_OPERATION_LOG_MODE, log_mode);
 }
