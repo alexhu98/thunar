@@ -1,0 +1,5 @@
+sha	num	test	result	shot	file	proves
+a3d1cd3eabd7a7449b0a4b5d7b71a728a0c2bf5e	1	157	pass	before-renames	verify-157-before-renames.png	The details view of files with a00.txt, the first row, selected and the five m-*.txt files below it
+a3d1cd3eabd7a7449b0a4b5d7b71a728a0c2bf5e	1	157	pass	after-renames	verify-157-after-renames.png	After 30 in-place renames in a row Thunar is still open, and the first row shows a30.txt, selected, above the five m-*.txt files
+a3d1cd3eabd7a7449b0a4b5d7b71a728a0c2bf5e	2	157	pass	undo	verify-157-undo.png	Ctrl+Z undid the last in-place rename: the first row shows a29.txt again, from the rename job's operation log entry
+a3d1cd3eabd7a7449b0a4b5d7b71a728a0c2bf5e	3	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
