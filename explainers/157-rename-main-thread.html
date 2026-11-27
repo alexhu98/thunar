@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR for #157 Rename crash</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677;
+    --line: #c9cfda; --accent: #2f6fde; --accent-soft: #e6eefc;
+    --merge: #1f9d63; --merge-soft: #e3f5ec; --future: #8a6bd1; --future-soft: #f0ebfb;
+    --code-bg: #f0f2f5; --add: #1f9d63; --add-bg: #e6f6ee; --warn: #b4690e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+      --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+      --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+      --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2;
+    --line: #384152; --accent: #6c9cff; --accent-soft: #1d2a44;
+    --merge: #4cc38a; --merge-soft: #17322a; --future: #b49cf0; --future-soft: #2a2340;
+    --code-bg: #161a21; --add: #4cc38a; --add-bg: #173026; --warn: #f0b45a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 10px; }
+  h3.sec { font-size: 16px; margin: 28px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; }
+  nav.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 8px; }
+  nav.parts a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+                padding: 10px 14px; text-decoration: none; color: var(--text); }
+  nav.parts a span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  section.part { margin-top: 44px; padding-top: 18px; border-top: 3px solid var(--line); }
+  .part-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  section.part > h2 { font-size: 21px; margin: 2px 0 6px; }
+  p.intro { color: var(--muted); margin: 0 0 16px; }
+  .diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px; overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  svg text { fill: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  svg .t { font-weight: 650; font-size: 15px; }
+  svg .b { font-size: 12.5px; fill: var(--muted); }
+  svg .m { font-size: 12.5px; font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; fill: var(--text); }
+  svg .lane { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .box-pr { fill: var(--accent-soft); stroke: var(--accent); }
+  .box-merge { fill: var(--merge-soft); stroke: var(--merge); }
+  .box-future { fill: var(--future-soft); stroke: var(--future); stroke-dasharray: 6 5; }
+  .box-you { fill: var(--panel); stroke: var(--text); stroke-width: 2; }
+  .arrow { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .arrow-future { stroke: var(--future); stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .badge { fill: var(--text); }
+  svg text.badge-n { fill: var(--bg); font-size: 12.5px; font-weight: 700; }
+  ol.steps { padding-left: 0; list-style: none; margin: 0; counter-reset: s; }
+  ol.steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  ol.steps li b { display: block; }
+  .lane-h { font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 18px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+  dl.gloss > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  dl.gloss dt { font-weight: 650; }
+  dl.gloss dd { margin: 0; color: var(--muted); }
+  @media (max-width: 560px) { dl.gloss, dl.gloss > div { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+  a { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+        overflow-x: auto; font: 13px/1.55 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; margin: 0; }
+  .add { color: var(--add); background: var(--add-bg); display: inline-block; min-width: 100%; }
+  code { font: 13px ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", monospace; overflow-wrap: anywhere; }
+  code, pre, svg .m { font-variant-ligatures: none; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--merge); font-weight: 650; white-space: nowrap; }
+  td.open { color: var(--future); font-weight: 650; white-space: nowrap; }
+  td.no { color: var(--warn); font-weight: 650; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 2px 0; color: var(--muted); font-size: 13px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1.5px solid; }
+  ul.tight { margin: 6px 0; padding-left: 20px; }
+  ul.tight li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header id="title">
+  <h1 data-k="title">PR for #157: renaming a file no longer frees its info while the window draws it</h1>
+  <p class="lead" data-k="lead">Branch <code>157-rename-main-thread</code> → <code>main</code>, closes #157 (the PR number is assigned when it opens). F2, Enter no longer crashes Thunar: the rename job only renames the file on disk, and the window's own thread swaps the file's details afterwards.</p>
+
+  <nav class="parts" aria-label="Parts of this page">
+    <a href="#adds" data-k="p1"><span>Part 1</span>What this PR adds</a>
+    <a href="#verified" data-k="p2"><span>Part 2</span>How it was built and verified</a>
+    <a href="#later" data-k="p3"><span>Part 3</span>What comes later: nothing depends on #157</a>
+  </nav>
+  </header>
+
+  <!-- ============================== PART 1 ============================== -->
+  <section class="part" id="adds">
+  <p class="part-label" data-k="label">Part 1</p>
+  <h2 data-k="heading">What this PR adds</h2>
+  <p class="intro" data-k="intro">The rename job in <code>thunar-io-jobs.c</code> now leaves the file's details alone on its worker thread; the new <code>thunar_file_set_renamed</code> in <code>thunar-file.c</code> updates them on the main thread.</p>
+
+  <section class="sub" id="flow">
+  <div class="diagram" role="img" aria-label="A rename starts on the main thread, the worker thread renames the file on disk and hands the new location back, the main thread swaps the file's info and redraws, then the worker writes the undo entry">
+  <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+      </marker>
+    </defs>
+
+    <text class="lane" x="20" y="44" style="fill:var(--accent)">① Main thread — draws the window</text>
+    <g data-k="1">
+      <rect class="box-pr" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">Rename starts</text>
+      <text x="36" y="114" class="b">F2, dialog, Properties</text>
+      <text x="36" y="134" class="b">or undo / redo; the</text>
+      <text x="36" y="154" class="b">job keeps the location</text>
+      <circle class="badge" cx="210" cy="82" r="12"/><text class="badge-n" x="210" y="86.5" text-anchor="middle">1</text>
+    </g>
+    <g data-k="4">
+      <rect class="box-pr" x="520" y="60" width="210" height="120" rx="10"/>
+      <text x="536" y="90" class="t">Swap the info</text>
+      <text x="536" y="114" class="m">set_renamed</text>
+      <text x="536" y="134" class="b">new location, then</text>
+      <text x="536" y="154" class="b">reload its details</text>
+      <circle class="badge" cx="710" cy="82" r="12"/><text class="badge-n" x="710" y="86.5" text-anchor="middle">4</text>
+    </g>
+    <g data-k="5">
+      <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
+      <text x="786" y="90" class="t">Tell the views</text>
+      <text x="786" y="114" class="b">renamed + changed:</text>
+      <text x="786" y="134" class="b">the row redraws with</text>
+      <text x="786" y="154" class="b">the new name</text>
+      <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">5</text>
+    </g>
+
+    <text class="lane" x="20" y="300" style="fill:var(--merge)">② Rename job</text>
+    <text class="lane" x="20" y="320" style="fill:var(--merge)">worker thread</text>
+    <g data-k="2">
+      <rect class="box-merge" x="270" y="260" width="210" height="120" rx="10"/>
+      <text x="286" y="290" class="t">Rename on disk</text>
+      <text x="286" y="314" class="m">set_display_name</text>
+      <text x="286" y="334" class="b">returns the new</text>
+      <text x="286" y="354" class="b">location only</text>
+      <circle class="badge" cx="460" cy="282" r="12"/><text class="badge-n" x="460" y="286.5" text-anchor="middle">2</text>
+    </g>
+    <g data-k="3">
+      <rect class="box-merge" x="520" y="260" width="210" height="120" rx="10"/>
+      <text x="536" y="290" class="t">Hand over</text>
+      <text x="536" y="314" class="m">send_to_mainloop</text>
+      <text x="536" y="334" class="b">the worker waits</text>
+      <text x="536" y="354" class="b">until 4 and 5 are done</text>
+      <circle class="badge" cx="710" cy="282" r="12"/><text class="badge-n" x="710" y="286.5" text-anchor="middle">3</text>
+    </g>
+    <g data-k="6">
+      <rect class="box-merge" x="770" y="260" width="210" height="120" rx="10"/>
+      <text x="786" y="290" class="t">Undo entry</text>
+      <text x="786" y="314" class="b">old → new location,</text>
+      <text x="786" y="334" class="b">for Ctrl+Z; then the</text>
+      <text x="786" y="354" class="b">job finishes</text>
+      <circle class="badge" cx="960" cy="282" r="12"/><text class="badge-n" x="960" y="286.5" text-anchor="middle">6</text>
+    </g>
+    <path class="arrow" d="M230,150 H250 V320 H266" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M480,320 H516" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M625,260 V184" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M730,120 H766" marker-end="url(#ah-flow)"/>
+    <path class="arrow" d="M875,180 V256" marker-end="url(#ah-flow)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent-soft);border-color:var(--accent)"></span>runs on the main thread, which also draws the window</span>
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>runs on the rename job's worker thread</span>
+  </div>
+  </section>
+
+  <section class="sub" id="bigpic">
+  <h3 class="sec">The big picture</h3>
+  <p data-k="why">On 26 November Thunar crashed right after an in-place rename (F2, type, Enter), closing every window. The crash was a read of a file's details that had already been freed. Thunar renames a file in a background job, and that job used to throw away the file's old details and load new ones while the window was still drawing the row from them. This PR moves that swap to the thread that draws, so drawing and swapping can no longer overlap.</p>
+  <div class="note" data-k="note">Thunar keeps each file's details (name, size, icon, dates) in one shared object. Only the main thread may replace it, because the main thread is the one that reads it to draw rows, sort and fill the status bar. Nothing locks it against a second thread.</div>
+  </section>
+
+  <section class="sub" id="steps">
+  <h3 class="sec">Step by step (numbers match the diagram)</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>Rename starts.</b> In-place rename with F2, the rename dialog, the name field in Properties, and undo or redo of a rename all call <code>thunar_io_jobs_rename_file</code>. It now also stores the file's current location (its <code>GFile</code>) in the job, read here on the main thread, so the worker never reads it from the shared file object.</li>
+    <li data-k="2"><b>Rename on disk.</b> On the worker thread the job calls <code>g_file_set_display_name</code> on that stored location. It renames the real file and returns the new location. It no longer calls <code>thunar_file_rename</code>, which also swapped the file's details right there on the worker thread: the cause of the crash.</li>
+    <li data-k="3"><b>Hand over.</b> The job passes the file and its new location to <code>_thunar_io_jobs_rename_notify</code> with <code>exo_job_send_to_mainloop</code>. That call blocks the worker until the main thread has run the callback, so steps 4 and 5 finish before step 6 starts.</li>
+    <li data-k="4"><b>Swap the info.</b> On the main thread, the new <code>thunar_file_set_renamed</code> points the file at its new location (<code>thunar_file_replace_file</code>) and reloads its details (<code>thunar_file_load</code>). Nothing else can be drawing at that moment, because drawing happens on this same thread.</li>
+    <li data-k="5"><b>Tell the views.</b> As before, <code>thunarx_file_info_renamed</code> tells the folder, and <code>thunar_file_changed</code> makes the views redraw the row with the new name.</li>
+    <li data-k="6"><b>Undo entry.</b> Back on the worker, when the rename should be undoable, the job records the old and the new location, taken straight from step 1 and step 2. Ctrl+Z uses that entry to rename the file back. Then the job finishes.</li>
+  </ol>
+  </div>
+  </section>
+
+  <section class="sub" id="parts">
+  <h3 class="sec">Before and after</h3>
+  <div class="grid">
+    <div class="card" data-k="c1"><h3>Before: the worker swapped the details</h3><p>The job called <code>thunar_file_rename</code> on its worker thread, which freed the old details and loaded new ones. If the window drew that row at the same moment, it read freed memory and Thunar crashed.</p></div>
+    <div class="card" data-k="c2"><h3>Now: the main thread swaps them</h3><p>The worker only renames the file on disk. The main thread, which does all the drawing, swaps the details, so a draw never sees them half-replaced or freed.</p></div>
+  </div>
+<pre data-k="diff">  /* worker thread: rename on disk only */
+<span class="add">  renamed_file = g_file_set_display_name (old_file, display_name, cancellable, &amp;err);</span>
+
+  /* main thread: _thunar_io_jobs_rename_notify */
+<span class="add">  thunar_file_set_renamed (file, data-&gt;renamed_file);</span>
+  thunarx_file_info_renamed (THUNARX_FILE_INFO (file));</pre>
+  <div class="note" data-k="bulk">The bulk renamer still calls <code>thunar_file_rename</code> itself, on the main thread, so it never had this race. That function is left as it is, to keep the next upstream merge simple.</div>
+  </section>
+
+  <section class="sub" id="files">
+  <h3 class="sec">Files in the PR</h3>
+<pre data-k="tree">thunar/
+├── thunar-io-jobs.c    # rename job: keeps the location from the main thread,
+│                       #   renames on disk, swaps the details in the main-thread callback
+├── thunar-file.c       # new thunar_file_set_renamed: new location, then reload the details
+└── thunar-file.h       # declares it
+verify/
+└── 157.sh              # 30 in-place renames in a row, then Ctrl+Z
+explainers/
+├── 157-rename-main-thread.html            # this page
+└── 157-rename-main-thread.narration.json  # its narration</pre>
+  <div class="note" data-k="undo">To undo this PR, revert its one squash commit on <code>main</code>. It changes only code and a test, no settings or saved data.</div>
+  </section>
+  </section>
+
+  <!-- ============================== PART 2 ============================== -->
+  <section class="part" id="verified">
+  <p class="part-label" data-k="label">Part 2</p>
+  <h2 data-k="heading">How it was built and verified</h2>
+  <p class="intro" data-k="intro">Built and tested in the cloud container on the first commit; the later review fix was only compiled, and CI builds and tests the pushed head. A race can't be forced on demand, so the test lowers the risk rather than proving the fix.</p>
+
+  <section class="sub" id="refs">
+  <h3 class="sec">Built on 3 known-good references</h3>
+  <div class="grid">
+    <div class="card" data-k="r1"><h3>Issue #157's analysis</h3><p>The kernel log and libgio's debug info put the crash in <code>g_file_info_find_value</code> on the main thread; the issue traced the worker-thread swap and proposed this fix.</p></div>
+    <div class="card" data-k="r2"><h3>exo's job code</h3><p><code>exo/exo-job.c</code> on exo's master branch: <code>exo_job_send_to_mainloop</code> wraps a GLib call that blocks the worker until the callback returns.</p></div>
+    <div class="card" data-k="r3"><h3>Thunar's own folder monitor</h3><p>When a file is renamed outside Thunar, the monitor already swaps the details on the main thread. The rename job now does the same.</p></div>
+  </div>
+  </section>
+
+  <section class="sub" id="checks">
+  <h3 class="sec">What was checked</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Check</th><th>How</th><th>Result</th></tr>
+    <tr data-k="c1"><td>It builds and installs</td><td><code>dpkg-buildpackage</code> in the cloud container (build-verify agent), on the first commit; debs installed there</td><td class="ok">build OK, install OK</td></tr>
+    <tr data-k="c2"><td>Thunar starts</td><td>Smoke test, <code>verify-proof.sh run 157 16</code>, then again with <code>run 157</code>, on that build</td><td class="ok">pass (11 s, 12 s)</td></tr>
+    <tr data-k="c3"><td>The existing in-place rename still works</td><td><code>verify/16.sh</code> in the same first run</td><td class="ok">pass (103 s)</td></tr>
+    <tr data-k="c4"><td>First run of the new test</td><td><code>verify/157.sh</code> in that first run: its Ctrl+A was lost, so the name became <code>a25.txt.txt</code>; Thunar did not crash</td><td class="no">fail at rename 25 (test bug)</td></tr>
+    <tr data-k="c5"><td>30 quick renames, then undo</td><td><code>verify/157.sh</code> after the test fix (it types only the base name, which F2 already selects): Thunar still running, each name on disk, Ctrl+Z undoes the last rename</td><td class="ok">pass (24 s)</td></tr>
+    <tr data-k="c6"><td>The worker waits for the main thread</td><td>Read <code>exo_job_send_to_mainloop</code> in exo's source on gitlab.xfce.org</td><td class="ok">it blocks until done</td></tr>
+    <tr data-k="c7"><td>The review fix commit</td><td>The reviewer compiled the changed file; not rebuilt or re-tested in the container. CI builds and tests the pushed head</td><td class="no">compiled only</td></tr>
+    <tr data-k="c8"><td>Rename dialog, Properties, redo</td><td>They share the same job, but no test drove them in this session</td><td class="no">not run</td></tr>
+    <tr data-k="c9"><td>The freed read caught for certain</td><td>Needs a build with AddressSanitizer; none was made</td><td class="no">not run</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="review">
+  <h3 class="sec">Code review</h3>
+  <p data-k="summary">Before the first push, <code>/code-review</code> at high reviewed the branch: 6 findings, 1 fixed, 5 left as they are.</p>
+  <ul class="tight">
+    <li data-k="b1"><b>Fixed:</b> the worker read the file's location from the shared file object while the main thread could replace it. The job now takes the location on the main thread when it is created.</li>
+    <li data-k="b2"><b>Left, unconfirmed:</b> a late "renamed" event from the folder monitor might reload a name that no longer exists. That path already reloads on the main thread, and the 30-rename test passed.</li>
+    <li data-k="b3"><b>Left, accepted:</b> reloading the details now runs on the main thread, so a rename on a slow network mount briefly holds up the window, as the monitor's own reload already does.</li>
+    <li data-k="b4"><b>Left for the upstream merge:</b> <code>thunar_file_rename</code>'s <code>called_from_job</code> option is now unused; removing it would conflict with upstream.</li>
+    <li data-k="b5"><b>Done or ruled out:</b> the missing explainer is this page, and a cancelled job can't skip the main-thread step, because that step runs before the job returns.</li>
+  </ul>
+  <p data-k="ci">CI's own review of each push is in the PR's code review comment.</p>
+  </section>
+
+  <section class="sub" id="aftermerge">
+  <h3 class="sec">Checked only after the push or the merge</h3>
+  <div class="table-wrap">
+  <table>
+    <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
+    <tr data-k="a1"><td>CI build, smoke test and <code>verify/157.sh</code> on the head</td><td>They run on the pushed branch, including the review fix not re-tested here</td><td class="open">first push</td></tr>
+    <tr data-k="a2"><td>CI code review at high</td><td>Runs on each pushed head</td><td class="open">first push</td></tr>
+    <tr data-k="a3"><td>/visual-verify of CI's screenshots</td><td>The shots exist only after CI's verify run</td><td class="open">after CI's verify</td></tr>
+    <tr data-k="a4"><td>No more crashes after F2 renames</td><td>The race is timing-dependent; only everyday use of the installed build shows it is gone</td><td class="open">after the merge</td></tr>
+  </table>
+  </div>
+  </section>
+
+  <section class="sub" id="see">
+  <h3 class="sec">See it yourself</h3>
+  <ul class="tight">
+    <li data-k="l1">The issue: <a href="https://github.com/alexhu98/thunar/issues/157">#157</a>, with the crash evidence and the traced cause</li>
+    <li data-k="l2">The changes: <a href="https://github.com/alexhu98/thunar/compare/main...157-rename-main-thread">main…157-rename-main-thread</a>, and the PR that closes #157 once it opens</li>
+    <li data-k="l3">CI's results, screenshots and review: the PR's checks and its four CI comments</li>
+  </ul>
+  </section>
+  </section>
+
+  <!-- ============================== PART 3 ============================== -->
+  <section class="part" id="later">
+  <p class="part-label" data-k="label">Part 3</p>
+  <h2 data-k="heading">What comes later: nothing depends on #157</h2>
+  <p class="intro" data-k="intro">No open issue says "Depends on #157", so nothing builds on it yet.</p>
+
+  <section class="sub" id="next">
+  <div class="diagram" role="img" aria-label="This PR fixes the rename crash; nothing builds on it yet">
+  <svg viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ahf-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--future)"/>
+      </marker>
+    </defs>
+    <text class="lane" x="20" y="44" style="fill:var(--merge)">#157 Crash after in-place rename</text>
+    <g data-k="n1">
+      <rect class="box-merge" x="20" y="60" width="210" height="120" rx="10"/>
+      <text x="36" y="90" class="t">This PR</text>
+      <text x="36" y="114" class="b">the main thread swaps</text>
+      <text x="36" y="134" class="b">a renamed file's</text>
+      <text x="36" y="154" class="b">details</text>
+    </g>
+    <g data-k="n2">
+      <rect class="box-future" x="270" y="60" width="210" height="120" rx="10"/>
+      <text x="286" y="90" class="t">Nothing yet</text>
+      <text x="286" y="114" class="b">no open issue</text>
+      <text x="286" y="134" class="b">depends on #157</text>
+    </g>
+    <path class="arrow-future" d="M230,120 H266" marker-end="url(#ahf-next)"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--merge-soft);border-color:var(--merge)"></span>built by this PR</span>
+    <span><span class="sw" style="background:var(--future-soft);border-color:var(--future);border-style:dashed"></span>not built yet</span>
+  </div>
+  </section>
+
+  <section class="sub" id="issue-a">
+  <h3 class="sec">Nothing waits on #157</h3>
+  <div class="panel">
+  <ol class="steps">
+    <li data-k="1"><b>No follow-up issue.</b> Merging this PR unblocks nothing else.</li>
+    <li data-k="2"><b>Not part of this PR.</b> Four minutes before the crash, the same Thunar logged an unrelated <code>gtk_widget_is_ancestor</code> warning. The issue lists it as not traced, and this PR leaves it alone.</li>
+  </ol>
+  </div>
+  </section>
+  </section>
+
+  <section class="sub" id="glossary">
+  <h2>Glossary</h2>
+  <dl class="gloss">
+    <div data-k="main"><dt>Main thread</dt><dd>The thread that draws Thunar's windows and handles your keys and clicks.</dd></div>
+    <div data-k="worker"><dt>Worker thread</dt><dd>A background thread that runs slow file work, so the window stays responsive.</dd></div>
+    <div data-k="job"><dt>Rename job</dt><dd>The background task that renames one file, started by every rename except the bulk renamer.</dd></div>
+    <div data-k="gfile"><dt>GFile</dt><dd>GLib's handle for a file's location, such as its path.</dd></div>
+    <div data-k="info"><dt>GFileInfo</dt><dd>GLib's record of a file's details: name, size, type, dates, icon.</dd></div>
+    <div data-k="thunarfile"><dt>ThunarFile</dt><dd>Thunar's shared object for one file, holding its GFile and GFileInfo.</dd></div>
+    <div data-k="uaf"><dt>Use-after-free</dt><dd>Reading memory after it was released; it crashes or reads garbage.</dd></div>
+    <div data-k="race"><dt>Race</dt><dd>A bug that shows only when two threads happen to act at the same moment.</dd></div>
+    <div data-k="mainloop"><dt>exo_job_send_to_mainloop</dt><dd>Runs a function on the main thread and makes the job wait until it returns.</dd></div>
+    <div data-k="asan"><dt>AddressSanitizer</dt><dd>A build option that stops a program at the first use of freed memory.</dd></div>
+    <div data-k="inplace"><dt>In-place rename</dt><dd>F2 edits the name right in the file list (#16), instead of in a dialog.</dd></div>
+    <div data-k="undo"><dt>Undo log</dt><dd>Thunar's list of recent file operations that Ctrl+Z and Ctrl+Shift+Z replay.</dd></div>
+    <div data-k="upstream"><dt>Upstream</dt><dd>Xfce's own Thunar, which this fork merges from.</dd></div>
+    <div data-k="verify"><dt>verify/157.sh</dt><dd>The test script CI runs: it drives Thunar with xdotool and takes screenshots.</dd></div>
+    <div data-k="smoke"><dt>Smoke test</dt><dd>Checks that Thunar is still running 10 s after it starts.</dd></div>
+    <div data-k="vv"><dt>/visual-verify</dt><dd>A check that each screenshot shows what the test says it proves.</dd></div>
+  </dl>
+  </section>
+</main>
+</body>
+</html>
