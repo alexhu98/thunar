@@ -117,7 +117,7 @@
   <p class="intro" data-k="intro">The rename job in <code>thunar-io-jobs.c</code> still renames on its worker thread, but it marks the file first and swaps the file's details on the main thread with the new <code>thunar_file_set_renaming</code> and <code>thunar_file_set_renamed</code> in <code>thunar-file.c</code>.</p>
 
   <section class="sub" id="flow">
-  <div class="diagram" role="img" aria-label="A rename starts on the main thread, which marks the file as renaming; the worker renames on disk, reads the new details and hands them back; the main thread clears the mark, swaps the details, tells the views and records the undo entry">
+  <div class="diagram" role="img" aria-label="A rename starts on the main thread, which marks the file as renaming; the worker renames on disk, reads the new details and hands them back; the main thread clears the mark, swaps the details, tells the views, records the undo entry and reloads the file if a delete or reload was held">
   <svg viewBox="0 0 1000 410" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <marker id="ah-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -139,7 +139,7 @@
       <text x="286" y="90" class="t">Mark renaming</text>
       <text x="286" y="114" class="m">set_renaming</text>
       <text x="286" y="134" class="b">delete and reload</text>
-      <text x="286" y="154" class="b">now skip this file</text>
+      <text x="286" y="154" class="b">are held for later</text>
       <circle class="badge" cx="460" cy="82" r="12"/><text class="badge-n" x="460" y="86.5" text-anchor="middle">2</text>
     </g>
     <g data-k="5">
@@ -153,9 +153,9 @@
     <g data-k="6">
       <rect class="box-pr" x="770" y="60" width="210" height="120" rx="10"/>
       <text x="786" y="90" class="t">Tell and log</text>
-      <text x="786" y="114" class="b">renamed + changed:</text>
-      <text x="786" y="134" class="b">the row redraws; the</text>
-      <text x="786" y="154" class="b">undo entry for Ctrl+Z</text>
+      <text x="786" y="114" class="b">row redraws, undo</text>
+      <text x="786" y="134" class="b">entry for Ctrl+Z, then</text>
+      <text x="786" y="154" class="b">reload if one was held</text>
       <circle class="badge" cx="960" cy="82" r="12"/><text class="badge-n" x="960" y="86.5" text-anchor="middle">6</text>
     </g>
 
@@ -194,7 +194,7 @@
   <h3 class="sec">The big picture</h3>
   <p data-k="why">On 26 November Thunar crashed right after an in-place rename (F2, type, Enter), closing every window. The crash was a read of a file's details that had already been freed. Thunar renames a file in a background job, and that job used to throw away the file's old details and load new ones while the window was still drawing the row from them. This PR moves that swap to the thread that draws, so drawing and swapping can no longer overlap. The slow disk work stays in the background.</p>
   <div class="note" data-k="note">Thunar keeps each file's details (name, size, icon, dates) in one shared object. Only the main thread may replace it, because the main thread is the one that reads it to draw rows, sort and fill the status bar. Nothing locks it against a second thread.</div>
-  <div class="note warn" data-k="gap">The catch: once the file is renamed on disk, Thunar's watchers see the old name vanish and report it deleted, which would destroy the file object before the main thread swaps it. So the file is marked as renaming for the whole job, and a delete or reload for it waits until the swap.</div>
+  <div class="note warn" data-k="gap">The catch: once the file is renamed on disk, Thunar's watchers see the old name vanish and report it deleted, which would destroy the file object before the main thread swaps it. So the file is marked as renaming for the whole job: a delete or reload for it is held, and the file is reloaded once after the swap.</div>
   </section>
 
   <section class="sub" id="steps">
@@ -202,11 +202,11 @@
   <div class="panel">
   <ol class="steps">
     <li data-k="1"><b>Rename starts.</b> In-place rename with F2, the rename dialog, the name field in Properties, and undo or redo of a rename all call <code>thunar_io_jobs_rename_file</code>. It stores the file's current location (its <code>GFile</code>) in the job, read here on the main thread, so the worker never reads it from the shared file object.</li>
-    <li data-k="2"><b>Mark renaming.</b> The worker's first act is to run <code>_thunar_io_jobs_rename_begin</code> on the main thread, which sets the new <code>THUNAR_FILE_FLAG_RENAMING</code> with <code>thunar_file_set_renaming</code>. While it is set, <code>thunar_file_destroy</code> and <code>thunar_file_reload</code> do nothing for this file, so a "deleted" or reload for the old name, from the file's own watch or a folder monitor, can't destroy it.</li>
+    <li data-k="2"><b>Mark renaming.</b> The worker's first act is to run <code>_thunar_io_jobs_rename_begin</code> on the main thread, which sets the new <code>THUNAR_FILE_FLAG_RENAMING</code> with <code>thunar_file_set_renaming</code>. While it is set, <code>thunar_file_destroy</code> and <code>thunar_file_reload</code> don't act on this file: they set a second flag, <code>THUNAR_FILE_FLAG_RENAME_HELD</code>, to remember that something arrived. So a "deleted" or reload for the old name, from the file's own watch or a folder monitor, can't destroy it mid-rename, and isn't forgotten either.</li>
     <li data-k="3"><b>Rename on disk.</b> On the worker thread the job calls <code>g_file_set_display_name</code> on the stored location, which renames the real file and returns the new location. Then <code>g_file_query_info</code> reads the new details. Both can block on a slow disk, so they stay off the thread that draws.</li>
     <li data-k="4"><b>Hand over.</b> The job passes the new location and details to <code>_thunar_io_jobs_rename_notify</code> with <code>exo_job_send_to_mainloop</code>. That call blocks the worker until the main thread has run the callback, so data on the worker's stack stays valid, and steps 5 and 6 finish before the job does.</li>
-    <li data-k="5"><b>Swap the info.</b> On the main thread the callback clears the mark, then the new <code>thunar_file_set_renamed</code> points the file at its new location and installs the new details (or loads them, if reading them failed). Nothing else can be drawing at that moment, because drawing happens on this same thread. If the rename failed, it reloads the file instead, so a real delete that was held off still lands.</li>
-    <li data-k="6"><b>Tell and log.</b> As before, <code>thunarx_file_info_renamed</code> tells the folder and <code>thunar_file_changed</code> makes the views redraw the row. Then, when the rename should be undoable, the callback records the old and new location in the undo log, on the main thread and after the swap. Ctrl+Z uses that entry to rename the file back.</li>
+    <li data-k="5"><b>Swap the info.</b> On the main thread the callback clears the mark; <code>thunar_file_set_renaming</code> now also says whether a destroy or reload was held. Then the new <code>thunar_file_set_renamed</code> points the file at its new location and installs the new details (or loads them, if reading them failed). Nothing else can be drawing at that moment, because drawing happens on this same thread. If the rename failed, it reloads the file instead, as before.</li>
+    <li data-k="6"><b>Tell and log.</b> As before, <code>thunarx_file_info_renamed</code> tells the folder and <code>thunar_file_changed</code> makes the views redraw the row. Then, when the rename should be undoable, the callback records the old and new location in the undo log, on the main thread and after the swap. Ctrl+Z uses that entry to rename the file back. Last, if a destroy or reload was held, it reloads the file; a file that is gone from disk is destroyed by that reload, so a real deletion during the rename still lands.</li>
   </ol>
   </div>
   </section>
@@ -216,7 +216,7 @@
   <div class="grid">
     <div class="card" data-k="c1"><h3>Before: the worker swapped the details</h3><p>The job called <code>thunar_file_rename</code> on its worker thread, which freed the old details and loaded new ones. If the window drew that row at the same moment, it read freed memory and Thunar crashed.</p></div>
     <div class="card" data-k="c2"><h3>Now: the main thread swaps them</h3><p>The worker renames the file on disk and reads its new details. The main thread, which does all the drawing, swaps them in, so a draw never sees them half-replaced or freed.</p></div>
-    <div class="card" data-k="c3"><h3>In between: the mark</h3><p>From before the rename on disk until the swap, the file is marked as renaming. Thunar's watchers can't destroy or reload it then, so the swap always finds the same, live file object.</p></div>
+    <div class="card" data-k="c3"><h3>In between: the mark</h3><p>From before the rename on disk until the swap, the file is marked as renaming. Thunar's watchers can't destroy or reload it then, so the swap always finds the same, live file object. Anything they reported is held, and one reload after the swap catches up on it.</p></div>
   </div>
 <pre data-k="diff">  /* worker thread: _thunar_io_jobs_rename */
 <span class="add">  exo_job_send_to_mainloop (job, _thunar_io_jobs_rename_begin, data.file, NULL);</span>
@@ -225,9 +225,11 @@
 <span class="add">  exo_job_send_to_mainloop (job, _thunar_io_jobs_rename_notify, &amp;data, NULL);</span>
 
   /* main thread: _thunar_io_jobs_rename_notify */
-<span class="add">  thunar_file_set_renaming (file, FALSE);</span>
+<span class="add">  held = thunar_file_set_renaming (file, FALSE);</span>
 <span class="add">  thunar_file_set_renamed (file, data-&gt;renamed_file, data-&gt;info);</span>
-  thunarx_file_info_renamed (THUNARX_FILE_INFO (file));</pre>
+  thunarx_file_info_renamed (THUNARX_FILE_INFO (file));
+<span class="add">  if (held)</span>
+<span class="add">    thunar_file_reload (file);</span></pre>
   <div class="note" data-k="bulk">The bulk renamer calls <code>thunar_file_rename</code> itself, on the main thread, so it never had this race. That function loses its unused <code>called_from_job</code> option and now reuses <code>thunar_file_set_renamed</code>. The Properties dialog also ignores Enter while its own rename job is still running, so it can't start a second one.</div>
   </section>
 
@@ -235,8 +237,9 @@
   <h3 class="sec">Files in the PR</h3>
 <pre data-k="tree">thunar/
 ├── thunar-io-jobs.c              # rename job: keeps the location from the main thread, marks the file,
-│                                 #   renames and reads the new info on the worker, swaps on the main thread
-├── thunar-file.c                 # renaming mark (destroy and reload skip the file), thunar_file_set_renamed,
+│                                 #   renames and reads the new info on the worker, swaps on the main thread,
+│                                 #   then reloads the file if a destroy or reload was held
+├── thunar-file.c                 # renaming mark (destroy and reload are held until the swap), thunar_file_set_renamed,
 │                                 #   thunar_file_rename without called_from_job
 ├── thunar-file.h                 # declares them
 ├── thunar-properties-dialog.c    # Enter does nothing while a rename job runs
@@ -254,7 +257,7 @@ explainers/
   <section class="part" id="verified">
   <p class="part-label" data-k="label">Part 2</p>
   <h2 data-k="heading">How it was built and verified</h2>
-  <p class="intro" data-k="intro">The final design was built and tested in the cloud container, at commit <code>e9298220d</code>; CI's run on that commit was still going when this page was written. A race can't be forced on demand, so the test lowers the risk rather than proving the fix.</p>
+  <p class="intro" data-k="intro">The final design was built and tested in the cloud container, at commit <code>e9298220d</code>, before CI's one-finding fix <code>be890a15b</code>, which only CI builds and tests. A race can't be forced on demand, so the test lowers the risk rather than proving the fix.</p>
 
   <section class="sub" id="refs">
   <h3 class="sec">Built on 3 known-good references</h3>
@@ -311,7 +314,7 @@ explainers/
 
   <section class="sub" id="cireview">
   <h3 class="sec">CI's code review</h3>
-  <p data-k="ci">CI's review of the first push (run 45915196233, high) found 7 things. All are handled in the final design:</p>
+  <p data-k="ci">CI's review of the first push (run 45915196233, high) found 7 things, and its review of the final design, <code>e9298220d</code>, found one more. All are handled:</p>
   <ul class="tight">
     <li data-k="r1"><b>R1, high, fixed:</b> a watcher could report the old name deleted and destroy the file before the swap. The renaming mark holds that off.</li>
     <li data-k="r2"><b>R2, medium, covered:</b> the late swap could put a destroyed file back in Thunar's file cache. The file can't be destroyed during the rename any more.</li>
@@ -320,6 +323,7 @@ explainers/
     <li data-k="r5"><b>R5, low, fixed:</b> logging the undo entry on the worker updated toolbar buttons off the main thread. It is logged on the main thread now.</li>
     <li data-k="r6"><b>R6, low, fixed by CI:</b> Properties could start a second rename job if focus left right after Enter. It ignores Enter while a job runs.</li>
     <li data-k="r7"><b>R7, low, fixed:</b> an unused option and a copied code path in <code>thunar_file_rename</code>. Both are gone.</li>
+    <li data-k="r8"><b>R8, fixed by CI:</b> a destroy or reload that arrived while the file was marked was thrown away, so a real deletion in that moment was lost. CI's fix commit <code>be890a15b</code> holds it instead and reloads the file after the swap.</li>
   </ul>
   <p data-k="link">Every finding, with CI's later reviews, is in the PR's <a href="https://github.com/alexhu98/thunar/pull/158#issuecomment-7206244827">code review comment</a>.</p>
   </section>
@@ -329,9 +333,9 @@ explainers/
   <div class="table-wrap">
   <table>
     <tr><th>What</th><th>Why it can't run earlier</th><th>First runs</th></tr>
-    <tr data-k="a1"><td>CI build, smoke test, <code>verify/157.sh</code> and code review on <code>e9298220d</code></td><td>They run on the pushed head; still running when this page was written</td><td class="open">in progress</td></tr>
-    <tr data-k="a2"><td>/visual-verify of CI's new screenshots</td><td>The shots exist only after CI's verify run</td><td class="open">after CI's verify</td></tr>
-    <tr data-k="a3"><td>All 36 tests (<code>Verify: full</code>)</td><td>Run on the head pushed with that trailer, once the review is clean</td><td class="open">before the merge</td></tr>
+    <tr data-k="a1"><td>CI build, smoke test and <code>verify/157.sh</code> on the final head</td><td>The final head has CI's fix <code>be890a15b</code>, which no local build has run</td><td class="open">result not known yet</td></tr>
+    <tr data-k="a2"><td>/visual-verify of those runs' screenshots</td><td>The shots exist only after CI's verify runs</td><td class="open">after each CI verify</td></tr>
+    <tr data-k="a3"><td>All 36 tests (<code>Verify: full</code>) on the head that merges</td><td>Run on the head pushed with that trailer, once the review is clean; result not known yet</td><td class="open">before the merge</td></tr>
     <tr data-k="a4"><td>No more crashes after F2 renames</td><td>The race is timing-dependent; only everyday use of the installed build shows it is gone</td><td class="open">after the merge</td></tr>
   </table>
   </div>
@@ -410,9 +414,9 @@ explainers/
     <div data-k="asan"><dt>AddressSanitizer</dt><dd>A build option that stops a program at the first use of freed memory.</dd></div>
     <div data-k="inplace"><dt>In-place rename</dt><dd>F2 edits the name right in the file list (#16), instead of in a dialog.</dd></div>
     <div data-k="undo"><dt>Undo log</dt><dd>Thunar's list of recent file operations that Ctrl+Z and Ctrl+Shift+Z replay.</dd></div>
-    <div data-k="mark"><dt>Renaming mark</dt><dd>The new <code>THUNAR_FILE_FLAG_RENAMING</code>: while set, Thunar won't destroy or reload that file.</dd></div>
+    <div data-k="mark"><dt>Renaming mark</dt><dd>The new <code>THUNAR_FILE_FLAG_RENAMING</code>: while set, Thunar holds that file's destroy and reload until the swap.</dd></div>
     <div data-k="monitor"><dt>File monitor</dt><dd>GLib's watcher that tells Thunar when a file or folder changes on disk.</dd></div>
-    <div data-k="finding"><dt>R1 to R7</dt><dd>IDs CI's code review gives its findings, in its PR comment.</dd></div>
+    <div data-k="finding"><dt>R1 to R8</dt><dd>IDs CI's code review gives its findings, in its PR comment.</dd></div>
     <div data-k="upstream"><dt>Upstream</dt><dd>Xfce's own Thunar, which this fork merges from.</dd></div>
     <div data-k="verify"><dt>verify/157.sh</dt><dd>The test script CI runs: it drives Thunar with xdotool and takes screenshots.</dd></div>
     <div data-k="smoke"><dt>Smoke test</dt><dd>Checks that Thunar is still running 10 s after it starts.</dd></div>
