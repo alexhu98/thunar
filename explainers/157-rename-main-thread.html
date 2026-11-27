@@ -314,7 +314,7 @@ explainers/
 
   <section class="sub" id="cireview">
   <h3 class="sec">CI's code review</h3>
-  <p data-k="ci">CI's review of the first push (run 45915196233, high) found 7 things, and its review of the final design, <code>e9298220d</code>, found one more. All are handled:</p>
+  <p data-k="ci">CI's review of the first push (run 45915196233, high) found 7 things, and its review of the final design, <code>e9298220d</code>, found R8 to R11. Its review of <code>afbd9606c</code>, which includes CI's R8 fix <code>be890a15b</code>, found R12 to R15. R1 to R8 are handled:</p>
   <ul class="tight">
     <li data-k="r1"><b>R1, high, fixed:</b> a watcher could report the old name deleted and destroy the file before the swap. The renaming mark holds that off.</li>
     <li data-k="r2"><b>R2, medium, covered:</b> the late swap could put a destroyed file back in Thunar's file cache. The file can't be destroyed during the rename any more.</li>
@@ -324,6 +324,16 @@ explainers/
     <li data-k="r6"><b>R6, low, fixed by CI:</b> Properties could start a second rename job if focus left right after Enter. It ignores Enter while a job runs.</li>
     <li data-k="r7"><b>R7, low, fixed:</b> an unused option and a copied code path in <code>thunar_file_rename</code>. Both are gone.</li>
     <li data-k="r8"><b>R8, fixed by CI:</b> a destroy or reload that arrived while the file was marked was thrown away, so a real deletion in that moment was lost. CI's fix commit <code>be890a15b</code> holds it instead and reloads the file after the swap.</li>
+  </ul>
+  <p data-k="acc">R9 to R15 are accepted, not fixed: all are low, and CI's own verifier confirmed none of them. <code>Review-accept</code> trailers close them, R9, R10 and R11 on commit <code>2f585376b</code>, and R12 to R15 on the commit that carries this page.</p>
+  <ul class="tight">
+    <li data-k="r9"><b>R9, low, accepted</b> (review of <code>e9298220d</code>): the renaming mark is one bit, not a count, so two overlapping renames of one file could clear each other's mark. The mark lasts one rename plus one read of the details on the worker, too short for a person to overlap two renames, and the fallback is the behaviour before this PR.</li>
+    <li data-k="r10"><b>R10, low, accepted</b> (<code>e9298220d</code>): Properties' new guard ignores Enter or leaving the Name field while a rename job runs. The job lasts about one frame, and the typed text stays and applies on the next Enter.</li>
+    <li data-k="r11"><b>R11, low, accepted</b> (<code>e9298220d</code>): while the mark is set, a reload returns success without loading, so a caller can briefly see the old details. It lasts a few milliseconds, and the held reload runs right after the swap.</li>
+    <li data-k="r12"><b>R12, low, accepted</b> (review of <code>afbd9606c</code>): a held event leads to one extra reload on the main thread after the rename. CI's verifier found it replaces the reload upstream already runs on the main thread for a rename, rather than adding one.</li>
+    <li data-k="r13"><b>R13, low, accepted</b> (<code>afbd9606c</code>): the same one-bit concern as R9, also for the held flag. Accepted for the same reason; a per-file counter would close it if it ever shows up.</li>
+    <li data-k="r14"><b>R14, low, accepted</b> (<code>afbd9606c</code>): a watcher that reports deleted plus created instead of renamed could drop the file or make a duplicate. This is older than this PR, and Thunar's folder monitor asks for moves (<code>G_FILE_MONITOR_WATCH_MOVES</code>), so local folders report a rename.</li>
+    <li data-k="r15"><b>R15, low, accepted</b> (<code>afbd9606c</code>): the same as R11 for callers that ask for a reload. CI's verifier disproved it: returning success is the intended hold-off, and the held reload follows.</li>
   </ul>
   <p data-k="link">Every finding, with CI's later reviews, is in the PR's <a href="https://github.com/alexhu98/thunar/pull/158#issuecomment-7206244827">code review comment</a>.</p>
   </section>
@@ -416,7 +426,7 @@ explainers/
     <div data-k="undo"><dt>Undo log</dt><dd>Thunar's list of recent file operations that Ctrl+Z and Ctrl+Shift+Z replay.</dd></div>
     <div data-k="mark"><dt>Renaming mark</dt><dd>The new <code>THUNAR_FILE_FLAG_RENAMING</code>: while set, Thunar holds that file's destroy and reload until the swap.</dd></div>
     <div data-k="monitor"><dt>File monitor</dt><dd>GLib's watcher that tells Thunar when a file or folder changes on disk.</dd></div>
-    <div data-k="finding"><dt>R1 to R8</dt><dd>IDs CI's code review gives its findings, in its PR comment.</dd></div>
+    <div data-k="finding"><dt>R1 to R15</dt><dd>IDs CI's code review gives its findings, in its PR comment.</dd></div>
     <div data-k="upstream"><dt>Upstream</dt><dd>Xfce's own Thunar, which this fork merges from.</dd></div>
     <div data-k="verify"><dt>verify/157.sh</dt><dd>The test script CI runs: it drives Thunar with xdotool and takes screenshots.</dd></div>
     <div data-k="smoke"><dt>Smoke test</dt><dd>Checks that Thunar is still running 10 s after it starts.</dd></div>
