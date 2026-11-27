@@ -1,6 +1,40 @@
 sha	num	test	result	shot	file	proves
-d2529a2fe025fbdf1620ea44c2ba159938bdad37	1	157	pass	before-renames	verify-157-before-renames.png	The details view of files with a00.txt, the first row, selected and the five m-*.txt files below it
-d2529a2fe025fbdf1620ea44c2ba159938bdad37	1	157	pass	after-renames	verify-157-after-renames.png	After 30 in-place renames in a row Thunar is still open, and the first row shows a30.txt, selected, above the five m-*.txt files
-d2529a2fe025fbdf1620ea44c2ba159938bdad37	2	157	pass	undo	verify-157-undo.png	Ctrl+Z undid the last in-place rename: the first row shows a29.txt again, from the rename job's operation log entry
-d2529a2fe025fbdf1620ea44c2ba159938bdad37	3	157	pass	properties	verify-157-properties.png	After 10 renames in a row from its Name field, the Properties dialog is still open, titled p10.txt - Properties, with p10.txt in the Name field
-d2529a2fe025fbdf1620ea44c2ba159938bdad37	4	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	118	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	120	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	123	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	124	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	126	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	128	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	129	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	132	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	133	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	135	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	14	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	140	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	143	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	144	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	149	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	15	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	150	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	155	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	1	157	pass	before-renames	verify-157-before-renames.png	The details view of files with a00.txt, the first row, selected and the five m-*.txt files below it
+0371a5c71dc9bb7397ec421b3260ce2df576a777	1	157	pass	after-renames	verify-157-after-renames.png	After 30 in-place renames in a row Thunar is still open, and the first row shows a30.txt, selected, above the five m-*.txt files
+0371a5c71dc9bb7397ec421b3260ce2df576a777	2	157	pass	undo	verify-157-undo.png	Ctrl+Z undid the last in-place rename: the first row shows a29.txt again, from the rename job's operation log entry
+0371a5c71dc9bb7397ec421b3260ce2df576a777	3	157	pass	properties	verify-157-properties.png	After 10 renames in a row from its Name field, the Properties dialog is still open, titled p10.txt - Properties, with p10.txt in the Name field
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	16	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	17	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	19	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	21	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	22	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	3	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	4	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	40	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	49	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	5	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	68	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	74	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	89	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	93	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	95	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	-	96	pass	-	-	-
+0371a5c71dc9bb7397ec421b3260ce2df576a777	4	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
