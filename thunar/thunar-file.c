@@ -183,6 +183,8 @@ typedef enum
   THUNAR_FILE_FLAG_THUMB_MASK = 0x03,       /* storage for ThunarFileThumbState */
   THUNAR_FILE_FLAG_IN_DESTRUCTION = 1 << 2, /* for avoiding recursion during destroy */
   THUNAR_FILE_FLAG_IS_MOUNTED = 1 << 3,     /* whether this file is mounted */
+  THUNAR_FILE_FLAG_RENAMING = 1 << 4,
+  THUNAR_FILE_FLAG_RENAME_HELD = 1 << 5,
 } ThunarFileFlags;
 
 struct _ThunarFileClass
@@ -1977,7 +1979,6 @@ gboolean
 thunar_file_rename (ThunarFile   *file,
                     const gchar  *name,
                     GCancellable *cancellable,
-                    gboolean      called_from_job,
                     GError      **error)
 {
   GFile *renamed_file;
@@ -1993,23 +1994,63 @@ thunar_file_rename (ThunarFile   *file,
   /* check if we succeeded */
   if (renamed_file != NULL)
     {
-      /* replace GFile in ThunarFile for the renamed file */
-      thunar_file_replace_file (file, renamed_file);
+      thunar_file_set_renamed (file, renamed_file, NULL);
 
-      /* reload file information */
-      thunar_file_load (file, NULL, NULL);
-
-      if (!called_from_job)
-        {
-          /* emit the file changed signal */
-          thunar_file_changed (file);
-        }
+      /* emit the file changed signal */
+      thunar_file_changed (file);
 
       g_object_unref (renamed_file);
       return TRUE;
     }
 
   return FALSE;
+}
+
+
+
+gboolean
+thunar_file_set_renaming (ThunarFile *file,
+                          gboolean    renaming)
+{
+  gboolean held;
+
+  _thunar_return_val_if_fail (THUNAR_IS_FILE (file), FALSE);
+
+  held = FLAG_IS_SET (file, THUNAR_FILE_FLAG_RENAME_HELD);
+  FLAG_UNSET (file, THUNAR_FILE_FLAG_RENAME_HELD);
+
+  if (renaming)
+    FLAG_SET (file, THUNAR_FILE_FLAG_RENAMING);
+  else
+    FLAG_UNSET (file, THUNAR_FILE_FLAG_RENAMING);
+
+  return held;
+}
+
+
+
+void
+thunar_file_set_renamed (ThunarFile *file,
+                         GFile      *renamed_file,
+                         GFileInfo  *info)
+{
+  _thunar_return_if_fail (THUNAR_IS_FILE (file));
+  _thunar_return_if_fail (G_IS_FILE (renamed_file));
+  _thunar_return_if_fail (info == NULL || G_IS_FILE_INFO (info));
+
+  thunar_file_replace_file (file, renamed_file);
+
+  if (info == NULL)
+    {
+      thunar_file_load (file, NULL, NULL);
+      return;
+    }
+
+  G_REC_LOCK (file_cache_mutex);
+  thunar_file_info_clear (file);
+  file->info = g_object_ref (info);
+  thunar_file_info_reload (file, NULL);
+  G_REC_UNLOCK (file_cache_mutex);
 }
 
 
@@ -4398,6 +4439,12 @@ thunar_file_reload_with_error (ThunarFile *file,
 {
   _thunar_return_val_if_fail (THUNAR_IS_FILE (file), FALSE);
 
+  if (FLAG_IS_SET (file, THUNAR_FILE_FLAG_RENAMING))
+    {
+      FLAG_SET (file, THUNAR_FILE_FLAG_RENAME_HELD);
+      return TRUE;
+    }
+
   /* clear file pxmap cache */
   thunar_icon_factory_clear_pixmap_cache (file);
 
@@ -4480,7 +4527,9 @@ thunar_file_destroy (ThunarFile *file)
 {
   _thunar_return_if_fail (THUNAR_IS_FILE (file));
 
-  if (!FLAG_IS_SET (file, THUNAR_FILE_FLAG_IN_DESTRUCTION))
+  if (FLAG_IS_SET (file, THUNAR_FILE_FLAG_RENAMING))
+    FLAG_SET (file, THUNAR_FILE_FLAG_RENAME_HELD);
+  else if (!FLAG_IS_SET (file, THUNAR_FILE_FLAG_IN_DESTRUCTION))
     g_signal_emit (file, file_signals[DESTROY], 0);
 }
 

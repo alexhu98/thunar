@@ -187,8 +187,16 @@ gboolean
 thunar_file_rename (ThunarFile   *file,
                     const gchar  *name,
                     GCancellable *cancellable,
-                    gboolean      called_from_job,
                     GError      **error);
+
+gboolean
+thunar_file_set_renaming (ThunarFile *file,
+                          gboolean    renaming);
+
+void
+thunar_file_set_renamed (ThunarFile *file,
+                         GFile      *renamed_file,
+                         GFileInfo  *info);
 
 gboolean
 thunar_file_drop_refused (ThunarFile *file,

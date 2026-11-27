@@ -261,7 +261,7 @@ thunar_renamer_progress_next_idle (gpointer user_data)
       gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (renamer_progress->bar), CLAMP ((gdouble) n_pairs_processed / MAX (n_total, 1), 0.0, 1.0));
 
       /* try to rename the file */
-      if (!thunar_file_rename (pair->file, pair->name, NULL, FALSE, &error))
+      if (!thunar_file_rename (pair->file, pair->name, NULL, &error))
         {
           /* add pair to the list of failed pairs */
           renamer_progress->pairs_failed_current_run = g_list_prepend (renamer_progress->pairs_failed_current_run, pair);

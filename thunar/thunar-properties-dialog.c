@@ -1157,7 +1157,8 @@ thunar_properties_dialog_name_activate (GtkWidget              *entry,
 
   /* check if we still have a valid file and if the user is allowed to rename */
   if (G_UNLIKELY (!gtk_widget_get_sensitive (GTK_WIDGET (xfce_filename_input_get_entry (dialog->name_entry)))
-                  || g_list_length (dialog->files) != 1))
+                  || g_list_length (dialog->files) != 1
+                  || dialog->rename_job != NULL))
     return;
 
   /* determine new and old name */
