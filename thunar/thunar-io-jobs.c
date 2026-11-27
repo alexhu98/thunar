@@ -1349,12 +1349,22 @@ thunar_io_jobs_list_directory (GFile *directory)
 
 typedef struct
 {
-  ThunarJob             *job;
   ThunarFile            *file;
-  const gchar           *display_name;
+  GFile                 *old_file;
+  GFile                 *renamed_file;
+  GFileInfo             *info;
   ThunarOperationLogMode log_mode;
-  GError                *error;
 } ThunarRenameJobData;
+
+
+
+static gboolean
+_thunar_io_jobs_rename_begin (gpointer user_data)
+{
+  thunar_file_set_renaming (THUNAR_FILE (user_data), TRUE);
+
+  return FALSE;
+}
 
 
 
@@ -1363,29 +1373,31 @@ _thunar_io_jobs_rename_notify (gpointer user_data)
 {
   ThunarRenameJobData *data = user_data;
   ThunarFile          *file = data->file;
-  GFile               *old_file;
   ThunarJobOperation  *operation;
 
-  old_file = g_object_ref (thunar_file_get_file (file));
+  thunar_file_set_renaming (file, FALSE);
 
-  if (thunar_file_rename (file, data->display_name, exo_job_get_cancellable (EXO_JOB (data->job)), TRUE, &data->error))
+  if (data->renamed_file == NULL)
     {
-      /* tell the associated folder that the file was renamed */
-      thunarx_file_info_renamed (THUNARX_FILE_INFO (file));
-
-      /* emit the file changed signal */
-      thunar_file_changed (file);
-
-      if (data->log_mode == THUNAR_OPERATION_LOG_OPERATIONS)
-        {
-          operation = thunar_job_operation_new (THUNAR_JOB_OPERATION_KIND_RENAME);
-          thunar_job_operation_add (operation, old_file, thunar_file_get_file (file));
-          thunar_job_operation_history_commit (operation);
-          g_object_unref (operation);
-        }
+      thunar_file_reload (file);
+      return FALSE;
     }
 
-  g_object_unref (old_file);
+  thunar_file_set_renamed (file, data->renamed_file, data->info);
+
+  /* tell the associated folder that the file was renamed */
+  thunarx_file_info_renamed (THUNARX_FILE_INFO (file));
+
+  /* emit the file changed signal */
+  thunar_file_changed (file);
+
+  if (data->log_mode == THUNAR_OPERATION_LOG_OPERATIONS)
+    {
+      operation = thunar_job_operation_new (THUNAR_JOB_OPERATION_KIND_RENAME);
+      thunar_job_operation_add (operation, data->old_file, data->renamed_file);
+      thunar_job_operation_history_commit (operation);
+      g_object_unref (operation);
+    }
 
   return FALSE;
 }
@@ -1398,30 +1410,45 @@ _thunar_io_jobs_rename (ThunarJob *job,
                         GError   **error)
 {
   ThunarRenameJobData data = { NULL, };
+  const gchar        *display_name;
+  GCancellable       *cancellable;
+  GError             *err = NULL;
 
   _thunar_return_val_if_fail (THUNAR_IS_JOB (job), FALSE);
   _thunar_return_val_if_fail (param_values != NULL, FALSE);
-  _thunar_return_val_if_fail (param_values->len == 3, FALSE);
+  _thunar_return_val_if_fail (param_values->len == 4, FALSE);
   _thunar_return_val_if_fail (G_VALUE_HOLDS (&g_array_index (param_values, GValue, 0), THUNAR_TYPE_FILE), FALSE);
-  _thunar_return_val_if_fail (G_VALUE_HOLDS_STRING (&g_array_index (param_values, GValue, 1)), FALSE);
-  _thunar_return_val_if_fail (G_VALUE_HOLDS_ENUM (&g_array_index (param_values, GValue, 2)), FALSE);
+  _thunar_return_val_if_fail (G_VALUE_HOLDS (&g_array_index (param_values, GValue, 1), G_TYPE_FILE), FALSE);
+  _thunar_return_val_if_fail (G_VALUE_HOLDS_STRING (&g_array_index (param_values, GValue, 2)), FALSE);
+  _thunar_return_val_if_fail (G_VALUE_HOLDS_ENUM (&g_array_index (param_values, GValue, 3)), FALSE);
   _thunar_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
   if (exo_job_set_error_if_cancelled (EXO_JOB (job), error))
     return FALSE;
 
-  /* determine the file, display name and log mode */
-  data.job = job;
+  /* determine the file, its location, display name and log mode */
   data.file = g_value_get_object (&g_array_index (param_values, GValue, 0));
-  data.display_name = g_value_get_string (&g_array_index (param_values, GValue, 1));
-  data.log_mode = g_value_get_enum (&g_array_index (param_values, GValue, 2));
+  data.old_file = g_value_get_object (&g_array_index (param_values, GValue, 1));
+  display_name = g_value_get_string (&g_array_index (param_values, GValue, 2));
+  data.log_mode = g_value_get_enum (&g_array_index (param_values, GValue, 3));
+  cancellable = exo_job_get_cancellable (EXO_JOB (job));
+
+  exo_job_send_to_mainloop (EXO_JOB (job), _thunar_io_jobs_rename_begin, data.file, NULL);
+
+  /* try to rename the file */
+  data.renamed_file = g_file_set_display_name (data.old_file, display_name, cancellable, &err);
+  if (data.renamed_file != NULL)
+    data.info = g_file_query_info (data.renamed_file, THUNARX_FILE_INFO_NAMESPACE, G_FILE_QUERY_INFO_NONE, cancellable, NULL);
 
   exo_job_send_to_mainloop (EXO_JOB (job), _thunar_io_jobs_rename_notify, &data, NULL);
 
+  g_clear_object (&data.renamed_file);
+  g_clear_object (&data.info);
+
   /* abort on errors or cancellation */
-  if (data.error != NULL)
+  if (err != NULL)
     {
-      g_propagate_error (error, data.error);
+      g_propagate_error (error, err);
       return FALSE;
     }
 
@@ -1438,8 +1465,9 @@ thunar_io_jobs_rename_file (ThunarFile            *file,
   _thunar_return_val_if_fail (THUNAR_IS_FILE (file), NULL);
   _thunar_return_val_if_fail (g_utf8_validate (display_name, -1, NULL), NULL);
 
-  return thunar_simple_job_new (_thunar_io_jobs_rename, 3,
+  return thunar_simple_job_new (_thunar_io_jobs_rename, 4,
                                 THUNAR_TYPE_FILE, file,
+                                G_TYPE_FILE, thunar_file_get_file (file),
                                 G_TYPE_STRING, display_name,
                                 THUNAR_TYPE_OPERATION_LOG_MODE, log_mode);
 }
