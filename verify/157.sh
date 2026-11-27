@@ -41,9 +41,8 @@ for ((n = 1; n <= N; n++)); do
   new=$(printf 'a%02d.txt' "$n")
   focus "$MAIN"
   xdotool key Home F2
-  sleep 0.3
-  xdotool key ctrl+a
-  xdotool type --delay 5 "$new"
+  sleep 0.5
+  xdotool type --delay 5 "${new%.txt}"
   xdotool key Return
   exists "$DIR/$new" "rename $n, $old to $new in place"
   [[ ! -e $DIR/$old ]] || fail "rename $n left $old on disk next to $new"
@@ -58,7 +57,7 @@ focus "$MAIN"
 xdotool key Home
 sleep 0.5
 shot "$MAIN" after-renames "After $N in-place renames in a row Thunar is still open, and the first row shows $LAST, selected, above the five m-*.txt files"
-pair renames "Renamed a00.txt in place with F2, a new name and Enter $N times in a row" \
+pair renames "Renamed a00.txt in place $N times in a row: F2, the new name without .txt, Enter" \
   "Quick in-place renames no longer crash Thunar; each one renames the file on disk and in the view" \
   "a00.txt selected" "Thunar still open, $LAST in the first row" "$G"
 
