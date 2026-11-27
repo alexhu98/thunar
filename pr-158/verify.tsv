@@ -1,5 +1,6 @@
 sha	num	test	result	shot	file	proves
-e00618cf204c11dcc412c8c6c7a0babf5dd3a614	1	157	pass	before-renames	verify-157-before-renames.png	The details view of files with a00.txt, the first row, selected and the five m-*.txt files below it
-e00618cf204c11dcc412c8c6c7a0babf5dd3a614	1	157	pass	after-renames	verify-157-after-renames.png	After 30 in-place renames in a row Thunar is still open, and the first row shows a30.txt, selected, above the five m-*.txt files
-e00618cf204c11dcc412c8c6c7a0babf5dd3a614	2	157	pass	undo	verify-157-undo.png	Ctrl+Z undid the last in-place rename: the first row shows a29.txt again, from the rename job's operation log entry
-e00618cf204c11dcc412c8c6c7a0babf5dd3a614	3	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
+e9298220d842ba95491ced6de3158759375c4802	1	157	pass	before-renames	verify-157-before-renames.png	The details view of files with a00.txt, the first row, selected and the five m-*.txt files below it
+e9298220d842ba95491ced6de3158759375c4802	1	157	pass	after-renames	verify-157-after-renames.png	After 30 in-place renames in a row Thunar is still open, and the first row shows a30.txt, selected, above the five m-*.txt files
+e9298220d842ba95491ced6de3158759375c4802	2	157	pass	undo	verify-157-undo.png	Ctrl+Z undid the last in-place rename: the first row shows a29.txt again, from the rename job's operation log entry
+e9298220d842ba95491ced6de3158759375c4802	3	157	pass	properties	verify-157-properties.png	After 10 renames in a row from its Name field, the Properties dialog is still open, titled p10.txt - Properties, with p10.txt in the Name field
+e9298220d842ba95491ced6de3158759375c4802	4	smoke	pass	window	verify-smoke-window.png	Thunar is still running 10 s after launch, with its window open on a folder of 2 folders and a file
