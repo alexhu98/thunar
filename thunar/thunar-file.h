@@ -189,7 +189,7 @@ thunar_file_rename (ThunarFile   *file,
                     GCancellable *cancellable,
                     GError      **error);
 
-void
+gboolean
 thunar_file_set_renaming (ThunarFile *file,
                           gboolean    renaming);
 

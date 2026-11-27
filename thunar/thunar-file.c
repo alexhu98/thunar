@@ -184,6 +184,7 @@ typedef enum
   THUNAR_FILE_FLAG_IN_DESTRUCTION = 1 << 2, /* for avoiding recursion during destroy */
   THUNAR_FILE_FLAG_IS_MOUNTED = 1 << 3,     /* whether this file is mounted */
   THUNAR_FILE_FLAG_RENAMING = 1 << 4,
+  THUNAR_FILE_FLAG_RENAME_HELD = 1 << 5,
 } ThunarFileFlags;
 
 struct _ThunarFileClass
@@ -2007,16 +2008,23 @@ thunar_file_rename (ThunarFile   *file,
 
 
 
-void
+gboolean
 thunar_file_set_renaming (ThunarFile *file,
                           gboolean    renaming)
 {
-  _thunar_return_if_fail (THUNAR_IS_FILE (file));
+  gboolean held;
+
+  _thunar_return_val_if_fail (THUNAR_IS_FILE (file), FALSE);
+
+  held = FLAG_IS_SET (file, THUNAR_FILE_FLAG_RENAME_HELD);
+  FLAG_UNSET (file, THUNAR_FILE_FLAG_RENAME_HELD);
 
   if (renaming)
     FLAG_SET (file, THUNAR_FILE_FLAG_RENAMING);
   else
     FLAG_UNSET (file, THUNAR_FILE_FLAG_RENAMING);
+
+  return held;
 }
 
 
@@ -4432,7 +4440,10 @@ thunar_file_reload_with_error (ThunarFile *file,
   _thunar_return_val_if_fail (THUNAR_IS_FILE (file), FALSE);
 
   if (FLAG_IS_SET (file, THUNAR_FILE_FLAG_RENAMING))
-    return TRUE;
+    {
+      FLAG_SET (file, THUNAR_FILE_FLAG_RENAME_HELD);
+      return TRUE;
+    }
 
   /* clear file pxmap cache */
   thunar_icon_factory_clear_pixmap_cache (file);
@@ -4516,7 +4527,9 @@ thunar_file_destroy (ThunarFile *file)
 {
   _thunar_return_if_fail (THUNAR_IS_FILE (file));
 
-  if (!FLAG_IS_SET (file, THUNAR_FILE_FLAG_IN_DESTRUCTION | THUNAR_FILE_FLAG_RENAMING))
+  if (FLAG_IS_SET (file, THUNAR_FILE_FLAG_RENAMING))
+    FLAG_SET (file, THUNAR_FILE_FLAG_RENAME_HELD);
+  else if (!FLAG_IS_SET (file, THUNAR_FILE_FLAG_IN_DESTRUCTION))
     g_signal_emit (file, file_signals[DESTROY], 0);
 }
 

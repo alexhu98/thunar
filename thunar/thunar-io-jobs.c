@@ -1374,8 +1374,9 @@ _thunar_io_jobs_rename_notify (gpointer user_data)
   ThunarRenameJobData *data = user_data;
   ThunarFile          *file = data->file;
   ThunarJobOperation  *operation;
+  gboolean             held;
 
-  thunar_file_set_renaming (file, FALSE);
+  held = thunar_file_set_renaming (file, FALSE);
 
   if (data->renamed_file == NULL)
     {
@@ -1398,6 +1399,9 @@ _thunar_io_jobs_rename_notify (gpointer user_data)
       thunar_job_operation_history_commit (operation);
       g_object_unref (operation);
     }
+
+  if (held)
+    thunar_file_reload (file);
 
   return FALSE;
 }
